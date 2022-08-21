@@ -284,10 +284,21 @@ static void detect_init(uint32_t time)
         error_list[i].solve_lost_fun = NULL;
         error_list[i].solve_data_error_fun = NULL;
 
-        error_list[i].enable = 1;
-        error_list[i].error_exist = 1;
-        error_list[i].is_lost = 1;
-        error_list[i].data_is_error = 1;
+        if (i == REFEREE_TOE)
+        {
+            // test_no_ref branch setup
+            error_list[i].enable = 0;
+            error_list[i].error_exist = 0;
+            error_list[i].is_lost = 0;
+            error_list[i].data_is_error = 0;
+        }
+        else
+        {
+            error_list[i].enable = 1;
+            error_list[i].error_exist = 1;
+            error_list[i].is_lost = 1;
+            error_list[i].data_is_error = 1;
+        }
         error_list[i].frequency = 0.0f;
         error_list[i].new_time = time;
         error_list[i].last_time = time;
