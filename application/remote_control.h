@@ -84,5 +84,5 @@ extern const RC_ctrl_t *get_remote_control_point(void);
 extern uint8_t RC_data_is_error(void);
 extern void slove_RC_lost(void);
 extern void slove_data_error(void);
-extern void sbus_to_usart1(uint8_t *sbus);
+// extern void sbus_to_usart1(uint8_t *sbus);
 #endif
