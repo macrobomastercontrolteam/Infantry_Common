@@ -1,6 +1,9 @@
-# MacRM_Standard_2022
-McMaster Robomaster Standard Infantry Robot Code for 2022 A&amp;M University Lone Star Competition
+# MacRM_Standard_2023
+McMaster Robomaster Standard Infantry Robot Code for 2023 Model
 Modified and inherited from previous code.
+
+# Mechanical Features
+- Steering motor chassis: four M6020 steering motors and four M3508 speed motors
 
 # Firmware Environment
 - Type C Development Board
