@@ -29,6 +29,12 @@
 /* CAN send and receive ID */
 typedef enum
 {
+    // Due to lack of ID space of M6020, trigger motor's ID has to be smaller than the smallest possible M6020 ID: 0x205
+    // But we till treat it as CAN_TRIGGER_MOTOR_ARRAY_ID in the "motor_chassis" array.
+    // Having the same ID as CAN_3508_M1_ID won't cause problem because they're on diff bus
+    // Relavant enum: TRIGGER_MOTOR_TOE
+    CAN_TRIGGER_MOTOR_CAN_ID = 0x201,
+
     CAN_CHASSIS_ALL_ID = 0x200,
     CAN_3508_M1_ID = 0x201,
     CAN_3508_M2_ID = 0x202,
@@ -37,7 +43,7 @@ typedef enum
 
     CAN_YAW_MOTOR_ID = 0x205,
     CAN_PIT_MOTOR_ID = 0x206,
-    CAN_TRIGGER_MOTOR_ID = 0x207,
+    CAN_TRIGGER_MOTOR_ARRAY_ID = 0x207,
     CAN_GIMBAL_ALL_ID = 0x1FF,
 
 } can_msg_id_e;

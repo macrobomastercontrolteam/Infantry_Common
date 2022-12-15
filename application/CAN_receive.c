@@ -67,29 +67,40 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     uint8_t rx_data[8];
 
     HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
-
-    switch (rx_header.StdId)
-    {
-        case CAN_3508_M1_ID:
-        case CAN_3508_M2_ID:
-        case CAN_3508_M3_ID:
-        case CAN_3508_M4_ID:
-        case CAN_YAW_MOTOR_ID:
-        case CAN_PIT_MOTOR_ID:
-        case CAN_TRIGGER_MOTOR_ID:
-        {
-            static uint8_t i = 0;
-            //get motor id
-            i = rx_header.StdId - CAN_3508_M1_ID;
-            get_motor_measure(&motor_chassis[i], rx_data);
-            detect_hook(CHASSIS_MOTOR1_TOE + i);
-            break;
+    
+    uint8_t bMotorId = 0;
+    uint8_t bMotorValid = 0;
+    bMotorId = rx_header.StdId - CAN_3508_M1_ID;
+    
+    if (hcan == &GIMBAL_CAN) {
+        switch (rx_header.StdId) {
+            case CAN_PIT_MOTOR_ID: {
+                bMotorValid = 1;
+                break;
+            }
+            
+            case CAN_TRIGGER_MOTOR_CAN_ID: {
+                bMotorId = CAN_TRIGGER_MOTOR_ARRAY_ID - CAN_3508_M1_ID;
+                bMotorValid = 1;
+                break;
+            }
         }
-
-        default:
-        {
-            break;
+    } else if (hcan == &CHASSIS_CAN) {
+        switch (rx_header.StdId) {
+            case CAN_3508_M1_ID:
+            case CAN_3508_M2_ID:
+            case CAN_3508_M3_ID:
+            case CAN_3508_M4_ID:
+            case CAN_YAW_MOTOR_ID: {
+                bMotorValid = 1;
+                break;
+            }
         }
+    }
+    
+    if (bMotorValid == 1) {
+        get_motor_measure(&motor_chassis[bMotorId], rx_data);
+        detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
     }
 }
 
@@ -126,9 +137,18 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev)
     gimbal_can_send_data[5] = shoot;
     gimbal_can_send_data[6] = (rev >> 8);
     gimbal_can_send_data[7] = rev;
+
+    // control pitch motor
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
-    // yaw motor is connected to chassis CAN to reduce wires required in slip ring
+
+    // control yaw motor (connected to chassis CAN to reduce wires required in slip ring)
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+
+    // control trigger motor
+    gimbal_tx_message.StdId = CAN_CHASSIS_ALL_ID;
+    gimbal_can_send_data[0] = (shoot >> 8);
+    gimbal_can_send_data[1] = shoot;
+    HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
 /**
