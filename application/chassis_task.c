@@ -143,10 +143,19 @@ void chassis_task(void const *pvParameters)
     chassis_init(&chassis_move);
     //make sure all chassis motor is online,
     //判断底盘电机是否都在线
-    while (toe_is_error(CHASSIS_MOTOR1_TOE) || toe_is_error(CHASSIS_MOTOR2_TOE) || toe_is_error(CHASSIS_MOTOR3_TOE) || toe_is_error(CHASSIS_MOTOR4_TOE) || toe_is_error(DBUS_TOE))
-    {
-        vTaskDelay(CHASSIS_CONTROL_TIME_MS);
-    }
+    uint8_t fIsError = 0;
+    uint8_t bToeIndex;
+    do {
+      for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_STEER_MOTOR4_TOE; bToeIndex++)
+      {
+        if (toe_is_error(bToeIndex))
+        {
+          fIsError = 1;
+          vTaskDelay(CHASSIS_CONTROL_TIME_MS);
+          break;
+        }
+      }
+    } while (fIsError);
 
     while (1)
     {
@@ -168,8 +177,10 @@ void chassis_task(void const *pvParameters)
 
         //make sure  one motor is online at least, so that the control CAN message can be received
         //确保至少一个电机在线， 这样CAN控制包可以被接收到
-        if (!(toe_is_error(CHASSIS_MOTOR1_TOE) && toe_is_error(CHASSIS_MOTOR2_TOE) && toe_is_error(CHASSIS_MOTOR3_TOE) && toe_is_error(CHASSIS_MOTOR4_TOE)))
+        for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_STEER_MOTOR4_TOE; bToeIndex++)
         {
+          if (!toe_is_error(bToeIndex))
+          {
             //when remote control is offline, chassis motor should receive zero current. 
             //当遥控器掉线的时候，发送给底盘电机零电流.
             if (toe_is_error(DBUS_TOE))
@@ -183,6 +194,8 @@ void chassis_task(void const *pvParameters)
                 CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current,
                                 chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
             }
+            break;
+          }
         }
         //os delay
         //系统延时

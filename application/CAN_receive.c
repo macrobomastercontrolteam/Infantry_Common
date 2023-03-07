@@ -40,11 +40,17 @@ extern CAN_HandleTypeDef hcan2;
         (ptr)->temperate = (data)[6];                                   \
     }
 /*
-motor data,  0:chassis motor1 3508;1:chassis motor3 3508;2:chassis motor3 3508;3:chassis motor4 3508;
-4:yaw gimbal motor 6020;5:pitch gimbal motor 6020;6:trigger motor 2006;
-电机数据, 0:底盘电机1 3508电机,  1:底盘电机2 3508电机,2:底盘电机3 3508电机,3:底盘电机4 3508电机;
-4:yaw云台电机 6020电机; 5:pitch云台电机 6020电机; 6:拨弹电机 2006电机*/
-static motor_measure_t motor_chassis[7];
+motor data
+0:chassis motor1 3508; 1:chassis motor2 3508; 2:chassis motor3 3508; 3:chassis motor4 3508;
+4:chassis steer motor1 6020; 5:chassis steer motor2 6020; 6:chassis steer motor3 6020; 7:chassis steer motor4 6020
+8:yaw gimbal motor 6020; 9:pitch gimbal motor 6020; 10:trigger motor 2006;
+
+电机数据,
+0:底盘电机1 3508电机, 1:底盘电机2 3508电机, 2:底盘电机3 3508电机, 3:底盘电机4 3508电机;
+4:底盘电机5 6020电机, 5:底盘电机6 6020电机, 6:底盘电机7 6020电机, 7:底盘电机8 6020电机;
+8:yaw云台电机 6020电机; 9:pitch云台电机 6020电机; 10:拨弹电机 2006电机
+*/
+static motor_measure_t motor_chassis[get_motor_array_index(CAN_LAST_ID) + 1];
 
 static CAN_TxHeaderTypeDef  gimbal_tx_message;
 static uint8_t              gimbal_can_send_data[8];
@@ -70,7 +76,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     
     uint8_t bMotorId = 0;
     uint8_t bMotorValid = 0;
-    bMotorId = rx_header.StdId - CAN_3508_M1_ID;
+    bMotorId = get_motor_array_index(rx_header.StdId);
     
     if (hcan == &GIMBAL_CAN) {
         switch (rx_header.StdId) {
@@ -80,7 +86,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             }
             
             case CAN_TRIGGER_MOTOR_CAN_ID: {
-                bMotorId = CAN_TRIGGER_MOTOR_ARRAY_ID - CAN_3508_M1_ID;
+                bMotorId = get_motor_array_index(CAN_TRIGGER_MOTOR_ARRAY_ID);
                 bMotorValid = 1;
                 break;
             }
@@ -91,6 +97,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             case CAN_3508_M2_ID:
             case CAN_3508_M3_ID:
             case CAN_3508_M4_ID:
+            case CAN_6020_M1_ID:
+            case CAN_6020_M2_ID:
+            case CAN_6020_M3_ID:
+            case CAN_6020_M4_ID:
             case CAN_YAW_MOTOR_ID: {
                 bMotorValid = 1;
                 break;
@@ -228,7 +238,7 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
   */
 const motor_measure_t *get_yaw_gimbal_motor_measure_point(void)
 {
-    return &motor_chassis[4];
+    return &motor_chassis[get_motor_array_index(CAN_YAW_MOTOR_ID)];
 }
 
 /**
@@ -243,7 +253,7 @@ const motor_measure_t *get_yaw_gimbal_motor_measure_point(void)
   */
 const motor_measure_t *get_pitch_gimbal_motor_measure_point(void)
 {
-    return &motor_chassis[5];
+    return &motor_chassis[get_motor_array_index(CAN_PIT_MOTOR_ID)];
 }
 
 
@@ -259,7 +269,7 @@ const motor_measure_t *get_pitch_gimbal_motor_measure_point(void)
   */
 const motor_measure_t *get_trigger_motor_measure_point(void)
 {
-    return &motor_chassis[6];
+    return &motor_chassis[get_motor_array_index(CAN_TRIGGER_MOTOR_ARRAY_ID)];
 }
 
 

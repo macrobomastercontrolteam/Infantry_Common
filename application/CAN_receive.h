@@ -25,27 +25,36 @@
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
+#define get_motor_array_index(_CAN_ID) (_CAN_ID - CAN_CHASSIS_ALL_ID - 1)
 
 /* CAN send and receive ID */
 typedef enum
 {
-    // Due to lack of ID space of M6020, trigger motor's ID has to be smaller than the smallest possible M6020 ID: 0x205
-    // But we till treat it as CAN_TRIGGER_MOTOR_ARRAY_ID in the "motor_chassis" array.
-    // Having the same ID as CAN_3508_M1_ID won't cause problem because they're on diff bus
-    // Relavant enum: TRIGGER_MOTOR_TOE
-    CAN_TRIGGER_MOTOR_CAN_ID = 0x201,
-
+    /*******Chassis CAN IDs********/
     CAN_CHASSIS_ALL_ID = 0x200,
+
     CAN_3508_M1_ID = 0x201,
     CAN_3508_M2_ID = 0x202,
     CAN_3508_M3_ID = 0x203,
     CAN_3508_M4_ID = 0x204,
+    CAN_6020_M1_ID = 0x205,
+    CAN_6020_M2_ID = 0x206,
+    CAN_6020_M3_ID = 0x207,
+    CAN_6020_M4_ID = 0x208,
+    CAN_YAW_MOTOR_ID = 0x209,
 
-    CAN_YAW_MOTOR_ID = 0x205,
-    CAN_PIT_MOTOR_ID = 0x206,
-    CAN_TRIGGER_MOTOR_ARRAY_ID = 0x207,
+    /********Gimbal CAN IDs********/
     CAN_GIMBAL_ALL_ID = 0x1FF,
 
+    CAN_PIT_MOTOR_ID = 0x20A,
+    // Due to lack of ID space of M6020, trigger motor's ID has to be smaller than the smallest possible M6020 ID: 0x205
+    // But we till treat it as CAN_TRIGGER_MOTOR_ARRAY_ID in the "motor_chassis" array.
+    // Having the same ID as CAN_3508_M1_ID won't cause problem because they're on diff bus
+    // Relavant enum: TRIGGER_MOTOR_TOE
+    CAN_TRIGGER_MOTOR_ARRAY_ID = 0x20B,
+    CAN_TRIGGER_MOTOR_CAN_ID = 0x201,
+
+    CAN_LAST_ID = 0x20B,
 } can_msg_id_e;
 
 //rm motor data
