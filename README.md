@@ -1,6 +1,11 @@
 # MacRM_Standard_2023
-McMaster Robomaster Standard Infantry Robot Code for 2023 Model
-Modified and inherited from previous code.
+McMaster Robomaster Standard Infantry Robot Code for 2023 Steering-wheel-chassis Model
+
+Developed based on "RoboMaster competition robot 2020 self-assembly version A". Refer to user manuals posted on
+> "File download: [RoboMaster Competition Robot 2020 Self-Assembled Version A Type Related Documents](https://rm-static.djicdn.com/documents/26898/57bcb7163d7bd1575980335867998835.7z)"
+
+on 
+> RM's Official website: https://www.robomaster.com/zh-CN/resource/pages/announcement/1081.
 
 # Mechanical Features
 - Steering motor chassis: four M6020 steering motors and four M3508 speed motors

@@ -82,7 +82,7 @@ enum errorList
     BOARD_MAG_TOE,
     REFEREE_TOE,
     RM_IMU_TOE,
-    OLED_TOE,
+    // OLED_TOE,
     ERROR_LIST_LENGHT,
 };
 
