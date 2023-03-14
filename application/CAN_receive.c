@@ -192,24 +192,33 @@ void CAN_cmd_chassis_reset_ID(void)
 
 
 /**
-  * @brief          send control current of motor (0x201, 0x202, 0x203, 0x204)
+  * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
   * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
+  * @param[in]      steer_motor1: (0x205) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor2: (0x206) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor3: (0x207) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor4: (0x208) 6020 motor control voltage, range [-30000,30000] 
   * @retval         none
   */
 /**
-  * @brief          发送电机控制电流(0x201,0x202,0x203,0x204)
+  * @brief          发送电机控制电流或电压
   * @param[in]      motor1: (0x201) 3508电机控制电流, 范围 [-16384,16384]
   * @param[in]      motor2: (0x202) 3508电机控制电流, 范围 [-16384,16384]
   * @param[in]      motor3: (0x203) 3508电机控制电流, 范围 [-16384,16384]
   * @param[in]      motor4: (0x204) 3508电机控制电流, 范围 [-16384,16384]
+  * @param[in]      steer_motor1: (0x205) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor2: (0x206) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor3: (0x207) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor4: (0x208) 6020 motor control voltage, range [-30000,30000] 
   * @retval         none
   */
-void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4)
+void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, int16_t steer_motor1, int16_t steer_motor2, int16_t steer_motor3, int16_t steer_motor4)
 {
     uint32_t send_mail_box;
+    // driver motors (M3508)
     chassis_tx_message.StdId = CAN_CHASSIS_ALL_ID;
     chassis_tx_message.IDE = CAN_ID_STD;
     chassis_tx_message.RTR = CAN_RTR_DATA;
@@ -222,7 +231,18 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     chassis_can_send_data[5] = motor3;
     chassis_can_send_data[6] = motor4 >> 8;
     chassis_can_send_data[7] = motor4;
+    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 
+    // steering motors (GM6020)
+    chassis_tx_message.StdId = CAN_GIMBAL_ALL_ID;
+    chassis_can_send_data[0] = steer_motor1 >> 8;
+    chassis_can_send_data[1] = steer_motor1;
+    chassis_can_send_data[2] = steer_motor2 >> 8;
+    chassis_can_send_data[3] = steer_motor2;
+    chassis_can_send_data[4] = steer_motor3 >> 8;
+    chassis_can_send_data[5] = steer_motor3;
+    chassis_can_send_data[6] = steer_motor4 >> 8;
+    chassis_can_send_data[7] = steer_motor4;
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
 
@@ -274,16 +294,16 @@ const motor_measure_t *get_trigger_motor_measure_point(void)
 
 
 /**
-  * @brief          return the chassis 3508 motor data point
-  * @param[in]      i: motor number,range [0,3]
+  * @brief          return the chassis 3508 or 6020 motor data point
+  * @param[in]      i: motor number,range [0,7]
   * @retval         motor data point
   */
 /**
-  * @brief          返回底盘电机 3508电机数据指针
-  * @param[in]      i: 电机编号,范围[0,3]
+  * @brief          返回底盘电机 3508或6020电机数据指针
+  * @param[in]      i: 电机编号,范围[0,7]
   * @retval         电机数据指针
   */
 const motor_measure_t *get_chassis_motor_measure_point(uint8_t i)
 {
-    return &motor_chassis[(i & 0x03)];
+    return &motor_chassis[(i & 0x07)];
 }

@@ -99,22 +99,30 @@ extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t re
 extern void CAN_cmd_chassis_reset_ID(void);
 
 /**
-  * @brief          send control current of motor (0x201, 0x202, 0x203, 0x204)
+  * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
   * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
+  * @param[in]      steer_motor1: (0x205) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor2: (0x206) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor3: (0x207) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor4: (0x208) 6020 motor control voltage, range [-30000,30000] 
   * @retval         none
   */
 /**
-  * @brief          发送电机控制电流(0x201,0x202,0x203,0x204)
+  * @brief          发送电机控制电流或电压
   * @param[in]      motor1: (0x201) 3508电机控制电流, 范围 [-16384,16384]
   * @param[in]      motor2: (0x202) 3508电机控制电流, 范围 [-16384,16384]
   * @param[in]      motor3: (0x203) 3508电机控制电流, 范围 [-16384,16384]
   * @param[in]      motor4: (0x204) 3508电机控制电流, 范围 [-16384,16384]
+  * @param[in]      steer_motor1: (0x205) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor2: (0x206) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor3: (0x207) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor4: (0x208) 6020 motor control voltage, range [-30000,30000] 
   * @retval         none
   */
-extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
+extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, int16_t steer_motor1, int16_t steer_motor2, int16_t steer_motor3, int16_t steer_motor4);
 
 /**
   * @brief          return the yaw 6020 motor data point

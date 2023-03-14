@@ -63,12 +63,11 @@
 //摇杆死区
 #define CHASSIS_RC_DEADLINE 10
 
-#define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
-#define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
-#define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
-
-
-#define MOTOR_DISTANCE_TO_CENTER 0.2f
+#define CHASSIS_Y_DIRECTION_HALF_LENGTH 0.2f
+#define CHASSIS_X_DIRECTION_HALF_LENGTH 0.2f
+#define MOTOR_DISTANCE_TO_CENTER 0.28284271247461906f // sqrt(pow(CHASSIS_Y_DIRECTION_HALF_LENGTH,2)+pow(CHASSIS_X_DIRECTION_HALF_LENGTH,2))
+#define CHASSIS_ANGLE_COS 0.7071067811865475f // (CHASSIS_X_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
+#define CHASSIS_ANGLE_SIN 0.7071067811865475f // (CHASSIS_Y_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
 
 //chassis task control time  2ms
 //底盘任务控制间隔 2ms
@@ -82,6 +81,9 @@
 //chassis 3508 max motor control current
 //底盘3508最大can发送电流值
 #define MAX_MOTOR_CAN_CURRENT 16000.0f
+//chassis 6020 max motor control voltage
+//底盘6020最大can发送电压值
+#define MAX_MOTOR_CAN_VOLTAGE 20000.0f
 //press the key, chassis will swing
 //底盘摇摆按键
 #define SWING_KEY KEY_PRESSED_OFFSET_CTRL
@@ -124,6 +126,19 @@
 #define M3505_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
 #define M3505_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
 
+//chassis steering motor absolute angle PID
+//底盘舵轮电机单级角度环PID
+#define M6020_MOTOR_ANGLE_PID_KP        30.0f
+#define M6020_MOTOR_ANGLE_PID_KI        1.0f
+#define M6020_MOTOR_ANGLE_PID_KD        0.0f
+#define M6020_MOTOR_ANGLE_PID_MAX_OUT   MAX_MOTOR_CAN_VOLTAGE
+#define M6020_MOTOR_ANGLE_PID_MAX_IOUT  10000.0f
+//chassis steering motor absolute angle ecd offset
+#define M6020_MOTOR_0_ANGLE_ECD_OFFSET 0U
+#define M6020_MOTOR_1_ANGLE_ECD_OFFSET 0U
+#define M6020_MOTOR_2_ANGLE_ECD_OFFSET 0U
+#define M6020_MOTOR_3_ANGLE_ECD_OFFSET 0U
+
 //chassis follow angle PID
 //底盘旋转跟随PID
 #define CHASSIS_FOLLOW_GIMBAL_PID_KP 40.0f
@@ -152,6 +167,15 @@ typedef struct
 
 typedef struct
 {
+  const motor_measure_t *chassis_motor_measure;
+  uint16_t offset_ecd;
+  fp32 absolute_angle;
+  fp32 absolute_angle_set;
+  int16_t give_voltage;
+} chassis_steer_motor_t;
+
+typedef struct
+{
   const RC_ctrl_t *chassis_RC;               //底盘使用的遥控器指针, the point to remote control
   const gimbal_motor_t *chassis_yaw_motor;   //will use the relative angle of yaw gimbal motor to calculate the euler angle.底盘使用到yaw云台电机的相对角度来计算底盘的欧拉角.
   const gimbal_motor_t *chassis_pitch_motor; //will use the relative angle of pitch gimbal motor to calculate the euler angle.底盘使用到pitch云台电机的相对角度来计算底盘的欧拉角
@@ -159,15 +183,17 @@ typedef struct
   chassis_mode_e chassis_mode;               //state machine. 底盘控制状态机
   chassis_mode_e last_chassis_mode;          //last state machine.底盘上次控制状态机
   chassis_motor_t motor_chassis[4];          //chassis motor data.底盘电机数据
+  chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data.底盘舵轮电机数据
   pid_type_def motor_speed_pid[4];             //motor speed PID.底盘电机速度pid
+  pid_type_def steer_motor_angle_pid[4];       //steering motor angle PID.底盘舵轮电机角度pid
   pid_type_def chassis_angle_pid;              //follow angle PID.底盘跟随角度pid
 
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
   first_order_filter_type_t chassis_cmd_slow_set_vy;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
 
-  fp32 vx;                          //chassis vertical speed, positive means forward,unit m/s. 底盘速度 前进方向 前为正，单位 m/s
-  fp32 vy;                          //chassis horizontal speed, positive means letf,unit m/s.底盘速度 左右方向 左为正  单位 m/s
-  fp32 wz;                          //chassis rotation speed, positive means counterclockwise,unit rad/s.底盘旋转角速度，逆时针为正 单位 rad/s
+  // fp32 vx;                          //chassis vertical speed, positive means forward,unit m/s. 底盘速度 前进方向 前为正，单位 m/s
+  // fp32 vy;                          //chassis horizontal speed, positive means letf,unit m/s.底盘速度 左右方向 左为正  单位 m/s
+  // fp32 wz;                          //chassis rotation speed, positive means counterclockwise,unit rad/s.底盘旋转角速度，逆时针为正 单位 rad/s
   fp32 vx_set;                      //chassis set vertical speed,positive means forward,unit m/s.底盘设定速度 前进方向 前为正，单位 m/s
   fp32 vy_set;                      //chassis set horizontal speed,positive means left,unit m/s.底盘设定速度 左右方向 左为正，单位 m/s
   fp32 wz_set;                      //chassis set rotation speed,positive means counterclockwise,unit rad/s.底盘设定旋转角速度，逆时针为正 单位 rad/s

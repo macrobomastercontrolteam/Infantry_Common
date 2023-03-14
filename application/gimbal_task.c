@@ -129,7 +129,7 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *mode_change);
   * @param[in]      offset_ecd: 电机中值编码
   * @retval         相对角度，单位rad
   */
-static fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
+fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 /**
   * @brief          set gimbal control set-point, control set-point is set by "gimbal_behaviour_control_set".         
   * @param[out]     gimbal_set_control: "gimbal_control" valiable point
@@ -752,7 +752,7 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
   * @param[in]      offset_ecd: 电机中值编码
   * @retval         相对角度，单位rad
   */
-static fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd)
+fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd)
 {
     int32_t relative_ecd = ecd - offset_ecd;
     if (relative_ecd > HALF_ECD_RANGE)
