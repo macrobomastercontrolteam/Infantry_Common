@@ -284,6 +284,7 @@ static void detect_init(uint32_t time)
         error_list[i].solve_lost_fun = NULL;
         error_list[i].solve_data_error_fun = NULL;
 
+#if defined(TEST_NO_REF)
         if (i == REFEREE_TOE)
         {
             // test_no_ref branch setup
@@ -293,6 +294,7 @@ static void detect_init(uint32_t time)
             error_list[i].data_is_error = 0;
         }
         else
+#endif
         {
             error_list[i].enable = 1;
             error_list[i].error_exist = 1;

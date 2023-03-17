@@ -45,8 +45,8 @@ void usb_task(void const * argument)
     while(1)
     {
         osDelay(1000);
-        // test_no_ref branch setup
         usb_printf(
+#if defined(TEST_NO_REF)
 "******************************\r\n\
 voltage percentage:%d%% \r\n\
 DBUS:%s\r\n\
@@ -62,6 +62,23 @@ accel sensor:%s\r\n\
 mag sensor:%s\r\n\
 referee usart (ignored):%s\r\n\
 ******************************\r\n",
+#else
+"******************************\r\n\
+voltage percentage:%d%% \r\n\
+DBUS:%s\r\n\
+chassis motor1:%s\r\n\
+chassis motor2:%s\r\n\
+chassis motor3:%s\r\n\
+chassis motor4:%s\r\n\
+yaw motor:%s\r\n\
+pitch motor:%s\r\n\
+trigger motor:%s\r\n\
+gyro sensor:%s\r\n\
+accel sensor:%s\r\n\
+mag sensor:%s\r\n\
+referee usart:%s\r\n\
+******************************\r\n",
+#endif
             get_battery_percentage(), 
             status[error_list_usb_local[DBUS_TOE].error_exist],
             status[error_list_usb_local[CHASSIS_MOTOR1_TOE].error_exist],
