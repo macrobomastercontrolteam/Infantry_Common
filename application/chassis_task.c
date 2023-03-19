@@ -155,6 +155,10 @@ void chassis_task(void const *pvParameters)
           break;
         }
       }
+      if (bToeIndex > CHASSIS_STEER_MOTOR4_TOE)
+      {
+        fIsError = 0;
+      }
     } while (fIsError);
 
     while (1)
