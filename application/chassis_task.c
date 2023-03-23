@@ -610,6 +610,13 @@ static void chassis_vector_to_wheel_vector(const fp32 vx_set, const fp32 vy_set,
         // steer_wheel_angle: unit rad; range is [-PI, PI]; positive direction is clockwise; forward direction is angle=0
         steer_wheel_angle[i] = atan2f(wheel_velocity[i][0],wheel_velocity[i][1]);
 
+        if (fabs(rad_format(steer_wheel_angle[i] - last_steer_wheel_angle_target[i])) <= PI/2)
+        {
+          // angle between last and target is smaller than 90 deg, so simply reverse drive wheel reduces time to turn
+          steer_wheel_angle[i] = rad_format(steer_wheel_angle[i] + PI);
+          wheel_speed[i] = -wheel_speed[i];
+        }
+
         last_steer_wheel_angle_target[i] = steer_wheel_angle[i];
       }
     }
