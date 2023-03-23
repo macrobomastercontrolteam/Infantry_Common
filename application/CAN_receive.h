@@ -32,6 +32,7 @@ typedef enum
 {
     /*******Chassis CAN IDs********/
     CAN_CHASSIS_ALL_ID = 0x200,
+    CAN_CHASSIS_GM6020_TX_ID = 0x1FF,
 
     CAN_3508_M1_ID = 0x201,
     CAN_3508_M2_ID = 0x202,

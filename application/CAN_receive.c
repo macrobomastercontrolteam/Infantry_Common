@@ -234,7 +234,7 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 
     // steering motors (GM6020)
-    chassis_tx_message.StdId = CAN_GIMBAL_ALL_ID;
+    chassis_tx_message.StdId = CAN_CHASSIS_GM6020_TX_ID;
     chassis_can_send_data[0] = steer_motor1 >> 8;
     chassis_can_send_data[1] = steer_motor1;
     chassis_can_send_data[2] = steer_motor2 >> 8;
