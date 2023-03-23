@@ -114,6 +114,8 @@ static void chassis_set_contorl(chassis_move_t *chassis_move_control);
   */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 
+static fp32 steer_motor_PID_calc(pid_type_def *pid, fp32 ref, fp32 set);
+
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
 #endif
@@ -604,10 +606,12 @@ static void chassis_vector_to_wheel_vector(const fp32 vx_set, const fp32 vy_set,
       }
       else
       {
-        steer_wheel_angle[i] = atan2f(wheel_velocity[i][0],wheel_velocity[i][1]); // returns radian
+        // (https://en.cppreference.com/w/c/numeric/math/atan2)
+        // steer_wheel_angle: unit rad; range is [-PI, PI]; positive direction is clockwise; forward direction is angle=0
+        steer_wheel_angle[i] = atan2f(wheel_velocity[i][0],wheel_velocity[i][1]);
+
         last_steer_wheel_angle_target[i] = steer_wheel_angle[i];
       }
-      steer_wheel_angle[i] = steer_wheel_angle[i] * 180.0f / PI;
     }
 }
 
@@ -628,7 +632,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
     fp32 max_vector = 0.0f, vector_rate = 0.0f;
     fp32 temp = 0.0f;
     fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-    fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit rad
     uint8_t i = 0;
 
     //wheel vector calculation
@@ -676,7 +680,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
     for (i = 0; i < 4; i++)
     {
         PID_calc(&chassis_move_control_loop->motor_speed_pid[i], chassis_move_control_loop->motor_chassis[i].speed, chassis_move_control_loop->motor_chassis[i].speed_set);
-        PID_calc(&chassis_move_control_loop->steer_motor_angle_pid[i], chassis_move_control_loop->steer_motor_chassis[i].absolute_angle, chassis_move_control_loop->steer_motor_chassis[i].absolute_angle_set);
+        steer_motor_PID_calc(&chassis_move_control_loop->steer_motor_angle_pid[i], chassis_move_control_loop->steer_motor_chassis[i].absolute_angle, chassis_move_control_loop->steer_motor_chassis[i].absolute_angle_set);
     }
 
 
@@ -690,4 +694,36 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
         chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(chassis_move_control_loop->motor_speed_pid[i].out);
         chassis_move_control_loop->steer_motor_chassis[i].give_voltage = (int16_t)(chassis_move_control_loop->steer_motor_angle_pid[i].out);
     }
+}
+
+/**
+  * @brief          pid calculate for GM6020 steering motor.
+  * Because encoder angle may have underflow or overflow, error is calculated differently, we can't use PID in pid.c
+  * @param[out]     pid: PID struct data point
+  * @param[in]      ref: feedback data. unit rad. Within range [-PI, PI]
+  * @param[in]      set: set point. unit rad. Within range [-PI, PI]
+  * @retval         pid out
+  */
+static fp32 steer_motor_PID_calc(pid_type_def *pid, fp32 ref, fp32 set)
+{
+    if (pid == NULL)
+    {
+        return 0.0f;
+    }
+
+    pid->error[2] = pid->error[1];
+    pid->error[1] = pid->error[0];
+    pid->set = set;
+    pid->fdb = ref;
+    pid->error[0] = rad_format(set - ref);
+    pid->Pout = pid->Kp * pid->error[0];
+    pid->Iout += pid->Ki * pid->error[0];
+    pid->Dbuf[2] = pid->Dbuf[1];
+    pid->Dbuf[1] = pid->Dbuf[0];
+    pid->Dbuf[0] = (pid->error[0] - pid->error[1]);
+    pid->Dout = pid->Kd * pid->Dbuf[0];
+    LimitMax(&pid->Iout, pid->max_iout);
+    pid->out = pid->Pout + pid->Iout + pid->Dout;
+    LimitMax(&pid->out, pid->max_out);
+    return pid->out;
 }

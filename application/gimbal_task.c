@@ -744,7 +744,7 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
   * @brief          calculate the relative angle between ecd and offset_ecd
   * @param[in]      ecd: motor now encode
   * @param[in]      offset_ecd: gimbal offset encode
-  * @retval         relative angle, unit rad
+  * @retval         relative angle; unit rad; range is [-PI, PI]; positive direction is clockwise; forward direction is angle=0
   */
 /**
   * @brief          计算ecd与offset_ecd之间的相对角度
@@ -1118,9 +1118,9 @@ static fp32 gimbal_PID_calc(gimbal_PID_t *pid, fp32 get, fp32 set, fp32 error_de
     pid->Pout = pid->kp * pid->err;
     pid->Iout += pid->ki * pid->err;
     pid->Dout = pid->kd * error_delta;
-    abs_limit(&pid->Iout, pid->max_iout);
+    LimitMax(&pid->Iout, pid->max_iout);
     pid->out = pid->Pout + pid->Iout + pid->Dout;
-    abs_limit(&pid->out, pid->max_out);
+    LimitMax(&pid->out, pid->max_out);
     return pid->out;
 }
 

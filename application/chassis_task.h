@@ -128,8 +128,8 @@
 
 //chassis steering motor absolute angle PID
 //底盘舵轮电机单级角度环PID
-#define M6020_MOTOR_ANGLE_PID_KP        30.0f
-#define M6020_MOTOR_ANGLE_PID_KI        1.0f
+#define M6020_MOTOR_ANGLE_PID_KP        1718.9f // 30*180/PI
+#define M6020_MOTOR_ANGLE_PID_KI        57.3f // 180/PI
 #define M6020_MOTOR_ANGLE_PID_KD        0.0f
 #define M6020_MOTOR_ANGLE_PID_MAX_OUT   MAX_MOTOR_CAN_VOLTAGE
 #define M6020_MOTOR_ANGLE_PID_MAX_IOUT  10000.0f
@@ -169,8 +169,8 @@ typedef struct
 {
   const motor_measure_t *chassis_motor_measure;
   uint16_t offset_ecd;
-  fp32 absolute_angle;
-  fp32 absolute_angle_set;
+  fp32 absolute_angle; ///< unit rad; range is [-PI, PI]; positive direction is clockwise; forward direction is angle=0
+  fp32 absolute_angle_set; ///< unit rad; range is [-PI, PI]; positive direction is clockwise; forward direction is angle=0
   int16_t give_voltage;
 } chassis_steer_motor_t;
 

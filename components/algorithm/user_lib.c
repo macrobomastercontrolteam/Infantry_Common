@@ -82,19 +82,6 @@ void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type,
         first_order_filter_type->num[0] / (first_order_filter_type->num[0] + first_order_filter_type->frame_period) * first_order_filter_type->out + first_order_filter_type->frame_period / (first_order_filter_type->num[0] + first_order_filter_type->frame_period) * first_order_filter_type->input;
 }
 
-//绝对限制
-void abs_limit(fp32 *num, fp32 Limit)
-{
-    if (*num > Limit)
-    {
-        *num = Limit;
-    }
-    else if (*num < -Limit)
-    {
-        *num = -Limit;
-    }
-}
-
 //判断符号位
 fp32 sign(fp32 value)
 {
