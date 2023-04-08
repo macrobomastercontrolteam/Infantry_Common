@@ -562,9 +562,9 @@ static void chassis_set_contorl(chassis_move_t *chassis_move_control)
 
 /**
   * @brief          four drive wheels' speeds and four steering wheels' angles are calculated by three chassis param. 
-  * @param[in]      vx_set: vertial speed
-  * @param[in]      vy_set: horizontal speed
-  * @param[in]      wz_set: rotation speed
+  * @param[in]      vx_set: vertial speed (up is positive)
+  * @param[in]      vy_set: horizontal speed (remote controller: left is positive; internal calculation: right is positive)
+  * @param[in]      wz_set: rotation speed (counter-clockwise is positive)
   * @param[out]     wheel_speed: four drive wheels speed
   * @param[out]     steer_wheel_angle: four steering wheels angle. Angle between positive y-axis and total velocity
   * @retval         none
@@ -578,24 +578,26 @@ static void chassis_set_contorl(chassis_move_t *chassis_move_control)
   * @param[out]     wheel_angle: 四个舵轮角度
   * @retval         none
   */
-static void chassis_vector_to_wheel_vector(const fp32 vx_set, const fp32 vy_set, const fp32 wz_set, fp32 wheel_speed[4], fp32 steer_wheel_angle[4])
+void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 wheel_speed[4], fp32 steer_wheel_angle[4])
 {
+    // remote controller: left is positive; internal calculation: right is positive
+    vy_set = -vy_set;
     //because the gimbal is in front of chassis, when chassis rotates, wheel 0 and wheel 1 should be slower and wheel 2 and wheel 3 should be faster
     //CHASSIS_WZ_SET_SCALE makes a coarse adjustment for that
     //旋转的时候， 由于云台靠前，所以是前面两轮 0 ，1 旋转的速度变慢， 后面两轮 2,3 旋转的速度变快
     fp32 wz_set_adjusted_front_wheels = (1.0f - CHASSIS_WZ_SET_SCALE) * wz_set;
-    fp32 tangential_speed_x_front_wheels = wz_set_adjusted_front_wheels * CHASSIS_Y_DIRECTION_HALF_LENGTH; // wz_set * R * sin(theta)
-    fp32 tangential_speed_y_front_wheels = wz_set_adjusted_front_wheels * CHASSIS_X_DIRECTION_HALF_LENGTH; // wz_set * R * cos(theta)
+    fp32 tangential_speed_x_front_wheels = wz_set_adjusted_front_wheels * CHASSIS_Y_DIRECTION_HALF_LENGTH; // wz_set * R * cos(theta)
+    fp32 tangential_speed_y_front_wheels = wz_set_adjusted_front_wheels * CHASSIS_X_DIRECTION_HALF_LENGTH; // wz_set * R * sin(theta)
 
     fp32 wz_set_adjusted_rear_wheels = (1.0f + CHASSIS_WZ_SET_SCALE) * wz_set;
-    fp32 tangential_speed_x_rear_wheels = wz_set_adjusted_rear_wheels * CHASSIS_Y_DIRECTION_HALF_LENGTH; // wz_set * R * sin(theta)
-    fp32 tangential_speed_y_rear_wheels = wz_set_adjusted_rear_wheels * CHASSIS_X_DIRECTION_HALF_LENGTH; // wz_set * R * cos(theta)
+    fp32 tangential_speed_x_rear_wheels = wz_set_adjusted_rear_wheels * CHASSIS_Y_DIRECTION_HALF_LENGTH; // wz_set * R * cos(theta)
+    fp32 tangential_speed_y_rear_wheels = wz_set_adjusted_rear_wheels * CHASSIS_X_DIRECTION_HALF_LENGTH; // wz_set * R * sin(theta)
 
     //pairs of velocities represented by (x,y)
     fp32 wheel_velocity[4][2] = {
-      {vx_set - tangential_speed_x_front_wheels, vy_set + tangential_speed_y_front_wheels},
+      {vx_set + tangential_speed_x_front_wheels, vy_set - tangential_speed_y_front_wheels},
       {vx_set - tangential_speed_x_front_wheels, vy_set - tangential_speed_y_front_wheels},
-      {vx_set + tangential_speed_x_rear_wheels, vy_set - tangential_speed_y_rear_wheels},
+      {vx_set - tangential_speed_x_rear_wheels, vy_set + tangential_speed_y_rear_wheels},
       {vx_set + tangential_speed_x_rear_wheels, vy_set + tangential_speed_y_rear_wheels},
     };
 
@@ -615,19 +617,23 @@ static void chassis_vector_to_wheel_vector(const fp32 vx_set, const fp32 vy_set,
       else
       {
         // (https://en.cppreference.com/w/c/numeric/math/atan2)
-        // steer_wheel_angle: unit rad; range is [-PI, PI]; positive direction is clockwise; forward direction is angle=0
-        steer_wheel_angle[i] = atan2f(wheel_velocity[i][0],wheel_velocity[i][1]);
+        // steer_wheel_angle: unit rad; range is [-PI, PI]; positive direction is clockwise
+        steer_wheel_angle[i] = atan2f(wheel_velocity[i][1],wheel_velocity[i][0]);
 
-        if (fabs(rad_format(steer_wheel_angle[i] - last_steer_wheel_angle_target[i])) <= PI/2)
+        if (fabs(rad_format(steer_wheel_angle[i] - last_steer_wheel_angle_target[i])) > PI/2)
         {
-          // angle between last and target is smaller than 90 deg, so simply reverse drive wheel reduces time to turn
-          steer_wheel_angle[i] = rad_format(steer_wheel_angle[i] + PI);
-          wheel_speed[i] = -wheel_speed[i];
+         // if angle between last and target is greater than 90 deg, simply reverse drive wheel reduces time to turn
+         steer_wheel_angle[i] = rad_format(steer_wheel_angle[i] + PI);
+         wheel_speed[i] = -wheel_speed[i];
         }
 
         last_steer_wheel_angle_target[i] = steer_wheel_angle[i];
       }
     }
+
+    // reverse direction because of special initial direction
+    wheel_speed[1] = -wheel_speed[1];
+    wheel_speed[2] = -wheel_speed[2];
 }
 
 
@@ -646,7 +652,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 {
     fp32 max_vector = 0.0f, vector_rate = 0.0f;
     fp32 temp = 0.0f;
-    fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
     fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit rad
     uint8_t i = 0;
 
