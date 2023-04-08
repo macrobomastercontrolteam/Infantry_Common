@@ -82,6 +82,33 @@ void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type,
         first_order_filter_type->num[0] / (first_order_filter_type->num[0] + first_order_filter_type->frame_period) * first_order_filter_type->out + first_order_filter_type->frame_period / (first_order_filter_type->num[0] + first_order_filter_type->frame_period) * first_order_filter_type->input;
 }
 
+/**
+  * @brief          Moving average
+  * @author         2022 MacFalcons
+  * @param[in]      input
+  * @param[in]      handler
+  * @retval         average
+  */
+fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fSkip)
+{
+    fp32 output;
+    if (fSkip)
+    {
+        moving_average_type->sum = input*moving_average_type->size;
+        memset(moving_average_type->ring, input, moving_average_type->size);
+        output = input;
+    }
+    else
+    {
+        // history[cursor] is the current oldest history in the ring
+        moving_average_type->sum = moving_average_type->sum - moving_average_type->ring[moving_average_type->cursor] + input;
+        moving_average_type->ring[moving_average_type->cursor] = input;
+        moving_average_type->cursor = (moving_average_type->cursor + 1) % moving_average_type->size;
+        output = (moving_average_type->sum) / ((float)(moving_average_type->size));
+    }
+    return output;
+}
+
 //еп╤о╥Ш╨ен╩
 fp32 sign(fp32 value)
 {

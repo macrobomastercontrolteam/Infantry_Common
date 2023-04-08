@@ -63,6 +63,8 @@
 //摇杆死区
 #define CHASSIS_RC_DEADLINE 10
 
+#define CHASSIS_FEEDBACK_SPEED_MOVING_AVERAGE_DEPTH 4
+
 #define CHASSIS_Y_DIRECTION_HALF_LENGTH 0.2f
 #define CHASSIS_X_DIRECTION_HALF_LENGTH 0.2f
 #define MOTOR_DISTANCE_TO_CENTER 0.28284271247461906f // sqrt(pow(CHASSIS_Y_DIRECTION_HALF_LENGTH,2)+pow(CHASSIS_X_DIRECTION_HALF_LENGTH,2))
@@ -190,6 +192,9 @@ typedef struct
 
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
   first_order_filter_type_t chassis_cmd_slow_set_vy;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
+  
+  fp32 chassis_speed_motor_feedback_ring[4][CHASSIS_FEEDBACK_SPEED_MOVING_AVERAGE_DEPTH];
+  moving_average_type_t chassis_speed_motor_slow_feedback[4];  //use moving average for speed motor speed feedback.
 
   // fp32 vx;                          //chassis vertical speed, positive means forward,unit m/s. 底盘速度 前进方向 前为正，单位 m/s
   // fp32 vy;                          //chassis horizontal speed, positive means letf,unit m/s.底盘速度 左右方向 左为正  单位 m/s

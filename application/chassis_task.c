@@ -283,6 +283,15 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_vx, CHASSIS_CONTROL_TIME, chassis_x_order_filter);
     first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_vy, CHASSIS_CONTROL_TIME, chassis_y_order_filter);
 
+    //init moving average filters for speed motors
+    for (i = 0; i < 4; i++)
+    {
+        chassis_move_init->chassis_speed_motor_slow_feedback[i].size = CHASSIS_FEEDBACK_SPEED_MOVING_AVERAGE_DEPTH;
+        chassis_move_init->chassis_speed_motor_slow_feedback[i].ring = chassis_move_init->chassis_speed_motor_feedback_ring[i];
+        chassis_move_init->chassis_speed_motor_slow_feedback[i].sum = 0;
+        chassis_move_init->chassis_speed_motor_slow_feedback[i].cursor = 0;
+    }
+
     //max and min speed
     //最大 最小速度
     chassis_move_init->vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
@@ -377,12 +386,15 @@ static void chassis_feedback_update(chassis_move_t *chassis_move_update)
         return;
     }
 
+    fp32 feedback_speed;
     uint8_t i = 0;
     for (i = 0; i < 4; i++)
     {
-        //update motor speed, accel is differential of speed PID
-        //更新电机速度，加速度是速度的PID微分
-        chassis_move_update->motor_chassis[i].speed = CHASSIS_MOTOR_RPM_TO_VECTOR_SEN * chassis_move_update->motor_chassis[i].chassis_motor_measure->speed_rpm;
+        // update motor speed with moving average
+        feedback_speed = CHASSIS_MOTOR_RPM_TO_VECTOR_SEN * chassis_move_update->motor_chassis[i].chassis_motor_measure->speed_rpm;
+        chassis_move_update->motor_chassis[i].speed = moving_average_calc(feedback_speed, &chassis_move_update->chassis_speed_motor_slow_feedback[i], 0);
+
+        // update motor accel (accel is differential of speed PID)
         chassis_move_update->motor_chassis[i].accel = chassis_move_update->motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
 
         //update steering motor angle
