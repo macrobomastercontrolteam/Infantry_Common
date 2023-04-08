@@ -601,11 +601,7 @@ static void chassis_vector_to_wheel_vector(const fp32 vx_set, const fp32 vy_set,
 
     static fp32 last_steer_wheel_angle_target[4];
     uint8_t i;
-    uint8_t fNoChange = 0;
-    if((vy_set == 0)&&(vx_set == 0)&&(wz_set == 0))
-    {
-      fNoChange = 1;
-    }
+    uint8_t fNoChange = (fabs(vy_set) <= STEER_TURN_X_SPEED_DEADZONE) && (fabs(vx_set) < STEER_TURN_X_SPEED_DEADZONE) && (fabs(wz_set) < STEER_TURN_W_SPEED_DEADZONE);
 
     for (i=0;i<4;i++)
     {
