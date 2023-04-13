@@ -122,7 +122,7 @@
 
 //电机码盘值最大以及中值
 #define HALF_ECD_RANGE  4096
-#define ECD_RANGE       8191
+#define ECD_RANGE       8192
 //云台初始化回中值，允许的误差,并且在误差范围内停止一段时间以及最大时间6s后解除初始化状态，
 #define GIMBAL_INIT_ANGLE_ERROR     0.1f
 #define GIMBAL_INIT_STOP_TIME       100

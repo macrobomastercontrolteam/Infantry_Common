@@ -46,7 +46,7 @@
 //电机编码值规整 0—8191
 #define ecd_format(ecd)         \
     {                           \
-        if ((ecd) > ECD_RANGE)  \
+        if ((ecd) > ECD_RANGE - 1)  \
             (ecd) -= ECD_RANGE; \
         else if ((ecd) < 0)     \
             (ecd) += ECD_RANGE; \
