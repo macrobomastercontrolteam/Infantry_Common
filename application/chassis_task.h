@@ -66,7 +66,6 @@
 #define STEER_TURN_X_SPEED_DEADZONE 0.5f
 #define STEER_TURN_Y_SPEED_DEADZONE (STEER_TURN_X_SPEED_DEADZONE*CHASSIS_VY_RC_SEN/CHASSIS_VX_RC_SEN)
 #define STEER_TURN_W_SPEED_DEADZONE 0.5f
-#define CHASSIS_FEEDBACK_SPEED_MOVING_AVERAGE_DEPTH 4
 
 #define CHASSIS_Y_DIRECTION_HALF_LENGTH 0.2f
 #define CHASSIS_X_DIRECTION_HALF_LENGTH 0.2f
@@ -101,7 +100,8 @@
 
 //m3508 rmp change to chassis speed,
 //m3508转化成底盘速度(m/s)的比例，
-#define M3508_MOTOR_RPM_TO_VECTOR 0.000415809748903494517209f
+// Equals to (2*PI/60)*Radius/Reduction_Ratio, where Radius = 0.04, Reduction_Ratio=3591/187
+#define M3508_MOTOR_RPM_TO_VECTOR 0.00021812970434281678f
 #define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
 
 //single chassis motor max speed
@@ -125,11 +125,11 @@
 
 //chassis motor speed PID
 //底盘电机速度环PID
-#define M3505_MOTOR_SPEED_PID_KP 15000.0f
-#define M3505_MOTOR_SPEED_PID_KI 10.0f
-#define M3505_MOTOR_SPEED_PID_KD 0.0f
-#define M3505_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
-#define M3505_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
+#define M3508_MOTOR_SPEED_PID_KP 15000.0f
+#define M3508_MOTOR_SPEED_PID_KI 10.0f
+#define M3508_MOTOR_SPEED_PID_KD 0.0f
+#define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
+#define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
 
 //chassis steering motor absolute angle PID
 //底盘舵轮电机单级角度环PID
@@ -195,9 +195,6 @@ typedef struct
 
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
   first_order_filter_type_t chassis_cmd_slow_set_vy;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
-  
-  fp32 chassis_speed_motor_feedback_ring[4][CHASSIS_FEEDBACK_SPEED_MOVING_AVERAGE_DEPTH];
-  moving_average_type_t chassis_speed_motor_slow_feedback[4];  //use moving average for speed motor speed feedback.
 
   // fp32 vx;                          //chassis vertical speed, positive means forward,unit m/s. 底盘速度 前进方向 前为正，单位 m/s
   // fp32 vy;                          //chassis horizontal speed, positive means letf,unit m/s.底盘速度 左右方向 左为正  单位 m/s

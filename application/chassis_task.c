@@ -197,7 +197,7 @@ void chassis_task(void const *pvParameters)
             {
                 //send CAN control message
                 CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current, chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current,
-                                chassis_move.steer_motor_chassis[0].give_voltage, chassis_move.steer_motor_chassis[1].give_voltage, chassis_move.steer_motor_chassis[2].give_voltage, chassis_move.steer_motor_chassis[3].give_voltage);
+                                chassis_move.steer_motor_chassis[0].target_ecd, chassis_move.steer_motor_chassis[1].target_ecd, chassis_move.steer_motor_chassis[2].target_ecd, chassis_move.steer_motor_chassis[3].target_ecd);
             }
             break;
           }
@@ -232,7 +232,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 
     //chassis drive motor (3508) speed PID
     //底盘驱动轮速度环pid值
-    const static fp32 motor_speed_pid[3] = {M3505_MOTOR_SPEED_PID_KP, M3505_MOTOR_SPEED_PID_KI, M3505_MOTOR_SPEED_PID_KD};
+    const static fp32 motor_speed_pid[3] = {M3508_MOTOR_SPEED_PID_KP, M3508_MOTOR_SPEED_PID_KI, M3508_MOTOR_SPEED_PID_KD};
     //chassis steering motor (6020) absolute angle PID
     //底盘舵轮单级角度环pid值
     const static fp32 steer_motor_angle_pid[3] = {M6020_MOTOR_ANGLE_PID_KP, M6020_MOTOR_ANGLE_PID_KI, M6020_MOTOR_ANGLE_PID_KD};
@@ -267,7 +267,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     {
         // drive motor
         chassis_move_init->motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i);
-        PID_init(&chassis_move_init->motor_speed_pid[i], PID_POSITION, motor_speed_pid, M3505_MOTOR_SPEED_PID_MAX_OUT, M3505_MOTOR_SPEED_PID_MAX_IOUT);
+        PID_init(&chassis_move_init->motor_speed_pid[i], PID_POSITION, motor_speed_pid, M3508_MOTOR_SPEED_PID_MAX_OUT, M3508_MOTOR_SPEED_PID_MAX_IOUT);
 
         //steering motor
         chassis_move_init->steer_motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i+4);
@@ -282,15 +282,6 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     //用一阶滤波代替斜波函数生成
     first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_vx, CHASSIS_CONTROL_TIME, chassis_x_order_filter);
     first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_vy, CHASSIS_CONTROL_TIME, chassis_y_order_filter);
-
-    //init moving average filters for speed motors
-    for (i = 0; i < 4; i++)
-    {
-        chassis_move_init->chassis_speed_motor_slow_feedback[i].size = CHASSIS_FEEDBACK_SPEED_MOVING_AVERAGE_DEPTH;
-        chassis_move_init->chassis_speed_motor_slow_feedback[i].ring = chassis_move_init->chassis_speed_motor_feedback_ring[i];
-        chassis_move_init->chassis_speed_motor_slow_feedback[i].sum = 0;
-        chassis_move_init->chassis_speed_motor_slow_feedback[i].cursor = 0;
-    }
 
     //max and min speed
     //最大 最小速度
@@ -386,15 +377,12 @@ static void chassis_feedback_update(chassis_move_t *chassis_move_update)
         return;
     }
 
-    fp32 feedback_speed;
     uint8_t i = 0;
     for (i = 0; i < 4; i++)
     {
-        // update motor speed with moving average
-        feedback_speed = CHASSIS_MOTOR_RPM_TO_VECTOR_SEN * chassis_move_update->motor_chassis[i].chassis_motor_measure->speed_rpm;
-        chassis_move_update->motor_chassis[i].speed = moving_average_calc(feedback_speed, &chassis_move_update->chassis_speed_motor_slow_feedback[i], 0);
-
-        // update motor accel (accel is differential of speed PID)
+        //update motor speed, accel is differential of speed PID
+        //更新电机速度，加速度是速度的PID微分
+        chassis_move_update->motor_chassis[i].speed = CHASSIS_MOTOR_RPM_TO_VECTOR_SEN * chassis_move_update->motor_chassis[i].chassis_motor_measure->speed_rpm;
         chassis_move_update->motor_chassis[i].accel = chassis_move_update->motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
 
         //update steering motor angle
@@ -724,11 +712,11 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
   * @param[in]      ref: feedback data. unit rad. Within range [-PI, PI]
   * @param[in]      set: set point. unit rad. Within range [-PI, PI]
   * @retval         pid out
-  */
+ */
 static fp32 steer_motor_PID_calc(pid_type_def *pid, fp32 ref, fp32 set)
 {
     if (pid == NULL)
-    {
+{
         return 0.0f;
     }
 
