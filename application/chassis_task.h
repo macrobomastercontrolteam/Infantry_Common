@@ -131,19 +131,6 @@
 #define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
 
-//chassis steering motor absolute angle PID
-//底盘舵轮电机单级角度环PID
-#define M6020_MOTOR_ANGLE_PID_KP        1718.9f // 30*180/PI
-#define M6020_MOTOR_ANGLE_PID_KI        57.3f // 180/PI
-#define M6020_MOTOR_ANGLE_PID_KD        0.0f
-#define M6020_MOTOR_ANGLE_PID_MAX_OUT   MAX_MOTOR_CAN_VOLTAGE
-#define M6020_MOTOR_ANGLE_PID_MAX_IOUT  10000.0f
-//chassis steering motor absolute angle ecd offset
-#define M6020_MOTOR_0_ANGLE_ECD_OFFSET 1662U
-#define M6020_MOTOR_1_ANGLE_ECD_OFFSET 3742U
-#define M6020_MOTOR_2_ANGLE_ECD_OFFSET 5720U
-#define M6020_MOTOR_3_ANGLE_ECD_OFFSET 7749U
-
 //chassis follow angle PID
 //底盘旋转跟随PID
 #define CHASSIS_FOLLOW_GIMBAL_PID_KP 40.0f
@@ -172,11 +159,7 @@ typedef struct
 
 typedef struct
 {
-  const motor_measure_t *chassis_motor_measure;
-  uint16_t offset_ecd;
-  fp32 absolute_angle; ///< unit rad; range is [-PI, PI]; positive direction is clockwise; forward direction is angle=0
-  fp32 absolute_angle_set; ///< unit rad; range is [-PI, PI]; positive direction is clockwise; forward direction is angle=0
-  int16_t give_voltage;
+  uint16_t target_ecd; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
 } chassis_steer_motor_t;
 
 typedef struct

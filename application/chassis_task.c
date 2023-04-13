@@ -41,6 +41,7 @@
         }                                                \
     }
 
+#define MOTOR_RAD_TO_ECD 1303.7972938088067f  // 8192/(2*PI)
 
 /**
   * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
@@ -114,7 +115,7 @@ static void chassis_set_contorl(chassis_move_t *chassis_move_control);
   */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 
-static fp32 steer_motor_PID_calc(pid_type_def *pid, fp32 ref, fp32 set);
+static uint16_t motor_angle_to_ecd_change(fp32 angle);
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
@@ -233,11 +234,6 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     //chassis drive motor (3508) speed PID
     //底盘驱动轮速度环pid值
     const static fp32 motor_speed_pid[3] = {M3508_MOTOR_SPEED_PID_KP, M3508_MOTOR_SPEED_PID_KI, M3508_MOTOR_SPEED_PID_KD};
-    //chassis steering motor (6020) absolute angle PID
-    //底盘舵轮单级角度环pid值
-    const static fp32 steer_motor_angle_pid[3] = {M6020_MOTOR_ANGLE_PID_KP, M6020_MOTOR_ANGLE_PID_KI, M6020_MOTOR_ANGLE_PID_KD};
-    //chassis steering motor offset ecd
-    const static uint16_t steer_motor_offset_ecd[4] = {M6020_MOTOR_0_ANGLE_ECD_OFFSET, M6020_MOTOR_1_ANGLE_ECD_OFFSET, M6020_MOTOR_2_ANGLE_ECD_OFFSET, M6020_MOTOR_3_ANGLE_ECD_OFFSET};
     
     //chassis angle PID
     //底盘角度pid值
@@ -268,11 +264,6 @@ static void chassis_init(chassis_move_t *chassis_move_init)
         // drive motor
         chassis_move_init->motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i);
         PID_init(&chassis_move_init->motor_speed_pid[i], PID_POSITION, motor_speed_pid, M3508_MOTOR_SPEED_PID_MAX_OUT, M3508_MOTOR_SPEED_PID_MAX_IOUT);
-
-        //steering motor
-        chassis_move_init->steer_motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i+4);
-        chassis_move_init->steer_motor_chassis[i].offset_ecd = steer_motor_offset_ecd[i];
-        PID_init(&chassis_move_init->steer_motor_angle_pid[i], PID_POSITION, steer_motor_angle_pid, M6020_MOTOR_ANGLE_PID_MAX_OUT, M6020_MOTOR_ANGLE_PID_MAX_IOUT);
     }
     //initialize angle PID
     //初始化角度PID
@@ -384,10 +375,6 @@ static void chassis_feedback_update(chassis_move_t *chassis_move_update)
         //更新电机速度，加速度是速度的PID微分
         chassis_move_update->motor_chassis[i].speed = CHASSIS_MOTOR_RPM_TO_VECTOR_SEN * chassis_move_update->motor_chassis[i].chassis_motor_measure->speed_rpm;
         chassis_move_update->motor_chassis[i].accel = chassis_move_update->motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
-
-        //update steering motor angle
-        //更新舵轮电机角度
-        chassis_move_update->steer_motor_chassis[i].absolute_angle = motor_ecd_to_angle_change(chassis_move_update->steer_motor_chassis[i].chassis_motor_measure->ecd, chassis_move_update->steer_motor_chassis[i].offset_ecd);
     }
 
     //calculate chassis euler angle, if chassis add a new gyro sensor,please change this code
@@ -671,8 +658,8 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
             max_vector = temp;
         }
 
-        // steer motor angle set
-        chassis_move_control_loop->steer_motor_chassis[i].absolute_angle_set = steer_wheel_angle[i];
+        // steer motor encoder value set
+        chassis_move_control_loop->steer_motor_chassis[i].target_ecd = motor_angle_to_ecd_change(steer_wheel_angle[i]);
     }
 
     if (max_vector > MAX_WHEEL_SPEED)
@@ -689,7 +676,6 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
     for (i = 0; i < 4; i++)
     {
         PID_calc(&chassis_move_control_loop->motor_speed_pid[i], chassis_move_control_loop->motor_chassis[i].speed, chassis_move_control_loop->motor_chassis[i].speed_set);
-        steer_motor_PID_calc(&chassis_move_control_loop->steer_motor_angle_pid[i], chassis_move_control_loop->steer_motor_chassis[i].absolute_angle, chassis_move_control_loop->steer_motor_chassis[i].absolute_angle_set);
     }
 
 
@@ -701,38 +687,18 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
     for (i = 0; i < 4; i++)
     {
         chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(chassis_move_control_loop->motor_speed_pid[i].out);
-        chassis_move_control_loop->steer_motor_chassis[i].give_voltage = (int16_t)(chassis_move_control_loop->steer_motor_angle_pid[i].out);
     }
 }
 
 /**
-  * @brief          pid calculate for GM6020 steering motor.
-  * Because encoder angle may have underflow or overflow, error is calculated differently, we can't use PID in pid.c
-  * @param[out]     pid: PID struct data point
-  * @param[in]      ref: feedback data. unit rad. Within range [-PI, PI]
-  * @param[in]      set: set point. unit rad. Within range [-PI, PI]
-  * @retval         pid out
+ * @brief Convert motor angle from radian to encoder unit
+ * Requirements:
+ *    0 rad = 0 ecd
+ *    input and output increase in the same clockwise direction
+ * @param[in] angle range [-PI, PI]
+ * @param[in] ecd range [0, ECD_RANGE-1]
  */
-static fp32 steer_motor_PID_calc(pid_type_def *pid, fp32 ref, fp32 set)
+static uint16_t motor_angle_to_ecd_change(fp32 angle)
 {
-    if (pid == NULL)
-{
-        return 0.0f;
-    }
-
-    pid->error[2] = pid->error[1];
-    pid->error[1] = pid->error[0];
-    pid->set = set;
-    pid->fdb = ref;
-    pid->error[0] = rad_format(set - ref);
-    pid->Pout = pid->Kp * pid->error[0];
-    pid->Iout += pid->Ki * pid->error[0];
-    pid->Dbuf[2] = pid->Dbuf[1];
-    pid->Dbuf[1] = pid->Dbuf[0];
-    pid->Dbuf[0] = (pid->error[0] - pid->error[1]);
-    pid->Dout = pid->Kd * pid->Dbuf[0];
-    LimitMax(&pid->Iout, pid->max_iout);
-    pid->out = pid->Pout + pid->Iout + pid->Dout;
-    LimitMax(&pid->out, pid->max_out);
-    return pid->out;
+    return (uint16_t)(loop_fp32_constrain(angle, 0.0f, 2 * PI) * MOTOR_RAD_TO_ECD);
 }

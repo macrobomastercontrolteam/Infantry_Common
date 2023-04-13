@@ -25,37 +25,28 @@
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
-#define get_motor_array_index(_CAN_ID) (_CAN_ID - CAN_CHASSIS_ALL_ID - 1)
+#define get_motor_array_index(_CAN_ID) (_CAN_ID - CAN_3508_M1_ID)
 
 /* CAN send and receive ID */
 typedef enum
 {
-    /*******Chassis CAN IDs********/
-    CAN_CHASSIS_ALL_ID = 0x200,
-    CAN_CHASSIS_GM6020_TX_ID = 0x1FF,
+    /*******Tx CAN IDs********/
+    CAN_CHASSIS_M3508_TX_ID = 0x200,
+    CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
+    CAN_GIMBAL_ALL_TX_ID = 0x1FF,
 
+    /*******Chassis CAN IDs********/
     CAN_3508_M1_ID = 0x201,
     CAN_3508_M2_ID = 0x202,
     CAN_3508_M3_ID = 0x203,
     CAN_3508_M4_ID = 0x204,
-    CAN_6020_M1_ID = 0x205,
-    CAN_6020_M2_ID = 0x206,
-    CAN_6020_M3_ID = 0x207,
-    CAN_6020_M4_ID = 0x208,
-    CAN_YAW_MOTOR_ID = 0x209,
+    CAN_TRIGGER_MOTOR_ID = 0x207,
+    CAN_YAW_MOTOR_ID = 0x205,
 
     /********Gimbal CAN IDs********/
-    CAN_GIMBAL_ALL_ID = 0x1FF,
+    CAN_PIT_MOTOR_ID = 0x206,
 
-    CAN_PIT_MOTOR_ID = 0x20A,
-    // Due to lack of ID space of M6020, trigger motor's ID has to be smaller than the smallest possible M6020 ID: 0x205
-    // But we till treat it as CAN_TRIGGER_MOTOR_ARRAY_ID in the "motor_chassis" array.
-    // Having the same ID as CAN_3508_M1_ID won't cause problem because they're on diff bus
-    // Relavant enum: TRIGGER_MOTOR_TOE
-    CAN_TRIGGER_MOTOR_ARRAY_ID = 0x20B,
-    CAN_TRIGGER_MOTOR_CAN_ID = 0x201,
-
-    CAN_LAST_ID = 0x20B,
+    CAN_LAST_ID = CAN_PIT_MOTOR_ID,
 } can_msg_id_e;
 
 //rm motor data
@@ -105,25 +96,13 @@ extern void CAN_cmd_chassis_reset_ID(void);
   * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      steer_motor1: (0x205) 6020 motor control voltage, range [-30000,30000] 
-  * @param[in]      steer_motor2: (0x206) 6020 motor control voltage, range [-30000,30000] 
-  * @param[in]      steer_motor3: (0x207) 6020 motor control voltage, range [-30000,30000] 
-  * @param[in]      steer_motor4: (0x208) 6020 motor control voltage, range [-30000,30000] 
+  * @param[in]      steer_motor1: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @param[in]      steer_motor2: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @param[in]      steer_motor3: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @param[in]      steer_motor4: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
   * @retval         none
   */
-/**
-  * @brief          发送电机控制电流或电压
-  * @param[in]      motor1: (0x201) 3508电机控制电流, 范围 [-16384,16384]
-  * @param[in]      motor2: (0x202) 3508电机控制电流, 范围 [-16384,16384]
-  * @param[in]      motor3: (0x203) 3508电机控制电流, 范围 [-16384,16384]
-  * @param[in]      motor4: (0x204) 3508电机控制电流, 范围 [-16384,16384]
-  * @param[in]      steer_motor1: (0x205) 6020 motor control voltage, range [-30000,30000] 
-  * @param[in]      steer_motor2: (0x206) 6020 motor control voltage, range [-30000,30000] 
-  * @param[in]      steer_motor3: (0x207) 6020 motor control voltage, range [-30000,30000] 
-  * @param[in]      steer_motor4: (0x208) 6020 motor control voltage, range [-30000,30000] 
-  * @retval         none
-  */
-extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, int16_t steer_motor1, int16_t steer_motor2, int16_t steer_motor3, int16_t steer_motor4);
+extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, uint16_t steer_motor1, uint16_t steer_motor2, uint16_t steer_motor3, uint16_t steer_motor4);
 
 /**
   * @brief          return the yaw 6020 motor data point
