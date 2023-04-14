@@ -120,9 +120,6 @@ static uint16_t motor_angle_to_ecd_change(fp32 angle);
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
 #endif
-
-
-
 //底盘运动数据
 chassis_move_t chassis_move;
 
@@ -697,8 +694,8 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
  *    input and output increase in the same clockwise direction
  * @param[in] angle range [-PI, PI]
  * @param[in] ecd range [0, ECD_RANGE-1]
- */
+  */
 static uint16_t motor_angle_to_ecd_change(fp32 angle)
-{
+    {
     return (uint16_t)(loop_fp32_constrain(angle, 0.0f, 2 * PI) * MOTOR_RAD_TO_ECD);
 }
