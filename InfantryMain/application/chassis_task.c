@@ -146,7 +146,7 @@ void chassis_task(void const *pvParameters)
     uint8_t fIsError = 0;
     uint8_t bToeIndex;
     do {
-      for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_STEER_MOTOR4_TOE; bToeIndex++)
+      for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
       {
         if (toe_is_error(bToeIndex))
         {
@@ -155,7 +155,7 @@ void chassis_task(void const *pvParameters)
           break;
         }
       }
-      if (bToeIndex > CHASSIS_STEER_MOTOR4_TOE)
+      if (bToeIndex > CHASSIS_MOTOR4_TOE)
       {
         fIsError = 0;
       }
@@ -181,7 +181,7 @@ void chassis_task(void const *pvParameters)
 
         //make sure  one motor is online at least, so that the control CAN message can be received
         //确保至少一个电机在线， 这样CAN控制包可以被接收到
-        for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_STEER_MOTOR4_TOE; bToeIndex++)
+        for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
         {
           if (!toe_is_error(bToeIndex))
           {
@@ -694,8 +694,8 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
  *    input and output increase in the same clockwise direction
  * @param[in] angle range [-PI, PI]
  * @param[in] ecd range [0, ECD_RANGE-1]
-  */
+ */
 static uint16_t motor_angle_to_ecd_change(fp32 angle)
-    {
+{
     return (uint16_t)(loop_fp32_constrain(angle, 0.0f, 2 * PI) * MOTOR_RAD_TO_ECD);
 }
