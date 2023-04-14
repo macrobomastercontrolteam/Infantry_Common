@@ -1,0 +1,14 @@
+{
+	"files.encoding": "gb2312",
+	"cmake.configureOnOpen": true,
+	"files.associations": {
+		"bsp_pwm.h": "c",
+		"main.h": "c",
+		"bsp_led.h": "c",
+		"bsp_key.h": "c",
+		"bsp_can.h": "c",
+		"gpio.h": "c",
+		"__functional_base": "c",
+		"can.h": "c"
+	}
+}

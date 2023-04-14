@@ -55,4 +55,5 @@ dkms.conf
 **/*.uvoptx
 
 # Ignore Keil generated files
-MDK-ARM/standard_tpye_c/**
+InfantryMain/MDK-ARM/standard_tpye_c/**
+InfantrySteer/MDK-ARM/GM6020_demo/**

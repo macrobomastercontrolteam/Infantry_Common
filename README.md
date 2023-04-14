@@ -11,8 +11,11 @@ on
 - Steering motor chassis: four M6020 steering motors and four M3508 speed motors
 
 # Firmware Environment
-- Type C Development Board
-- FreeRTOS
+- InfantryMain controller: Type C Development Board
+    - FreeRTOS
+- InfantrySteer controller: Type A Development Board
+    - Type C Board sends target encoder values (absolute angle) of steering motors to Type A Board with CAN ID 0x112;
+    - Type A Board controls steering motors with PID
 
 # Firmware Architecture
 Same architecture to 2019:
