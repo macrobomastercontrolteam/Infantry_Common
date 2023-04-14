@@ -120,6 +120,25 @@ static uint16_t motor_angle_to_ecd_change(fp32 angle);
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
 #endif
+int32_t last_steer_wheel_angle_target1;
+int32_t last_steer_wheel_angle_target2;
+int32_t last_steer_wheel_angle_target3;
+int32_t last_steer_wheel_angle_target4;
+int32_t target_wheel_speed1;
+int32_t target_wheel_speed2;
+int32_t target_wheel_speed3;
+int32_t target_wheel_speed4;
+int32_t steer_wheel_angle1;
+int32_t steer_wheel_angle2;
+int32_t steer_wheel_angle3;
+int32_t steer_wheel_angle4;
+int32_t vx_set_int = 0, vy_set_int = 0, angle_set_int = 0;
+int32_t feedback_raw_speed1;
+int32_t feedback_avg_speed1;
+int32_t feedback_speed1;
+int32_t feedback_speed2;
+int32_t feedback_speed3;
+int32_t feedback_speed4;
 //底盘运动数据
 chassis_move_t chassis_move;
 
@@ -143,23 +162,23 @@ void chassis_task(void const *pvParameters)
     chassis_init(&chassis_move);
     //make sure all chassis motor is online,
     //判断底盘电机是否都在线
-    uint8_t fIsError = 0;
-    uint8_t bToeIndex;
-    do {
-      for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-      {
-        if (toe_is_error(bToeIndex))
-        {
-          fIsError = 1;
-          vTaskDelay(CHASSIS_CONTROL_TIME_MS);
-          break;
-        }
-      }
-      if (bToeIndex > CHASSIS_MOTOR4_TOE)
-      {
-        fIsError = 0;
-      }
-    } while (fIsError);
+    // uint8_t fIsError = 0;
+    // uint8_t bToeIndex;
+    // do {
+    //   for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
+    //   {
+    //     if (toe_is_error(bToeIndex))
+    //     {
+    //       fIsError = 1;
+    //       vTaskDelay(CHASSIS_CONTROL_TIME_MS);
+    //       break;
+    //     }
+    //   }
+    //   if (bToeIndex > CHASSIS_MOTOR4_TOE)
+    //   {
+    //     fIsError = 0;
+    //   }
+    // } while (fIsError);
 
     while (1)
     {
@@ -181,10 +200,10 @@ void chassis_task(void const *pvParameters)
 
         //make sure  one motor is online at least, so that the control CAN message can be received
         //确保至少一个电机在线， 这样CAN控制包可以被接收到
-        for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-        {
-          if (!toe_is_error(bToeIndex))
-          {
+        // for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
+        // {
+        //   if (!toe_is_error(bToeIndex))
+        //   {
             //when remote control is offline, chassis motor should receive zero current or voltage. 
             //当遥控器掉线的时候，发送给底盘电机零电流.
             if (toe_is_error(DBUS_TOE))
@@ -194,12 +213,16 @@ void chassis_task(void const *pvParameters)
             else
             {
                 //send CAN control message
+                chassis_move.motor_chassis[0].give_current=0;
+                chassis_move.motor_chassis[1].give_current=0;
+                chassis_move.motor_chassis[2].give_current=0;
+                chassis_move.motor_chassis[3].give_current=0;
                 CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current, chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current,
                                 chassis_move.steer_motor_chassis[0].target_ecd, chassis_move.steer_motor_chassis[1].target_ecd, chassis_move.steer_motor_chassis[2].target_ecd, chassis_move.steer_motor_chassis[3].target_ecd);
             }
-            break;
-          }
-        }
+        //     break;
+        //   }
+        // }
         //os delay
         //系统延时
         vTaskDelay(CHASSIS_CONTROL_TIME_MS);
@@ -373,6 +396,10 @@ static void chassis_feedback_update(chassis_move_t *chassis_move_update)
         chassis_move_update->motor_chassis[i].speed = CHASSIS_MOTOR_RPM_TO_VECTOR_SEN * chassis_move_update->motor_chassis[i].chassis_motor_measure->speed_rpm;
         chassis_move_update->motor_chassis[i].accel = chassis_move_update->motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
     }
+    feedback_speed1 = chassis_move_update->motor_chassis[0].speed*1000.0f;
+    feedback_speed2 = chassis_move_update->motor_chassis[1].speed*1000.0f;
+    feedback_speed3 = chassis_move_update->motor_chassis[2].speed*1000.0f;
+    feedback_speed4 = chassis_move_update->motor_chassis[3].speed*1000.0f;
 
     //calculate chassis euler angle, if chassis add a new gyro sensor,please change this code
     //计算底盘姿态角度, 如果底盘上有陀螺仪请更改这部分代码
@@ -530,6 +557,10 @@ static void chassis_set_contorl(chassis_move_t *chassis_move_control)
         chassis_move_control->chassis_cmd_slow_set_vx.out = 0.0f;
         chassis_move_control->chassis_cmd_slow_set_vy.out = 0.0f;
     }
+
+    vx_set_int = chassis_move_control->vx_set*1000.0f;
+    vy_set_int = chassis_move_control->vy_set*1000.0f;
+    angle_set_int = chassis_move_control->wz_set*1000.0f;
 }
 
 /**
@@ -606,6 +637,11 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
     // reverse direction because of special initial direction
     wheel_speed[1] = -wheel_speed[1];
     wheel_speed[2] = -wheel_speed[2];
+
+    last_steer_wheel_angle_target1 = last_steer_wheel_angle_target[0]*1000.0f;
+    last_steer_wheel_angle_target2 = last_steer_wheel_angle_target[1]*1000.0f;
+    last_steer_wheel_angle_target3 = last_steer_wheel_angle_target[2]*1000.0f;
+    last_steer_wheel_angle_target4 = last_steer_wheel_angle_target[3]*1000.0f;
 }
 
 
@@ -667,6 +703,15 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
             chassis_move_control_loop->motor_chassis[i].speed_set *= vector_rate;
         }
     }
+
+    target_wheel_speed1 = wheel_speed[0]*1000.0f;
+    target_wheel_speed2 = wheel_speed[1]*1000.0f;
+    target_wheel_speed3 = wheel_speed[2]*1000.0f;
+    target_wheel_speed4 = wheel_speed[3]*1000.0f;
+    steer_wheel_angle1 = steer_wheel_angle[0]*1000.0f;
+    steer_wheel_angle2 = steer_wheel_angle[1]*1000.0f;
+    steer_wheel_angle3 = steer_wheel_angle[2]*1000.0f;
+    steer_wheel_angle4 = steer_wheel_angle[3]*1000.0f;
 
     //calculate pid
     //计算pid
