@@ -54,10 +54,6 @@ chassis drive motor1:%s\r\n\
 chassis drive motor2:%s\r\n\
 chassis drive motor3:%s\r\n\
 chassis drive motor4:%s\r\n\
-chassis steering motor1:%s\r\n\
-chassis steering motor2:%s\r\n\
-chassis steering motor3:%s\r\n\
-chassis steering motor4:%s\r\n\
 yaw motor:%s\r\n\
 pitch motor:%s\r\n\
 trigger motor:%s\r\n\
@@ -74,10 +70,6 @@ chassis drive motor1:%s\r\n\
 chassis drive motor2:%s\r\n\
 chassis drive motor3:%s\r\n\
 chassis drive motor4:%s\r\n\
-chassis steering motor1:%s\r\n\
-chassis steering motor2:%s\r\n\
-chassis steering motor3:%s\r\n\
-chassis steering motor4:%s\r\n\
 yaw motor:%s\r\n\
 pitch motor:%s\r\n\
 trigger motor:%s\r\n\
@@ -93,10 +85,6 @@ referee usart:%s\r\n\
             status[error_list_usb_local[CHASSIS_MOTOR2_TOE].error_exist],
             status[error_list_usb_local[CHASSIS_MOTOR3_TOE].error_exist],
             status[error_list_usb_local[CHASSIS_MOTOR4_TOE].error_exist],
-            status[error_list_usb_local[CHASSIS_STEER_MOTOR1_TOE].error_exist],
-            status[error_list_usb_local[CHASSIS_STEER_MOTOR2_TOE].error_exist],
-            status[error_list_usb_local[CHASSIS_STEER_MOTOR3_TOE].error_exist],
-            status[error_list_usb_local[CHASSIS_STEER_MOTOR4_TOE].error_exist],
             status[error_list_usb_local[YAW_GIMBAL_MOTOR_TOE].error_exist],
             status[error_list_usb_local[PITCH_GIMBAL_MOTOR_TOE].error_exist],
             status[error_list_usb_local[TRIGGER_MOTOR_TOE].error_exist],
