@@ -19,6 +19,7 @@ on
 
 # Firmware Architecture
 Same architecture to 2019:
+Except a Type A Development Board is added to the system with CAN ID 0x112. This board only controls four steering motors on an isolated CAN bus.
 ![image](https://user-images.githubusercontent.com/57267209/185773597-4cd07a38-2232-4443-a679-13531dbe4313.png)
 
 # Branches
