@@ -610,8 +610,8 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
     }
 
     // reverse direction because of special initial direction
-    wheel_speed[1] = -wheel_speed[1];
-    wheel_speed[2] = -wheel_speed[2];
+    wheel_speed[0] = -wheel_speed[0];
+    wheel_speed[3] = -wheel_speed[3];
 }
 
 
