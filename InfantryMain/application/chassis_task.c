@@ -574,6 +574,7 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
     };
 
     static fp32 last_steer_wheel_angle_target[4];
+    static uint8_t reverse_flag[4];
     uint8_t i;
     uint8_t fNoChange = (fabs(vy_set) <= STEER_TURN_X_SPEED_DEADZONE) && (fabs(vx_set) < STEER_TURN_X_SPEED_DEADZONE) && (fabs(wz_set) < STEER_TURN_W_SPEED_DEADZONE);
 
@@ -592,14 +593,19 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
         // steer_wheel_angle: unit rad; range is [-PI, PI]; positive direction is clockwise
         steer_wheel_angle[i] = atan2f(wheel_velocity[i][1],wheel_velocity[i][0]);
 
-        if (fabs(rad_format(steer_wheel_angle[i] - last_steer_wheel_angle_target[i])) > PI/2)
+        reverse_flag[i] = (fabs(rad_format(steer_wheel_angle[i] - last_steer_wheel_angle_target[i])) > PI/2);
+        if (reverse_flag[i])
         {
-         // if angle between last and target is greater than 90 deg, simply reverse drive wheel reduces time to turn
-         steer_wheel_angle[i] = rad_format(steer_wheel_angle[i] + PI);
-         wheel_speed[i] = -wheel_speed[i];
+          // if angle between last and target is greater than 90 deg, simply reverse drive wheel reduces time to turn
+          steer_wheel_angle[i] = rad_format(steer_wheel_angle[i] + PI);
         }
-
+        
         last_steer_wheel_angle_target[i] = steer_wheel_angle[i];
+      }
+
+      if (reverse_flag[i])
+      {
+        wheel_speed[i] = -wheel_speed[i];
       }
     }
 
