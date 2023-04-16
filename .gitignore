@@ -56,4 +56,6 @@ dkms.conf
 
 # Ignore Keil generated files
 InfantryMain/MDK-ARM/standard_tpye_c/**
+InfantryMain/MDK-ARM/JLinkLog.txt
 InfantrySteer/MDK-ARM/GM6020_demo/**
+InfantrySteer/MDK-ARM/JLinkLog.txt
