@@ -69,7 +69,7 @@ void can_user_init(void)
 float loop_ecd_constrain_test(float Input)
 {
 #define HALF_ECD_RANGE 4096
-#define ECD_RANGE 8191
+#define ECD_RANGE 8192
   if (Input > HALF_ECD_RANGE)
   {
     while (Input > HALF_ECD_RANGE)
