@@ -68,8 +68,17 @@
 #define REVERSE_TIME                500
 #define REVERSE_SPEED_LIMIT         13.0f
 
-#define PI_FOUR                     0.78539816339744830961566084581988f
-#define PI_TEN                      0.314f
+#if defined(INFANTRY_1) 
+#define TRIGGER_ANGLE_INCREMENT     (PI/7.0f)
+#elif defined(INFANTRY_2)
+#define TRIGGER_ANGLE_INCREMENT     (PI/7.0f)
+#elif defined(INFANTRY_3)
+#define TRIGGER_ANGLE_INCREMENT     (PI/12.0f)
+#elif defined(SENTRY_1)
+#define TRIGGER_ANGLE_INCREMENT     (PI/9.0f)
+#else
+#error "Robot Index not specified"
+#endif
 
 //²¦µ¯ÂÖµç»úPID
 #define TRIGGER_ANGLE_PID_KP        800.0f

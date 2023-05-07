@@ -444,7 +444,7 @@ static void shoot_bullet_control(void)
     //每次拨动 1/4PI的角度
     if (shoot_control.move_flag == 0)
     {
-        shoot_control.set_angle = rad_format(shoot_control.angle + PI_TEN);
+        shoot_control.set_angle = rad_format(shoot_control.angle + TRIGGER_ANGLE_INCREMENT);
         shoot_control.move_flag = 1;
     }
     if(shoot_control.key == SWITCH_TRIGGER_OFF)
