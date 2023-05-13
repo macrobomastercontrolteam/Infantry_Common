@@ -49,9 +49,9 @@
 //电机反馈码盘值范围
 #define HALF_ECD_RANGE              4096
 #define ECD_RANGE                   8191
-//电机rmp 变化成 旋转速度的比例
-#define MOTOR_RPM_TO_SPEED          0.00290888208665721596153948461415f
-#define MOTOR_ECD_TO_ANGLE          0.000021305288720633905968306772076277f
+//拨弹电机rmp 变化成 旋转速度的比例
+#define TRIGGER_MOTOR_RPM_TO_SPEED  0.00290888208665721596153948461415f
+#define TRIGGER_MOTOR_ECD_TO_ANGLE  0.000021305288720633905968306772076277f
 #define FULL_COUNT                  18
 //拨弹速度
 #define TRIGGER_SPEED               10.0f
