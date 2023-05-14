@@ -27,7 +27,9 @@
 
 #include "detect_task.h"
 
-
+#if defined(CV_INTERFACE)
+#include "cv_usart_task.h"
+#endif
 
 //遥控器出错数据上限
 #define RC_CHANNAL_ERROR_VALUE 700
@@ -276,6 +278,10 @@ static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
     rc_ctrl->rc.ch[2] -= RC_CH_VALUE_OFFSET;
     rc_ctrl->rc.ch[3] -= RC_CH_VALUE_OFFSET;
     rc_ctrl->rc.ch[4] -= RC_CH_VALUE_OFFSET;
+
+#if defined(CV_INTERFACE)
+    CvCmder_DetectAutoAimSwitchEdge((rc_ctrl->key.v & AUTO_AIM_TOGGLE_KEYBOARD) != 0);
+#endif
 }
 
 // // We don't use this feature. USART1 is used to communicate with CV instead.

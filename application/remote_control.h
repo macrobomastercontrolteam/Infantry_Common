@@ -54,6 +54,9 @@
 #define KEY_PRESSED_OFFSET_C            ((uint16_t)1 << 13)
 #define KEY_PRESSED_OFFSET_V            ((uint16_t)1 << 14)
 #define KEY_PRESSED_OFFSET_B            ((uint16_t)1 << 15)
+
+// toggle auto-aim mode
+#define AUTO_AIM_TOGGLE_KEYBOARD KEY_PRESSED_OFFSET_G
 /* ----------------------- Data Struct ------------------------------------- */
 typedef __packed struct
 {
