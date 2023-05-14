@@ -59,6 +59,7 @@ void CvCmder_Init(void);
 void CvCmder_PollForModeChange(void);
 void CvCmder_RxParser(uint16_t Size);
 void CvCmder_SendSetModeRequest(void);
+void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
 #if defined(DEBUG_CV)
 uint8_t CvCmder_MockModeChange(void);
 #endif
@@ -105,24 +106,46 @@ void CvCmder_Init(void)
 }
 
 /**
- * @brief Send a set-mode request to CV if received command from remote controller
+ * @brief if a command is received from remote controller, we keep sending set-mode requests to CV until an ACK is received
  */
 void CvCmder_PollForModeChange(void)
 {
+    // @TODO: Implement check for Auto-move mode and Enemy mode
+    // uint8_t fLastAutoMoveMode = CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT);
+    // uint8_t fLastEnemyMode = CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT);
+
     uint8_t fIsModeChanged = 0;
+    if (CvCmdHandler.fIsAutoAimSwitchEdge != EDGE_NONE)
+    {
+        CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT, (CvCmdHandler.fIsAutoAimSwitchEdge == EDGE_RISING));
+        fIsModeChanged = 1;
+    }
+
 #if defined(DEBUG_CV)
-    fIsModeChanged = CvCmder_MockModeChange();
-#else
-    uint8_t fOldAutoAimMode = CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT);
-    uint8_t fOldAutoMoveMode = CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT);
-    uint8_t fOldEnemyMode = CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT);
-// TODO: poll for remote controller info to change CvCmdHandler.fCvMode, then compare with older value
+    if (fIsModeChanged == 0)
+    {
+        fIsModeChanged = CvCmder_MockModeChange();
+    }
 #endif
+
     if (fIsModeChanged)
     {
         CvCmder_SendSetModeRequest();
     }
-    return;
+}
+
+void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
+{
+    // no need to debounce because keyboard signal is clean
+    static uint8_t fLastKeySignal = 0;
+    if (fLastKeySignal != fIsKeyPressed)
+    {
+        if (fIsKeyPressed)
+        {
+            CvCmdHandler.fIsAutoAimSwitchEdge = CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT) ? EDGE_FALLING : EDGE_RISING;
+        }
+        fLastKeySignal = fIsKeyPressed;
+    }
 }
 
 void CvCmder_SendSetModeRequest(void)
@@ -200,6 +223,7 @@ void CvCmder_RxParser(uint16_t Size)
             if (fInvalid == 0)
             {
                 CvCmdHandler.fIsWaitingForAck = 0;
+                CvCmdHandler.fIsAutoAimSwitchEdge = EDGE_NONE;
             }
             break;
         }
@@ -237,6 +261,11 @@ void CvCmder_RxParser(uint16_t Size)
 uint8_t CvCmder_GetMode(uint8_t bCvModeBit)
 {
     return (CvCmdHandler.fCvMode & bCvModeBit);
+}
+
+void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag)
+{
+    CvCmdHandler.fCvMode = (CvCmdHandler.fCvMode & ~bCvModeBit) | (fFlag ? bCvModeBit : 0);
 }
 
 /**

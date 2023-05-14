@@ -24,6 +24,13 @@ typedef struct __attribute__((packed))
     fp32 ySpeed;
 } tCvCmdMsg;
 
+typedef enum
+{
+    EDGE_NONE,
+    EDGE_RISING,
+    EDGE_FALLING,
+} eEdgeTypes;
+
 /**
  * @brief main handler of communication status and commands received from CV
  */
@@ -33,12 +40,14 @@ typedef struct
     uint8_t fCvCmdValid; ///< whether CvCmdMsg is valid as received from CV; to be used by gimbal_task
     uint8_t fIsWaitingForAck;
     uint8_t fCvMode; ///< contains individual CV control flag bits defined by eModeControlBits
+    eEdgeTypes fIsAutoAimSwitchEdge;
     const RC_ctrl_t *cv_rc_ctrl; ///< remote control pointer
 } tCvCmdHandler;
 
 void cv_usart_task(void const *argument);
 uint8_t CvCmder_GetMode(uint8_t bCvModeBit);
 tCvCmdHandler* CvCmder_GetHandler(void);
+void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd);
 #if defined(DEBUG_CV)
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void);
 #endif // defined(DEBUG_CV)
