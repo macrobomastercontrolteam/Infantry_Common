@@ -19,6 +19,9 @@
 #include <stdio.h>
 #endif
 
+#ifndef MIN
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#endif /* MIN */
 #define DATA_PACKAGE_SIZE 15
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_SIZE - sizeof(uint8_t) * 3)
 
@@ -69,6 +72,7 @@ tCvMsg CvTxBuffer;
 tCvCmdHandler CvCmdHandler;
 // don't compare with literal string "ACK", since it contains extra NULL char at the end
 const uint8_t abExpectedAckPayload[3] = {'A', 'C', 'K'};
+uint8_t abUsartRxBuf[DATA_PACKAGE_PAYLOAD_SIZE * 3];
 uint8_t abExpectedUnusedPayload[DATA_PACKAGE_PAYLOAD_SIZE - 1];
 
 #if defined(DEBUG_CV)
@@ -97,7 +101,7 @@ void CvCmder_Init(void)
     CvCmdHandler.cv_rc_ctrl = get_remote_control_point();
 
     // Get a callback when DMA completes or IDLE
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, CvRxBuffer.abData, sizeof(CvRxBuffer.abData));
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
     // disable half transfer interrupt, because if it coincide with IDLE or DMA interrupt, callback will be called twice
     __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
 
@@ -181,18 +185,26 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     if (huart->Instance == USART1)
     {
-        CvCmder_RxParser(Size);
+        uint16_t uiCursor = 0;
+        uint16_t uiPacketSize;
+        while (uiCursor < Size)
+        {
+            uiPacketSize = MIN(Size - uiCursor, sizeof(CvRxBuffer.abData));
+            memcpy(CvRxBuffer.abData, &abUsartRxBuf[uiCursor], uiPacketSize);
+            CvCmder_RxParser(uiPacketSize);
+            uiCursor += sizeof(CvRxBuffer.abData);
+        }
 
         /* start the DMA again */
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, CvRxBuffer.abData, sizeof(CvRxBuffer.abData));
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
         __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
     }
 }
 
-void CvCmder_RxParser(uint16_t Size)
+void CvCmder_RxParser(uint16_t uiPacketSize)
 {
     uint8_t fInvalid = 1;
-    if ((Size == sizeof(CvRxBuffer.abData)) && (CvRxBuffer.tData.bStx == CHAR_STX) && (CvRxBuffer.tData.bEtx == CHAR_ETX))
+    if ((uiPacketSize == sizeof(CvRxBuffer.abData)) && (CvRxBuffer.tData.bStx == CHAR_STX) && (CvRxBuffer.tData.bEtx == CHAR_ETX))
     {
         switch (CvRxBuffer.tData.bMsgType)
         {
@@ -244,7 +256,7 @@ void CvCmder_RxParser(uint16_t Size)
     // echo to usb
     uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fInvalid ? "Invalid" : "Valid");
 
-    for (uint16_t i = 0; i < Size; i++)
+    for (uint16_t i = 0; i < uiPacketSize; i++)
     {
         if (uiUsbMsgSize + (sizeof("0x00,") - 1) > sizeof(usbMsg))
         {
