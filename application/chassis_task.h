@@ -84,6 +84,8 @@
 #define CHASSIS_X_DIRECTION_HALF_LENGTH 0.2f
 #define CHASSIS_ANGLE_COS 0.7071067811865475f // (CHASSIS_X_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
 #define CHASSIS_ANGLE_SIN 0.7071067811865475f // (CHASSIS_Y_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
+#elif defined(SENTRY_1)
+#define MOTOR_DISTANCE_TO_CENTER 0.2f // @TODO: update this
 #endif
 
 //chassis task control time  2ms
@@ -164,6 +166,7 @@ typedef enum
   CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW,  //chassis will have yaw angle(chassis_yaw) close-looped control.底盘有底盘角度控制闭环
   CHASSIS_VECTOR_NO_FOLLOW_YAW,       //chassis will have rotation speed control. 底盘有旋转速度控制
   CHASSIS_VECTOR_RAW,                 //control-current will be sent to CAN bus derectly.
+  CHASSIS_VECTOR_SPINNING,            //spinning chassis
 
 } chassis_mode_e;
 

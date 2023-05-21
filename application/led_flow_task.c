@@ -18,10 +18,7 @@
 #include "bsp_led.h"
 #include "cmsis_os.h"
 #include "main.h"
-
-#if defined(DEBUG_CV)
 #include "cv_usart_task.h" // CvCmder_CheckAndResetUserKeyEdge
-#endif
 
 #define RGB_FLOW_COLOR_CHANGE_TIME  1000
 #define RGB_FLOW_COLOR_LENGTH   6

@@ -5,7 +5,7 @@
 #if defined(INFANTRY_1) || defined(INFANTRY_2)
 #define FRIC_UP 1235
 #define FRIC_DOWN 1164
-#elif defined(INFANTRY_3)
+#elif defined(INFANTRY_3) || defined(SENTRY_1)
 #define FRIC_UP 1400
 #define FRIC_DOWN 1320
 #endif

@@ -150,7 +150,11 @@ void chassis_task(void const *pvParameters)
     uint8_t fIsError = 0;
     uint8_t bToeIndex;
     do {
+#if defined(SENTRY_1)
+      for (bToeIndex = CV_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
+#else
       for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
+#endif
       {
         if (toe_is_error(bToeIndex))
         {
@@ -189,10 +193,14 @@ void chassis_task(void const *pvParameters)
         {
           if (!toe_is_error(bToeIndex))
           {
-#if defined(INFANTRY_3)
-            // when remote control is offline, chassis motor should receive zero current or voltage.
-            // 当遥控器掉线的时候，发送给底盘电机零电流.
+            //when remote control is offline, chassis motor should receive zero current or voltage.
+            //当遥控器掉线的时候，发送给底盘电机零电流.
+#if defined(SENTRY_1)
+            if (toe_is_error(CV_TOE))
+#else
             if (toe_is_error(DBUS_TOE))
+#endif
+#if defined(INFANTRY_3)
             {
               CAN_cmd_chassis(0, 0, 0, 0, 0, 0, 0, 0);
             }
@@ -204,9 +212,6 @@ void chassis_task(void const *pvParameters)
                               chassis_move.steer_motor_chassis[0].target_ecd, chassis_move.steer_motor_chassis[1].target_ecd, chassis_move.steer_motor_chassis[2].target_ecd, chassis_move.steer_motor_chassis[3].target_ecd);
             }
 #else
-            // when remote control is offline, chassis motor should receive zero current or voltage.
-            // 当遥控器掉线的时候，发送给底盘电机零电流.
-            if (toe_is_error(DBUS_TOE))
             {
               CAN_cmd_chassis(0, 0, 0, 0);
             }
@@ -348,7 +353,9 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 
     //change to follow gimbal angle mode
     //切入跟随云台模式
-    if ((chassis_move_transit->last_chassis_mode != CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW) && chassis_move_transit->chassis_mode == CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW)
+    if (((chassis_move_transit->last_chassis_mode != CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW) && chassis_move_transit->chassis_mode == CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW)
+        // Spinning mode is a combination of extra constant wz and vector-follow-gimbal mode
+        || ((chassis_move_transit->last_chassis_mode != CHASSIS_VECTOR_SPINNING) && chassis_move_transit->chassis_mode == CHASSIS_VECTOR_SPINNING))
     {
         chassis_move_transit->chassis_relative_angle_set = 0.0f;
     }
@@ -505,7 +512,9 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
 
     //follow gimbal mode
     //跟随云台模式
-    if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW)
+    if ((chassis_move_control->chassis_mode == CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW)
+        // Spinning mode is a combination of extra constant wz and vector-follow-gimbal mode
+        || (chassis_move_control->chassis_mode == CHASSIS_VECTOR_SPINNING))
     {
         fp32 sin_yaw = 0.0f, cos_yaw = 0.0f;
         //rotate chassis direction, make sure vertial direction follow gimbal 
