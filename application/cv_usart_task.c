@@ -14,13 +14,14 @@
 #include "usart.h"
 #include "bsp_usart.h"
 #include "string.h"
+#include "detect_task.h"
 #if defined(DEBUG_CV)
 #include "usb_task.h"
 #include <stdio.h>
 #endif
 
 #ifndef MIN
-#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif /* MIN */
 #define DATA_PACKAGE_SIZE 15
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_SIZE - sizeof(uint8_t) * 3)
@@ -39,13 +40,6 @@ typedef enum
     CHAR_UNUSED = 0xFF,
 } eCharTypes;
 
-typedef enum
-{
-    CV_MODE_AUTO_AIM_BIT = 1 << 0,
-    CV_MODE_AUTO_MOVE_BIT = 1 << 1,
-    CV_MODE_ENEMY_DETECTED_BIT = 1 << 2,
-} eModeControlBits;
-
 typedef union
 {
     struct
@@ -60,9 +54,10 @@ typedef union
 
 void CvCmder_Init(void);
 void CvCmder_PollForModeChange(void);
-void CvCmder_RxParser(uint16_t Size);
+uint8_t CvCmder_RxParser(void);
 void CvCmder_SendSetModeRequest(void);
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
+uint8_t CvCmder_CheckAndResetFlag(uint8_t *pbFlag);
 #if defined(DEBUG_CV)
 uint8_t CvCmder_MockModeChange(void);
 #endif
@@ -72,11 +67,12 @@ tCvMsg CvTxBuffer;
 tCvCmdHandler CvCmdHandler;
 // don't compare with literal string "ACK", since it contains extra NULL char at the end
 const uint8_t abExpectedAckPayload[3] = {'A', 'C', 'K'};
-uint8_t abUsartRxBuf[DATA_PACKAGE_PAYLOAD_SIZE * 3];
+// Test result with pyserial: Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
+uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE * 6];
 uint8_t abExpectedUnusedPayload[DATA_PACKAGE_PAYLOAD_SIZE - 1];
 
 #if defined(DEBUG_CV)
-volatile uint8_t fIsUserKeyPressingEdge = 0;
+uint8_t fIsUserKeyPressingEdge = 0;
 char usbMsg[500];
 volatile uint16_t uiUsbMsgSize;
 #endif
@@ -87,7 +83,7 @@ void cv_usart_task(void const *argument)
     while (1)
     {
         CvCmder_PollForModeChange();
-        osDelay(500);
+        osDelay(1500);
     }
 }
 
@@ -97,8 +93,13 @@ void CvCmder_Init(void)
     CvTxBuffer.tData.bEtx = CHAR_ETX;
     memset(abExpectedUnusedPayload, CHAR_UNUSED, sizeof(abExpectedUnusedPayload));
 
-    memset(&CvCmdHandler, 0, sizeof(CvCmdHandler)); // clear status
-    CvCmdHandler.cv_rc_ctrl = get_remote_control_point();
+    memset(&CvCmdHandler, 0, sizeof(CvCmdHandler));       // clear status
+    CvCmdHandler.cv_rc_ctrl = get_remote_control_point(); // reserved, not used yet
+
+#if defined(SENTRY_1)
+    CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 1);
+    CvCmdHandler.fIsModeChanged = 1;
+#endif
 
     // Get a callback when DMA completes or IDLE
     HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
@@ -115,26 +116,45 @@ void CvCmder_Init(void)
 void CvCmder_PollForModeChange(void)
 {
     // @TODO: Implement check for Auto-move mode and Enemy mode
-    // uint8_t fLastAutoMoveMode = CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT);
     // uint8_t fLastEnemyMode = CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT);
+    static enum {
+        CMDER_STATE_IDLE,
+        CMDER_STATE_WAIT_FOR_ACK,
+    } eCvCmderState = CMDER_STATE_IDLE;
 
-    uint8_t fIsModeChanged = 0;
-    if (CvCmdHandler.fIsAutoAimSwitchEdge != EDGE_NONE)
+    switch (eCvCmderState)
     {
-        CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT, (CvCmdHandler.fIsAutoAimSwitchEdge == EDGE_RISING));
-        fIsModeChanged = 1;
-    }
-
+    case CMDER_STATE_IDLE:
+    {
 #if defined(DEBUG_CV)
-    if (fIsModeChanged == 0)
-    {
-        fIsModeChanged = CvCmder_MockModeChange();
-    }
+        if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE) || CvCmder_MockModeChange())
+#else
+        if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE))
 #endif
-
-    if (fIsModeChanged)
+        {
+            CvCmder_SendSetModeRequest();
+            CvCmdHandler.fIsWaitingForAck = 1;
+            eCvCmderState = CMDER_STATE_WAIT_FOR_ACK;
+        }
+        break;
+    }
+    case CMDER_STATE_WAIT_FOR_ACK:
     {
-        CvCmder_SendSetModeRequest();
+        if (CvCmdHandler.fIsWaitingForAck)
+        {
+            CvCmder_SendSetModeRequest();
+        }
+        else
+        {
+            eCvCmderState = CMDER_STATE_IDLE;
+        }
+        break;
+    }
+    default:
+    {
+        eCvCmderState = CMDER_STATE_IDLE;
+        break;
+    }
     }
 }
 
@@ -146,7 +166,9 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
     {
         if (fIsKeyPressed)
         {
-            CvCmdHandler.fIsAutoAimSwitchEdge = CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT) ? EDGE_FALLING : EDGE_RISING;
+            // keyboard "G" button toggles auto-aim mode
+            CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT, CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT) ? 0 : 1);
+            CvCmdHandler.fIsModeChanged = 1;
         }
         fLastKeySignal = fIsKeyPressed;
     }
@@ -160,7 +182,6 @@ void CvCmder_SendSetModeRequest(void)
     HAL_UART_Transmit(&huart1, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
 
     CvCmdHandler.fCvCmdValid = CvCmdHandler.fCvCmdValid && (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT) || CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT));
-    CvCmdHandler.fIsWaitingForAck = 1;
 
 #if defined(DEBUG_CV)
     // echo to usb
@@ -185,38 +206,57 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     if (huart->Instance == USART1)
     {
-        uint16_t uiCursor = 0;
-        uint16_t uiPacketSize;
-        while (uiCursor < Size)
+        uint16_t uiStxFinder = 0;
+        while ((uiStxFinder < Size) && (Size - uiStxFinder >= sizeof(CvRxBuffer.abData)))
         {
-            uiPacketSize = MIN(Size - uiCursor, sizeof(CvRxBuffer.abData));
-            memcpy(CvRxBuffer.abData, &abUsartRxBuf[uiCursor], uiPacketSize);
-            CvCmder_RxParser(uiPacketSize);
-            uiCursor += sizeof(CvRxBuffer.abData);
-        }
+            if (abUsartRxBuf[uiStxFinder] == CHAR_STX)
+            {
+                memcpy(CvRxBuffer.abData, &abUsartRxBuf[uiStxFinder], sizeof(CvRxBuffer.abData));
+                uint8_t fValid = CvCmder_RxParser();
+                uiStxFinder += sizeof(CvRxBuffer.abData);
+#if defined(DEBUG_CV)
+                // echo to usb
+                uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fValid ? "Valid" : "Invalid");
 
+                for (uint16_t i = 0; i < sizeof(CvRxBuffer.abData); i++)
+                {
+                    if (uiUsbMsgSize + (sizeof("0x00,") - 1) > sizeof(usbMsg))
+                    {
+                        break;
+                    }
+                    uiUsbMsgSize += snprintf(&usbMsg[uiUsbMsgSize], sizeof(usbMsg) - uiUsbMsgSize, "0x%02X,", CvRxBuffer.abData[i]);
+                }
+                usbMsg[uiUsbMsgSize - 1] = '\n';
+                usbMsg[uiUsbMsgSize] = 0;
+                usb_printf("%s", usbMsg);
+#endif
+            }
+            else
+            {
+                uiStxFinder++;
+            }
+        }
         /* start the DMA again */
         HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
         __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
     }
 }
 
-void CvCmder_RxParser(uint16_t uiPacketSize)
+uint8_t CvCmder_RxParser(void)
 {
-    uint8_t fInvalid = 1;
-    if ((uiPacketSize == sizeof(CvRxBuffer.abData)) && (CvRxBuffer.tData.bStx == CHAR_STX) && (CvRxBuffer.tData.bEtx == CHAR_ETX))
+    uint8_t fValid = 0;
+    if (CvRxBuffer.tData.bEtx == CHAR_ETX)
     {
         switch (CvRxBuffer.tData.bMsgType)
         {
         case MSG_CV_CMD:
         {
-            fInvalid = 0;
-            fInvalid |= ((CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT) == 0) && (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT) == 0));
+            fValid = (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT) || CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT));
             // // Check for ACK is not used, because it may be misaligned in the middle and ignored so that further msgs align
             // // However, ACK is still helpful because it can help synchronize communication in the beginning
-            // fInvalid |= CvCmdHandler.fIsWaitingForAck;
-            fInvalid |= (memcmp(&CvRxBuffer.tData.abPayload[sizeof(tCvCmdMsg)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvCmdMsg)) != 0);
-            if (fInvalid == 0)
+            // fValid &= CvCmdHandler.fIsWaitingForAck;
+            fValid &= (memcmp(&CvRxBuffer.tData.abPayload[sizeof(tCvCmdMsg)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvCmdMsg)) == 0);
+            if (fValid)
             {
                 memcpy(&(CvCmdHandler.CvCmdMsg), CvRxBuffer.tData.abPayload, sizeof(CvCmdHandler.CvCmdMsg));
                 CvCmdHandler.fCvCmdValid = 1;
@@ -224,50 +264,32 @@ void CvCmder_RxParser(uint16_t uiPacketSize)
             else
             {
                 CvCmdHandler.fCvCmdValid = 0;
+                // if messages have been invalid for too long (offline timeout value is defined in detect_init() function)
+                if (toe_is_error(CV_TOE))
+                {
+                    memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
+                }
             }
             break;
         }
         case MSG_ACK:
         {
-            fInvalid = 0;
-            fInvalid |= (memcmp(&CvRxBuffer.tData.abPayload[sizeof(abExpectedAckPayload)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(abExpectedAckPayload)) != 0);
-            fInvalid |= (memcmp(CvRxBuffer.tData.abPayload, abExpectedAckPayload, sizeof(abExpectedAckPayload)) != 0);
-            if (fInvalid == 0)
+            fValid = (memcmp(&CvRxBuffer.tData.abPayload[sizeof(abExpectedAckPayload)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(abExpectedAckPayload)) == 0);
+            fValid &= (memcmp(CvRxBuffer.tData.abPayload, abExpectedAckPayload, sizeof(abExpectedAckPayload)) == 0);
+            if (fValid)
             {
                 CvCmdHandler.fIsWaitingForAck = 0;
-                CvCmdHandler.fIsAutoAimSwitchEdge = EDGE_NONE;
             }
             break;
         }
-        default:
-        {
-            // fInvalid = 1; // by default
-            break;
-        }
         }
     }
 
-    if (fInvalid)
+    if (fValid)
     {
-        // reserved
+        detect_hook(CV_TOE);
     }
-
-#if defined(DEBUG_CV)
-    // echo to usb
-    uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fInvalid ? "Invalid" : "Valid");
-
-    for (uint16_t i = 0; i < uiPacketSize; i++)
-    {
-        if (uiUsbMsgSize + (sizeof("0x00,") - 1) > sizeof(usbMsg))
-        {
-            break;
-        }
-        uiUsbMsgSize += snprintf(&usbMsg[uiUsbMsgSize], sizeof(usbMsg) - uiUsbMsgSize, "0x%02X,", CvRxBuffer.abData[i]);
-    }
-    usbMsg[uiUsbMsgSize - 1] = '\n';
-    usbMsg[uiUsbMsgSize] = 0;
-    usb_printf("%s", usbMsg);
-#endif
+    return fValid;
 }
 
 uint8_t CvCmder_GetMode(uint8_t bCvModeBit)
@@ -289,12 +311,17 @@ tCvCmdHandler *CvCmder_GetHandler(void)
     return &CvCmdHandler;
 }
 
+uint8_t CvCmder_CheckAndResetFlag(uint8_t *pbFlag)
+{
+    uint8_t temp = *pbFlag;
+    *pbFlag = 0;
+    return temp;
+}
+
 #if defined(DEBUG_CV)
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void)
 {
-    uint8_t temp = fIsUserKeyPressingEdge;
-    fIsUserKeyPressingEdge = 0;
-    return temp;
+    return CvCmder_CheckAndResetFlag(&fIsUserKeyPressingEdge);
 }
 
 /**
