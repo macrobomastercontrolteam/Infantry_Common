@@ -38,6 +38,7 @@
 #include "usb_task.h"
 #include "voltage_task.h"
 // #include "servo_task.h"
+#include "cv_usart_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,6 +55,7 @@ osThreadId referee_usart_task_handle;
 osThreadId usb_task_handle;
 osThreadId battery_voltage_handle;
 // osThreadId servo_task_handle;
+osThreadId cv_usart_task_handle;
 
 
 /* USER CODE END PTD */
@@ -184,8 +186,12 @@ void MX_FREERTOS_Init(void) {
 
     // osThreadDef(SERVO, servo_task, osPriorityNormal, 0, 128);
     // servo_task_handle = osThreadCreate(osThread(SERVO), NULL);
-
-
+#if defined(CV_INTERFACE)
+    osThreadDef(CVTask, cv_usart_task, osPriorityNormal, 0, 256);
+    cv_usart_task_handle = osThreadCreate(osThread(CVTask), NULL);
+#else
+    UNUSED(cv_usart_task_handle);
+#endif
 
   /* USER CODE END RTOS_THREADS */
 
@@ -202,7 +208,6 @@ __weak void test_task(void const * argument)
 {
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
-
   /* USER CODE BEGIN test_task */
   /* Infinite loop */
   for(;;)
@@ -216,5 +221,3 @@ __weak void test_task(void const * argument)
 /* USER CODE BEGIN Application */
      
 /* USER CODE END Application */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -28,7 +28,7 @@
 #include "voltage_task.h"
 
 
-static void usb_printf(const char *fmt,...);
+void usb_printf(const char *fmt,...);
 
 static uint8_t usb_buf[256];
 static const char status[2][7] = {"OK", "ERROR!"};
@@ -44,6 +44,9 @@ void usb_task(void const * argument)
 
     while(1)
     {
+#if defined(DEBUG_CV)
+    UNUSED(status);
+#else
         osDelay(1000);
         usb_printf(
 #if defined(TEST_NO_REF)
@@ -92,12 +95,12 @@ referee usart:%s\r\n\
             status[error_list_usb_local[BOARD_ACCEL_TOE].error_exist],
             status[error_list_usb_local[BOARD_MAG_TOE].error_exist],
             status[error_list_usb_local[REFEREE_TOE].error_exist]);
-
+#endif // defined(DEBUG_CV)
     }
 
 }
 
-static void usb_printf(const char *fmt,...)
+void usb_printf(const char *fmt,...)
 {
     static va_list ap;
     uint16_t len = 0;

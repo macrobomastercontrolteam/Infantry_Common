@@ -54,6 +54,9 @@
 #define KEY_PRESSED_OFFSET_C            ((uint16_t)1 << 13)
 #define KEY_PRESSED_OFFSET_V            ((uint16_t)1 << 14)
 #define KEY_PRESSED_OFFSET_B            ((uint16_t)1 << 15)
+
+// toggle auto-aim mode
+#define AUTO_AIM_TOGGLE_KEYBOARD KEY_PRESSED_OFFSET_G
 /* ----------------------- Data Struct ------------------------------------- */
 typedef __packed struct
 {
@@ -84,5 +87,5 @@ extern const RC_ctrl_t *get_remote_control_point(void);
 extern uint8_t RC_data_is_error(void);
 extern void slove_RC_lost(void);
 extern void slove_data_error(void);
-extern void sbus_to_usart1(uint8_t *sbus);
+// extern void sbus_to_usart1(uint8_t *sbus);
 #endif

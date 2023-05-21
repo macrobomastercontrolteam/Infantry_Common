@@ -48,10 +48,10 @@
 #define UP_ADD_TIME                 80
 //电机反馈码盘值范围
 #define HALF_ECD_RANGE              4096
-#define ECD_RANGE                   8192
-//电机rmp 变化成 旋转速度的比例
-#define MOTOR_RPM_TO_SPEED          0.00290888208665721596153948461415f
-#define MOTOR_ECD_TO_ANGLE          0.000021305288720633905968306772076277f
+#define ECD_RANGE                   8191
+//拨弹电机rmp 变化成 旋转速度的比例
+#define TRIGGER_MOTOR_RPM_TO_SPEED  0.00290888208665721596153948461415f
+#define TRIGGER_MOTOR_ECD_TO_ANGLE  0.000021305288720633905968306772076277f
 #define FULL_COUNT                  18
 //拨弹速度
 #define TRIGGER_SPEED               10.0f
@@ -68,8 +68,17 @@
 #define REVERSE_TIME                500
 #define REVERSE_SPEED_LIMIT         13.0f
 
-#define PI_FOUR                     0.78539816339744830961566084581988f
-#define PI_TEN                      0.314f
+#if defined(INFANTRY_1) 
+#define TRIGGER_ANGLE_INCREMENT     (PI/7.0f)
+#elif defined(INFANTRY_2)
+#define TRIGGER_ANGLE_INCREMENT     (PI/7.0f)
+#elif defined(INFANTRY_3)
+#define TRIGGER_ANGLE_INCREMENT     (PI/12.0f)
+#elif defined(SENTRY_1)
+#define TRIGGER_ANGLE_INCREMENT     (PI/9.0f)
+#else
+#error "Robot Index not specified"
+#endif
 
 //拨弹轮电机PID
 #define TRIGGER_ANGLE_PID_KP        800.0f

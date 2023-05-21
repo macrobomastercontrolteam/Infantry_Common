@@ -98,7 +98,7 @@ void shoot_init(void)
     shoot_control.fric_pwm1 = FRIC_OFF;
     shoot_control.fric_pwm2 = FRIC_OFF;
     shoot_control.ecd_count = 0;
-    shoot_control.angle = shoot_control.shoot_motor_measure->ecd * MOTOR_ECD_TO_ANGLE;
+    shoot_control.angle = shoot_control.shoot_motor_measure->ecd * TRIGGER_MOTOR_ECD_TO_ANGLE;
     shoot_control.given_current = 0;
     shoot_control.move_flag = 0;
     shoot_control.set_angle = shoot_control.angle;
@@ -315,7 +315,7 @@ static void shoot_feedback_update(void)
     //二阶低通滤波
     speed_fliter_1 = speed_fliter_2;
     speed_fliter_2 = speed_fliter_3;
-    speed_fliter_3 = speed_fliter_2 * fliter_num[0] + speed_fliter_1 * fliter_num[1] + (shoot_control.shoot_motor_measure->speed_rpm * MOTOR_RPM_TO_SPEED) * fliter_num[2];
+    speed_fliter_3 = speed_fliter_2 * fliter_num[0] + speed_fliter_1 * fliter_num[1] + (shoot_control.shoot_motor_measure->speed_rpm * TRIGGER_MOTOR_RPM_TO_SPEED) * fliter_num[2];
     shoot_control.speed = speed_fliter_3;
 
     //电机圈数重置， 因为输出轴旋转一圈， 电机轴旋转 36圈，将电机轴数据处理成输出轴数据，用于控制输出轴角度
@@ -338,7 +338,7 @@ static void shoot_feedback_update(void)
     }
 
     //计算输出轴角度
-    shoot_control.angle = (shoot_control.ecd_count * ECD_RANGE + shoot_control.shoot_motor_measure->ecd) * MOTOR_ECD_TO_ANGLE;
+    shoot_control.angle = (shoot_control.ecd_count * ECD_RANGE + shoot_control.shoot_motor_measure->ecd) * TRIGGER_MOTOR_ECD_TO_ANGLE;
     //微动开关
     shoot_control.key = BUTTEN_TRIG_PIN;
     //鼠标按键
@@ -444,7 +444,7 @@ static void shoot_bullet_control(void)
     //每次拨动 1/4PI的角度
     if (shoot_control.move_flag == 0)
     {
-        shoot_control.set_angle = rad_format(shoot_control.angle + PI_TEN);
+        shoot_control.set_angle = rad_format(shoot_control.angle + TRIGGER_ANGLE_INCREMENT);
         shoot_control.move_flag = 1;
     }
     if(shoot_control.key == SWITCH_TRIGGER_OFF)
