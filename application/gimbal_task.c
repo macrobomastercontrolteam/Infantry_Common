@@ -46,7 +46,7 @@
 //电机编码值规整 0—8191
 #define ecd_format(ecd)         \
     {                           \
-        if ((ecd) > ECD_RANGE)  \
+        if ((ecd) > ECD_RANGE - 1)  \
             (ecd) -= ECD_RANGE; \
         else if ((ecd) < 0)     \
             (ecd) += ECD_RANGE; \
@@ -129,7 +129,7 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *mode_change);
   * @param[in]      offset_ecd: 电机中值编码
   * @retval         相对角度，单位rad
   */
-static fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
+fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 /**
   * @brief          set gimbal control set-point, control set-point is set by "gimbal_behaviour_control_set".         
   * @param[out]     gimbal_set_control: "gimbal_control" valiable point
@@ -744,7 +744,7 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
   * @brief          calculate the relative angle between ecd and offset_ecd
   * @param[in]      ecd: motor now encode
   * @param[in]      offset_ecd: gimbal offset encode
-  * @retval         relative angle, unit rad
+  * @retval         relative angle; unit rad; range is [-PI, PI]; positive direction is clockwise; forward direction is angle=0
   */
 /**
   * @brief          计算ecd与offset_ecd之间的相对角度
@@ -752,7 +752,7 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
   * @param[in]      offset_ecd: 电机中值编码
   * @retval         相对角度，单位rad
   */
-static fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd)
+fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd)
 {
     int32_t relative_ecd = ecd - offset_ecd;
     if (relative_ecd > HALF_ECD_RANGE)
@@ -1118,9 +1118,9 @@ static fp32 gimbal_PID_calc(gimbal_PID_t *pid, fp32 get, fp32 set, fp32 error_de
     pid->Pout = pid->kp * pid->err;
     pid->Iout += pid->ki * pid->err;
     pid->Dout = pid->kd * error_delta;
-    abs_limit(&pid->Iout, pid->max_iout);
+    LimitMax(&pid->Iout, pid->max_iout);
     pid->out = pid->Pout + pid->Iout + pid->Dout;
-    abs_limit(&pid->out, pid->max_out);
+    LimitMax(&pid->out, pid->max_out);
     return pid->out;
 }
 

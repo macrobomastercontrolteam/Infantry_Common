@@ -25,21 +25,30 @@
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
+#define get_motor_array_index(_CAN_ID) (_CAN_ID - CAN_3508_M1_ID)
 
 /* CAN send and receive ID */
 typedef enum
 {
-    CAN_CHASSIS_ALL_ID = 0x200,
+    /*******Tx CAN IDs********/
+    CAN_CHASSIS_M3508_TX_ID = 0x200,
+    CAN_GIMBAL_ALL_TX_ID = 0x1FF,
+#if defined(INFANTRY_3)
+    CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
+#endif
+
+    /*******Chassis CAN IDs********/
     CAN_3508_M1_ID = 0x201,
     CAN_3508_M2_ID = 0x202,
     CAN_3508_M3_ID = 0x203,
     CAN_3508_M4_ID = 0x204,
-
-    CAN_YAW_MOTOR_ID = 0x205,
-    CAN_PIT_MOTOR_ID = 0x206,
     CAN_TRIGGER_MOTOR_ID = 0x207,
-    CAN_GIMBAL_ALL_ID = 0x1FF,
+    CAN_YAW_MOTOR_ID = 0x205,
 
+    /********Gimbal CAN IDs********/
+    CAN_PIT_MOTOR_ID = 0x206,
+
+    CAN_LAST_ID = CAN_PIT_MOTOR_ID,
 } can_msg_id_e;
 
 //rm motor data
@@ -83,6 +92,21 @@ extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t re
   */
 extern void CAN_cmd_chassis_reset_ID(void);
 
+#if defined(INFANTRY_3)
+/**
+  * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
+  * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
+  * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
+  * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
+  * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
+  * @param[in]      steer_motor1: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @param[in]      steer_motor2: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @param[in]      steer_motor3: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @param[in]      steer_motor4: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @retval         none
+  */
+extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, uint16_t steer_motor1, uint16_t steer_motor2, uint16_t steer_motor3, uint16_t steer_motor4);
+#else
 /**
   * @brief          send control current of motor (0x201, 0x202, 0x203, 0x204)
   * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
@@ -100,6 +124,7 @@ extern void CAN_cmd_chassis_reset_ID(void);
   * @retval         none
   */
 extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
+#endif
 
 /**
   * @brief          return the yaw 6020 motor data point

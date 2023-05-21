@@ -33,12 +33,12 @@
 #define POWER_TOTAL_CURRENT_LIMIT       20000.0f
 
 /**
-  * @brief          limit the power, mainly limit motor current
+  * @brief          limit the power, mainly limit driver motor current
   * @param[in]      chassis_power_control: chassis data 
   * @retval         none
   */
 /**
-  * @brief          限制功率，主要限制电机电流
+  * @brief          限制功率，主要限制驱动轮电流
   * @param[in]      chassis_power_control: 底盘数据
   * @retval         none
   */
@@ -126,6 +126,7 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
 
     if(total_current > total_current_limit)
     {
+        // only limit current of driver motors, because power usage by steering motors is small and difficult to estimate. Because we control voltage input to steering motor (GM6020), not current
         fp32 current_scale = total_current_limit / total_current;
         chassis_power_control->motor_speed_pid[0].out*=current_scale;
         chassis_power_control->motor_speed_pid[1].out*=current_scale;

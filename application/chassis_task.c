@@ -114,6 +114,10 @@ static void chassis_set_control(chassis_move_t *chassis_move_control);
   */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 
+#if defined(INFANTRY_3)
+static uint16_t motor_angle_to_ecd_change(fp32 angle);
+#endif
+
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
 #endif
@@ -143,10 +147,23 @@ void chassis_task(void const *pvParameters)
     chassis_init(&chassis_move);
     //make sure all chassis motor is online,
     //判断底盘电机是否都在线
-    while (toe_is_error(CHASSIS_MOTOR1_TOE) || toe_is_error(CHASSIS_MOTOR2_TOE) || toe_is_error(CHASSIS_MOTOR3_TOE) || toe_is_error(CHASSIS_MOTOR4_TOE) || toe_is_error(DBUS_TOE))
-    {
-        vTaskDelay(CHASSIS_CONTROL_TIME_MS);
-    }
+    uint8_t fIsError = 0;
+    uint8_t bToeIndex;
+    do {
+      for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
+      {
+        if (toe_is_error(bToeIndex))
+        {
+          fIsError = 1;
+          vTaskDelay(CHASSIS_CONTROL_TIME_MS);
+          break;
+        }
+      }
+      if (bToeIndex > CHASSIS_MOTOR4_TOE)
+      {
+        fIsError = 0;
+      }
+    } while (fIsError);
 
     while (1)
     {
@@ -168,21 +185,41 @@ void chassis_task(void const *pvParameters)
 
         //make sure  one motor is online at least, so that the control CAN message can be received
         //确保至少一个电机在线， 这样CAN控制包可以被接收到
-        if (!(toe_is_error(CHASSIS_MOTOR1_TOE) && toe_is_error(CHASSIS_MOTOR2_TOE) && toe_is_error(CHASSIS_MOTOR3_TOE) && toe_is_error(CHASSIS_MOTOR4_TOE)))
+        for (bToeIndex = DBUS_TOE + 1; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
         {
-            //when remote control is offline, chassis motor should receive zero current. 
-            //当遥控器掉线的时候，发送给底盘电机零电流.
+          if (!toe_is_error(bToeIndex))
+          {
+#if defined(INFANTRY_3)
+            // when remote control is offline, chassis motor should receive zero current or voltage.
+            // 当遥控器掉线的时候，发送给底盘电机零电流.
             if (toe_is_error(DBUS_TOE))
             {
-                CAN_cmd_chassis(0, 0, 0, 0);
+              CAN_cmd_chassis(0, 0, 0, 0, 0, 0, 0, 0);
             }
             else
             {
-                //send control current
-                //发送控制电流
-                CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current,
-                                chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
+              // send control message
+              // 发送控制电流
+              CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current, chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current,
+                              chassis_move.steer_motor_chassis[0].target_ecd, chassis_move.steer_motor_chassis[1].target_ecd, chassis_move.steer_motor_chassis[2].target_ecd, chassis_move.steer_motor_chassis[3].target_ecd);
             }
+#else
+            // when remote control is offline, chassis motor should receive zero current or voltage.
+            // 当遥控器掉线的时候，发送给底盘电机零电流.
+            if (toe_is_error(DBUS_TOE))
+            {
+              CAN_cmd_chassis(0, 0, 0, 0);
+            }
+            else
+            {
+              // send control message
+              // 发送控制电流
+              CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current,
+                              chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
+            }
+#endif
+            break;
+          }
         }
         //os delay
         //系统延时
@@ -212,9 +249,9 @@ static void chassis_init(chassis_move_t *chassis_move_init)
         return;
     }
 
-    //chassis motor speed PID
-    //底盘速度环pid值
-    const static fp32 motor_speed_pid[3] = {M3505_MOTOR_SPEED_PID_KP, M3505_MOTOR_SPEED_PID_KI, M3505_MOTOR_SPEED_PID_KD};
+    //chassis drive motor (3508) speed PID
+    //底盘驱动轮速度环pid值
+    const static fp32 motor_speed_pid[3] = {M3508_MOTOR_SPEED_PID_KP, M3508_MOTOR_SPEED_PID_KI, M3508_MOTOR_SPEED_PID_KD};
     
     //chassis angle PID
     //底盘角度pid值
@@ -243,7 +280,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     for (i = 0; i < 4; i++)
     {
         chassis_move_init->motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i);
-        PID_init(&chassis_move_init->motor_speed_pid[i], PID_POSITION, motor_speed_pid, M3505_MOTOR_SPEED_PID_MAX_OUT, M3505_MOTOR_SPEED_PID_MAX_IOUT);
+        PID_init(&chassis_move_init->motor_speed_pid[i], PID_POSITION, motor_speed_pid, M3508_MOTOR_SPEED_PID_MAX_OUT, M3508_MOTOR_SPEED_PID_MAX_IOUT);
     }
     //initialize angle PID
     //初始化角度PID
@@ -357,11 +394,13 @@ static void chassis_feedback_update(chassis_move_t *chassis_move_update)
         chassis_move_update->motor_chassis[i].accel = chassis_move_update->motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
     }
 
+#if !defined(INFANTRY_3)
     //calculate vertical speed, horizontal speed ,rotation speed, left hand rule 
     //更新底盘纵向速度 x， 平移速度y，旋转速度wz，坐标系为右手系
     chassis_move_update->vx = (-chassis_move_update->motor_chassis[0].speed + chassis_move_update->motor_chassis[1].speed + chassis_move_update->motor_chassis[2].speed - chassis_move_update->motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
     chassis_move_update->vy = (-chassis_move_update->motor_chassis[0].speed - chassis_move_update->motor_chassis[1].speed + chassis_move_update->motor_chassis[2].speed + chassis_move_update->motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
     chassis_move_update->wz = (-chassis_move_update->motor_chassis[0].speed - chassis_move_update->motor_chassis[1].speed - chassis_move_update->motor_chassis[2].speed - chassis_move_update->motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / MOTOR_DISTANCE_TO_CENTER;
+#endif
 
     //calculate chassis euler angle, if chassis add a new gyro sensor,please change this code
     //计算底盘姿态角度, 如果底盘上有陀螺仪请更改这部分代码
@@ -521,6 +560,7 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
     }
 }
 
+#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
 /**
   * @brief          four mecanum wheels speed is calculated by three param. 
   * @param[in]      vx_set: vertial speed
@@ -546,7 +586,89 @@ static void chassis_vector_to_mecanum_wheel_speed(const fp32 vx_set, const fp32 
     wheel_speed[2] = vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * MOTOR_DISTANCE_TO_CENTER * wz_set;
     wheel_speed[3] = -vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * MOTOR_DISTANCE_TO_CENTER * wz_set;
 }
+#elif defined(INFANTRY_3)
+/**
+  * @brief          four drive wheels' speeds and four steering wheels' angles are calculated by three chassis param. 
+  * @param[in]      vx_set: vertial speed (up is positive)
+  * @param[in]      vy_set: horizontal speed (remote controller: left is positive; internal calculation: right is positive)
+  * @param[in]      wz_set: rotation speed (counter-clockwise is positive)
+  * @param[out]     wheel_speed: four drive wheels speed
+  * @param[out]     steer_wheel_angle: four steering wheels angle. Angle between positive y-axis and total velocity
+  * @retval         none
+  */
+/**
+  * @brief          四个驱动轮速度是通过三个参数计算出来的
+  * @param[in]      vx_set: 纵向速度
+  * @param[in]      vy_set: 横向速度
+  * @param[in]      wz_set: 旋转速度
+  * @param[out]     wheel_speed: 四个驱动轮速度
+  * @param[out]     wheel_angle: 四个舵轮角度
+  * @retval         none
+  */
+void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 wheel_speed[4], fp32 steer_wheel_angle[4])
+{
+    // remote controller: left is positive; internal calculation: right is positive
+    vy_set = -vy_set;
+    //because the gimbal is in front of chassis, when chassis rotates, wheel 0 and wheel 1 should be slower and wheel 2 and wheel 3 should be faster
+    //CHASSIS_WZ_SET_SCALE makes a coarse adjustment for that
+    //旋转的时候， 由于云台靠前，所以是前面两轮 0 ，1 旋转的速度变慢， 后面两轮 2,3 旋转的速度变快
+    fp32 wz_set_adjusted_front_wheels = (1.0f - CHASSIS_WZ_SET_SCALE) * wz_set;
+    fp32 tangential_speed_x_front_wheels = wz_set_adjusted_front_wheels * CHASSIS_Y_DIRECTION_HALF_LENGTH; // wz_set * R * cos(theta)
+    fp32 tangential_speed_y_front_wheels = wz_set_adjusted_front_wheels * CHASSIS_X_DIRECTION_HALF_LENGTH; // wz_set * R * sin(theta)
 
+    fp32 wz_set_adjusted_rear_wheels = (1.0f + CHASSIS_WZ_SET_SCALE) * wz_set;
+    fp32 tangential_speed_x_rear_wheels = wz_set_adjusted_rear_wheels * CHASSIS_Y_DIRECTION_HALF_LENGTH; // wz_set * R * cos(theta)
+    fp32 tangential_speed_y_rear_wheels = wz_set_adjusted_rear_wheels * CHASSIS_X_DIRECTION_HALF_LENGTH; // wz_set * R * sin(theta)
+
+    //pairs of velocities represented by (x,y)
+    fp32 wheel_velocity[4][2] = {
+      {vx_set + tangential_speed_x_front_wheels, vy_set - tangential_speed_y_front_wheels},
+      {vx_set - tangential_speed_x_front_wheels, vy_set - tangential_speed_y_front_wheels},
+      {vx_set - tangential_speed_x_rear_wheels, vy_set + tangential_speed_y_rear_wheels},
+      {vx_set + tangential_speed_x_rear_wheels, vy_set + tangential_speed_y_rear_wheels},
+    };
+
+    static fp32 last_steer_wheel_angle_target[4];
+    static uint8_t reverse_flag[4];
+    uint8_t i;
+    uint8_t fNoChange = (fabs(vy_set) <= STEER_TURN_X_SPEED_DEADZONE) && (fabs(vx_set) < STEER_TURN_X_SPEED_DEADZONE) && (fabs(wz_set) < STEER_TURN_W_SPEED_DEADZONE);
+
+    for (i=0;i<4;i++)
+    {
+      // drive wheel speed
+      wheel_speed[i] = sqrt(pow(wheel_velocity[i][0],2) +	pow(wheel_velocity[i][1],2));
+
+      //steering wheel angle
+      if (fNoChange){
+        steer_wheel_angle[i] = last_steer_wheel_angle_target[i];
+      }
+      else
+      {
+        // (https://en.cppreference.com/w/c/numeric/math/atan2)
+        // steer_wheel_angle: unit rad; range is [-PI, PI]; positive direction is clockwise
+        steer_wheel_angle[i] = atan2f(wheel_velocity[i][1],wheel_velocity[i][0]);
+
+        reverse_flag[i] = (fabs(rad_format(steer_wheel_angle[i] - last_steer_wheel_angle_target[i])) > PI/2);
+        if (reverse_flag[i])
+        {
+          // if angle between last and target is greater than 90 deg, simply reverse drive wheel reduces time to turn
+          steer_wheel_angle[i] = rad_format(steer_wheel_angle[i] + PI);
+        }
+        
+        last_steer_wheel_angle_target[i] = steer_wheel_angle[i];
+      }
+
+      if (reverse_flag[i])
+      {
+        wheel_speed[i] = -wheel_speed[i];
+      }
+    }
+
+    // reverse direction because of special initial direction
+    wheel_speed[0] = -wheel_speed[0];
+    wheel_speed[3] = -wheel_speed[3];
+}
+#endif
 
 /**
   * @brief          control loop, according to control set-point, calculate motor current, 
@@ -563,13 +685,20 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 {
     fp32 max_vector = 0.0f, vector_rate = 0.0f;
     fp32 temp = 0.0f;
-    fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
     uint8_t i = 0;
 
+#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
     //mecanum wheel speed calculation
     //麦轮运动分解
     chassis_vector_to_mecanum_wheel_speed(chassis_move_control_loop->vx_set,
                                           chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, wheel_speed);
+#elif defined(INFANTRY_3)
+    //wheel vector calculation
+    //舵轮运动分解
+    fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit rad
+    chassis_vector_to_wheel_vector(chassis_move_control_loop->vx_set, chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, wheel_speed, steer_wheel_angle);
+#endif
 
     if (chassis_move_control_loop->chassis_mode == CHASSIS_VECTOR_RAW)
     {
@@ -583,16 +712,21 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
         return;
     }
 
-    //calculate the max speed in four wheels, limit the max speed
-    //计算轮子控制最大速度，并限制其最大速度
     for (i = 0; i < 4; i++)
     {
+        //calculate the max speed in four wheels, limit the max speed
+        //计算轮子控制最大速度，并限制其最大速度
         chassis_move_control_loop->motor_chassis[i].speed_set = wheel_speed[i];
         temp = fabs(chassis_move_control_loop->motor_chassis[i].speed_set);
         if (max_vector < temp)
         {
             max_vector = temp;
         }
+
+#if defined(INFANTRY_3)
+        // steer motor encoder value set
+        chassis_move_control_loop->steer_motor_chassis[i].target_ecd = motor_angle_to_ecd_change(steer_wheel_angle[i]);
+#endif
     }
 
     if (max_vector > MAX_WHEEL_SPEED)
@@ -622,3 +756,18 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
         chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(chassis_move_control_loop->motor_speed_pid[i].out);
     }
 }
+
+#if defined(INFANTRY_3)
+/**
+ * @brief Convert motor angle from radian to encoder unit
+ * Requirements:
+ *    0 rad = 0 ecd
+ *    input and output increase in the same clockwise direction
+ * @param[in] angle range [-PI, PI]
+ * @param[in] ecd range [0, ECD_RANGE-1]
+ */
+static uint16_t motor_angle_to_ecd_change(fp32 angle)
+{
+    return (uint16_t)(loop_fp32_constrain(angle, 0.0f, 2 * PI) * MOTOR_RAD_TO_ECD);
+}
+#endif
