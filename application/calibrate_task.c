@@ -341,7 +341,8 @@ void get_flash_latitude(float *latitude)
     }
     else
     {
-        *latitude = 22.0f;
+        // *latitude = 22.0f; // shenzhen
+        *latitude = 47.39f; // university of washington
     }
 }
 
@@ -636,8 +637,10 @@ static bool_t cali_head_hook(uint32_t *cali, bool_t cmd)
     }
     
     local_cali_t->firmware_version = FIRMWARE_VERSION;
-    //shenzhen latitude 
-    local_cali_t->latitude = 22.0f;
+    // //shenzhen latitude 
+    // local_cali_t->latitude = 22.0f;
+    // university of washington latitude 
+    local_cali_t->latitude = 47.39f;
 
     return 1;
 }

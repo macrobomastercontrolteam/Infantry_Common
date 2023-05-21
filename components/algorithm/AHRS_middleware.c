@@ -45,7 +45,8 @@ void AHRS_get_latitude(fp32* latitude)
 {
     if (latitude != NULL)
     {
-        *latitude = 22.0f;
+        // *latitude = 22.0f; // shenzhen
+        *latitude = 47.39f; // university of washington
     }
 }
 
