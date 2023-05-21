@@ -44,7 +44,7 @@ static void referee_unpack_fifo_data(void);
  
 extern UART_HandleTypeDef huart6;
 
-uint8_t usart6_buf[2][USART_RX_BUF_LENGHT];
+uint8_t usart6_buf[2][USART_RX_BUF_LENGTH];
 
 fifo_s_t referee_fifo;
 uint8_t referee_fifo_buf[REFEREE_FIFO_BUF_LENGTH];
@@ -64,7 +64,7 @@ void referee_usart_task(void const * argument)
 {
     init_referee_struct_data();
     fifo_s_init(&referee_fifo, referee_fifo_buf, REFEREE_FIFO_BUF_LENGTH);
-    usart6_init(usart6_buf[0], usart6_buf[1], USART_RX_BUF_LENGHT);
+    usart6_init(usart6_buf[0], usart6_buf[1], USART_RX_BUF_LENGTH);
 
     while(1)
     {
@@ -195,8 +195,8 @@ void USART6_IRQHandler(void)
         if ((huart6.hdmarx->Instance->CR & DMA_SxCR_CT) == RESET)
         {
             __HAL_DMA_DISABLE(huart6.hdmarx);
-            this_time_rx_len = USART_RX_BUF_LENGHT - __HAL_DMA_GET_COUNTER(huart6.hdmarx);
-            __HAL_DMA_SET_COUNTER(huart6.hdmarx, USART_RX_BUF_LENGHT);
+            this_time_rx_len = USART_RX_BUF_LENGTH - __HAL_DMA_GET_COUNTER(huart6.hdmarx);
+            __HAL_DMA_SET_COUNTER(huart6.hdmarx, USART_RX_BUF_LENGTH);
             huart6.hdmarx->Instance->CR |= DMA_SxCR_CT;
             __HAL_DMA_ENABLE(huart6.hdmarx);
             fifo_s_puts(&referee_fifo, (char*)usart6_buf[0], this_time_rx_len);
@@ -207,8 +207,8 @@ void USART6_IRQHandler(void)
         else
         {
             __HAL_DMA_DISABLE(huart6.hdmarx);
-            this_time_rx_len = USART_RX_BUF_LENGHT - __HAL_DMA_GET_COUNTER(huart6.hdmarx);
-            __HAL_DMA_SET_COUNTER(huart6.hdmarx, USART_RX_BUF_LENGHT);
+            this_time_rx_len = USART_RX_BUF_LENGTH - __HAL_DMA_GET_COUNTER(huart6.hdmarx);
+            __HAL_DMA_SET_COUNTER(huart6.hdmarx, USART_RX_BUF_LENGTH);
             huart6.hdmarx->Instance->CR &= ~(DMA_SxCR_CT);
             __HAL_DMA_ENABLE(huart6.hdmarx);
             fifo_s_puts(&referee_fifo, (char*)usart6_buf[1], this_time_rx_len);

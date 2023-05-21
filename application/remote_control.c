@@ -171,7 +171,7 @@ void USART3_IRQHandler(void)
             //获取接收数据长度,长度 = 设定长度 - 剩余长度
             this_time_rx_len = SBUS_RX_BUF_NUM - hdma_usart3_rx.Instance->NDTR;
 
-            //reset set_data_lenght
+            //reset set_data_length
             //重新设定数据长度
             hdma_usart3_rx.Instance->NDTR = SBUS_RX_BUF_NUM;
 
@@ -202,7 +202,7 @@ void USART3_IRQHandler(void)
             //获取接收数据长度,长度 = 设定长度 - 剩余长度
             this_time_rx_len = SBUS_RX_BUF_NUM - hdma_usart3_rx.Instance->NDTR;
 
-            //reset set_data_lenght
+            //reset set_data_length
             //重新设定数据长度
             hdma_usart3_rx.Instance->NDTR = SBUS_RX_BUF_NUM;
 

@@ -20,7 +20,7 @@
         CHASSIS_XXX_XXX, // new add
     }chassis_behaviour_e,
     2. implement new function. chassis_xxx_xxx_control(fp32 *vx, fp32 *vy, fp32 *wz, chassis_move_t * chassis )
-        "vx, vy, wz" param is chassis movement contorl input. 
+        "vx, vy, wz" param is chassis movement control input. 
         first param: 'vx' usually means  vertical speed,
             positive value means forward speed, negative value means backward speed.
         second param: 'vy' usually means horizotal speed,

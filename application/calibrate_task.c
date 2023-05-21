@@ -40,7 +40,7 @@
   *                 ...
   *                 //add more...
   *                 CALI_XXX,
-  *                 CALI_LIST_LENGHT,
+  *                 CALI_LIST_LENGTH,
   *             } cali_id_e;
   *             2. add the new data struct in calibrate_task.h, must be 4 four-byte mulitple  like
   *
@@ -50,10 +50,10 @@
   *                 uint16_t yyy;
   *                 fp32 zzz;
   *             } xxx_cali_t; //size: 8 bytes, must be 4, 8, 12, 16...
-  *             3.in "FLASH_WRITE_BUF_LENGHT", add "sizeof(xxx_cali_t)", and implement new function.
-  *             bool_t cali_xxx_hook(uint32_t *cali, bool_t cmd), and add the name in "cali_name[CALI_LIST_LENGHT][3]"
-  *             and declare variable xxx_cali_t xxx_cail, add the data address in cali_sensor_buf[CALI_LIST_LENGHT]
-  *             and add the data lenght in cali_sensor_size, at last, add function in cali_hook_fun[CALI_LIST_LENGHT]
+  *             3.in "FLASH_WRITE_BUF_LENGTH", add "sizeof(xxx_cali_t)", and implement new function.
+  *             bool_t cali_xxx_hook(uint32_t *cali, bool_t cmd), and add the name in "cali_name[CALI_LIST_LENGTH][3]"
+  *             and declare variable xxx_cali_t xxx_cail, add the data address in cali_sensor_buf[CALI_LIST_LENGTH]
+  *             and add the data length in cali_sensor_size, at last, add function in cali_hook_fun[CALI_LIST_LENGTH]
   *             使用遥控器进行开始校准
   *             第一步:遥控器的两个开关都打到下
   *             第二步:两个摇杆打成\../,保存两秒.\.代表左摇杆向右下打.
@@ -75,7 +75,7 @@
   *                 ...
   *                 //add more...
   *                 CALI_XXX,
-  *                 CALI_LIST_LENGHT,
+  *                 CALI_LIST_LENGTH,
   *             } cali_id_e;
   *             2. 添加数据结构在 calibrate_task.h, 必须4字节倍数，像
   *
@@ -85,10 +85,10 @@
   *                 uint16_t yyy;
   *                 fp32 zzz;
   *             } xxx_cali_t; //长度:8字节 8 bytes, 必须是 4, 8, 12, 16...
-  *             3.在 "FLASH_WRITE_BUF_LENGHT",添加"sizeof(xxx_cali_t)", 和实现新函数
-  *             bool_t cali_xxx_hook(uint32_t *cali, bool_t cmd), 添加新名字在 "cali_name[CALI_LIST_LENGHT][3]"
-  *             和申明变量 xxx_cali_t xxx_cail, 添加变量地址在cali_sensor_buf[CALI_LIST_LENGHT]
-  *             在cali_sensor_size[CALI_LIST_LENGHT]添加数据长度, 最后在cali_hook_fun[CALI_LIST_LENGHT]添加函数
+  *             3.在 "FLASH_WRITE_BUF_LENGTH",添加"sizeof(xxx_cali_t)", 和实现新函数
+  *             bool_t cali_xxx_hook(uint32_t *cali, bool_t cmd), 添加新名字在 "cali_name[CALI_LIST_LENGTH][3]"
+  *             和申明变量 xxx_cali_t xxx_cail, 添加变量地址在cali_sensor_buf[CALI_LIST_LENGTH]
+  *             在cali_sensor_size[CALI_LIST_LENGTH]添加数据长度, 最后在cali_hook_fun[CALI_LIST_LENGTH]添加函数
   *
   ==============================================================================
   @endverbatim
@@ -109,8 +109,8 @@
 #include "gimbal_task.h"
 
 
-//include head,gimbal,gyro,accel,mag. gyro,accel and mag have the same data struct. total 5(CALI_LIST_LENGHT) devices, need data lenght + 5 * 4 bytes(name[3]+cali)
-#define FLASH_WRITE_BUF_LENGHT  (sizeof(head_cali_t) + sizeof(gimbal_cali_t) + sizeof(imu_cali_t) * 3  + CALI_LIST_LENGHT * 4)
+//include head,gimbal,gyro,accel,mag. gyro,accel and mag have the same data struct. total 5(CALI_LIST_LENGTH) devices, need data length + 5 * 4 bytes(name[3]+cali)
+#define FLASH_WRITE_BUF_LENGTH  (sizeof(head_cali_t) + sizeof(gimbal_cali_t) + sizeof(imu_cali_t) * 3  + CALI_LIST_LENGTH * 4)
 
 
 
@@ -227,25 +227,25 @@ static imu_cali_t      gyro_cali;       //gyro cali data
 static imu_cali_t      mag_cali;        //mag cali data
 
 
-static uint8_t flash_write_buf[FLASH_WRITE_BUF_LENGHT];
+static uint8_t flash_write_buf[FLASH_WRITE_BUF_LENGTH];
 
-cali_sensor_t cali_sensor[CALI_LIST_LENGHT]; 
+cali_sensor_t cali_sensor[CALI_LIST_LENGTH]; 
 
-static const uint8_t cali_name[CALI_LIST_LENGHT][3] = {"HD", "GM", "GYR", "ACC", "MAG"};
+static const uint8_t cali_name[CALI_LIST_LENGTH][3] = {"HD", "GM", "GYR", "ACC", "MAG"};
 
 //cali data address
-static uint32_t *cali_sensor_buf[CALI_LIST_LENGHT] = {
+static uint32_t *cali_sensor_buf[CALI_LIST_LENGTH] = {
         (uint32_t *)&head_cali, (uint32_t *)&gimbal_cali,
         (uint32_t *)&gyro_cali, (uint32_t *)&accel_cali,
         (uint32_t *)&mag_cali};
 
 
-static uint8_t cali_sensor_size[CALI_LIST_LENGHT] =
+static uint8_t cali_sensor_size[CALI_LIST_LENGTH] =
     {
         sizeof(head_cali_t) / 4, sizeof(gimbal_cali_t) / 4,
         sizeof(imu_cali_t) / 4, sizeof(imu_cali_t) / 4, sizeof(imu_cali_t) / 4};
 
-void *cali_hook_fun[CALI_LIST_LENGHT] = {cali_head_hook, cali_gimbal_hook, cali_gyro_hook, NULL, NULL};
+void *cali_hook_fun[CALI_LIST_LENGTH] = {cali_head_hook, cali_gimbal_hook, cali_gyro_hook, NULL, NULL};
 
 static uint32_t calibrate_systemTick;
 
@@ -271,7 +271,7 @@ void calibrate_task(void const *pvParameters)
 
         RC_cmd_to_calibrate();
 
-        for (i = 0; i < CALI_LIST_LENGHT; i++)
+        for (i = 0; i < CALI_LIST_LENGTH; i++)
         {
             if (cali_sensor[i].cali_cmd)
             {
@@ -370,7 +370,7 @@ static void RC_cmd_to_calibrate(void)
 
     //if something is calibrating, return
     //如果已经在校准，就返回
-    for (i = 0; i < CALI_LIST_LENGHT; i++)
+    for (i = 0; i < CALI_LIST_LENGTH; i++)
     {
         if (cali_sensor[i].cali_cmd)
         {
@@ -501,7 +501,7 @@ void cali_param_init(void)
 {
     uint8_t i = 0;
 
-    for (i = 0; i < CALI_LIST_LENGHT; i++)
+    for (i = 0; i < CALI_LIST_LENGTH; i++)
     {
         cali_sensor[i].flash_len = cali_sensor_size[i];
         cali_sensor[i].flash_buf = cali_sensor_buf[i];
@@ -510,7 +510,7 @@ void cali_param_init(void)
 
     cali_data_read();
 
-    for (i = 0; i < CALI_LIST_LENGHT; i++)
+    for (i = 0; i < CALI_LIST_LENGTH; i++)
     {
         if (cali_sensor[i].cali_done == CALIED_FLAG)
         {
@@ -538,7 +538,7 @@ static void cali_data_read(void)
     uint8_t flash_read_buf[CALI_SENSOR_HEAD_LEGHT * 4];
     uint8_t i = 0;
     uint16_t offset = 0;
-    for (i = 0; i < CALI_LIST_LENGHT; i++)
+    for (i = 0; i < CALI_LIST_LENGTH; i++)
     {
 
         //read the data in flash, 
@@ -580,7 +580,7 @@ static void cali_data_write(void)
     uint16_t offset = 0;
 
 
-    for (i = 0; i < CALI_LIST_LENGHT; i++)
+    for (i = 0; i < CALI_LIST_LENGTH; i++)
     {
         //copy the data of device calibration data
         memcpy((void *)(flash_write_buf + offset), (void *)cali_sensor[i].flash_buf, cali_sensor[i].flash_len * 4);
@@ -594,7 +594,7 @@ static void cali_data_write(void)
     //erase the page
     cali_flash_erase(FLASH_USER_ADDR,1);
     //write data
-    cali_flash_write(FLASH_USER_ADDR, (uint32_t *)flash_write_buf, (FLASH_WRITE_BUF_LENGHT + 3) / 4);
+    cali_flash_write(FLASH_USER_ADDR, (uint32_t *)flash_write_buf, (FLASH_WRITE_BUF_LENGTH + 3) / 4);
 }
 
 

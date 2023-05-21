@@ -18,7 +18,7 @@
 #define REFEREE_USART_TASK_H
 #include "main.h"
 
-#define USART_RX_BUF_LENGHT     512
+#define USART_RX_BUF_LENGTH     512
 #define REFEREE_FIFO_BUF_LENGTH 1024
 
 /**

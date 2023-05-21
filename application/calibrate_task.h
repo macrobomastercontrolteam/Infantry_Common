@@ -40,7 +40,7 @@
   *                 ...
   *                 //add more...
   *                 CALI_XXX,
-  *                 CALI_LIST_LENGHT,
+  *                 CALI_LIST_LENGTH,
   *             } cali_id_e;
   *             2. add the new data struct in calibrate_task.h, must be 4 four-byte mulitple  like
   *
@@ -50,10 +50,10 @@
   *                 uint16_t yyy;
   *                 fp32 zzz;
   *             } xxx_cali_t; //size: 8 bytes, must be 4, 8, 12, 16...
-  *             3.in "FLASH_WRITE_BUF_LENGHT", add "sizeof(xxx_cali_t)", and implement new function.
-  *             bool_t cali_xxx_hook(uint32_t *cali, bool_t cmd), and add the name in "cali_name[CALI_LIST_LENGHT][3]"
-  *             and declare variable xxx_cali_t xxx_cail, add the data address in cali_sensor_buf[CALI_LIST_LENGHT]
-  *             and add the data lenght in cali_sensor_size, at last, add function in cali_hook_fun[CALI_LIST_LENGHT]
+  *             3.in "FLASH_WRITE_BUF_LENGTH", add "sizeof(xxx_cali_t)", and implement new function.
+  *             bool_t cali_xxx_hook(uint32_t *cali, bool_t cmd), and add the name in "cali_name[CALI_LIST_LENGTH][3]"
+  *             and declare variable xxx_cali_t xxx_cail, add the data address in cali_sensor_buf[CALI_LIST_LENGTH]
+  *             and add the data length in cali_sensor_size, at last, add function in cali_hook_fun[CALI_LIST_LENGTH]
   *             使用遥控器进行开始校准
   *             第一步:遥控器的两个开关都打到下
   *             第二步:两个摇杆打成\../,保存两秒.\.代表左摇杆向右下打.
@@ -75,7 +75,7 @@
   *                 ...
   *                 //add more...
   *                 CALI_XXX,
-  *                 CALI_LIST_LENGHT,
+  *                 CALI_LIST_LENGTH,
   *             } cali_id_e;
   *             2. 添加数据结构在 calibrate_task.h, 必须4字节倍数，像
   *
@@ -85,10 +85,10 @@
   *                 uint16_t yyy;
   *                 fp32 zzz;
   *             } xxx_cali_t; //长度:8字节 8 bytes, 必须是 4, 8, 12, 16...
-  *             3.在 "FLASH_WRITE_BUF_LENGHT",添加"sizeof(xxx_cali_t)", 和实现新函数
-  *             bool_t cali_xxx_hook(uint32_t *cali, bool_t cmd), 添加新名字在 "cali_name[CALI_LIST_LENGHT][3]"
-  *             和申明变量 xxx_cali_t xxx_cail, 添加变量地址在cali_sensor_buf[CALI_LIST_LENGHT]
-  *             在cali_sensor_size[CALI_LIST_LENGHT]添加数据长度, 最后在cali_hook_fun[CALI_LIST_LENGHT]添加函数
+  *             3.在 "FLASH_WRITE_BUF_LENGTH",添加"sizeof(xxx_cali_t)", 和实现新函数
+  *             bool_t cali_xxx_hook(uint32_t *cali, bool_t cmd), 添加新名字在 "cali_name[CALI_LIST_LENGTH][3]"
+  *             和申明变量 xxx_cali_t xxx_cail, 添加变量地址在cali_sensor_buf[CALI_LIST_LENGTH]
+  *             在cali_sensor_size[CALI_LIST_LENGTH]添加数据长度, 最后在cali_hook_fun[CALI_LIST_LENGTH]添加函数
   *
   ==============================================================================
   @endverbatim
@@ -171,7 +171,7 @@ typedef enum
     CALI_ACC = 3,
     CALI_MAG = 4,
     //add more...
-    CALI_LIST_LENGHT,
+    CALI_LIST_LENGTH,
 } cali_id_e;
 
 
@@ -179,7 +179,7 @@ typedef __packed struct
 {
     uint8_t name[3];                                    //device name
     uint8_t cali_done;                                  //0x55 means has been calibrated
-    uint8_t flash_len : 7;                              //buf lenght
+    uint8_t flash_len : 7;                              //buf length
     uint8_t cali_cmd : 1;                               //1 means to run cali hook function,
     uint32_t *flash_buf;                                //link to device calibration data
     bool_t (*cali_hook)(uint32_t *point, bool_t cmd);   //cali function

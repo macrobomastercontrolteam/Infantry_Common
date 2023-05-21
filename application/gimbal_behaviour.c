@@ -28,7 +28,7 @@
         GIMBAL_XXX_XXX, // new add
     }gimbal_behaviour_e,
     2. implement new function. gimbal_xxx_xxx_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
-        "yaw, pitch" param is gimbal movement contorl input. 
+        "yaw, pitch" param is gimbal movement control input. 
         first param: 'yaw' usually means  yaw axis move,usaully means increment angle.
             positive value means counterclockwise move, negative value means clockwise move.
         second param: 'pitch' usually means pitch axis move,usaully means increment angle.
@@ -333,7 +333,7 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
 }
 
 /**
-  * @brief          the function is called by gimbal_set_contorl function in gimbal_task.c
+  * @brief          the function is called by gimbal_set_control function in gimbal_task.c
   *                 accoring to the gimbal_behaviour variable, call the corresponding function
   * @param[out]     add_yaw:yaw axis increment angle, unit rad
   * @param[out]     add_pitch:pitch axis increment angle,unit rad

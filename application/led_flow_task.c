@@ -24,10 +24,10 @@
 #endif
 
 #define RGB_FLOW_COLOR_CHANGE_TIME  1000
-#define RGB_FLOW_COLOR_LENGHT   6
+#define RGB_FLOW_COLOR_LENGTH   6
 //blue-> green(dark)-> red -> blue(dark) -> green(dark) -> red(dark) -> blue
 //À¶ -> ÂÌ(Ãð) -> ºì -> À¶(Ãð) -> ÂÌ -> ºì(Ãð) -> À¶ 
-uint32_t RGB_flow_color[RGB_FLOW_COLOR_LENGHT + 1] = {0xFF0000FF, 0x0000FF00, 0xFFFF0000, 0x000000FF, 0xFF00FF00, 0x00FF0000, 0xFF0000FF};
+uint32_t RGB_flow_color[RGB_FLOW_COLOR_LENGTH + 1] = {0xFF0000FF, 0x0000FF00, 0xFFFF0000, 0x000000FF, 0xFF00FF00, 0x00FF0000, 0xFF0000FF};
 
 /**
   * @brief          led rgb task
@@ -49,7 +49,7 @@ void led_RGB_flow_task(void const * argument)
     while(1)
     {
 
-        for(i = 0; i < RGB_FLOW_COLOR_LENGHT; i++)
+        for(i = 0; i < RGB_FLOW_COLOR_LENGTH; i++)
         {
             alpha = (RGB_flow_color[i] & 0xFF000000) >> 24;
             red = ((RGB_flow_color[i] & 0x00FF0000) >> 16);

@@ -100,7 +100,7 @@ static void chassis_feedback_update(chassis_move_t *chassis_move_update);
   * @param[out]     chassis_move_update:"chassis_move"变量指针.
   * @retval         none
   */
-static void chassis_set_contorl(chassis_move_t *chassis_move_control);
+static void chassis_set_control(chassis_move_t *chassis_move_control);
 /**
   * @brief          control loop, according to control set-point, calculate motor current, 
   *                 motor current will be sentto motor
@@ -161,7 +161,7 @@ void chassis_task(void const *pvParameters)
         chassis_feedback_update(&chassis_move);
         //set chassis control set-point 
         //底盘控制量设置
-        chassis_set_contorl(&chassis_move);
+        chassis_set_control(&chassis_move);
         //chassis control pid calculate
         //底盘控制PID计算
         chassis_control_loop(&chassis_move);
@@ -451,7 +451,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
   * @param[out]     chassis_move_update:"chassis_move"变量指针.
   * @retval         none
   */
-static void chassis_set_contorl(chassis_move_t *chassis_move_control)
+static void chassis_set_control(chassis_move_t *chassis_move_control)
 {
 
     if (chassis_move_control == NULL)

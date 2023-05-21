@@ -18,10 +18,10 @@
     {
         ...
         XXX_TOE,    //new sensor
-        ERROR_LIST_LENGHT,
+        ERROR_LIST_LENGTH,
     };
     2.in detect_init function, add the offlineTime, onlinetime, priority params,like
-        uint16_t set_item[ERROR_LIST_LENGHT][3] =
+        uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             ...
             {n,n,n}, //XX_TOE
@@ -35,10 +35,10 @@
     {
         ...
         XXX_TOE,    //新设备
-        ERROR_LIST_LENGHT,
+        ERROR_LIST_LENGTH,
     };
     2.在detect_init函数,添加offlineTime, onlinetime, priority参数
-        uint16_t set_item[ERROR_LIST_LENGHT][3] =
+        uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             ...
             {n,n,n}, //XX_TOE
@@ -75,7 +75,7 @@ enum errorList
     REFEREE_TOE,
     RM_IMU_TOE,
     // OLED_TOE,
-    ERROR_LIST_LENGHT,
+    ERROR_LIST_LENGTH,
 };
 
 typedef __packed struct

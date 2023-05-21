@@ -18,10 +18,10 @@
     {
         ...
         XXX_TOE,    //new sensor
-        ERROR_LIST_LENGHT,
+        ERROR_LIST_LENGTH,
     };
     2.in detect_init function, add the offlineTime, onlinetime, priority params,like
-        uint16_t set_item[ERROR_LIST_LENGHT][3] =
+        uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             ...
             {n,n,n}, //XX_TOE
@@ -35,10 +35,10 @@
     {
         ...
         XXX_TOE,    //新设备
-        ERROR_LIST_LENGHT,
+        ERROR_LIST_LENGTH,
     };
     2.在detect_init函数,添加offlineTime, onlinetime, priority参数
-        uint16_t set_item[ERROR_LIST_LENGHT][3] =
+        uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             ...
             {n,n,n}, //XX_TOE
@@ -69,7 +69,7 @@ static void detect_init(uint32_t time);
 
 
 
-error_t error_list[ERROR_LIST_LENGHT + 1];
+error_t error_list[ERROR_LIST_LENGTH + 1];
 
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
@@ -101,11 +101,11 @@ void detect_task(void const *pvParameters)
         static uint8_t error_num_display = 0;
         system_time = xTaskGetTickCount();
 
-        error_num_display = ERROR_LIST_LENGHT;
-        error_list[ERROR_LIST_LENGHT].is_lost = 0;
-        error_list[ERROR_LIST_LENGHT].error_exist = 0;
+        error_num_display = ERROR_LIST_LENGTH;
+        error_list[ERROR_LIST_LENGTH].is_lost = 0;
+        error_list[ERROR_LIST_LENGTH].error_exist = 0;
 
-        for (int i = 0; i < ERROR_LIST_LENGHT; i++)
+        for (int i = 0; i < ERROR_LIST_LENGTH; i++)
         {
             //disable, continue
             //未使能，跳过
@@ -133,8 +133,8 @@ void detect_task(void const *pvParameters)
                 }
                 
 
-                error_list[ERROR_LIST_LENGHT].is_lost = 1;
-                error_list[ERROR_LIST_LENGHT].error_exist = 1;
+                error_list[ERROR_LIST_LENGTH].is_lost = 1;
+                error_list[ERROR_LIST_LENGTH].error_exist = 1;
                 //if solve_lost_fun != NULL, run it
                 //如果提供解决函数，运行解决函数
                 if (error_list[i].solve_lost_fun != NULL)
@@ -257,7 +257,7 @@ const error_t *get_error_list_point(void)
 static void detect_init(uint32_t time)
 {
     //设置离线时间，上线稳定工作时间，优先级 offlineTime onlinetime priority
-    uint16_t set_item[ERROR_LIST_LENGHT][3] =
+    uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
             {10, 10, 11},   //motor1
@@ -275,7 +275,7 @@ static void detect_init(uint32_t time)
             // {100, 100, 1},  //oled
         };
 
-    for (uint8_t i = 0; i < ERROR_LIST_LENGHT; i++)
+    for (uint8_t i = 0; i < ERROR_LIST_LENGTH; i++)
     {
         error_list[i].set_offline_time = set_item[i][0];
         error_list[i].set_online_time = set_item[i][1];
