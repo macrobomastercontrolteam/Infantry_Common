@@ -85,6 +85,7 @@
 #include "detect_task.h"
 
 #include "user_lib.h"
+#include "cv_usart_task.h"
 
 //when gimbal is in calibrating, set buzzer frequency and strenght
 //当云台在校准, 设置蜂鸣器频率和强度
@@ -487,8 +488,12 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
 
         //超过初始化最大时间，或者已经稳定到中值一段时间，退出初始化状态开关打下档，或者掉线
+#if defined(SENTRY_1)
+        if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME && !toe_is_error(CV_TOE))
+#else
         if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME &&
             !switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]) && !toe_is_error(DBUS_TOE))
+#endif
         {
             return;
         }
@@ -499,7 +504,18 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
     }
 
-    //开关控制 云台状态
+#if defined(SENTRY_1)
+    if (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT))
+    {
+        gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
+    }
+
+    if( toe_is_error(CV_TOE))
+    {
+        gimbal_behaviour = GIMBAL_ZERO_FORCE;
+    }
+#else
+    // 开关控制 云台状态
     if (switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
@@ -517,6 +533,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
+#endif
 
     //enter init mode
     //判断进入init状态机

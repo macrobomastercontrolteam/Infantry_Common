@@ -64,6 +64,7 @@ gyro sensor:%s\r\n\
 accel sensor:%s\r\n\
 mag sensor:%s\r\n\
 referee usart (ignored):%s\r\n\
+cv usart:%s\r\n\
 ******************************\r\n",
 #else
 "******************************\r\n\
@@ -80,6 +81,7 @@ gyro sensor:%s\r\n\
 accel sensor:%s\r\n\
 mag sensor:%s\r\n\
 referee usart:%s\r\n\
+cv usart:%s\r\n\
 ******************************\r\n",
 #endif
             get_battery_percentage(), 
@@ -94,7 +96,8 @@ referee usart:%s\r\n\
             status[error_list_usb_local[BOARD_GYRO_TOE].error_exist],
             status[error_list_usb_local[BOARD_ACCEL_TOE].error_exist],
             status[error_list_usb_local[BOARD_MAG_TOE].error_exist],
-            status[error_list_usb_local[REFEREE_TOE].error_exist]);
+            status[error_list_usb_local[REFEREE_TOE].error_exist],
+            status[error_list_usb_local[CV_TOE].error_exist]);
 #endif // defined(DEBUG_CV)
     }
 

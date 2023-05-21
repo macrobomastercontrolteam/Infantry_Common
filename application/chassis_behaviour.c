@@ -86,6 +86,12 @@
 #include "arm_math.h"
 
 #include "gimbal_behaviour.h"
+#include "cv_usart_task.h"
+
+#define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN*0.10471975511965977f)
+#define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(30.0f))
+#define SPINNING_CHASSIS_MED_OMEGA (RPM_TO_RADS(45.0f))
+#define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(60.0f))
 
 /**
   * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
@@ -148,6 +154,12 @@ static void chassis_no_move_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, ch
   * @retval         返回空
   */
 static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
+
+static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
+
+#if defined(CV_INTERFACE)
+static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set);
+#endif
 
 /**
   * @brief          when chassis behaviour mode is CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, chassis control mode is speed control mode.
@@ -238,22 +250,32 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
         return;
     }
 
-
-    //remote control  set chassis behaviour mode
-    //遥控器设置模式
-    if (switch_is_mid(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+#if defined(CV_INTERFACE)
+    if (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT))
     {
-        //can change to CHASSIS_ZERO_FORCE,CHASSIS_NO_MOVE,CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,
-        //CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW,CHASSIS_NO_FOLLOW_YAW,CHASSIS_OPEN
-        chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+        chassis_behaviour_mode = CHASSIS_CV_CONTROL_SPINNING;
     }
-    else if (switch_is_down(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+    else
+#endif
     {
-        chassis_behaviour_mode = CHASSIS_NO_MOVE;
-    }
-    else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
-    {
-        chassis_behaviour_mode = CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW;
+#if !defined(SENTRY_1)
+        // remote control  set chassis behaviour mode
+        // 遥控器设置模式
+        if (switch_is_mid(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+        {
+            // can change to CHASSIS_ZERO_FORCE,CHASSIS_NO_MOVE,CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,
+            // CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW,CHASSIS_NO_FOLLOW_YAW,CHASSIS_OPEN
+            chassis_behaviour_mode = CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW;
+        }
+        else if (switch_is_down(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+        {
+            chassis_behaviour_mode = CHASSIS_NO_MOVE;
+        }
+        else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+        {
+            chassis_behaviour_mode = CHASSIS_SPINNING;
+        }
+#endif
     }
 
     //when gimbal in some mode, such as init mode, chassis must's move
@@ -262,10 +284,6 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
     {
         chassis_behaviour_mode = CHASSIS_NO_MOVE;
     }
-
-
-    //add your own logic to enter the new mode
-    //添加自己的逻辑判断进入新模式
 
 
     //accord to beheviour mode, choose chassis control mode
@@ -293,6 +311,14 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
     else if (chassis_behaviour_mode == CHASSIS_OPEN)
     {
         chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
+    }
+    else if (chassis_behaviour_mode == CHASSIS_SPINNING)
+    {
+        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
+    }
+    else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
+    {
+        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
     }
 }
 
@@ -347,6 +373,16 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
     {
         chassis_open_set_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
     }
+    else if (chassis_behaviour_mode == CHASSIS_SPINNING)
+    {
+        chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+    }
+#if defined(CV_INTERFACE)
+    else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
+    {
+        chassis_cv_spinning_control(vx_set, vy_set, angle_set);
+    }
+#endif
 }
 
 /**
@@ -500,6 +536,55 @@ static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_se
 
     *angle_set = swing_angle;
 }
+
+static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
+{
+    if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
+    {
+        return;
+    }
+
+    //channel value and keyboard value change to speed set-point, in general
+    //遥控器的通道值以及键盘按键 得出 一般情况下的速度设定值
+    chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
+
+    fp32 spinning_speed;
+    // @TODO: add enemy detection
+    // if (enemy_detected)
+    // {
+    //     spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
+    // }
+    // else
+    {
+        spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
+    }
+    *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + *angle_set);
+}
+
+#if defined(CV_INTERFACE)
+static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set)
+{
+    if (vx_set == NULL || vy_set == NULL || angle_set == NULL)
+    {
+        return;
+    }
+
+    // chassis_task should maintain previous speed if cv is offline for a short time
+    *vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
+    *vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
+
+    fp32 spinning_speed;
+    if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
+    {
+        spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
+    }
+    else
+    {
+        spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
+    }
+    *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + *angle_set);
+}
+#endif
 
 /**
   * @brief          when chassis behaviour mode is CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, chassis control mode is speed control mode.

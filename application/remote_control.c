@@ -26,10 +26,7 @@
 #include "string.h"
 
 #include "detect_task.h"
-
-#if defined(CV_INTERFACE)
 #include "cv_usart_task.h"
-#endif
 
 //遥控器出错数据上限
 #define RC_CHANNAL_ERROR_VALUE 700
