@@ -95,4 +95,6 @@ extern fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set);
   */
 extern void PID_clear(pid_type_def *pid);
 
+extern void LimitMax(fp32 *num, fp32 Limit);
+
 #endif

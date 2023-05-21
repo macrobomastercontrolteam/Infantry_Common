@@ -53,10 +53,10 @@ void usb_task(void const * argument)
 "******************************\r\n\
 voltage percentage:%d%% \r\n\
 DBUS:%s\r\n\
-chassis motor1:%s\r\n\
-chassis motor2:%s\r\n\
-chassis motor3:%s\r\n\
-chassis motor4:%s\r\n\
+chassis drive motor1:%s\r\n\
+chassis drive motor2:%s\r\n\
+chassis drive motor3:%s\r\n\
+chassis drive motor4:%s\r\n\
 yaw motor:%s\r\n\
 pitch motor:%s\r\n\
 trigger motor:%s\r\n\
@@ -69,10 +69,10 @@ referee usart (ignored):%s\r\n\
 "******************************\r\n\
 voltage percentage:%d%% \r\n\
 DBUS:%s\r\n\
-chassis motor1:%s\r\n\
-chassis motor2:%s\r\n\
-chassis motor3:%s\r\n\
-chassis motor4:%s\r\n\
+chassis drive motor1:%s\r\n\
+chassis drive motor2:%s\r\n\
+chassis drive motor3:%s\r\n\
+chassis drive motor4:%s\r\n\
 yaw motor:%s\r\n\
 pitch motor:%s\r\n\
 trigger motor:%s\r\n\

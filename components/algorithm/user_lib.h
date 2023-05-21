@@ -2,6 +2,11 @@
 #define USER_LIB_H
 #include "struct_typedef.h"
 
+#define HALF_ECD_RANGE 4096
+#define ECD_RANGE 8192
+#define MOTOR_RAD_TO_ECD 1303.7972938088067f  // 8192/(2*PI)
+#define MOTOR_ECD_TO_RAD 0.000766990394f //      2*PI/8192
+
 typedef __packed struct
 {
     fp32 input;        //输入数据
@@ -18,6 +23,14 @@ typedef __packed struct
     fp32 num[1];       //滤波参数
     fp32 frame_period; //滤波的时间间隔 单位 s
 } first_order_filter_type_t;
+
+typedef struct
+{
+    uint8_t size;
+    uint8_t cursor;
+    fp32 *ring;
+    fp32 sum;
+} moving_average_type_t;
 //快速开方
 extern fp32 invSqrt(fp32 num);
 
@@ -30,8 +43,8 @@ void ramp_calc(ramp_function_source_t *ramp_source_type, fp32 input);
 extern void first_order_filter_init(first_order_filter_type_t *first_order_filter_type, fp32 frame_period, const fp32 num[1]);
 //一阶滤波计算
 extern void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type, fp32 input);
-//绝对限制
-extern void abs_limit(fp32 *num, fp32 Limit);
+//moving average
+extern fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fSkip);
 //判断符号位
 extern fp32 sign(fp32 value);
 //浮点死区

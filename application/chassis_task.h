@@ -63,9 +63,16 @@
 //摇杆死区
 #define CHASSIS_RC_DEADLINE 10
 
+#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
+#elif defined(INFANTRY_3)
+// avoid changing angle too often near zero speed
+#define STEER_TURN_X_SPEED_DEADZONE 0.01f
+#define STEER_TURN_Y_SPEED_DEADZONE (STEER_TURN_X_SPEED_DEADZONE*CHASSIS_VY_RC_SEN/CHASSIS_VX_RC_SEN)
+#define STEER_TURN_W_SPEED_DEADZONE 0.01f
+#endif
 
 #if defined(INFANTRY_1)
 #define MOTOR_DISTANCE_TO_CENTER 0.2f
@@ -91,6 +98,9 @@
 //chassis 3508 max motor control current
 //底盘3508最大can发送电流值
 #define MAX_MOTOR_CAN_CURRENT 16000.0f
+//chassis 6020 max motor control voltage
+//底盘6020最大can发送电压值
+#define MAX_MOTOR_CAN_VOLTAGE 20000.0f
 //press the key, chassis will swing
 //底盘摇摆按键
 #define SWING_KEY KEY_PRESSED_OFFSET_CTRL
@@ -103,7 +113,14 @@
 
 //m3508 rmp change to chassis speed,
 //m3508转化成底盘速度(m/s)的比例，
+// Equals to (2*PI/60)*Radius/Reduction_Ratio, where Reduction_Ratio=3591/187
+#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
+// Radius = 0.07625
 #define M3508_MOTOR_RPM_TO_VECTOR 0.000415809748903494517209f
+#elif defined(INFANTRY_3)
+// Radius = 0.04
+#define M3508_MOTOR_RPM_TO_VECTOR 0.00021812970434281678f
+#endif
 #define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
 
 //single chassis motor max speed
@@ -127,11 +144,11 @@
 
 //chassis motor speed PID
 //底盘电机速度环PID
-#define M3505_MOTOR_SPEED_PID_KP 15000.0f
-#define M3505_MOTOR_SPEED_PID_KI 10.0f
-#define M3505_MOTOR_SPEED_PID_KD 0.0f
-#define M3505_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
-#define M3505_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
+#define M3508_MOTOR_SPEED_PID_KP 15000.0f
+#define M3508_MOTOR_SPEED_PID_KI 10.0f
+#define M3508_MOTOR_SPEED_PID_KD 0.0f
+#define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
+#define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
 
 //chassis follow angle PID
 //底盘旋转跟随PID
@@ -159,6 +176,13 @@ typedef struct
   int16_t give_current;
 } chassis_motor_t;
 
+#if defined(INFANTRY_3)
+typedef struct
+{
+  uint16_t target_ecd; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
+} chassis_steer_motor_t;
+#endif
+
 typedef struct
 {
   const RC_ctrl_t *chassis_RC;               //底盘使用的遥控器指针, the point to remote control
@@ -170,13 +194,19 @@ typedef struct
   chassis_motor_t motor_chassis[4];          //chassis motor data.底盘电机数据
   pid_type_def motor_speed_pid[4];             //motor speed PID.底盘电机速度pid
   pid_type_def chassis_angle_pid;              //follow angle PID.底盘跟随角度pid
+#if defined(INFANTRY_3)
+  chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data.底盘舵轮电机数据
+  pid_type_def steer_motor_angle_pid[4];       //steering motor angle PID.底盘舵轮电机角度pid
+#endif
 
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
   first_order_filter_type_t chassis_cmd_slow_set_vy;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
 
+#if !defined(INFANTRY_3)
   fp32 vx;                          //chassis vertical speed, positive means forward,unit m/s. 底盘速度 前进方向 前为正，单位 m/s
   fp32 vy;                          //chassis horizontal speed, positive means letf,unit m/s.底盘速度 左右方向 左为正  单位 m/s
   fp32 wz;                          //chassis rotation speed, positive means counterclockwise,unit rad/s.底盘旋转角速度，逆时针为正 单位 rad/s
+#endif
   fp32 vx_set;                      //chassis set vertical speed,positive means forward,unit m/s.底盘设定速度 前进方向 前为正，单位 m/s
   fp32 vy_set;                      //chassis set horizontal speed,positive means left,unit m/s.底盘设定速度 左右方向 左为正，单位 m/s
   fp32 wz_set;                      //chassis set rotation speed,positive means counterclockwise,unit rad/s.底盘设定旋转角速度，逆时针为正 单位 rad/s

@@ -39,12 +39,16 @@ extern CAN_HandleTypeDef hcan2;
         (ptr)->given_current = (uint16_t)((data)[4] << 8 | (data)[5]);  \
         (ptr)->temperate = (data)[6];                                   \
     }
-/*
-motor data,  0:chassis motor1 3508;1:chassis motor3 3508;2:chassis motor3 3508;3:chassis motor4 3508;
-4:yaw gimbal motor 6020;5:pitch gimbal motor 6020;6:trigger motor 2006;
-电机数据, 0:底盘电机1 3508电机,  1:底盘电机2 3508电机,2:底盘电机3 3508电机,3:底盘电机4 3508电机;
-4:yaw云台电机 6020电机; 5:pitch云台电机 6020电机; 6:拨弹电机 2006电机*/
-static motor_measure_t motor_chassis[7];
+/**
+ * @brief motor feedback data
+ * Chassis CAN:
+ * 0:chassis motor1 3508; 1:chassis motor2 3508; 2:chassis motor3 3508; 3:chassis motor4 3508;
+ * 6:trigger motor 2006; 4:yaw gimbal motor 6020;
+ * 
+ * Gimbal CAN:
+ * 5:pitch gimbal motor 6020;
+ */
+static motor_measure_t motor_chassis[get_motor_array_index(CAN_LAST_ID) + 1];
 
 static CAN_TxHeaderTypeDef  gimbal_tx_message;
 static uint8_t              gimbal_can_send_data[8];
@@ -65,31 +69,35 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     CAN_RxHeaderTypeDef rx_header;
     uint8_t rx_data[8];
+    uint8_t bMotorValid = 0;
 
     HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
-
-    switch (rx_header.StdId)
-    {
-        case CAN_3508_M1_ID:
-        case CAN_3508_M2_ID:
-        case CAN_3508_M3_ID:
-        case CAN_3508_M4_ID:
-        case CAN_YAW_MOTOR_ID:
-        case CAN_PIT_MOTOR_ID:
-        case CAN_TRIGGER_MOTOR_ID:
-        {
-            static uint8_t i = 0;
-            //get motor id
-            i = rx_header.StdId - CAN_3508_M1_ID;
-            get_motor_measure(&motor_chassis[i], rx_data);
-            detect_hook(CHASSIS_MOTOR1_TOE + i);
-            break;
+    
+    if (hcan == &GIMBAL_CAN) {
+        switch (rx_header.StdId) {
+            case CAN_PIT_MOTOR_ID: {
+                bMotorValid = 1;
+                break;
+            }
         }
-
-        default:
-        {
-            break;
+    } else if (hcan == &CHASSIS_CAN) {
+        switch (rx_header.StdId) {
+            case CAN_3508_M1_ID:
+            case CAN_3508_M2_ID:
+            case CAN_3508_M3_ID:
+            case CAN_3508_M4_ID:
+            case CAN_TRIGGER_MOTOR_ID:
+            case CAN_YAW_MOTOR_ID: {
+                bMotorValid = 1;
+                break;
+            }
         }
+    }
+    
+    if (bMotorValid == 1) {
+        uint8_t bMotorId = get_motor_array_index(rx_header.StdId);
+        get_motor_measure(&motor_chassis[bMotorId], rx_data);
+        detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
     }
 }
 
@@ -114,7 +122,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev)
 {
     uint32_t send_mail_box;
-    gimbal_tx_message.StdId = CAN_GIMBAL_ALL_ID;
+    gimbal_tx_message.StdId = CAN_GIMBAL_ALL_TX_ID;
     gimbal_tx_message.IDE = CAN_ID_STD;
     gimbal_tx_message.RTR = CAN_RTR_DATA;
     gimbal_tx_message.DLC = 0x08;
@@ -126,9 +134,10 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev)
     gimbal_can_send_data[5] = shoot;
     gimbal_can_send_data[6] = (rev >> 8);
     gimbal_can_send_data[7] = rev;
-    HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
-    // yaw motor is connected to chassis CAN to reduce wires required in slip ring
+    // control yaw motor and trigger motor
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+    // control pitch motor
+    HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
 /**
@@ -161,6 +170,21 @@ void CAN_cmd_chassis_reset_ID(void)
 }
 
 
+#if defined(INFANTRY_3)
+/**
+  * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
+  * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
+  * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
+  * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
+  * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
+  * @param[in]      steer_motor1: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @param[in]      steer_motor2: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @param[in]      steer_motor3: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @param[in]      steer_motor4: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
+  * @retval         none
+  */
+void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, uint16_t steer_motor1, uint16_t steer_motor2, uint16_t steer_motor3, uint16_t steer_motor4)
+#else
 /**
   * @brief          send control current of motor (0x201, 0x202, 0x203, 0x204)
   * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
@@ -178,9 +202,11 @@ void CAN_cmd_chassis_reset_ID(void)
   * @retval         none
   */
 void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4)
+#endif
 {
     uint32_t send_mail_box;
-    chassis_tx_message.StdId = CAN_CHASSIS_ALL_ID;
+    // driver motors (M3508)
+    chassis_tx_message.StdId = CAN_CHASSIS_M3508_TX_ID;
     chassis_tx_message.IDE = CAN_ID_STD;
     chassis_tx_message.RTR = CAN_RTR_DATA;
     chassis_tx_message.DLC = 0x08;
@@ -192,8 +218,21 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     chassis_can_send_data[5] = motor3;
     chassis_can_send_data[6] = motor4 >> 8;
     chassis_can_send_data[7] = motor4;
-
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+
+#if defined(INFANTRY_3)
+    // Send target encoder value of steering motors (GM6020) to chassis controller
+    chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLER_TX_ID;
+    chassis_can_send_data[0] = steer_motor1 >> 8;
+    chassis_can_send_data[1] = steer_motor1;
+    chassis_can_send_data[2] = steer_motor2 >> 8;
+    chassis_can_send_data[3] = steer_motor2;
+    chassis_can_send_data[4] = steer_motor3 >> 8;
+    chassis_can_send_data[5] = steer_motor3;
+    chassis_can_send_data[6] = steer_motor4 >> 8;
+    chassis_can_send_data[7] = steer_motor4;
+    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+#endif
 }
 
 /**
@@ -208,7 +247,7 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
   */
 const motor_measure_t *get_yaw_gimbal_motor_measure_point(void)
 {
-    return &motor_chassis[4];
+    return &motor_chassis[get_motor_array_index(CAN_YAW_MOTOR_ID)];
 }
 
 /**
@@ -223,7 +262,7 @@ const motor_measure_t *get_yaw_gimbal_motor_measure_point(void)
   */
 const motor_measure_t *get_pitch_gimbal_motor_measure_point(void)
 {
-    return &motor_chassis[5];
+    return &motor_chassis[get_motor_array_index(CAN_PIT_MOTOR_ID)];
 }
 
 
@@ -239,7 +278,7 @@ const motor_measure_t *get_pitch_gimbal_motor_measure_point(void)
   */
 const motor_measure_t *get_trigger_motor_measure_point(void)
 {
-    return &motor_chassis[6];
+    return &motor_chassis[get_motor_array_index(CAN_TRIGGER_MOTOR_ID)];
 }
 
 

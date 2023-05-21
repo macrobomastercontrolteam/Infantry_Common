@@ -120,9 +120,6 @@
 #define PITCH_TURN  1
 #define YAW_TURN    0
 
-//电机码盘值最大以及中值
-#define HALF_ECD_RANGE  4096
-#define ECD_RANGE       8191
 //云台初始化回中值，允许的误差,并且在误差范围内停止一段时间以及最大时间6s后解除初始化状态，
 #define GIMBAL_INIT_ANGLE_ERROR     0.1f
 #define GIMBAL_INIT_STOP_TIME       100
@@ -151,11 +148,6 @@
 //判断遥控器无输入的时间以及遥控器无输入判断，设置云台yaw回中值以防陀螺仪漂移
 #define GIMBAL_MOTIONLESS_RC_DEADLINE 10
 #define GIMBAL_MOTIONLESS_TIME_MAX    3000
-
-//电机编码值转化成角度值
-#ifndef MOTOR_ECD_TO_RAD
-#define MOTOR_ECD_TO_RAD 0.000766990394f //      2*  PI  /8192
-#endif
 
 typedef enum
 {
@@ -314,4 +306,6 @@ extern bool_t cmd_cali_gimbal_hook(uint16_t *yaw_offset, uint16_t *pitch_offset,
   * @waring         这个函数使用到gimbal_control 静态变量导致函数不适用以上通用指针复用
   */
 extern void set_cali_gimbal_hook(const uint16_t yaw_offset, const uint16_t pitch_offset, const fp32 max_yaw, const fp32 min_yaw, const fp32 max_pitch, const fp32 min_pitch);
+
+extern fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 #endif
