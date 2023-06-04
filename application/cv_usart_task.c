@@ -5,8 +5,6 @@
  * All UART packets from CV should have the same size (DATA_PACKAGE_SIZE). Pad packet payloads with CHAR_UNUSED in the end if necessary.
  */
 
-#if defined(CV_INTERFACE)
-
 #include "cv_usart_task.h"
 #include "main.h"
 #include "cmsis_os.h"
@@ -25,6 +23,10 @@
 #endif /* MIN */
 #define DATA_PACKAGE_SIZE 15
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_SIZE - sizeof(uint8_t) * 3)
+
+uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE * 6];
+
+#if defined(CV_INTERFACE)
 
 typedef enum
 {
@@ -68,7 +70,6 @@ tCvCmdHandler CvCmdHandler;
 // don't compare with literal string "ACK", since it contains extra NULL char at the end
 const uint8_t abExpectedAckPayload[3] = {'A', 'C', 'K'};
 // Test result with pyserial: Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
-uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE * 6];
 uint8_t abExpectedUnusedPayload[DATA_PACKAGE_PAYLOAD_SIZE - 1];
 
 #if defined(DEBUG_CV)
@@ -200,46 +201,6 @@ void CvCmder_SendSetModeRequest(void)
     usbMsg[uiUsbMsgSize] = 0;
     usb_printf("%s", usbMsg);
 #endif
-}
-
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
-{
-    if (huart->Instance == USART1)
-    {
-        uint16_t uiStxFinder = 0;
-        while ((uiStxFinder < Size) && (Size - uiStxFinder >= sizeof(CvRxBuffer.abData)))
-        {
-            if (abUsartRxBuf[uiStxFinder] == CHAR_STX)
-            {
-                memcpy(CvRxBuffer.abData, &abUsartRxBuf[uiStxFinder], sizeof(CvRxBuffer.abData));
-                uint8_t fValid = CvCmder_RxParser();
-                uiStxFinder += sizeof(CvRxBuffer.abData);
-#if defined(DEBUG_CV)
-                // echo to usb
-                uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fValid ? "Valid" : "Invalid");
-
-                for (uint16_t i = 0; i < sizeof(CvRxBuffer.abData); i++)
-                {
-                    if (uiUsbMsgSize + (sizeof("0x00,") - 1) > sizeof(usbMsg))
-                    {
-                        break;
-                    }
-                    uiUsbMsgSize += snprintf(&usbMsg[uiUsbMsgSize], sizeof(usbMsg) - uiUsbMsgSize, "0x%02X,", CvRxBuffer.abData[i]);
-                }
-                usbMsg[uiUsbMsgSize - 1] = '\n';
-                usbMsg[uiUsbMsgSize] = 0;
-                usb_printf("%s", usbMsg);
-#endif
-            }
-            else
-            {
-                uiStxFinder++;
-            }
-        }
-        /* start the DMA again */
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
-        __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
-    }
 }
 
 uint8_t CvCmder_RxParser(void)
@@ -377,3 +338,46 @@ uint8_t CvCmder_MockModeChange(void)
 #endif // defined(DEBUG_CV)
 
 #endif // defined(CV_INTERFACE)
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+    if (huart->Instance == USART1)
+    {
+#if defined(CV_INTERFACE)
+        uint16_t uiStxFinder = 0;
+        while ((uiStxFinder < Size) && (Size - uiStxFinder >= sizeof(CvRxBuffer.abData)))
+        {
+            if (abUsartRxBuf[uiStxFinder] == CHAR_STX)
+            {
+                memcpy(CvRxBuffer.abData, &abUsartRxBuf[uiStxFinder], sizeof(CvRxBuffer.abData));
+                uint8_t fValid = CvCmder_RxParser();
+                uiStxFinder += sizeof(CvRxBuffer.abData);
+#if defined(DEBUG_CV)
+                // echo to usb
+                uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fValid ? "Valid" : "Invalid");
+
+                for (uint16_t i = 0; i < sizeof(CvRxBuffer.abData); i++)
+                {
+                    if (uiUsbMsgSize + (sizeof("0x00,") - 1) > sizeof(usbMsg))
+                    {
+                        break;
+                    }
+                    uiUsbMsgSize += snprintf(&usbMsg[uiUsbMsgSize], sizeof(usbMsg) - uiUsbMsgSize, "0x%02X,", CvRxBuffer.abData[i]);
+                }
+                usbMsg[uiUsbMsgSize - 1] = '\n';
+                usbMsg[uiUsbMsgSize] = 0;
+                usb_printf("%s", usbMsg);
+#endif
+            }
+            else
+            {
+                uiStxFinder++;
+            }
+        }
+        /* start the DMA again */
+#endif
+        // Do not remove this, otherwise RTOS task will stuck for unkown reasons
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
+        __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+    }
+}
