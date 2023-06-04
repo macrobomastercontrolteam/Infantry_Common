@@ -316,10 +316,12 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
     {
         chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
     }
+#if defined(CV_INTERFACE)
     else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
     {
         chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
     }
+#endif
 }
 
 
