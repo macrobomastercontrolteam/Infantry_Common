@@ -68,7 +68,7 @@
 #if defined(INFANTRY_1) 
 #define TRIGGER_ANGLE_INCREMENT     (PI/7.0f)
 #elif defined(INFANTRY_2)
-#define TRIGGER_ANGLE_INCREMENT     (PI/7.0f)
+#define TRIGGER_ANGLE_INCREMENT     (PI/8.0f)
 #elif defined(INFANTRY_3)
 #define TRIGGER_ANGLE_INCREMENT     (PI/12.0f)
 #elif defined(SENTRY_1)
