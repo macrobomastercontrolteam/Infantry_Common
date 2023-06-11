@@ -259,4 +259,6 @@ extern void chassis_task(void const *pvParameters);
   */
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
 
+fp32 abs_err_handler(fp32 set, fp32 ref);
+
 #endif
