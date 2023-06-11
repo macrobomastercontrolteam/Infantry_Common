@@ -37,6 +37,8 @@
 #include "detect_task.h"
 #include "remote_control.h"
 #include "gimbal_behaviour.h"
+#include "chassis_task.h"
+#include "chassis_behaviour.h"
 #include "INS_task.h"
 #include "shoot.h"
 #include "pid.h"
@@ -62,6 +64,9 @@
         gimbal_PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_relative_angle_pid); \
         PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_gyro_pid);                  \
     }
+
+#define GIMBAL_YAW_MOTOR 0
+#define GIMBAL_PITCH_MOTOR 1
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t gimbal_high_water;
@@ -197,7 +202,7 @@ static void gimbal_motor_raw_angle_control(gimbal_motor_t *gimbal_motor);
   * @param[out]     gimbal_motor:yaw电机或者pitch电机
   * @retval         none
   */
-static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add);
+static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, uint8_t motor_select);
 /**
   * @brief          limit angle set in GIMBAL_MOTOR_ENCONDE mode, avoid exceeding the max angle
   * @param[out]     gimbal_motor: yaw motor or pitch motor
@@ -208,7 +213,7 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add);
   * @param[out]     gimbal_motor:yaw电机或者pitch电机
   * @retval         none
   */
-static void gimbal_relative_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add);
+static void gimbal_relative_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, uint8_t motor_select);
 
 /**
   * @brief          gimbal angle pid init, because angle is in range(-pi,pi),can't use PID in pid.c
@@ -848,12 +853,12 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     else if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
     {
         //gyro模式下，陀螺仪角度控制
-        gimbal_absolute_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle);
+        gimbal_absolute_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
     }
     else if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCONDE)
     {
         //enconde模式下，电机编码角度控制
-        gimbal_relative_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle);
+        gimbal_relative_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
     }
 
     //pitch电机模式控制
@@ -865,12 +870,12 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     else if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
     {
         //gyro模式下，陀螺仪角度控制
-        gimbal_absolute_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle);
+        gimbal_absolute_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
     }
     else if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCONDE)
     {
         //enconde模式下，电机编码角度控制
-        gimbal_relative_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle);
+        gimbal_relative_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
     }
 }
 /**
@@ -883,10 +888,9 @@ static void gimbal_set_control(gimbal_control_t *set_control)
   * @param[out]     gimbal_motor:yaw电机或者pitch电机
   * @retval         none
   */
-static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add)
+static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, uint8_t motor_select)
 {
     static fp32 bias_angle;
-    static fp32 angle_set;
     if (gimbal_motor == NULL)
     {
         return;
@@ -896,25 +900,35 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add)
     bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
     //relative angle + angle error + add_angle > max_relative angle
     //云台相对角度+ 误差角度 + 新增角度 如果大于 最大机械角度
-    if (gimbal_motor->relative_angle + bias_angle + add > gimbal_motor->max_relative_angle)
+#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(INFANTRY_3) || defined(SENTRY_1)
+    // Remove yaw motor limit for robots with slip ring
+    if (motor_select != GIMBAL_YAW_MOTOR)
+#endif
     {
-        //如果是往最大机械角度控制方向
-        if (add > 0.0f)
+        if (gimbal_motor->relative_angle + bias_angle + add > gimbal_motor->max_relative_angle)
         {
-            //calculate max add_angle
-            //计算出一个最大的添加角度，
-            add = gimbal_motor->max_relative_angle - gimbal_motor->relative_angle - bias_angle;
+            // 如果是往最大机械角度控制方向
+            if (add > 0.0f)
+            {
+                // calculate max add_angle
+                // 计算出一个最大的添加角度，
+                add = gimbal_motor->max_relative_angle - gimbal_motor->relative_angle - bias_angle;
+            }
+        }
+        else if (gimbal_motor->relative_angle + bias_angle + add < gimbal_motor->min_relative_angle)
+        {
+            if (add < 0.0f)
+            {
+                add = gimbal_motor->min_relative_angle - gimbal_motor->relative_angle - bias_angle;
+            }
         }
     }
-    else if (gimbal_motor->relative_angle + bias_angle + add < gimbal_motor->min_relative_angle)
+    gimbal_motor->absolute_angle_set = rad_format(gimbal_motor->absolute_angle_set + add);
+
+    if (chassis_behaviour_mode == CHASSIS_SPINNING)
     {
-        if (add < 0.0f)
-        {
-            add = gimbal_motor->min_relative_angle - gimbal_motor->relative_angle - bias_angle;
-        }
+        chassis_move.chassis_relative_angle_set = rad_format(chassis_move.chassis_relative_angle_set + add);
     }
-    angle_set = gimbal_motor->absolute_angle_set;
-    gimbal_motor->absolute_angle_set = rad_format(angle_set + add);
 }
 /**
   * @brief          gimbal control mode :GIMBAL_MOTOR_ENCONDE, use the encode relative angle  to control. 
@@ -926,21 +940,27 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add)
   * @param[out]     gimbal_motor:yaw电机或者pitch电机
   * @retval         none
   */
-static void gimbal_relative_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add)
+static void gimbal_relative_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, uint8_t motor_select)
 {
     if (gimbal_motor == NULL)
     {
         return;
     }
     gimbal_motor->relative_angle_set += add;
-    //是否超过最大 最小值
-    if (gimbal_motor->relative_angle_set > gimbal_motor->max_relative_angle)
+    // 是否超过最大 最小值
+#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(INFANTRY_3) || defined(SENTRY_1)
+    // Remove yaw motor limit for robots with slip ring
+    if (motor_select != GIMBAL_YAW_MOTOR)
+#endif
     {
-        gimbal_motor->relative_angle_set = gimbal_motor->max_relative_angle;
-    }
-    else if (gimbal_motor->relative_angle_set < gimbal_motor->min_relative_angle)
-    {
-        gimbal_motor->relative_angle_set = gimbal_motor->min_relative_angle;
+        if (gimbal_motor->relative_angle_set > gimbal_motor->max_relative_angle)
+        {
+            gimbal_motor->relative_angle_set = gimbal_motor->max_relative_angle;
+        }
+        else if (gimbal_motor->relative_angle_set < gimbal_motor->min_relative_angle)
+        {
+            gimbal_motor->relative_angle_set = gimbal_motor->min_relative_angle;
+        }
     }
 }
 
