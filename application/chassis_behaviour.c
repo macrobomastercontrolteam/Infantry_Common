@@ -560,7 +560,7 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
     {
         spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
     }
-    *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + *angle_set);
+    *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
 }
 
 #if defined(CV_INTERFACE)
@@ -584,7 +584,7 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
     {
         spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
     }
-    *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + *angle_set);
+    *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
 }
 #endif
 
