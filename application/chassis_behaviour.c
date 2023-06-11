@@ -89,9 +89,9 @@
 #include "cv_usart_task.h"
 
 #define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN*0.10471975511965977f)
-#define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(30.0f))
-#define SPINNING_CHASSIS_MED_OMEGA (RPM_TO_RADS(45.0f))
-#define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(60.0f))
+#define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(10.0f))
+#define SPINNING_CHASSIS_MED_OMEGA (RPM_TO_RADS(15.0f))
+#define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(20.0f))
 
 /**
   * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
