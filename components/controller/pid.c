@@ -50,7 +50,7 @@ void LimitMax(fp32 *num, fp32 Limit)
   * @param[in]      max_iout: pid最大积分输出
   * @retval         none
   */
-void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 max_out, fp32 max_iout)
+void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 max_out, fp32 max_iout, fp32 (*err_handler)(fp32 set, fp32 ref))
 {
     if (pid == NULL || PID == NULL)
     {
@@ -64,6 +64,7 @@ void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 max_out, 
     pid->max_iout = max_iout;
     pid->Dbuf[0] = pid->Dbuf[1] = pid->Dbuf[2] = 0.0f;
     pid->error[0] = pid->error[1] = pid->error[2] = pid->Pout = pid->Iout = pid->Dout = pid->out = 0.0f;
+    pid->err_handler = err_handler;
 }
 
 /**
@@ -91,7 +92,7 @@ fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set)
     pid->error[1] = pid->error[0];
     pid->set = set;
     pid->fdb = ref;
-    pid->error[0] = set - ref;
+    pid->error[0] = pid->err_handler(set, ref);
     if (pid->mode == PID_POSITION)
     {
         pid->Pout = pid->Kp * pid->error[0];
@@ -139,4 +140,9 @@ void PID_clear(pid_type_def *pid)
     pid->Dbuf[0] = pid->Dbuf[1] = pid->Dbuf[2] = 0.0f;
     pid->out = pid->Pout = pid->Iout = pid->Dout = 0.0f;
     pid->fdb = pid->set = 0.0f;
+}
+
+fp32 raw_err_handler(fp32 set, fp32 ref)
+{
+  return set - ref;
 }
