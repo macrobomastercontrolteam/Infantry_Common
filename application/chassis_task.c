@@ -115,6 +115,16 @@ uint32_t chassis_high_water;
 //底盘运动数据
 chassis_move_t chassis_move;
 
+#if CHASSIS_TEST_MODE
+int32_t chassis_relative_angle_int_1000;
+int32_t chassis_relative_angle_set_int_1000;
+static void J_scope_chassis_test(void)
+{
+    chassis_relative_angle_int_1000 = (int32_t)(chassis_move.chassis_yaw_motor->relative_angle * 1000);
+    chassis_relative_angle_set_int_1000 = (int32_t)(chassis_move.chassis_relative_angle_set * 1000);
+}
+#endif
+
 /**
   * @brief          chassis task, osDelay CHASSIS_CONTROL_TIME_MS (2ms) 
   * @param[in]      pvParameters: null
@@ -217,6 +227,10 @@ void chassis_task(void const *pvParameters)
         //os delay
         //系统延时
         vTaskDelay(CHASSIS_CONTROL_TIME_MS);
+
+#if CHASSIS_TEST_MODE
+        J_scope_chassis_test();
+#endif
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
         chassis_high_water = uxTaskGetStackHighWaterMark(NULL);
