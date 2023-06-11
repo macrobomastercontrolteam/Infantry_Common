@@ -57,3 +57,4 @@ dkms.conf
 # Ignore Keil generated files
 MDK-ARM/standard_tpye_c/**
 MDK-ARM/JLinkLog.txt
+MDK-ARM/EventRecorderStub.scvd
