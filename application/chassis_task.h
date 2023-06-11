@@ -63,6 +63,8 @@
 //Ò¡¸ËËÀÇø
 #define CHASSIS_RC_DEADLINE 10
 
+#define CHASSIS_TEST_MODE 1
+
 #if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
