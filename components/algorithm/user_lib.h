@@ -7,6 +7,30 @@
 #define MOTOR_RAD_TO_ECD 1303.7972938088067f  // 8192/(2*PI)
 #define MOTOR_ECD_TO_RAD 0.000766990394f //      2*PI/8192
 
+/**
+  * @brief          remote control dealline solve,because the value of rocker is not zero in middle place,
+  * @param          input:the raw channel value 
+  * @param          output: the processed channel value
+  * @param          deadline
+  */
+/**
+  * @brief          遥控器的死区判断，因为遥控器的拨杆在中位的时候，不一定为0，
+  * @param          输入的遥控器值
+  * @param          输出的死区处理后遥控器值
+  * @param          死区值
+  */
+#define deadband_limit(input, output, dealine)        \
+    {                                                    \
+        if ((input) > (dealine) || (input) < -(dealine)) \
+        {                                                \
+            (output) = (input);                          \
+        }                                                \
+        else                                             \
+        {                                                \
+            (output) = 0;                                \
+        }                                                \
+    }
+
 typedef __packed struct
 {
     fp32 input;        //输入数据
