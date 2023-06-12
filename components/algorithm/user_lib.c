@@ -89,13 +89,17 @@ void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type,
   * @param[in]      handler
   * @retval         average
   */
-fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fSkip)
+fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fInit)
 {
     fp32 output;
-    if (fSkip)
+    if (fInit == MOVING_AVERAGE_INIT)
     {
-        moving_average_type->sum = input*moving_average_type->size;
-        memset(moving_average_type->ring, input, moving_average_type->size);
+        moving_average_type->sum = input * moving_average_type->size;
+        for (uint8_t i = 0; i < (moving_average_type->size); i++)
+        {
+            moving_average_type->ring[i] = input;
+        }
+        moving_average_type->cursor = 0;
         output = input;
     }
     else

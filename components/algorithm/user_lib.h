@@ -6,6 +6,8 @@
 #define ECD_RANGE 8192
 #define MOTOR_RAD_TO_ECD 1303.7972938088067f  // 8192/(2*PI)
 #define MOTOR_ECD_TO_RAD 0.000766990394f //      2*PI/8192
+#define MOVING_AVERAGE_INIT 1
+#define MOVING_AVERAGE_CALC 0
 
 /**
   * @brief          remote control dealline solve,because the value of rocker is not zero in middle place,
@@ -68,7 +70,7 @@ extern void first_order_filter_init(first_order_filter_type_t *first_order_filte
 //Ò»½×ÂË²¨¼ÆËã
 extern void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type, fp32 input);
 //moving average
-extern fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fSkip);
+extern fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fInit);
 //ÅÐ¶Ï·ûºÅÎ»
 extern fp32 sign(fp32 value);
 //¸¡µãËÀÇø
