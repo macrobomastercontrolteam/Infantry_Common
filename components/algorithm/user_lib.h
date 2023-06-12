@@ -21,16 +21,16 @@
   * @param          输出的死区处理后遥控器值
   * @param          死区值
   */
-#define deadband_limit(input, output, dealine)        \
-    {                                                    \
-        if ((input) > (dealine) || (input) < -(dealine)) \
-        {                                                \
-            (output) = (input);                          \
-        }                                                \
-        else                                             \
-        {                                                \
-            (output) = 0;                                \
-        }                                                \
+#define deadband_limit(input, output, deadline)            \
+    {                                                      \
+        if ((input) > (deadline) || (input) < -(deadline)) \
+        {                                                  \
+            (output) = (input);                            \
+        }                                                  \
+        else                                               \
+        {                                                  \
+            (output) = 0;                                  \
+        }                                                  \
     }
 
 typedef __packed struct
