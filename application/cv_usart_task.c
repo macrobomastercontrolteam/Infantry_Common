@@ -22,7 +22,9 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif /* MIN */
 #define DATA_PACKAGE_SIZE 15
-#define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_SIZE - sizeof(uint8_t) * 3)
+#define DATA_PACKAGE_HEADER_SIZE 2
+#define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_SIZE - DATA_PACKAGE_HEADER_SIZE - sizeof(uint8_t))
+#define CHAR_UNUSED 0xFF
 
 uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE * 6];
 
@@ -35,21 +37,13 @@ typedef enum
     MSG_ACK = 0x40,
 } eMsgTypes;
 
-typedef enum
-{
-    CHAR_STX = 0x02,
-    CHAR_ETX = 0x03,
-    CHAR_UNUSED = 0xFF,
-} eCharTypes;
-
 typedef union
 {
     struct
     {
-        uint8_t bStx; ///< always CHAR_STX
+        uint8_t abMessageHeader[DATA_PACKAGE_HEADER_SIZE]; ///< always '>>'
         uint8_t bMsgType;
         uint8_t abPayload[DATA_PACKAGE_PAYLOAD_SIZE];
-        uint8_t bEtx; ///< always CHAR_ETX
     } tData;
     uint8_t abData[DATA_PACKAGE_SIZE];
 } tCvMsg;
@@ -69,6 +63,7 @@ tCvMsg CvTxBuffer;
 tCvCmdHandler CvCmdHandler;
 // don't compare with literal string "ACK", since it contains extra NULL char at the end
 const uint8_t abExpectedAckPayload[3] = {'A', 'C', 'K'};
+const uint8_t abExpectedMessageHeader[DATA_PACKAGE_HEADER_SIZE] = {'>', '>'};
 // Test result with pyserial: Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
 uint8_t abExpectedUnusedPayload[DATA_PACKAGE_PAYLOAD_SIZE - 1];
 
@@ -90,8 +85,7 @@ void cv_usart_task(void const *argument)
 
 void CvCmder_Init(void)
 {
-    CvTxBuffer.tData.bStx = CHAR_STX;
-    CvTxBuffer.tData.bEtx = CHAR_ETX;
+    memcpy(CvTxBuffer.tData.abMessageHeader, abExpectedMessageHeader, sizeof(abExpectedMessageHeader));
     memset(abExpectedUnusedPayload, CHAR_UNUSED, sizeof(abExpectedUnusedPayload));
 
     memset(&CvCmdHandler, 0, sizeof(CvCmdHandler));       // clear status
@@ -206,44 +200,41 @@ void CvCmder_SendSetModeRequest(void)
 uint8_t CvCmder_RxParser(void)
 {
     uint8_t fValid = 0;
-    if (CvRxBuffer.tData.bEtx == CHAR_ETX)
+    switch (CvRxBuffer.tData.bMsgType)
     {
-        switch (CvRxBuffer.tData.bMsgType)
+    case MSG_CV_CMD:
+    {
+        fValid = (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT) || CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT));
+        // // Check for ACK is not used, because it may be misaligned in the middle and ignored so that further msgs align
+        // // However, ACK is still helpful because it can help synchronize communication in the beginning
+        // fValid &= CvCmdHandler.fIsWaitingForAck;
+        fValid &= (memcmp(&CvRxBuffer.tData.abPayload[sizeof(tCvCmdMsg)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvCmdMsg)) == 0);
+        if (fValid)
         {
-        case MSG_CV_CMD:
+            memcpy(&(CvCmdHandler.CvCmdMsg), CvRxBuffer.tData.abPayload, sizeof(CvCmdHandler.CvCmdMsg));
+            CvCmdHandler.fCvCmdValid = 1;
+        }
+        else
         {
-            fValid = (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT) || CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT));
-            // // Check for ACK is not used, because it may be misaligned in the middle and ignored so that further msgs align
-            // // However, ACK is still helpful because it can help synchronize communication in the beginning
-            // fValid &= CvCmdHandler.fIsWaitingForAck;
-            fValid &= (memcmp(&CvRxBuffer.tData.abPayload[sizeof(tCvCmdMsg)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvCmdMsg)) == 0);
-            if (fValid)
+            CvCmdHandler.fCvCmdValid = 0;
+            // if messages have been invalid for too long (offline timeout value is defined in detect_init() function)
+            if (toe_is_error(CV_TOE))
             {
-                memcpy(&(CvCmdHandler.CvCmdMsg), CvRxBuffer.tData.abPayload, sizeof(CvCmdHandler.CvCmdMsg));
-                CvCmdHandler.fCvCmdValid = 1;
+                memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
             }
-            else
-            {
-                CvCmdHandler.fCvCmdValid = 0;
-                // if messages have been invalid for too long (offline timeout value is defined in detect_init() function)
-                if (toe_is_error(CV_TOE))
-                {
-                    memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
-                }
-            }
-            break;
         }
-        case MSG_ACK:
+        break;
+    }
+    case MSG_ACK:
+    {
+        fValid = (memcmp(&CvRxBuffer.tData.abPayload[sizeof(abExpectedAckPayload)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(abExpectedAckPayload)) == 0);
+        fValid &= (memcmp(CvRxBuffer.tData.abPayload, abExpectedAckPayload, sizeof(abExpectedAckPayload)) == 0);
+        if (fValid)
         {
-            fValid = (memcmp(&CvRxBuffer.tData.abPayload[sizeof(abExpectedAckPayload)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(abExpectedAckPayload)) == 0);
-            fValid &= (memcmp(CvRxBuffer.tData.abPayload, abExpectedAckPayload, sizeof(abExpectedAckPayload)) == 0);
-            if (fValid)
-            {
-                CvCmdHandler.fIsWaitingForAck = 0;
-            }
-            break;
+            CvCmdHandler.fIsWaitingForAck = 0;
         }
-        }
+        break;
+    }
     }
 
     if (fValid)
@@ -344,14 +335,14 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     if (huart->Instance == USART1)
     {
 #if defined(CV_INTERFACE)
-        uint16_t uiStxFinder = 0;
-        while ((uiStxFinder < Size) && (Size - uiStxFinder >= sizeof(CvRxBuffer.abData)))
+        uint16_t uiHeaderFinder = 0;
+        while ((uiHeaderFinder < Size) && (Size - uiHeaderFinder >= sizeof(CvRxBuffer.abData)))
         {
-            if (abUsartRxBuf[uiStxFinder] == CHAR_STX)
+            if (memcmp(&abUsartRxBuf[uiHeaderFinder], abExpectedMessageHeader, sizeof(abExpectedMessageHeader)) == 0)
             {
-                memcpy(CvRxBuffer.abData, &abUsartRxBuf[uiStxFinder], sizeof(CvRxBuffer.abData));
+                memcpy(CvRxBuffer.abData, &abUsartRxBuf[uiHeaderFinder], sizeof(CvRxBuffer.abData));
                 uint8_t fValid = CvCmder_RxParser();
-                uiStxFinder += sizeof(CvRxBuffer.abData);
+                uiHeaderFinder += sizeof(CvRxBuffer.abData);
 #if defined(DEBUG_CV)
                 // echo to usb
                 uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fValid ? "Valid" : "Invalid");
@@ -371,7 +362,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
             }
             else
             {
-                uiStxFinder++;
+                uiHeaderFinder++;
             }
         }
         /* start the DMA again */
