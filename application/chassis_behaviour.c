@@ -89,9 +89,9 @@
 #include "cv_usart_task.h"
 
 #define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN*0.10471975511965977f)
-#define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(10.0f))
-#define SPINNING_CHASSIS_MED_OMEGA (RPM_TO_RADS(15.0f))
-#define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(20.0f))
+#define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(25.0f))
+#define SPINNING_CHASSIS_MED_OMEGA (RPM_TO_RADS(30.0f))
+#define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(35.0f))
 
 #if CHASSIS_TEST_MODE
 int32_t chassis_behaviour_mode_int;
@@ -166,7 +166,7 @@ static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_se
 static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
 #if defined(CV_INTERFACE)
-static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set);
+static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 #endif
 
 /**
@@ -395,7 +395,7 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 #if defined(CV_INTERFACE)
     else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
     {
-        chassis_cv_spinning_control(vx_set, vy_set, angle_set);
+        chassis_cv_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
     }
 #endif
 }
@@ -577,7 +577,7 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
 }
 
 #if defined(CV_INTERFACE)
-static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set)
+static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
 {
     if (vx_set == NULL || vy_set == NULL || angle_set == NULL)
     {
@@ -589,11 +589,12 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
     *vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
 
     fp32 spinning_speed;
-    if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
-    {
-        spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-    }
-    else
+    // @TODO: add enemy detection (controlled by CV)
+    // if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
+    // {
+    //     spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
+    // }
+    // else
     {
         spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
     }
