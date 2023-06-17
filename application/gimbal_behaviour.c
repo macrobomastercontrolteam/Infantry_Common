@@ -486,7 +486,8 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
     }
 
-    if( toe_is_error(CV_TOE))
+    // DBUS act as emergency stop
+    if (toe_is_error(CV_TOE) || (toe_is_error(DBUS_TOE) == 0))
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
