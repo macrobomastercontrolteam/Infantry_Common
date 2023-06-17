@@ -925,7 +925,7 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
     }
     gimbal_motor->absolute_angle_set = rad_format(gimbal_motor->absolute_angle_set + add);
 
-    if (chassis_behaviour_mode == CHASSIS_SPINNING)
+    if ((motor_select == GIMBAL_YAW_MOTOR) && (chassis_behaviour_mode == CHASSIS_SPINNING))
     {
         chassis_move.chassis_relative_angle_set = rad_format(chassis_move.chassis_relative_angle_set + add);
     }
