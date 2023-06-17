@@ -194,7 +194,8 @@ void chassis_task(void const *pvParameters)
             //when remote control is offline, chassis motor should receive zero current or voltage.
             //当遥控器掉线的时候，发送给底盘电机零电流.
 #if defined(SENTRY_1)
-            if (toe_is_error(CV_TOE))
+            // Remote controller act as emergency stop
+            if (toe_is_error(CV_TOE) || (toe_is_error(DBUS_TOE) == 0))
 #else
             if (toe_is_error(DBUS_TOE))
 #endif
@@ -574,7 +575,7 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
     }
 }
 
-#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
+#if defined(INFANTRY_1) || defined(INFANTRY_2) // || defined(SENTRY_1)
 /**
   * @brief          four mecanum wheels speed is calculated by three param. 
   * @param[in]      vx_set: vertial speed
@@ -702,7 +703,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
     fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
     uint8_t i = 0;
 
-#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
+#if defined(INFANTRY_1) || defined(INFANTRY_2) // || defined(SENTRY_1)
     //mecanum wheel speed calculation
     //麦轮运动分解
     chassis_vector_to_mecanum_wheel_speed(chassis_move_control_loop->vx_set,
