@@ -440,8 +440,7 @@ static void trigger_motor_turn_back(void)
   */
 static void shoot_bullet_control(void)
 {
-
-    //每次拨动 1/4PI的角度
+    // Rotate by TRIGGER_ANGLE_INCREMENT every time
     if (shoot_control.move_flag == 0)
     {
         shoot_control.set_angle = rad_format(shoot_control.angle + TRIGGER_ANGLE_INCREMENT);
