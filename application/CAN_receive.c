@@ -75,7 +75,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     
     if (hcan == &GIMBAL_CAN) {
         switch (rx_header.StdId) {
-            case CAN_PIT_MOTOR_ID: {
+            case CAN_PIT_MOTOR_ID:
+#if defined(INFANTRY_2)
+            case CAN_TRIGGER_MOTOR_ID:
+#endif
+            {
                 bMotorValid = 1;
                 break;
             }
@@ -86,7 +90,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             case CAN_3508_M2_ID:
             case CAN_3508_M3_ID:
             case CAN_3508_M4_ID:
+#if defined(INFANTRY_3)
             case CAN_TRIGGER_MOTOR_ID:
+#endif
             case CAN_YAW_MOTOR_ID: {
                 bMotorValid = 1;
                 break;
