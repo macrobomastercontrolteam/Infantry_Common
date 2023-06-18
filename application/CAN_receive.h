@@ -42,11 +42,15 @@ typedef enum
     CAN_3508_M2_ID = 0x202,
     CAN_3508_M3_ID = 0x203,
     CAN_3508_M4_ID = 0x204,
-    CAN_TRIGGER_MOTOR_ID = 0x207,
     CAN_YAW_MOTOR_ID = 0x205,
 
     /********Gimbal CAN IDs********/
     CAN_PIT_MOTOR_ID = 0x206,
+
+    /********Other CAN IDs: Location depends on Model********/
+    // Infantry_2: On gimbal
+    // Infantry_3: On chassis
+    CAN_TRIGGER_MOTOR_ID = 0x207,
 
     CAN_LAST_ID = CAN_PIT_MOTOR_ID,
 } can_msg_id_e;
