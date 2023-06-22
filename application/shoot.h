@@ -32,7 +32,12 @@
 
 #define SHOOT_CONTROL_TIME          GIMBAL_CONTROL_TIME
 
+#if defined(INFANTRY_2)
+// M3508 as friction wheel motor: can start faster
+#define SHOOT_FRIC_PWM_ADD_VALUE    1000.0f
+#else
 #define SHOOT_FRIC_PWM_ADD_VALUE    100.0f
+#endif
 
 //射击摩擦轮激光打开 关闭
 #define SHOOT_ON_KEYBOARD           KEY_PRESSED_OFFSET_Q
