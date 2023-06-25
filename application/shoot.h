@@ -93,6 +93,9 @@
 #define TRIGGER_READY_PID_MAX_OUT   10000.0f
 #define TRIGGER_READY_PID_MAX_IOUT  7000.0f
 
+#if defined(INFANTRY_2)
+#define TRIGGER_TURN
+#endif
 
 #define SHOOT_HEAT_REMAIN_VALUE     80
 
