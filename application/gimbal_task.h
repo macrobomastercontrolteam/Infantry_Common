@@ -101,6 +101,21 @@
 //遥控器输入死区，因为遥控器存在差异，摇杆在中间，其值不一定为零
 #define RC_DEADBAND   10
 
+#if defined(CV_INTERFACE)
+// #define CV_CAMERA_YAW_DEADBAND   0.0174533f // 1 degree
+// #define CV_CAMERA_PITCH_DEADBAND   0.0174533f // 1 degree
+#define CV_CAMERA_YAW_DEADBAND   0.0f
+#define CV_CAMERA_PITCH_DEADBAND   0.0f
+
+// //camera control angle PID
+// //Feedback: commanded pitch/yaw delta angle from cv interface, unit rad
+// //Actuator: pitch/yaw delta angle, unit rad
+// #define CV_CONTROL_ANGLE_PID_KP 5.0f
+// #define CV_CONTROL_ANGLE_PID_KI 0.0f
+// #define CV_CONTROL_ANGLE_PID_KD 0.1f
+// #define CV_CONTROL_ANGLE_PID_MAX_OUT 100.0f
+// #define CV_CONTROL_ANGLE_PID_MAX_IOUT 100.0f
+#endif
 
 #define YAW_RC_SEN    -0.000005f
 #define PITCH_RC_SEN  -0.000006f //0.005

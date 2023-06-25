@@ -215,6 +215,11 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
   */
 static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
 
+#if defined(CV_INTERFACE)
+static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
+static void gimbal_cv_control_patrol(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
+#endif
+
 /**
   * @brief          when gimbal behaviour mode is GIMBAL_RELATIVE_ANGLE, the function is called
   *                 and gimbal control mode is encode mode. 
@@ -251,7 +256,7 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
 
 //云台行为状态机
-static gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
+gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
 
 /**
   * @brief          the function is called by gimbal_set_mode function in gimbal_task.c
@@ -292,7 +297,7 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
         gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
         gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
     }
-    else if (gimbal_behaviour == GIMBAL_ABSOLUTE_ANGLE)
+    else if ((gimbal_behaviour == GIMBAL_ABSOLUTE_ANGLE) || (gimbal_behaviour == GIMBAL_AUTO_AIM) || (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL))
     {
         gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
         gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
@@ -349,6 +354,16 @@ void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, gimbal_control
     {
         gimbal_absolute_angle_control(add_yaw, add_pitch, gimbal_control_set);
     }
+#if defined(CV_INTERFACE)
+    else if (gimbal_behaviour == GIMBAL_AUTO_AIM)
+    {
+        gimbal_cv_control(add_yaw, add_pitch);
+    }
+    else if (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)
+    {
+        gimbal_cv_control_patrol(add_yaw, add_pitch);
+    }
+#endif
     else if (gimbal_behaviour == GIMBAL_RELATIVE_ANGLE)
     {
         gimbal_relative_angle_control(add_yaw, add_pitch, gimbal_control_set);
@@ -419,6 +434,8 @@ bool_t gimbal_cmd_to_shoot_stop(void)
   */
 static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 {
+    static gimbal_behaviour_e last_gimbal_behaviour = GIMBAL_ZERO_FORCE;
+
     if (gimbal_mode_set == NULL)
     {
         return;
@@ -481,51 +498,56 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
     }
 
 #if defined(SENTRY_1)
-    if (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT))
-    {
-        gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
-    }
-
     // DBUS act as emergency stop
-    if (toe_is_error(CV_TOE) || (toe_is_error(DBUS_TOE) == 0))
+    if (toe_is_error(CV_TOE))
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
+    }
+    else
+    {
+        gimbal_behaviour = GIMBAL_AUTO_AIM_PATROL;
     }
 #else
     // 开关控制 云台状态
-    if (switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
-    {
-        gimbal_behaviour = GIMBAL_ZERO_FORCE;
-    }
-    else if (switch_is_mid(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
-    {
-        // corresponds to the mode CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW
-        gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
-    }
-    else if (switch_is_up(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
-    {
-        gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
-    }
-
     if( toe_is_error(DBUS_TOE))
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
+    }
+    else if (switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
+    {
+        gimbal_behaviour = GIMBAL_ZERO_FORCE;
+    }
+    else
+    {
+        static uint16_t last_auto_aim_keyboard = 0;
+        if (gimbal_mode_set->gimbal_rc_ctrl->key.v != last_auto_aim_keyboard)
+        {
+            if (gimbal_mode_set->gimbal_rc_ctrl->key.v & AUTO_AIM_TOGGLE_KEYBOARD)
+            {
+                gimbal_behaviour = (last_gimbal_behaviour == GIMBAL_AUTO_AIM) ? GIMBAL_ZERO_FORCE : GIMBAL_AUTO_AIM;
+            }
+            last_auto_aim_keyboard = gimbal_mode_set->gimbal_rc_ctrl->key.v;
+        }
+
+        if (switch_is_mid(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
+        {
+            // corresponds to the mode CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW
+            gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
+        }
+        else if (switch_is_up(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
+        {
+            gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
+        }
     }
 #endif
 
     //enter init mode
     //判断进入init状态机
+    if (last_gimbal_behaviour == GIMBAL_ZERO_FORCE && gimbal_behaviour != GIMBAL_ZERO_FORCE)
     {
-        static gimbal_behaviour_e last_gimbal_behaviour = GIMBAL_ZERO_FORCE;
-        if (last_gimbal_behaviour == GIMBAL_ZERO_FORCE && gimbal_behaviour != GIMBAL_ZERO_FORCE)
-        {
-            gimbal_behaviour = GIMBAL_INIT;
-        }
-        last_gimbal_behaviour = gimbal_behaviour;
+        gimbal_behaviour = GIMBAL_INIT;
     }
-
-
-
+    last_gimbal_behaviour = gimbal_behaviour;
 }
 
 /**
@@ -731,6 +753,60 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
     }
 }
 
+#if defined(CV_INTERFACE)
+/**
+  * @brief          GIMBAL_AUTO_AIM mode: gimbal_motor_mode is GIMBAL_MOTOR_GYRO, gimbal_behaviour is GIMBAL_ABSOLUTE_ANGLE
+  *                 Search for enemy in current camera frame without sweeping yaw and pitch angle, as opposite to GIMBAL_AUTO_AIM_PATROL mode
+  * @param[out]     yaw: yaw axia absolute angle increment, unit rad
+  * @param[out]     pitch: pitch axia absolute angle increment,unit rad
+  * @param[in]      gimbal_control_set: gimbal data
+  * @retval         none
+  */
+static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set)
+{
+    if (yaw == NULL || pitch == NULL)
+    {
+        return;
+    }
+
+    fp32 cv_yaw_channel = 0;
+    fp32 cv_pitch_channel = 0;
+    if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fCvCmdValid))
+    {
+        deadband_limit(CvCmdHandler.CvCmdMsg.xDeltaAngle, cv_yaw_channel, CV_CAMERA_YAW_DEADBAND);
+        deadband_limit(CvCmdHandler.CvCmdMsg.yDeltaAngle, cv_pitch_channel, CV_CAMERA_PITCH_DEADBAND);
+    }
+    *yaw = cv_yaw_channel;
+    *pitch = cv_pitch_channel;
+}
+
+/**
+ * @brief          GIMBAL_AUTO_AIM_PATROL mode: gimbal_motor_mode is GIMBAL_MOTOR_GYRO, gimbal_behaviour is GIMBAL_ABSOLUTE_ANGLE
+ *                 Search for enemy while sweeping yaw and pitch angle for cv to detect, as opposite to GIMBAL_AUTO_AIM mode
+ * @param[out]     yaw: yaw axia absolute angle increment, unit rad
+ * @param[out]     pitch: pitch axia absolute angle increment,unit rad
+ * @param[in]      gimbal_control_set: gimbal data
+ * @retval         none
+ */
+static void gimbal_cv_control_patrol(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set)
+{
+    if (yaw == NULL || pitch == NULL)
+    {
+        return;
+    }
+
+    // @TODO: patrol mode logic
+    fp32 cv_yaw_channel = 0;
+    fp32 cv_pitch_channel = 0;
+    if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fCvCmdValid))
+    {
+        deadband_limit(CvCmdHandler.CvCmdMsg.xDeltaAngle, cv_yaw_channel, CV_CAMERA_YAW_DEADBAND);
+        deadband_limit(CvCmdHandler.CvCmdMsg.yDeltaAngle, cv_pitch_channel, CV_CAMERA_PITCH_DEADBAND);
+    }
+    *yaw = cv_yaw_channel;
+    *pitch = cv_pitch_channel;
+}
+#endif
 
 /**
   * @brief          when gimbal behaviour mode is GIMBAL_RELATIVE_ANGLE, the function is called
