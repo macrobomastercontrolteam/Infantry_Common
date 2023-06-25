@@ -92,7 +92,7 @@ void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type,
 fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fInit)
 {
     fp32 output;
-    if (fInit == MOVING_AVERAGE_INIT)
+    if (fInit == MOVING_AVERAGE_RESTART)
     {
         moving_average_type->sum = input * moving_average_type->size;
         for (uint8_t i = 0; i < (moving_average_type->size); i++)
