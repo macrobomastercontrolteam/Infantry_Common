@@ -776,8 +776,8 @@ static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_c
         deadband_limit(CvCmdHandler.CvCmdMsg.xDeltaAngle, cv_yaw_channel, CV_CAMERA_YAW_DEADBAND);
         deadband_limit(CvCmdHandler.CvCmdMsg.yDeltaAngle, cv_pitch_channel, CV_CAMERA_PITCH_DEADBAND);
     }
-    *yaw = cv_yaw_channel;
-    *pitch = cv_pitch_channel;
+    *yaw = moving_average_calc(cv_yaw_channel, &(gimbal_control_set->gimbal_yaw_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
+    *pitch = moving_average_calc(cv_pitch_channel, &(gimbal_control_set->gimbal_pitch_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
 }
 
 /**
@@ -803,8 +803,8 @@ static void gimbal_cv_control_patrol(fp32 *yaw, fp32 *pitch, gimbal_control_t *g
         deadband_limit(CvCmdHandler.CvCmdMsg.xDeltaAngle, cv_yaw_channel, CV_CAMERA_YAW_DEADBAND);
         deadband_limit(CvCmdHandler.CvCmdMsg.yDeltaAngle, cv_pitch_channel, CV_CAMERA_PITCH_DEADBAND);
     }
-    *yaw = cv_yaw_channel;
-    *pitch = cv_pitch_channel;
+    *yaw = moving_average_calc(cv_yaw_channel, &(gimbal_control_set->gimbal_yaw_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
+    *pitch = moving_average_calc(cv_pitch_channel, &(gimbal_control_set->gimbal_pitch_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
 }
 #endif
 
