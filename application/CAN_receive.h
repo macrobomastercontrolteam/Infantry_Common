@@ -50,6 +50,7 @@ typedef enum
     /********Other CAN IDs: Location depends on Model********/
     // Infantry_2: On gimbal
     // Infantry_3: On chassis
+    // Sentry_1: On chassis
     CAN_TRIGGER_MOTOR_ID = 0x207,
 
     CAN_LAST_ID = CAN_PIT_MOTOR_ID,
