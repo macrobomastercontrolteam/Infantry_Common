@@ -117,7 +117,11 @@
 //云台测试模式 宏定义 0 为不使用测试模式
 #define GIMBAL_TEST_MODE 0
 
+#if defined(SENTRY_1)
+#define PITCH_TURN  0
+#else
 #define PITCH_TURN  1
+#endif
 #define YAW_TURN    0
 
 //云台初始化回中值，允许的误差,并且在误差范围内停止一段时间以及最大时间6s后解除初始化状态，
