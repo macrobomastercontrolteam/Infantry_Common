@@ -130,7 +130,7 @@
 
 //test mode, 0 close, 1 open
 //云台测试模式 宏定义 0 为不使用测试模式
-#define GIMBAL_TEST_MODE 0
+#define GIMBAL_TEST_MODE 1
 
 #if defined(SENTRY_1)
 #define PITCH_TURN  0
@@ -327,4 +327,6 @@ extern bool_t cmd_cali_gimbal_hook(uint16_t *yaw_offset, uint16_t *pitch_offset,
 extern void set_cali_gimbal_hook(const uint16_t yaw_offset, const uint16_t pitch_offset, const fp32 max_yaw, const fp32 min_yaw, const fp32 max_pitch, const fp32 min_pitch);
 
 extern fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
+
+extern bool_t sentry_emergency_stop(void);
 #endif

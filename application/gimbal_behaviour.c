@@ -499,7 +499,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 
 #if defined(SENTRY_1)
     // DBUS act as emergency stop
-    if (toe_is_error(CV_TOE))
+    if (toe_is_error(CV_TOE) || sentry_emergency_stop())
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
