@@ -417,6 +417,9 @@ static void trigger_motor_turn_back(void)
     {
         shoot_control.speed_set = -shoot_control.trigger_speed_set;
     }
+#if defined(TRIGGER_TURN)
+    shoot_control.speed_set = -shoot_control.trigger_speed_set;
+#endif
 
     if(fabs(shoot_control.speed) < BLOCK_TRIGGER_SPEED && shoot_control.block_time < BLOCK_TIME)
     {
