@@ -18,8 +18,8 @@
 
 typedef struct __attribute__((packed))
 {
-    uint16_t uiXCoordinate;
-    uint16_t uiYCoordinate;
+    fp32 xDeltaAngle; ///< unit: rad
+    fp32 yDeltaAngle; ///< unit: rad
     fp32 xSpeed;
     fp32 ySpeed;
 } tCvCmdMsg;

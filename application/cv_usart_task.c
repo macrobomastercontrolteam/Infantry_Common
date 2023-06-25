@@ -21,7 +21,7 @@
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif /* MIN */
-#define DATA_PACKAGE_SIZE 15
+#define DATA_PACKAGE_SIZE 19
 #define DATA_PACKAGE_HEADER_SIZE 2
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_SIZE - DATA_PACKAGE_HEADER_SIZE - sizeof(uint8_t))
 #define CHAR_UNUSED 0xFF
