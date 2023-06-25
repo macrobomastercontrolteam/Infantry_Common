@@ -95,6 +95,8 @@ typedef enum
   GIMBAL_AUTO_AIM_PATROL,
 } gimbal_behaviour_e;
 
+extern gimbal_behaviour_e gimbal_behaviour;
+
 /**
   * @brief          the function is called by gimbal_set_mode function in gimbal_task.c
   *                 the function set gimbal_behaviour variable, and set motor mode.

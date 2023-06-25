@@ -360,7 +360,7 @@ void gimbal_task(void const *pvParameters)
         if (!(toe_is_error(YAW_GIMBAL_MOTOR_TOE) && toe_is_error(PITCH_GIMBAL_MOTOR_TOE) && toe_is_error(TRIGGER_MOTOR_TOE)))
         {
 #if defined(SENTRY_1)
-            if (toe_is_error(CV_TOE))
+            if (toe_is_error(CV_TOE) && (gimbal_behaviour != GIMBAL_CALI))
 #else
             if (toe_is_error(DBUS_TOE))
 #endif
@@ -1166,4 +1166,16 @@ static void gimbal_PID_clear(gimbal_PID_t *gimbal_pid_clear)
     }
     gimbal_pid_clear->err = gimbal_pid_clear->set = gimbal_pid_clear->get = 0.0f;
     gimbal_pid_clear->out = gimbal_pid_clear->Pout = gimbal_pid_clear->Iout = gimbal_pid_clear->Dout = 0.0f;
+}
+
+/**
+ * @brief Emergency stop condition for sentry
+ * @return bool_t: true if E-stop
+ */
+bool_t sentry_emergency_stop(void)
+{
+  // E-stop if remote controller is connected, and also not in calibration mode
+  uint8_t fEnable = toe_is_error(DBUS_TOE);
+  fEnable |= switch_is_down(chassis_move.chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]) && switch_is_down(chassis_move.chassis_RC->rc.s[GIMBAL_MODE_CHANNEL]);
+  return (fEnable == 0);
 }
