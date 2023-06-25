@@ -90,7 +90,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             case CAN_3508_M2_ID:
             case CAN_3508_M3_ID:
             case CAN_3508_M4_ID:
-#if defined(INFANTRY_3)
+#if defined(INFANTRY_3) || defined(SENTRY_1)
             case CAN_TRIGGER_MOTOR_ID:
 #endif
             case CAN_YAW_MOTOR_ID: {
