@@ -106,6 +106,7 @@
 // #define CV_CAMERA_PITCH_DEADBAND   0.0174533f // 1 degree
 #define CV_CAMERA_YAW_DEADBAND   0.0f
 #define CV_CAMERA_PITCH_DEADBAND   0.0f
+#define CV_ANGLE_FILTER_SIZE 10
 
 // //camera control angle PID
 // //Feedback: commanded pitch/yaw delta angle from cv interface, unit rad
@@ -218,6 +219,10 @@ typedef struct
     fp32 current_set;
     int16_t given_current;
 
+#if defined(CV_INTERFACE)
+    moving_average_type_t CvCmdAngleFilter;
+    fp32 CvCmdAngleFilterBuffer[CV_ANGLE_FILTER_SIZE];
+#endif
 } gimbal_motor_t;
 
 typedef struct

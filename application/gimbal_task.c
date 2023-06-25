@@ -670,6 +670,13 @@ static void gimbal_init(gimbal_control_t *init)
     gimbal_PID_init(&init->gimbal_pitch_motor.gimbal_motor_relative_angle_pid, PITCH_ENCODE_RELATIVE_PID_MAX_OUT, PITCH_ENCODE_RELATIVE_PID_MAX_IOUT, PITCH_ENCODE_RELATIVE_PID_KP, PITCH_ENCODE_RELATIVE_PID_KI, PITCH_ENCODE_RELATIVE_PID_KD);
     PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, Pitch_speed_pid, PITCH_SPEED_PID_MAX_OUT, PITCH_SPEED_PID_MAX_IOUT, &raw_err_handler);
 
+  #if defined(CV_INTERFACE)
+    init->gimbal_pitch_motor.CvCmdAngleFilter.size = CV_ANGLE_FILTER_SIZE;
+    init->gimbal_pitch_motor.CvCmdAngleFilter.cursor = 0;
+    init->gimbal_pitch_motor.CvCmdAngleFilter.ring = init->gimbal_pitch_motor.CvCmdAngleFilterBuffer;
+    init->gimbal_pitch_motor.CvCmdAngleFilter.sum = 0;
+  #endif
+
     //Çå³ıËùÓĞPID
     gimbal_total_pid_clear(init);
 
