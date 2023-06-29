@@ -359,7 +359,7 @@ void gimbal_task(void const *pvParameters)
 
         if (!(toe_is_error(YAW_GIMBAL_MOTOR_TOE) && toe_is_error(PITCH_GIMBAL_MOTOR_TOE) && toe_is_error(TRIGGER_MOTOR_TOE)))
         {
-#if defined(SENTRY_1)
+#if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
             if (toe_is_error(CV_TOE) && (gimbal_behaviour != GIMBAL_CALI))
 #else
             if (toe_is_error(DBUS_TOE))
