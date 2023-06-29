@@ -266,7 +266,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
     else
 #endif
     {
-#if !defined(SENTRY_1)
+#if !(!defined(SENTRY_HW_TEST) && defined(SENTRY_1))
         // remote control  set chassis behaviour mode
         // Ò£¿ØÆ÷ÉèÖÃÄ£Ê½
         if (switch_is_mid(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
