@@ -675,6 +675,11 @@ static void gimbal_init(gimbal_control_t *init)
     init->gimbal_pitch_motor.CvCmdAngleFilter.cursor = 0;
     init->gimbal_pitch_motor.CvCmdAngleFilter.ring = init->gimbal_pitch_motor.CvCmdAngleFilterBuffer;
     init->gimbal_pitch_motor.CvCmdAngleFilter.sum = 0;
+
+    init->gimbal_yaw_motor.CvCmdAngleFilter.size = CV_ANGLE_FILTER_SIZE;
+    init->gimbal_yaw_motor.CvCmdAngleFilter.cursor = 0;
+    init->gimbal_yaw_motor.CvCmdAngleFilter.ring = init->gimbal_yaw_motor.CvCmdAngleFilterBuffer;
+    init->gimbal_yaw_motor.CvCmdAngleFilter.sum = 0;
   #endif
 
     //Çå³ıËùÓĞPID
