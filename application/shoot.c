@@ -400,8 +400,11 @@ static void shoot_feedback_update(void)
     }
     else
     {
-        shoot_control.fric1_ramp.max_value = FRIC_DOWN;
-        shoot_control.fric2_ramp.max_value = FRIC_DOWN;
+        // always fast speed
+        shoot_control.fric1_ramp.max_value = FRIC_UP;
+        shoot_control.fric2_ramp.max_value = FRIC_UP;
+        // shoot_control.fric1_ramp.max_value = FRIC_DOWN;
+        // shoot_control.fric2_ramp.max_value = FRIC_DOWN;
     }
 
 
