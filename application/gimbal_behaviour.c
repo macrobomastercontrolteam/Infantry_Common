@@ -357,11 +357,11 @@ void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, gimbal_control
 #if defined(CV_INTERFACE)
     else if (gimbal_behaviour == GIMBAL_AUTO_AIM)
     {
-        gimbal_cv_control(add_yaw, add_pitch);
+        gimbal_cv_control(add_yaw, add_pitch, gimbal_control_set);
     }
     else if (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)
     {
-        gimbal_cv_control_patrol(add_yaw, add_pitch);
+        gimbal_cv_control_patrol(add_yaw, add_pitch, gimbal_control_set);
     }
 #endif
     else if (gimbal_behaviour == GIMBAL_RELATIVE_ANGLE)

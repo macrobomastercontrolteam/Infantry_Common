@@ -31,6 +31,7 @@
 #include "CAN_receive.h"
 #include "pid.h"
 #include "remote_control.h"
+#include "user_lib.h"
 //pitch speed close-loop PID params, max out and max iout
 //pitch 速度环 PID参数以及 PID最大输出，积分输出
 #define PITCH_SPEED_PID_KP        2250.0f // pitch starts shaking at 2600
