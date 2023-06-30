@@ -30,6 +30,7 @@
 #include "gimbal_behaviour.h"
 #include "detect_task.h"
 #include "pid.h"
+#include "cv_usart_task.h"
 
 #define shoot_fric1_on(pwm) fric1_on((pwm)) //摩擦轮1pwm宏定义
 #define shoot_fric2_on(pwm) fric2_on((pwm)) //摩擦轮2pwm宏定义
@@ -205,6 +206,22 @@ int16_t shoot_control_loop(void)
   */
 static void shoot_set_mode(void)
 {
+#if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
+    static uint8_t lastCvShootMode = 0;
+    uint8_t CvShootMode = CvCmder_GetMode(CV_MODE_SHOOT_BIT);
+    if (CvShootMode != lastCvShootMode)
+    {
+        if (CvShootMode == 1)
+        {
+            shoot_control.shoot_mode = SHOOT_READY_FRIC;
+        }
+        else
+        {
+            shoot_control.shoot_mode = SHOOT_STOP;
+        }
+        lastCvShootMode = CvShootMode;
+    }
+#else
     static int8_t last_s = RC_SW_UP;
 
     //上拨判断， 一次开启，再次关闭
@@ -227,6 +244,7 @@ static void shoot_set_mode(void)
     {
         shoot_control.shoot_mode = SHOOT_STOP;
     }
+#endif
 
     if(shoot_control.shoot_mode == SHOOT_READY_FRIC && shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value && shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value)
     {
@@ -242,8 +260,10 @@ static void shoot_set_mode(void)
     }
     else if(shoot_control.shoot_mode == SHOOT_READY)
     {
+#if !(!defined(SENTRY_HW_TEST) && defined(SENTRY_1))
         //下拨一次或者鼠标按下一次，进入射击状态
         if ((switch_is_down(shoot_control.shoot_rc->rc.s[SHOOT_RC_MODE_CHANNEL]) && !switch_is_down(last_s)) || (shoot_control.press_l && shoot_control.last_press_l == 0) || (shoot_control.press_r && shoot_control.last_press_r == 0))
+#endif
         {
             shoot_control.shoot_mode = SHOOT_BULLET;
         }
@@ -270,6 +290,9 @@ static void shoot_set_mode(void)
 
     if(shoot_control.shoot_mode > SHOOT_READY_FRIC)
     {
+#if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
+        shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
+#else
         //鼠标长按一直进入射击状态 保持连发
         if ((shoot_control.press_l_time == PRESS_LONG_TIME) || (shoot_control.press_r_time == PRESS_LONG_TIME) || (shoot_control.rc_s_time == RC_S_LONG_TIME))
         {
@@ -279,6 +302,7 @@ static void shoot_set_mode(void)
         {
             shoot_control.shoot_mode =SHOOT_READY_BULLET;
         }
+#endif
     }
 
     get_shoot_heat0_limit_and_heat0(&shoot_control.heat_limit, &shoot_control.heat);
@@ -295,7 +319,9 @@ static void shoot_set_mode(void)
         shoot_control.shoot_mode = SHOOT_STOP;
     }
 
+#if !(!defined(SENTRY_HW_TEST) && defined(SENTRY_1))
     last_s = shoot_control.shoot_rc->rc.s[SHOOT_RC_MODE_CHANNEL];
+#endif
 }
 /**
   * @brief          射击数据更新
