@@ -25,6 +25,7 @@
 #define DATA_PACKAGE_HEADER_SIZE 2
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_SIZE - DATA_PACKAGE_HEADER_SIZE - sizeof(uint8_t))
 #define CHAR_UNUSED 0xFF
+#define SHOOT_TIMEOUT_SEC 8000
 
 uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE * 6];
 
@@ -53,7 +54,6 @@ void CvCmder_PollForModeChange(void);
 uint8_t CvCmder_RxParser(void);
 void CvCmder_SendSetModeRequest(void);
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
-uint8_t CvCmder_CheckAndResetFlag(uint8_t *pbFlag);
 #if defined(DEBUG_CV)
 uint8_t CvCmder_MockModeChange(void);
 #endif
@@ -79,6 +79,11 @@ void cv_usart_task(void const *argument)
     while (1)
     {
         CvCmder_PollForModeChange();
+        // shoot mode timeout logic
+        if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && (HAL_GetTick() - CvCmdHandler.ulShootStartTime > SHOOT_TIMEOUT_SEC))
+        {
+            CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
+        }
         osDelay(1500);
     }
 }
@@ -235,6 +240,23 @@ uint8_t CvCmder_RxParser(void)
         }
         break;
     }
+    case MSG_MODE_CONTROL:
+    {
+        fValid = CvCmdHandler.fCvCmdValid;
+        // Mode bits in set-mode message cv should be all zeros except for CV_MODE_SHOOT_BIT, which is controlled by cv
+        fValid &= ((CvRxBuffer.tData.abPayload[0] & (~CV_MODE_SHOOT_BIT)) == 0);
+        fValid &= (memcmp(&CvRxBuffer.tData.abPayload[1], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - 1) == 0);
+        if (fValid)
+        {
+            CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_SHOOT_BIT);
+            CvCmdHandler.ulShootStartTime = HAL_GetTick();
+        }
+        else
+        {
+            CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
+        }
+        break;
+    }
     }
 
     if (fValid)
@@ -320,8 +342,13 @@ uint8_t CvCmder_MockModeChange(void)
                 CvCmdHandler.fCvMode = CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT | CV_MODE_ENEMY_DETECTED_BIT;
                 break;
             }
+            case 4:
+            {
+                CvCmdHandler.fCvMode = CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT | CV_MODE_ENEMY_DETECTED_BIT | CV_MODE_SHOOT_BIT;
+                break;
             }
-            bMockCounter = (bMockCounter + 1) % 4;
+            }
+            bMockCounter = (bMockCounter + 1) % 5;
         }
     }
     return fIsUserKeyPressingEdge;
