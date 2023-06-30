@@ -108,7 +108,7 @@ fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type,
         moving_average_type->sum = moving_average_type->sum - moving_average_type->ring[moving_average_type->cursor] + input;
         moving_average_type->ring[moving_average_type->cursor] = input;
         moving_average_type->cursor = (moving_average_type->cursor + 1) % moving_average_type->size;
-        output = (moving_average_type->sum) / ((float)(moving_average_type->size));
+        output = (moving_average_type->sum) / ((fp32)(moving_average_type->size));
     }
     return output;
 }
