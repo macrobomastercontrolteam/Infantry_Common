@@ -123,7 +123,7 @@
 #define PITCH_RC_SEN  -0.000006f //0.005
 
 #define YAW_MOUSE_SEN   0.00005f
-#define PITCH_MOUSE_SEN 0.00015f
+#define PITCH_MOUSE_SEN 0.00005f
 
 #define YAW_ENCODE_SEN    0.01f
 #define PITCH_ENCODE_SEN  0.01f
