@@ -29,6 +29,8 @@
 #include "INS_task.h"
 #include "chassis_power_control.h"
 
+#define DISABLE_DRIVE_MOTOR_POWER 0
+#define DISABLE_STEER_MOTOR_POWER 0
 
 /**
   * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
@@ -191,12 +193,19 @@ void chassis_task(void const *pvParameters)
         {
           if (!toe_is_error(bToeIndex))
           {
-            //when remote control is offline, chassis motor should receive zero current or voltage.
-            //当遥控器掉线的时候，发送给底盘电机零电流.
+#if DISABLE_DRIVE_MOTOR_POWER
+            chassis_move.motor_chassis[0].give_current = 0;
+            chassis_move.motor_chassis[1].give_current = 0;
+            chassis_move.motor_chassis[2].give_current = 0;
+            chassis_move.motor_chassis[3].give_current = 0;
+#endif
+
 #if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
             // Remote controller act as emergency stop
             if (toe_is_error(CV_TOE) || sentry_emergency_stop())
 #else
+            // when remote control is offline, chassis motor should receive zero current or voltage.
+            // 当遥控器掉线的时候，发送给底盘电机零电流.
             if (toe_is_error(DBUS_TOE))
 #endif
 #if defined(INFANTRY_3)
@@ -205,6 +214,12 @@ void chassis_task(void const *pvParameters)
             }
             else
             {
+#if DISABLE_STEER_MOTOR_POWER
+            chassis_move.steer_motor_chassis[0].target_ecd = 0;
+            chassis_move.steer_motor_chassis[1].target_ecd = 0;
+            chassis_move.steer_motor_chassis[2].target_ecd = 0;
+            chassis_move.steer_motor_chassis[3].target_ecd = 0;
+#endif
               // send control message
               // 发送控制电流
               CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current, chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current,
