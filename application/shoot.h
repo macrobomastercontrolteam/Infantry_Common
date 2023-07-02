@@ -32,11 +32,13 @@
 
 #define SHOOT_CONTROL_TIME          GIMBAL_CONTROL_TIME
 
+// Start friction wheel immediately
 #if defined(INFANTRY_2)
-// M3508 as friction wheel motor: can start faster
-#define SHOOT_FRIC_PWM_ADD_VALUE    1000.0f
+#define SHOOT_FRIC_PWM_ADD_VALUE    2000.0f
+#elif defined(SENTRY_1)
+#define SHOOT_FRIC_PWM_ADD_VALUE    2000.0f
 #else
-#define SHOOT_FRIC_PWM_ADD_VALUE    100.0f
+#define SHOOT_FRIC_PWM_ADD_VALUE    2000.0f
 #endif
 
 //Éä»÷Ä¦²ÁÂÖ¼¤¹â´ò¿ª ¹Ø±Õ
