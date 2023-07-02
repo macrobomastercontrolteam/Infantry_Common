@@ -438,17 +438,15 @@ static void shoot_feedback_update(void)
 
 static void trigger_motor_turn_back(void)
 {
-    if( shoot_control.block_time < BLOCK_TIME)
-    {
-        shoot_control.speed_set = shoot_control.trigger_speed_set;
-    }
-    else
+#if defined(TRIGGER_TURN)
+    shoot_control.speed_set = -shoot_control.trigger_speed_set;
+#else
+    shoot_control.speed_set = shoot_control.trigger_speed_set;
+#endif
+    if( shoot_control.block_time >= BLOCK_TIME)
     {
         shoot_control.speed_set = -shoot_control.trigger_speed_set;
     }
-#if defined(TRIGGER_TURN)
-    shoot_control.speed_set = -shoot_control.trigger_speed_set;
-#endif
 
     if(fabs(shoot_control.speed) < BLOCK_TRIGGER_SPEED && shoot_control.block_time < BLOCK_TIME)
     {
