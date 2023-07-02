@@ -152,4 +152,8 @@ typedef struct
 extern void shoot_init(void);
 extern int16_t shoot_control_loop(void);
 
+#if defined(GIMBAL_TEST_MODE)
+extern shoot_control_t shoot_control;
+#endif
+
 #endif
