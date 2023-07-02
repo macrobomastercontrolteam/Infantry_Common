@@ -1094,6 +1094,8 @@ int32_t yaw_ins_set_1000, pitch_ins_set_1000;
 int32_t pitch_relative_set_1000, pitch_relative_angle_1000;
 int32_t yaw_speed_int_1000, pitch_speed_int_1000;
 int32_t yaw_speed_set_int_1000, pitch_speed_set_int_1000;
+fp32 shoot_speed_global;
+fp32 shoot_speed_set_global;
 static void J_scope_gimbal_test(void)
 {
     yaw_ins_int_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.absolute_angle * 1000);
@@ -1107,6 +1109,9 @@ static void J_scope_gimbal_test(void)
     pitch_speed_set_int_1000 = (int32_t)(gimbal_control.gimbal_pitch_motor.motor_gyro_set * 1000);
     pitch_relative_angle_1000 = (int32_t)(gimbal_control.gimbal_pitch_motor.relative_angle * 1000);
     pitch_relative_set_1000 = (int32_t)(gimbal_control.gimbal_pitch_motor.relative_angle_set * 1000);
+
+    shoot_speed_global = shoot_control.shoot_motor_measure->speed_rpm;
+    shoot_speed_set_global = shoot_control.speed_set;
 }
 
 #endif
