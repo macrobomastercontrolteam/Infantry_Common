@@ -143,6 +143,9 @@ void CvCmder_PollForModeChange(void)
         if (CvCmdHandler.fIsWaitingForAck)
         {
             CvCmder_SendSetModeRequest();
+            // reset receive interrupt to detect new UART connection, in case CV boots up after control
+            HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
+            __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
         }
         else
         {
