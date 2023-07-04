@@ -359,11 +359,7 @@ void gimbal_task(void const *pvParameters)
 
         if (!(toe_is_error(YAW_GIMBAL_MOTOR_TOE) && toe_is_error(PITCH_GIMBAL_MOTOR_TOE) && toe_is_error(TRIGGER_MOTOR_TOE)))
         {
-#if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
-            if ((toe_is_error(CV_TOE) && (gimbal_behaviour != GIMBAL_CALI)) || sentry_emergency_stop())
-#else
-            if (toe_is_error(DBUS_TOE))
-#endif
+            if (gimbal_emergency_stop())
             {
                 CAN_cmd_gimbal(0, 0, 0, 0);
             }
@@ -1189,10 +1185,32 @@ static void gimbal_PID_clear(gimbal_PID_t *gimbal_pid_clear)
  * @brief Emergency stop condition for sentry
  * @return bool_t: true if E-stop
  */
-bool_t sentry_emergency_stop(void)
+bool_t gimbal_emergency_stop(void)
 {
-  // E-stop if remote controller is connected, and also not in calibration mode
-  uint8_t fEnable = toe_is_error(DBUS_TOE);
-  fEnable |= switch_is_down(chassis_move.chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]) && switch_is_down(chassis_move.chassis_RC->rc.s[GIMBAL_MODE_CHANNEL]);
-  return (fEnable == 0);
+    uint8_t fEStop = 1;
+    static uint8_t fFatalError = 0;
+    if (fFatalError)
+    {
+        return 1;
+    }
+    else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->given_current) >= YAW_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->given_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+    {
+        fFatalError = 1;
+        return 1;
+    }
+    else
+    {
+#if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
+        // E-stop if remote controller is connected, and also not in calibration mode
+        // uint8_t fSentryDbusEnable = toe_is_error(DBUS_TOE);
+				uint8_t fSentryDbusEnable = 1;
+        fSentryDbusEnable |= switch_is_down(chassis_move.chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]) && switch_is_down(chassis_move.chassis_RC->rc.s[GIMBAL_MODE_CHANNEL]);
+
+        fEStop = toe_is_error(CV_TOE) && (gimbal_behaviour != GIMBAL_CALI);
+				fEStop |= (fSentryDbusEnable == 0);
+#else
+        fEStop = toe_is_error(DBUS_TOE);
+#endif
+    }
+    return fEStop;
 }

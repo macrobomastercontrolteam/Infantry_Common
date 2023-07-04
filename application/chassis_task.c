@@ -202,7 +202,7 @@ void chassis_task(void const *pvParameters)
 
 #if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
             // Remote controller act as emergency stop
-            if (toe_is_error(CV_TOE) || sentry_emergency_stop())
+            if (toe_is_error(CV_TOE) || gimbal_emergency_stop())
 #else
             // when remote control is offline, chassis motor should receive zero current or voltage.
             // 当遥控器掉线的时候，发送给底盘电机零电流.
