@@ -33,6 +33,19 @@
         }                                                  \
     }
 
+// y=x**2+(1-deadline)*x
+#define brakeband_limit(input, output, deadline)           \
+    {                                                      \
+        if ((input) > (deadline) || (input) < -(deadline)) \
+        {                                                  \
+            (output) = ((input)+1-(deadline))*(input);     \
+        }                                                  \
+        else                                               \
+        {                                                  \
+            (output) = 0;                                  \
+        }                                                  \
+    }
+
 typedef __packed struct
 {
     fp32 input;        //ÊäÈëÊı¾İ
