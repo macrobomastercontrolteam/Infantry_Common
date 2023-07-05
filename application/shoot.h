@@ -103,7 +103,8 @@
 
 typedef enum
 {
-    SHOOT_STOP = 0,
+    SHOOT_STOP_INIT = 0,
+    SHOOT_STOP,
     SHOOT_READY_FRIC,
     SHOOT_READY_BULLET,
     SHOOT_READY,
