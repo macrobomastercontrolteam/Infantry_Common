@@ -124,6 +124,11 @@ int16_t shoot_control_loop(void)
     {
     case SHOOT_STOP_INIT:
     {
+#if defined(INFANTRY_3)
+        CAN_cmd_load_servo(0);
+        CAN_cmd_load_servo(0);
+        CAN_cmd_load_servo(0);
+#endif
         shoot_control.shoot_mode = SHOOT_STOP;
         // no break; directly go to next state
     }
@@ -135,9 +140,19 @@ int16_t shoot_control_loop(void)
     {
         if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
         {
-            shoot_control.shoot_mode = SHOOT_READY_BULLET;
+            shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
         }
         break;
+    }
+    case SHOOT_READY_BULLET_INIT:
+    {
+#if defined(INFANTRY_3)
+        CAN_cmd_load_servo(1);
+        CAN_cmd_load_servo(1);
+        CAN_cmd_load_servo(1);
+#endif
+        shoot_control.shoot_mode = SHOOT_READY_BULLET;
+        // no break; directly go to next state
     }
     case SHOOT_READY_BULLET:
     {
@@ -165,7 +180,7 @@ int16_t shoot_control_loop(void)
     {
         // if (shoot_control.key == SWITCH_TRIGGER_OFF)
         // {
-        //     shoot_control.shoot_mode = SHOOT_READY_BULLET;
+        //     shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
         // }
         // else
         {
@@ -188,7 +203,7 @@ int16_t shoot_control_loop(void)
         get_shoot_heat0_limit_and_heat0(&shoot_control.heat_limit, &shoot_control.heat);
         if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
         {
-            shoot_control.shoot_mode = SHOOT_READY_BULLET;
+            shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
         }
         break;
     }
@@ -197,7 +212,7 @@ int16_t shoot_control_loop(void)
         // 设置拨弹轮的拨动速度,并开启堵转反转处理
         shoot_control.trigger_speed_set = CONTINUE_TRIGGER_SPEED;
         trigger_motor_turn_back();
-        shoot_control.shoot_mode = SHOOT_READY_BULLET;
+        shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
         break;
     }
     case SHOOT_DONE:
@@ -208,7 +223,7 @@ int16_t shoot_control_loop(void)
         //     if (shoot_control.key_time > SHOOT_DONE_KEY_OFF_TIME)
         //     {
         //         shoot_control.key_time = 0;
-        //         shoot_control.shoot_mode = SHOOT_READY_BULLET;
+        //         shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
         //     }
         // }
         // else
@@ -232,7 +247,7 @@ int16_t shoot_control_loop(void)
             get_shoot_heat0_limit_and_heat0(&shoot_control.heat_limit, &shoot_control.heat);
             if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
             {
-                shoot_control.shoot_mode = SHOOT_READY_BULLET;
+                shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
             }
             else
             {
@@ -256,7 +271,7 @@ int16_t shoot_control_loop(void)
         //计算拨弹轮电机PID
         PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set);
         shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
-        if(shoot_control.shoot_mode < SHOOT_READY_BULLET)
+        if(shoot_control.shoot_mode < SHOOT_READY_BULLET_INIT)
         {
             shoot_control.given_current = 0;
         }

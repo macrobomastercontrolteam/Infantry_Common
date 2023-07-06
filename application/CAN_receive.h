@@ -35,6 +35,7 @@ typedef enum
     CAN_GIMBAL_ALL_TX_ID = 0x1FF,
 #if defined(INFANTRY_3)
     CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
+    CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
 #endif
 
     /*******Chassis CAN IDs********/
@@ -129,6 +130,10 @@ extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int1
   * @retval         none
   */
 extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
+#endif
+
+#if defined(INFANTRY_3)
+extern void CAN_cmd_load_servo(uint8_t fServoSwitch);
 #endif
 
 /**
