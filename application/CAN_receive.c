@@ -190,6 +190,35 @@ void CAN_cmd_chassis_reset_ID(void)
   * @retval         none
   */
 void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, uint16_t steer_motor1, uint16_t steer_motor2, uint16_t steer_motor3, uint16_t steer_motor4)
+{
+    uint32_t send_mail_box;
+    // driver motors (M3508)
+    chassis_tx_message.StdId = CAN_CHASSIS_M3508_TX_ID;
+    chassis_tx_message.IDE = CAN_ID_STD;
+    chassis_tx_message.RTR = CAN_RTR_DATA;
+    chassis_tx_message.DLC = 0x08;
+    chassis_can_send_data[0] = motor1 >> 8;
+    chassis_can_send_data[1] = motor1;
+    chassis_can_send_data[2] = motor2 >> 8;
+    chassis_can_send_data[3] = motor2;
+    chassis_can_send_data[4] = motor3 >> 8;
+    chassis_can_send_data[5] = motor3;
+    chassis_can_send_data[6] = motor4 >> 8;
+    chassis_can_send_data[7] = motor4;
+    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+
+    // Send target encoder value of steering motors (GM6020) to chassis controller
+    chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLER_TX_ID;
+    chassis_can_send_data[0] = steer_motor1 >> 8;
+    chassis_can_send_data[1] = steer_motor1;
+    chassis_can_send_data[2] = steer_motor2 >> 8;
+    chassis_can_send_data[3] = steer_motor2;
+    chassis_can_send_data[4] = steer_motor3 >> 8;
+    chassis_can_send_data[5] = steer_motor3;
+    chassis_can_send_data[6] = steer_motor4 >> 8;
+    chassis_can_send_data[7] = steer_motor4;
+    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
 #else
 /**
   * @brief          send control current of motor (0x201, 0x202, 0x203, 0x204)
@@ -208,7 +237,6 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
   * @retval         none
   */
 void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4)
-#endif
 {
     uint32_t send_mail_box;
     // driver motors (M3508)
@@ -225,21 +253,22 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     chassis_can_send_data[6] = motor4 >> 8;
     chassis_can_send_data[7] = motor4;
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+#endif
 
 #if defined(INFANTRY_3)
-    // Send target encoder value of steering motors (GM6020) to chassis controller
-    chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLER_TX_ID;
-    chassis_can_send_data[0] = steer_motor1 >> 8;
-    chassis_can_send_data[1] = steer_motor1;
-    chassis_can_send_data[2] = steer_motor2 >> 8;
-    chassis_can_send_data[3] = steer_motor2;
-    chassis_can_send_data[4] = steer_motor3 >> 8;
-    chassis_can_send_data[5] = steer_motor3;
-    chassis_can_send_data[6] = steer_motor4 >> 8;
-    chassis_can_send_data[7] = steer_motor4;
+void CAN_cmd_load_servo(uint8_t fServoSwitch)
+{
+    // Turn on/off loading servo motor, by commanding Type-A board on chassis
+    uint32_t send_mail_box;
+    chassis_tx_message.StdId = CAN_CHASSIS_LOAD_SERVO_TX_ID;
+    chassis_tx_message.IDE = CAN_ID_STD;
+    chassis_tx_message.RTR = CAN_RTR_DATA;
+    chassis_tx_message.DLC = 0x08;
+    chassis_can_send_data[0] = fServoSwitch;
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
-#endif
 }
+#endif
 
 /**
   * @brief          return the yaw 6020 motor data point
