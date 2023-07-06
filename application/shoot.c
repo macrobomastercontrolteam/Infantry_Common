@@ -151,47 +151,42 @@ int16_t shoot_control_loop(void)
         CAN_cmd_load_servo(1);
         CAN_cmd_load_servo(1);
 #endif
+		shoot_control.trigger_motor_pid.max_out = TRIGGER_READY_PID_MAX_OUT;
+        shoot_control.trigger_motor_pid.max_iout = TRIGGER_READY_PID_MAX_IOUT;
         shoot_control.shoot_mode = SHOOT_READY_BULLET;
         // no break; directly go to next state
     }
     case SHOOT_READY_BULLET:
     {
-//         if (shoot_control.key == SWITCH_TRIGGER_OFF)
-//         {
-//             // 设置拨弹轮的拨动速度,并开启堵转反转处理
-//             shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
-//             trigger_motor_turn_back();
-// #if defined(INFANTRY_3)
-//             CAN_cmd_load_servo(1);
-//             CAN_cmd_load_servo(1);
-//             CAN_cmd_load_servo(1);
-// #endif
-//         }
-//         else
+        if (shoot_control.key == SWITCH_TRIGGER_OFF)
         {
-            shoot_control.trigger_speed_set = 0.0f;
-            shoot_control.shoot_mode = SHOOT_READY;
+            // 设置拨弹轮的拨动速度,并开启堵转反转处理
+            shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
+            trigger_motor_turn_back();
         }
-        shoot_control.trigger_motor_pid.max_out = TRIGGER_READY_PID_MAX_OUT;
-        shoot_control.trigger_motor_pid.max_iout = TRIGGER_READY_PID_MAX_IOUT;
+        // else
+        // {
+        //     shoot_control.trigger_speed_set = 0.0f;
+        //     shoot_control.shoot_mode = SHOOT_READY;
+        // }
         break;
     }
     case SHOOT_READY:
     {
-        // if (shoot_control.key == SWITCH_TRIGGER_OFF)
-        // {
-        //     shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
-        // }
-        // else
+        if (shoot_control.key == SWITCH_TRIGGER_OFF)
         {
-#if !(!defined(SENTRY_HW_TEST) && defined(SENTRY_1))
-            // long press mouse to rapid fire
-            if ((shoot_control.press_l && shoot_control.last_press_l == 0) || (shoot_control.press_r && shoot_control.last_press_r == 0))
-#endif
-            {
-                shoot_control.shoot_mode = SHOOT_BULLET;
-            }
+            shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
         }
+//         else
+//         {
+// #if !(!defined(SENTRY_HW_TEST) && defined(SENTRY_1))
+//             // long press mouse to rapid fire
+//             if ((shoot_control.press_l && shoot_control.last_press_l == 0) || (shoot_control.press_r && shoot_control.last_press_r == 0))
+// #endif
+//             {
+//                 shoot_control.shoot_mode = SHOOT_BULLET;
+//             }
+//         }
         break;
     }
     case SHOOT_BULLET:
@@ -217,20 +212,20 @@ int16_t shoot_control_loop(void)
     }
     case SHOOT_DONE:
     {
-        // if (shoot_control.key == SWITCH_TRIGGER_OFF)
-        // {
-        //     shoot_control.key_time++;
-        //     if (shoot_control.key_time > SHOOT_DONE_KEY_OFF_TIME)
-        //     {
-        //         shoot_control.key_time = 0;
-        //         shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
-        //     }
-        // }
-        // else
+        if (shoot_control.key == SWITCH_TRIGGER_OFF)
         {
-            shoot_control.key_time = 0;
-            shoot_control.shoot_mode = SHOOT_BULLET;
+            shoot_control.key_time++;
+            if (shoot_control.key_time > SHOOT_DONE_KEY_OFF_TIME)
+            {
+                shoot_control.key_time = 0;
+                shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
+            }
         }
+        // else
+        // {
+        //     shoot_control.key_time = 0;
+        //     shoot_control.shoot_mode = SHOOT_BULLET;
+        // }
         break;
     }
     }
@@ -406,7 +401,7 @@ static void shoot_feedback_update(void)
     //计算输出轴角度
     shoot_control.angle = (shoot_control.ecd_count * ECD_RANGE + shoot_control.shoot_motor_measure->ecd) * TRIGGER_MOTOR_ECD_TO_ANGLE;
     //微动开关
-    // shoot_control.key = BUTTEN_TRIG_PIN;
+    shoot_control.key = BUTTEN_TRIG_PIN;
     //鼠标按键
     shoot_control.last_press_l = shoot_control.press_l;
     shoot_control.last_press_r = shoot_control.press_r;
@@ -516,11 +511,10 @@ static void shoot_bullet_control(void)
         shoot_control.set_angle = rad_format(shoot_control.angle + TRIGGER_ANGLE_INCREMENT);
         shoot_control.move_flag = 1;
     }
-    // if(shoot_control.key == SWITCH_TRIGGER_OFF)
-    // {
-
-    //     shoot_control.shoot_mode = SHOOT_DONE;
-    // }
+    if(shoot_control.key == SWITCH_TRIGGER_OFF)
+    {
+        shoot_control.shoot_mode = SHOOT_DONE;
+    }
     //到达角度判断
     if (rad_format(shoot_control.set_angle - shoot_control.angle) > 0.05f)
     {
