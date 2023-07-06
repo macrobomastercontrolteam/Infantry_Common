@@ -507,7 +507,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
     }
 #else
     // 开关控制 云台状态
-    if( toe_is_error(DBUS_TOE))
+    if( toe_is_error(DBUS_TOE) || gimbal_emergency_stop())
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
