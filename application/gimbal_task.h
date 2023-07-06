@@ -82,6 +82,8 @@
 #define YAW_ENCODE_RELATIVE_PID_MAX_OUT   10.0f
 #define YAW_ENCODE_RELATIVE_PID_MAX_IOUT  0.0f
 
+#define PITCH_MOTOR_CURRENT_LIMIT  10000
+#define YAW_MOTOR_CURRENT_LIMIT  30000
 
 //任务初始化 空闲一段时间
 #define GIMBAL_TASK_INIT_TIME 201
@@ -169,6 +171,8 @@
 //判断遥控器无输入的时间以及遥控器无输入判断，设置云台yaw回中值以防陀螺仪漂移
 #define GIMBAL_MOTIONLESS_RC_DEADLINE 10
 #define GIMBAL_MOTIONLESS_TIME_MAX    3000
+
+#define int_abs(x) ((x) > 0 ? (x) : (-x))
 
 typedef enum
 {
@@ -334,5 +338,5 @@ extern void set_cali_gimbal_hook(const uint16_t yaw_offset, const uint16_t pitch
 
 extern fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 
-extern bool_t sentry_emergency_stop(void);
+extern bool_t gimbal_emergency_stop(void);
 #endif

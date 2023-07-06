@@ -25,7 +25,7 @@
 #define DATA_PACKAGE_HEADER_SIZE 2
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_SIZE - DATA_PACKAGE_HEADER_SIZE - sizeof(uint8_t))
 #define CHAR_UNUSED 0xFF
-#define SHOOT_TIMEOUT_SEC 8000
+#define SHOOT_TIMEOUT_SEC 2000
 
 uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE * 6];
 
@@ -143,6 +143,9 @@ void CvCmder_PollForModeChange(void)
         if (CvCmdHandler.fIsWaitingForAck)
         {
             CvCmder_SendSetModeRequest();
+            // reset receive interrupt to detect new UART connection, in case CV boots up after control
+            HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
+            __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
         }
         else
         {

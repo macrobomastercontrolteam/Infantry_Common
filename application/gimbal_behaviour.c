@@ -92,8 +92,6 @@
 #define gimbal_warn_buzzer_on() buzzer_on(31, 20000)
 #define gimbal_warn_buzzer_off() buzzer_off()
 
-#define int_abs(x) ((x) > 0 ? (x) : (-x))
-
 /**
   * @brief          judge if gimbal reaches the limit by gyro
   * @param          gyro: rotation speed unit rad/s
@@ -499,7 +497,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 
 #if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
     // DBUS act as emergency stop
-    if (toe_is_error(CV_TOE) || sentry_emergency_stop())
+    if (toe_is_error(CV_TOE) || gimbal_emergency_stop())
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }

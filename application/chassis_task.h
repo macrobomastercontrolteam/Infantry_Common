@@ -137,7 +137,14 @@
 //底盘运动过程最大平移速度
 #define NORMAL_MAX_CHASSIS_SPEED_Y 1.5f
 
+// Arbitrary offsets between chassis rotational center and centroid
+#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(INFANTRY_3) || defined(SENTRY_1)
+// slip ring is at the center of chassis
+#define CHASSIS_WZ_SET_SCALE 0.0f
+#else
+// Offset for the official model
 #define CHASSIS_WZ_SET_SCALE 0.1f
+#endif
 
 //when chassis is not set to move, swing max angle
 //摇摆原地不动摇摆最大角度(rad)
