@@ -320,22 +320,13 @@ static void shoot_set_mode(void)
         {
             if (last_s != RC_SW_UP)
             {
-                // toggle shoot mode
-                shoot_control.shoot_mode = (shoot_control.shoot_mode == SHOOT_STOP) ? SHOOT_READY_FRIC : SHOOT_STOP_INIT;
+                shoot_control.shoot_mode = SHOOT_READY_FRIC;
             }
             break;
         }
         case RC_SW_MID:
         {
-            // allow keyboard control
-            if (shoot_control.shoot_mode == SHOOT_STOP)
-            {
-                if (shoot_control.shoot_rc->key.v & SHOOT_ON_KEYBOARD)
-                {
-                    shoot_control.shoot_mode = SHOOT_READY_FRIC;
-                }
-            }
-            else if (shoot_control.shoot_rc->key.v & SHOOT_OFF_KEYBOARD)
+            if (shoot_control.shoot_mode != SHOOT_STOP)
             {
                 shoot_control.shoot_mode = SHOOT_STOP_INIT;
             }
