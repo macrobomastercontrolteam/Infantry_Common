@@ -15,7 +15,8 @@
 #define FRIC_UP 1430 // test result: fluctuate between 12.5m/s
 #define FRIC_DOWN 1648
 #elif defined(INFANTRY_3)
-#define FRIC_UP 1310 // test result on INFANTRY_3 (M2305 snail motor): slightly below 15m/s
+// #define FRIC_UP 1310 // test result on INFANTRY_3 (M2305 snail motor): slightly below 15m/s
+#define FRIC_UP 1250 // test result on INFANTRY_3 (M2305 snail motor): 12.8m/s to 13.2m/s
 #define FRIC_DOWN 1320
 #elif defined(SENTRY_1)
 // sentry limit by rule: 28m/s
