@@ -71,7 +71,7 @@
   * @param[in]      ist8310: 磁力计数据
   * @retval         none
   */
-static void imu_cali_slove(fp32 gyro[3], fp32 accel[3], fp32 mag[3], bmi088_real_data_t *bmi088, ist8310_real_data_t *ist8310);
+static void imu_cali_solve(fp32 gyro[3], fp32 accel[3], fp32 mag[3], bmi088_real_data_t *bmi088, ist8310_real_data_t *ist8310);
 
 /**
   * @brief          control the temperature of bmi088
@@ -188,7 +188,7 @@ void INS_task(void const *pvParameters)
 
     BMI088_read(bmi088_real_data.gyro, bmi088_real_data.accel, &bmi088_real_data.temp);
     //rotate and zero drift 
-    imu_cali_slove(INS_gyro, INS_accel, INS_mag, &bmi088_real_data, &ist8310_real_data);
+    imu_cali_solve(INS_gyro, INS_accel, INS_mag, &bmi088_real_data, &ist8310_real_data);
 
     PID_init(&imu_temp_pid, PID_POSITION, imu_temp_PID, TEMPERATURE_PID_MAX_OUT, TEMPERATURE_PID_MAX_IOUT, &raw_err_handler);
     AHRS_init(INS_quat, INS_accel, INS_mag);
@@ -243,7 +243,7 @@ void INS_task(void const *pvParameters)
         }
 
         //rotate and zero drift 
-        imu_cali_slove(INS_gyro, INS_accel, INS_mag, &bmi088_real_data, &ist8310_real_data);
+        imu_cali_solve(INS_gyro, INS_accel, INS_mag, &bmi088_real_data, &ist8310_real_data);
 
 
         //加速度计低通滤波
@@ -301,7 +301,7 @@ void INS_task(void const *pvParameters)
   * @param[in]      ist8310: 磁力计数据
   * @retval         none
   */
-static void imu_cali_slove(fp32 gyro[3], fp32 accel[3], fp32 mag[3], bmi088_real_data_t *bmi088, ist8310_real_data_t *ist8310)
+static void imu_cali_solve(fp32 gyro[3], fp32 accel[3], fp32 mag[3], bmi088_real_data_t *bmi088, ist8310_real_data_t *ist8310)
 {
     for (uint8_t i = 0; i < 3; i++)
     {

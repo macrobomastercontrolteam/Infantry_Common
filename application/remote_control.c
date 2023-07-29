@@ -134,11 +134,11 @@ error:
     return 1;
 }
 
-void slove_RC_lost(void)
+void solve_RC_lost(void)
 {
     RC_restart(SBUS_RX_BUF_NUM);
 }
-void slove_data_error(void)
+void solve_data_error(void)
 {
     RC_restart(SBUS_RX_BUF_NUM);
 }
