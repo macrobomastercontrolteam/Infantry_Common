@@ -84,6 +84,12 @@ void cv_usart_task(void const *argument)
         {
             CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
         }
+
+        if (toe_is_error(DBUS_TOE))
+        {
+            CvCmdHandler.fMatchStarted = 0;
+            CvCmdHandler.fCvMode = 0;
+        }
         osDelay(1500);
     }
 }

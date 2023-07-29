@@ -6,6 +6,9 @@
 #ifndef CV_USART_TASK_H
 #define CV_USART_TASK_H
 
+// #define CV_START_DELAY_MS 30000
+#define CV_START_DELAY_MS 2000
+
 #if defined(DEBUG_CV) && (!defined(CV_INTERFACE))
 #error "DEBUG_CV cannot be defined without CV_INTERFACE"
 #endif
@@ -43,6 +46,8 @@ typedef struct
     uint8_t fCvMode; ///< contains individual CV control flag bits defined by eModeControlBits
     uint8_t fIsModeChanged;
     uint32_t ulShootStartTime;
+    uint32_t ulMatchStartTime;
+    uint8_t fMatchStarted;
     const RC_ctrl_t *cv_rc_ctrl; ///< remote control pointer
 } tCvCmdHandler;
 

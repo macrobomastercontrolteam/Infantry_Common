@@ -92,7 +92,6 @@ typedef enum
   GIMBAL_RELATIVE_ANGLE, 
   GIMBAL_MOTIONLESS,     
   GIMBAL_AUTO_AIM,
-  GIMBAL_AUTO_AIM_PATROL,
 } gimbal_behaviour_e;
 
 extern gimbal_behaviour_e gimbal_behaviour;
