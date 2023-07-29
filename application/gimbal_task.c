@@ -365,6 +365,15 @@ void gimbal_task(void const *pvParameters)
             }
             else
             {
+#if DISABLE_YAW_MOTOR_POWER
+                yaw_can_set_current = 0;
+#endif
+#if DISABLE_PITCH_MOTOR_POWER
+                pitch_can_set_current = 0;
+#endif
+#if DISABLE_SHOOT_MOTOR_POWER
+                shoot_can_set_current = 0;
+#endif
                 CAN_cmd_gimbal(yaw_can_set_current, pitch_can_set_current, shoot_can_set_current, 0);
             }
         }
