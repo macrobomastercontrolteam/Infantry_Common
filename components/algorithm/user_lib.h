@@ -39,17 +39,16 @@
         }                                                  \
     }
 
-// y=x**2+(1-deadline)*x
-#define brakeband_limit(input, output, deadline)           \
-    {                                                      \
-        if ((input) > (deadline) || (input) < -(deadline)) \
-        {                                                  \
-            (output) = ((input)+1-(deadline))*(input);     \
-        }                                                  \
-        else                                               \
-        {                                                  \
-            (output) = 0;                                  \
-        }                                                  \
+#define brakeband_limit(input, output, deadline)                                                                                \
+    {                                                                                                                           \
+        if ((input) > (deadline) || (input) < -(deadline))                                                                      \
+        {                                                                                                                       \
+            (output) = (input);                                                                                                 \
+        }                                                                                                                       \
+        else                                                                                                                    \
+        {                                                                                                                       \
+            (output) = ((input) * (input) * (input) * (input) * (input)) / ((deadline) * (deadline) * (deadline) * (deadline)); \
+        }                                                                                                                       \
     }
 
 typedef __packed struct
