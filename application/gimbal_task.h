@@ -121,6 +121,24 @@
 // #define CV_CONTROL_ANGLE_PID_MAX_IOUT 100.0f
 #endif
 
+/**
+ * @brief Positive Directions
+ * If Type-C board is facing up, and USB port to the front,
+ * IMU yaw: CCW (cannon to the left)
+ * IMU pitch: cannon down
+ * 
+ * If bottom of yaw and pitch GM6020 motors point towards main gimbal body
+ * Encoder yaw: CCW
+ * Encoder pitch: cannon down
+ * 
+ * Mouse x velocity: right
+ * Mouse y velocity: down
+ * 
+ * Remote controller left joystick vertical (pitch): up
+ * Remote controller left joystick horizontal: right
+ * Remote controller right joystick vertical: up
+ * Remote controller right joystick horizontal: left
+ */
 #define YAW_RC_SEN    -0.000005f
 #define PITCH_RC_SEN  -0.000006f //0.005
 
