@@ -395,7 +395,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
             }
         }
 #endif
-        /* start the DMA again */
+        // @TODO: change to circular buffer strategy for faster restart time of DMA
+		/* start the DMA again */
         // Do not remove this, otherwise RTOS task will stuck for unkown reasons
         HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
         __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
