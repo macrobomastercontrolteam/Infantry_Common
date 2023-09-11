@@ -245,9 +245,8 @@ uint8_t CvCmder_RxParser(void)
     }
     case MSG_MODE_CONTROL:
     {
-        fValid = CvCmdHandler.fCvCmdValid;
         // Mode bits in set-mode message cv should be all zeros except for CV_MODE_SHOOT_BIT, which is controlled by cv
-        fValid &= ((CvRxBuffer.tData.abPayload[0] & (~CV_MODE_SHOOT_BIT)) == 0);
+		fValid = ((CvRxBuffer.tData.abPayload[0] & (~CV_MODE_SHOOT_BIT)) == 0);
         fValid &= (memcmp(&CvRxBuffer.tData.abPayload[1], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - 1) == 0);
         if (fValid)
         {
@@ -395,8 +394,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
                 uiHeaderFinder++;
             }
         }
-        /* start the DMA again */
 #endif
+        /* start the DMA again */
         // Do not remove this, otherwise RTOS task will stuck for unkown reasons
         HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
         __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
