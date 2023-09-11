@@ -138,6 +138,9 @@
  * Remote controller left joystick horizontal: right
  * Remote controller right joystick vertical: up
  * Remote controller right joystick horizontal: left
+ * 
+ * Camera yaw angle: right
+ * Camera pitch angle: up
  */
 #define YAW_RC_SEN    -0.000005f
 #define PITCH_RC_SEN  -0.000006f //0.005
