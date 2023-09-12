@@ -1,3 +1,5 @@
+// @TODO: This file follows the serial protocol released in 2019, update it to latest protocol
+
 #include "referee.h"
 #include "string.h"
 #include "stdio.h"
