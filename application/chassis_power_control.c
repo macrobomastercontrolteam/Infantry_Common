@@ -24,6 +24,14 @@
 #include "arm_math.h"
 #include "detect_task.h"
 
+#if defined(INFANTRY_2) || defined(INFANTRY_3)
+// @TODO: change limit according to chassis_power_limit field of referee serial data
+#define POWER_LIMIT         40.0f
+#define WARNING_POWER       35.0f
+#elif defined(SENTRY_1)
+#define POWER_LIMIT         95.0f
+#define WARNING_POWER       65.0f
+#endif
 #define POWER_LIMIT         80.0f
 #define WARNING_POWER       40.0f   
 #define WARNING_POWER_BUFF  50.0f   
