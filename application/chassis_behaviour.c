@@ -259,7 +259,9 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
     }
 
 #if defined(CV_INTERFACE)
+#if !defined(SENTRY_DUMMY_MOVE)
     if (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT))
+#endif
     {
         chassis_behaviour_mode = CHASSIS_CV_CONTROL_SPINNING;
     }
@@ -599,11 +601,25 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
         return;
     }
 
+    fp32 spinning_speed = 0.0f;
+#if defined(SENTRY_DUMMY_MOVE)
+    fp32 ulDummyMoveDuration = HAL_GetTick() - CV_START_DELAY_MS;
+    if (ulDummyMoveDuration > 0)
+    {
+        // const fp32 vxDummyMoveAmp = 0.2f;
+        // const fp32 vyDummyMoveAmp = 0.2f;
+        // const fp32 dummyMoveOmega = RPM_TO_RADS(15.0f); // rad/s
+        // // oscillate in forward and backward direction
+        // *vx_set = vxDummyMoveAmp * arm_sin_f32(dummyMoveOmega * ulDummyMoveDuration / ((fp32) configTICK_RATE_HZ));
+        // // *vy_set = vyDummyMoveAmp * arm_sin_f32(dummyMoveOmega * ulDummyMoveDuration / ((fp32) configTICK_RATE_HZ));
+
+        spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
+    }
+#else
     // chassis_task should maintain previous speed if cv is offline for a short time
     *vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
     *vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
 
-    fp32 spinning_speed;
     // @TODO: add enemy detection (controlled by CV)
     // if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
     // {
@@ -613,6 +629,7 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
     {
         spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
     }
+#endif
     *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
 }
 #endif

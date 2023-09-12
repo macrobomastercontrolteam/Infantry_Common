@@ -136,7 +136,12 @@ error:
 
 void solve_RC_lost(void)
 {
-    RC_restart(SBUS_RX_BUF_NUM);
+    // RC_restart(SBUS_RX_BUF_NUM);
+#if defined(SENTRY_DUMMY_MOVE)
+    // Record start time to prevent the robot from moving for the first 20 seconds after remote controller is disconnected.
+    CvCmdHandler.ulMatchStartTime = HAL_GetTick();
+    CvCmdHandler.fMatchStarted = 1;
+#endif
 }
 void solve_data_error(void)
 {
