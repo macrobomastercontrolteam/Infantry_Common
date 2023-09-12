@@ -27,6 +27,7 @@
 		  "defines": [
 		  "CV_INTERFACE",
 		  "DEBUG_CV",
+		  "SENTRY_1",
 		  "TEST_NO_REF",
 		  "USE_HAL_DRIVER",
 		  "STM32F407xx",
