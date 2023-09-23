@@ -361,36 +361,29 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
         return;
     }
 
-    if (chassis_move_transit->last_chassis_mode == chassis_move_transit->chassis_mode)
+    if (chassis_move_transit->last_chassis_mode != chassis_move_transit->chassis_mode)
     {
-        return;
+        switch (chassis_move_transit->chassis_mode)
+        {
+        case CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW:
+        {
+          chassis_move_transit->chassis_relative_angle_set = 0.0f;
+          break;
+        }
+        case CHASSIS_VECTOR_SPINNING:
+        {
+          chassis_move_transit->chassis_relative_angle_set = chassis_move_transit->chassis_yaw_motor->relative_angle;
+          break;
+        }
+        case CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW:
+        case CHASSIS_VECTOR_NO_FOLLOW_YAW:
+        {
+          chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
+          break;
+        }
+        }
+        chassis_move_transit->last_chassis_mode = chassis_move_transit->chassis_mode;
     }
-
-    //change to follow gimbal angle mode
-    //切入跟随云台模式
-    if ((chassis_move_transit->last_chassis_mode != CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW) && (chassis_move_transit->chassis_mode == CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW))
-    {
-        chassis_move_transit->chassis_relative_angle_set = 0.0f;
-    }
-    // Spinning mode (a combination of extra constant wz and vector-follow-gimbal mode)
-    else if ((chassis_move_transit->last_chassis_mode != CHASSIS_VECTOR_SPINNING) && (chassis_move_transit->chassis_mode == CHASSIS_VECTOR_SPINNING))
-    {
-        chassis_move_transit->chassis_relative_angle_set = chassis_move_transit->chassis_yaw_motor->relative_angle;
-    }
-    //change to follow chassis yaw angle
-    //切入跟随底盘角度模式
-    else if ((chassis_move_transit->last_chassis_mode != CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW) && (chassis_move_transit->chassis_mode == CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW))
-    {
-        chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
-    }
-    //change to no follow angle
-    //切入不跟随云台模式
-    else if ((chassis_move_transit->last_chassis_mode != CHASSIS_VECTOR_NO_FOLLOW_YAW) && (chassis_move_transit->chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW))
-    {
-        chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
-    }
-
-    chassis_move_transit->last_chassis_mode = chassis_move_transit->chassis_mode;
 }
 
 /**
