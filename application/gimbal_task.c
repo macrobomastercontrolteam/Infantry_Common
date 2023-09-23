@@ -42,6 +42,7 @@
 #include "INS_task.h"
 #include "shoot.h"
 #include "pid.h"
+#include "cv_usart_task.h"
 
 
 //motor enconde value format, range[0-8191]
@@ -1094,6 +1095,7 @@ static void gimbal_motor_raw_angle_control(gimbal_motor_t *gimbal_motor)
 }
 
 #if GIMBAL_TEST_MODE
+int32_t yaw_cv_delta_int_1000;
 int32_t yaw_ins_int_1000, pitch_ins_int_1000;
 int32_t yaw_ins_set_1000, pitch_ins_set_1000;
 int32_t pitch_relative_set_1000, pitch_relative_angle_1000;
@@ -1101,8 +1103,10 @@ int32_t yaw_speed_int_1000, pitch_speed_int_1000;
 int32_t yaw_speed_set_int_1000, pitch_speed_set_int_1000;
 fp32 shoot_speed_global;
 fp32 shoot_speed_set_global;
+uint8_t cv_toe_global;
 static void J_scope_gimbal_test(void)
 {
+    yaw_cv_delta_int_1000 = (int32_t)(-CvCmdHandler.CvCmdMsg.xDeltaAngle * 1000);
     yaw_ins_int_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.absolute_angle * 1000);
     yaw_ins_set_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.absolute_angle_set * 1000);
     yaw_speed_int_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.motor_gyro * 1000);
@@ -1117,8 +1121,9 @@ static void J_scope_gimbal_test(void)
 
     shoot_speed_global = shoot_control.shoot_motor_measure->speed_rpm;
     shoot_speed_set_global = shoot_control.speed_set;
-}
 
+    cv_toe_global = toe_is_error(CV_TOE);
+}
 #endif
 
 /**
