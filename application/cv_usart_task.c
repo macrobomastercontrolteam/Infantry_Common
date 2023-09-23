@@ -28,7 +28,7 @@
 #define CHAR_UNUSED 0xFF
 #define SHOOT_TIMEOUT_SEC 2000
 
-uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE * 6];
+uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE * 3];
 
 #if defined(CV_INTERFACE)
 
