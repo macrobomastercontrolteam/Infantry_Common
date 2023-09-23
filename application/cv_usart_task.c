@@ -23,7 +23,8 @@
 #endif /* MIN */
 #define DATA_PACKAGE_SIZE 19
 #define DATA_PACKAGE_HEADER_SIZE 2
-#define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_SIZE - DATA_PACKAGE_HEADER_SIZE - sizeof(uint8_t))
+#define DATA_PACKAGE_HEADLESS_SIZE (DATA_PACKAGE_SIZE - DATA_PACKAGE_HEADER_SIZE)
+#define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_HEADLESS_SIZE - sizeof(uint8_t))
 #define CHAR_UNUSED 0xFF
 #define SHOOT_TIMEOUT_SEC 2000
 
@@ -51,7 +52,7 @@ typedef union
 
 void CvCmder_Init(void);
 void CvCmder_PollForModeChange(void);
-uint8_t CvCmder_RxParser(void);
+void CvCmder_RxParser(void);
 void CvCmder_SendSetModeRequest(void);
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
 #if defined(DEBUG_CV)
@@ -205,7 +206,7 @@ void CvCmder_SendSetModeRequest(void)
 #endif
 }
 
-uint8_t CvCmder_RxParser(void)
+void CvCmder_RxParser(void)
 {
     uint8_t fValid = 0;
     switch (CvRxBuffer.tData.bMsgType)
@@ -265,7 +266,23 @@ uint8_t CvCmder_RxParser(void)
     {
         detect_hook(CV_TOE);
     }
-    return fValid;
+
+#if defined(DEBUG_CV)
+    // echo to usb
+    uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fValid ? "Valid" : "Invalid");
+
+    for (uint16_t i = 0; i < sizeof(CvRxBuffer.abData); i++)
+    {
+        if (uiUsbMsgSize + (sizeof("0x00,") - 1) > sizeof(usbMsg))
+        {
+            break;
+        }
+        uiUsbMsgSize += snprintf(&usbMsg[uiUsbMsgSize], sizeof(usbMsg) - uiUsbMsgSize, "0x%02X,", CvRxBuffer.abData[i]);
+    }
+    usbMsg[uiUsbMsgSize - 1] = '\n';
+    usbMsg[uiUsbMsgSize] = 0;
+    usb_printf("%s", usbMsg);
+#endif
 }
 
 uint8_t CvCmder_GetMode(uint8_t bCvModeBit)
@@ -367,27 +384,21 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
         uint16_t uiHeaderFinder = 0;
         while ((uiHeaderFinder < Size) && (Size - uiHeaderFinder >= sizeof(CvRxBuffer.abData)))
         {
-            if (memcmp(&abUsartRxBuf[uiHeaderFinder], abExpectedMessageHeader, sizeof(abExpectedMessageHeader)) == 0)
+            if (abUsartRxBuf[uiHeaderFinder] == abExpectedMessageHeader[0])
             {
-                memcpy(CvRxBuffer.abData, &abUsartRxBuf[uiHeaderFinder], sizeof(CvRxBuffer.abData));
-                uint8_t fValid = CvCmder_RxParser();
-                uiHeaderFinder += sizeof(CvRxBuffer.abData);
-#if defined(DEBUG_CV)
-                // echo to usb
-                uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fValid ? "Valid" : "Invalid");
-
-                for (uint16_t i = 0; i < sizeof(CvRxBuffer.abData); i++)
+                if (abUsartRxBuf[uiHeaderFinder + 1] == abExpectedMessageHeader[1])
                 {
-                    if (uiUsbMsgSize + (sizeof("0x00,") - 1) > sizeof(usbMsg))
-                    {
-                        break;
-                    }
-                    uiUsbMsgSize += snprintf(&usbMsg[uiUsbMsgSize], sizeof(usbMsg) - uiUsbMsgSize, "0x%02X,", CvRxBuffer.abData[i]);
+                    uiHeaderFinder++;
                 }
-                usbMsg[uiUsbMsgSize - 1] = '\n';
-                usbMsg[uiUsbMsgSize] = 0;
-                usb_printf("%s", usbMsg);
-#endif
+                else
+                {
+                    // Deem msg as valid even if the first ">" header is lost
+                }
+                // point to msg type
+                uiHeaderFinder++;
+                memcpy(&CvRxBuffer.abData[DATA_PACKAGE_HEADER_SIZE], &abUsartRxBuf[uiHeaderFinder], DATA_PACKAGE_HEADLESS_SIZE);
+                CvCmder_RxParser();
+                uiHeaderFinder += DATA_PACKAGE_HEADLESS_SIZE;
             }
             else
             {
