@@ -265,7 +265,7 @@ typedef struct
     fp32 absolute_angle_set; //rad
     fp32 motor_gyro;         //rad/s
     fp32 motor_gyro_set;
-    fp32 motor_speed;
+    // fp32 motor_speed;
     fp32 raw_cmd_current;
     fp32 current_set;
     int16_t given_current;
