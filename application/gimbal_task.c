@@ -55,12 +55,14 @@
             (ecd) += ECD_RANGE; \
     }
 
-#define gimbal_total_pid_clear(gimbal_clear)                                                   \
+#define gimbal_yaw_pid_clear(gimbal_clear)                                                     \
     {                                                                                          \
         gimbal_PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid);   \
         gimbal_PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_relative_angle_pid);   \
         PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_gyro_pid);                    \
-                                                                                               \
+    }
+#define gimbal_pitch_pid_clear(gimbal_clear)                                                   \
+    {                                                                                          \
         gimbal_PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid); \
         gimbal_PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_relative_angle_pid); \
         PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_gyro_pid);                  \
@@ -73,6 +75,8 @@
 uint32_t gimbal_high_water;
 #endif
 
+static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init);
+static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init);
 
 /**
   * @brief          "gimbal_control" valiable initialization, include pid initialization, remote control data point initialization, gimbal motors
@@ -641,6 +645,56 @@ const gimbal_motor_t *get_pitch_motor_point(void)
 }
 
 /**
+ * @brief change pid parameters for absolute angle control mode
+ */
+static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init)
+{
+    static const fp32 yaw_speed_pid[3] = {YAW_SPEED_PID_KP, YAW_SPEED_PID_KI, YAW_SPEED_PID_KD};
+    static const fp32 yaw_camera_speed_pid[3] = {YAW_CAMERA_SPEED_PID_KP, YAW_CAMERA_SPEED_PID_KI, YAW_CAMERA_SPEED_PID_KD};
+    switch (init->gimbal_yaw_motor.gimbal_motor_mode)
+    {
+    case GIMBAL_MOTOR_CAMERA:
+    {
+        gimbal_PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, YAW_CAMERA_ANGLE_PID_MAX_OUT, YAW_CAMERA_ANGLE_PID_MAX_IOUT, YAW_CAMERA_ANGLE_PID_KP, YAW_CAMERA_ANGLE_PID_KI, YAW_CAMERA_ANGLE_PID_KD);
+        PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, yaw_camera_speed_pid, YAW_CAMERA_SPEED_PID_MAX_OUT, YAW_CAMERA_SPEED_PID_MAX_IOUT, &raw_err_handler);
+        break;
+    }
+    case GIMBAL_MOTOR_GYRO:
+    default:
+    {
+        gimbal_PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, YAW_GYRO_ABSOLUTE_PID_MAX_OUT, YAW_GYRO_ABSOLUTE_PID_MAX_IOUT, YAW_GYRO_ABSOLUTE_PID_KP, YAW_GYRO_ABSOLUTE_PID_KI, YAW_GYRO_ABSOLUTE_PID_KD);
+        PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, yaw_speed_pid, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, &raw_err_handler);
+        break;
+    }
+    }
+}
+
+/**
+ * @brief change pid parameters for absolute angle control mode
+ */
+static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init)
+{
+    static const fp32 pitch_speed_pid[3] = {PITCH_SPEED_PID_KP, PITCH_SPEED_PID_KI, PITCH_SPEED_PID_KD};
+    static const fp32 pitch_camera_speed_pid[3] = {PITCH_CAMERA_SPEED_PID_KP, PITCH_CAMERA_SPEED_PID_KI, PITCH_CAMERA_SPEED_PID_KD};
+    switch (init->gimbal_pitch_motor.gimbal_motor_mode)
+    {
+    case GIMBAL_MOTOR_CAMERA:
+    {
+        gimbal_PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PITCH_CAMERA_ANGLE_PID_MAX_OUT, PITCH_CAMERA_ANGLE_PID_MAX_IOUT, PITCH_CAMERA_ANGLE_PID_KP, PITCH_CAMERA_ANGLE_PID_KI, PITCH_CAMERA_ANGLE_PID_KD);
+        PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, pitch_camera_speed_pid, PITCH_CAMERA_SPEED_PID_MAX_OUT, PITCH_CAMERA_SPEED_PID_MAX_IOUT, &raw_err_handler);
+        break;
+    }
+    case GIMBAL_MOTOR_GYRO:
+    default:
+    {
+        gimbal_PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PITCH_GYRO_ABSOLUTE_PID_MAX_OUT, PITCH_GYRO_ABSOLUTE_PID_MAX_IOUT, PITCH_GYRO_ABSOLUTE_PID_KP, PITCH_GYRO_ABSOLUTE_PID_KI, PITCH_GYRO_ABSOLUTE_PID_KD);
+        PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, pitch_speed_pid, PITCH_SPEED_PID_MAX_OUT, PITCH_SPEED_PID_MAX_IOUT, &raw_err_handler);
+        break;
+    }
+    }
+}
+
+/**
   * @brief          "gimbal_control" valiable initialization, include pid initialization, remote control data point initialization, gimbal motors
   *                 data point initialization, and gyro sensor angle point initialization.
   * @param[out]     init: "gimbal_control" valiable point
@@ -653,9 +707,6 @@ const gimbal_motor_t *get_pitch_motor_point(void)
   */
 static void gimbal_init(gimbal_control_t *init)
 {
-
-    static const fp32 Pitch_speed_pid[3] = {PITCH_SPEED_PID_KP, PITCH_SPEED_PID_KI, PITCH_SPEED_PID_KD};
-    static const fp32 Yaw_speed_pid[3] = {YAW_SPEED_PID_KP, YAW_SPEED_PID_KI, YAW_SPEED_PID_KD};
     //电机数据指针获取
     init->gimbal_yaw_motor.gimbal_motor_measure = get_yaw_gimbal_motor_measure_point();
     init->gimbal_pitch_motor.gimbal_motor_measure = get_pitch_gimbal_motor_measure_point();
@@ -668,13 +719,11 @@ static void gimbal_init(gimbal_control_t *init)
     init->gimbal_yaw_motor.gimbal_motor_mode = init->gimbal_yaw_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_RAW;
     init->gimbal_pitch_motor.gimbal_motor_mode = init->gimbal_pitch_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_RAW;
     //初始化yaw电机pid
-    gimbal_PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, YAW_GYRO_ABSOLUTE_PID_MAX_OUT, YAW_GYRO_ABSOLUTE_PID_MAX_IOUT, YAW_GYRO_ABSOLUTE_PID_KP, YAW_GYRO_ABSOLUTE_PID_KI, YAW_GYRO_ABSOLUTE_PID_KD);
     gimbal_PID_init(&init->gimbal_yaw_motor.gimbal_motor_relative_angle_pid, YAW_ENCODE_RELATIVE_PID_MAX_OUT, YAW_ENCODE_RELATIVE_PID_MAX_IOUT, YAW_ENCODE_RELATIVE_PID_KP, YAW_ENCODE_RELATIVE_PID_KI, YAW_ENCODE_RELATIVE_PID_KD);
-    PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, Yaw_speed_pid, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, &raw_err_handler);
+    gimbal_yaw_abs_angle_PID_init(init);
     //初始化pitch电机pid
-    gimbal_PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PITCH_GYRO_ABSOLUTE_PID_MAX_OUT, PITCH_GYRO_ABSOLUTE_PID_MAX_IOUT, PITCH_GYRO_ABSOLUTE_PID_KP, PITCH_GYRO_ABSOLUTE_PID_KI, PITCH_GYRO_ABSOLUTE_PID_KD);
     gimbal_PID_init(&init->gimbal_pitch_motor.gimbal_motor_relative_angle_pid, PITCH_ENCODE_RELATIVE_PID_MAX_OUT, PITCH_ENCODE_RELATIVE_PID_MAX_IOUT, PITCH_ENCODE_RELATIVE_PID_KP, PITCH_ENCODE_RELATIVE_PID_KI, PITCH_ENCODE_RELATIVE_PID_KD);
-    PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, Pitch_speed_pid, PITCH_SPEED_PID_MAX_OUT, PITCH_SPEED_PID_MAX_IOUT, &raw_err_handler);
+    gimbal_pitch_abs_angle_PID_init(init);
 
   #if defined(CV_INTERFACE)
     init->gimbal_pitch_motor.CvCmdAngleFilter.size = CV_ANGLE_FILTER_SIZE;
@@ -689,7 +738,8 @@ static void gimbal_init(gimbal_control_t *init)
   #endif
 
     //清除所有PID
-    gimbal_total_pid_clear(init);
+    gimbal_yaw_pid_clear(init);
+    gimbal_pitch_pid_clear(init);
 
     gimbal_feedback_update(init);
 
@@ -822,7 +872,11 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             break;
         }
         case GIMBAL_MOTOR_GYRO:
+        case GIMBAL_MOTOR_CAMERA:
         {
+            // change pid parameters, which depends on motor control mode
+            gimbal_yaw_abs_angle_PID_init(gimbal_mode_change);
+            gimbal_yaw_pid_clear(gimbal_mode_change);
             gimbal_mode_change->gimbal_yaw_motor.absolute_angle_set = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
             break;
         }
@@ -846,7 +900,11 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             break;
         }
         case GIMBAL_MOTOR_GYRO:
+        case GIMBAL_MOTOR_CAMERA:
         {
+            // change pid parameters, which depends on motor control mode
+            gimbal_pitch_abs_angle_PID_init(gimbal_mode_change);
+            gimbal_pitch_pid_clear(gimbal_mode_change);
             gimbal_mode_change->gimbal_pitch_motor.absolute_angle_set = gimbal_mode_change->gimbal_pitch_motor.absolute_angle;
             break;
         }
@@ -886,7 +944,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         //raw模式下，直接发送控制值
         set_control->gimbal_yaw_motor.raw_cmd_current = add_yaw_angle;
     }
-    else if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
+    else if ((set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         //gyro模式下，陀螺仪角度控制
         gimbal_absolute_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
@@ -903,7 +961,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         //raw模式下，直接发送控制值
         set_control->gimbal_pitch_motor.raw_cmd_current = add_pitch_angle;
     }
-    else if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
+    else if ((set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         //gyro模式下，陀螺仪角度控制
         gimbal_absolute_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
@@ -1023,7 +1081,7 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
     {
         gimbal_motor_raw_angle_control(&control_loop->gimbal_yaw_motor);
     }
-    else if (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
+    else if ((control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         gimbal_motor_absolute_angle_control(&control_loop->gimbal_yaw_motor);
     }
@@ -1036,7 +1094,7 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
     {
         gimbal_motor_raw_angle_control(&control_loop->gimbal_pitch_motor);
     }
-    else if (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
+    else if ((control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         gimbal_motor_absolute_angle_control(&control_loop->gimbal_pitch_motor);
     }
