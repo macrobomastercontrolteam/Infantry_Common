@@ -31,9 +31,10 @@
 #elif defined(SENTRY_1)
 #define POWER_LIMIT         95.0f
 #define WARNING_POWER       65.0f
-#endif
+#else
 #define POWER_LIMIT         80.0f
 #define WARNING_POWER       40.0f   
+#endif
 #define WARNING_POWER_BUFF  50.0f   
 
 #define NO_JUDGE_TOTAL_CURRENT_LIMIT    64000.0f    //16000 * 4, 
