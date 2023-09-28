@@ -15,6 +15,7 @@
 #include "main.h"
 #include "struct_typedef.h"
 #include "remote_control.h"
+#include "user_lib.h" // moving_average_type_t, STATIC_ASSERT
 
 typedef struct __attribute__((packed))
 {
@@ -30,7 +31,9 @@ typedef enum
     CV_MODE_AUTO_MOVE_BIT = 1 << 1,
     CV_MODE_ENEMY_DETECTED_BIT = 1 << 2,
     CV_MODE_SHOOT_BIT = 1 << 3,
+    CV_MODE_LAST_BIT = 1 << 4,
 } eModeControlBits;
+STATIC_ASSERT(CV_MODE_LAST_BIT <= (1 << 8));
 
 /**
  * @brief main handler of communication status and commands received from CV
