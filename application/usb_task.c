@@ -30,7 +30,7 @@
 
 void usb_printf(const char *fmt,...);
 
-static uint8_t usb_buf[256];
+static uint8_t usb_buf[400];
 static const char status[2][7] = {"OK", "ERROR!"};
 const error_t *error_list_usb_local;
 
@@ -110,7 +110,7 @@ void usb_printf(const char *fmt,...)
 
     va_start(ap, fmt);
 
-    len = vsprintf((char *)usb_buf, fmt, ap);
+    len = vsnprintf((char *)usb_buf, sizeof(usb_buf), fmt, ap);
 
     va_end(ap);
 
