@@ -539,7 +539,11 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
         else if (switch_is_up(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
         {
+#if defined(SENTRY_1)
+            gimbal_behaviour = GIMBAL_AUTO_AIM;
+#else
             gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
+#endif
         }
     }
 #endif

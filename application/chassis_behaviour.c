@@ -282,7 +282,11 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
         }
         else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
         {
+#if defined(SENTRY_1)
+            chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+#else
             chassis_behaviour_mode = CHASSIS_SPINNING;
+#endif
         }
 #endif
     }
