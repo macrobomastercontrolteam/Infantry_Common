@@ -37,11 +37,11 @@
 #define MOVING_AVERAGE_RESET 1
 #define MOVING_AVERAGE_CALC 0
 
-#define DISABLE_DRIVE_MOTOR_POWER 1
-#define DISABLE_STEER_MOTOR_POWER 1
+#define DISABLE_DRIVE_MOTOR_POWER 0
+#define DISABLE_STEER_MOTOR_POWER 0
 #define DISABLE_YAW_MOTOR_POWER 0
-#define DISABLE_PITCH_MOTOR_POWER 1
-#define DISABLE_SHOOT_MOTOR_POWER 1
+#define DISABLE_PITCH_MOTOR_POWER 0
+#define DISABLE_SHOOT_MOTOR_POWER 0
 
 /**
   * @brief          remote control dealline solve,because the value of rocker is not zero in middle place,
