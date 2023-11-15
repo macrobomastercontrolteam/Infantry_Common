@@ -64,7 +64,6 @@
 #define YAW_GYRO_ABSOLUTE_PID_MAX_OUT   10.0f
 #define YAW_GYRO_ABSOLUTE_PID_MAX_IOUT  0.0f
 
-#if defined(CV_INTERFACE)
 // PID angle loop
 #define PITCH_CAMERA_ANGLE_PID_KP 15.0f
 #define PITCH_CAMERA_ANGLE_PID_KI 0.0f
@@ -90,7 +89,6 @@
 #define YAW_CAMERA_SPEED_PID_KD 0.0f
 #define YAW_CAMERA_SPEED_PID_MAX_OUT 30000.0f
 #define YAW_CAMERA_SPEED_PID_MAX_IOUT 5000.0f
-#endif
 
 //pitch encode angle close-loop PID params, max out and max iout
 //pitch 角度环 角度由编码器 PID参数以及 PID最大输出，积分输出

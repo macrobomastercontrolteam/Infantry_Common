@@ -1182,7 +1182,9 @@ fp32 shoot_speed_set_global;
 uint8_t cv_toe_global;
 static void J_scope_gimbal_test(void)
 {
+#if defined(CV_INTERFACE)
     yaw_cv_delta_int_1000 = (int32_t)(-CvCmdHandler.CvCmdMsg.xDeltaAngle * 1000);
+#endif
     yaw_ins_int_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.absolute_angle * 1000);
     yaw_ins_set_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.absolute_angle_set * 1000);
     yaw_speed_int_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.motor_gyro * 1000);
