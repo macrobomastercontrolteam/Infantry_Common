@@ -54,7 +54,7 @@ typedef enum
     // Sentry_1: On chassis
     CAN_TRIGGER_MOTOR_ID = 0x207,
 
-    CAN_LAST_ID = CAN_PIT_MOTOR_ID,
+    CAN_LAST_ID = CAN_TRIGGER_MOTOR_ID,
 } can_msg_id_e;
 
 //rm motor data
