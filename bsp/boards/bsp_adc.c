@@ -39,13 +39,13 @@ void init_vrefint_reciprocal(void)
 fp32 get_temprate(void)
 {
     uint16_t adcx = 0;
-    fp32 temperate;
+    fp32 temperature;
 
     adcx = adcx_get_chx_value(&hadc1, ADC_CHANNEL_TEMPSENSOR);
-    temperate = (fp32)adcx * voltage_vrefint_proportion;
-    temperate = (temperate - 0.76f) * 400.0f + 25.0f;
+    temperature = (fp32)adcx * voltage_vrefint_proportion;
+    temperature = (temperature - 0.76f) * 400.0f + 25.0f;
 
-    return temperate;
+    return temperature;
 }
 
 

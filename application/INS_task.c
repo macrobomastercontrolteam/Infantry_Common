@@ -136,7 +136,7 @@ fp32 mag_scale_factor[3][3] = {IST8310_BOARD_INSTALL_SPIN_MATRIX};
 fp32 mag_offset[3];
 fp32 mag_cali_offset[3];
 
-static uint8_t first_temperate;
+static uint8_t first_temperature;
 static const fp32 imu_temp_PID[3] = {TEMPERATURE_PID_KP, TEMPERATURE_PID_KI, TEMPERATURE_PID_KD};
 static pid_type_def imu_temp_pid;
 
@@ -325,7 +325,7 @@ static void imu_temp_control(fp32 temp)
 {
     uint16_t tempPWM;
     static uint8_t temp_constant_time = 0;
-    if (first_temperate)
+    if (first_temperature)
     {
         PID_calc(&imu_temp_pid, temp, get_control_temperature());
         if (imu_temp_pid.out < 0.0f)
@@ -346,7 +346,7 @@ static void imu_temp_control(fp32 temp)
             {
                 //达到设置温度，将积分项设置为一半最大功率，加速收敛
                 //
-                first_temperate = 1;
+                first_temperature = 1;
                 imu_temp_pid.Iout = MPU6500_TEMP_PWM_MAX / 2.0f;
             }
         }

@@ -377,7 +377,7 @@ void BMI088_read_accel_who_am_i(void)
 
 
 
-void BMI088_temperature_read_over(uint8_t *rx_buf, fp32 *temperate)
+void BMI088_temperature_read_over(uint8_t *rx_buf, fp32 *temperature)
 {
     int16_t bmi088_raw_temp;
     bmi088_raw_temp = (int16_t)((rx_buf[0] << 3) | (rx_buf[1] >> 5));
@@ -386,7 +386,7 @@ void BMI088_temperature_read_over(uint8_t *rx_buf, fp32 *temperate)
     {
         bmi088_raw_temp -= 2048;
     }
-    *temperate = bmi088_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
+    *temperature = bmi088_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
 
 }
 
@@ -416,7 +416,7 @@ void BMI088_gyro_read_over(uint8_t *rx_buf, fp32 gyro[3])
     gyro[2] = bmi088_raw_temp * BMI088_GYRO_SEN;
 }
 
-void BMI088_read(fp32 gyro[3], fp32 accel[3], fp32 *temperate)
+void BMI088_read(fp32 gyro[3], fp32 accel[3], fp32 *temperature)
 {
     uint8_t buf[8] = {0, 0, 0, 0, 0, 0};
     int16_t bmi088_raw_temp;
@@ -449,7 +449,7 @@ void BMI088_read(fp32 gyro[3], fp32 accel[3], fp32 *temperate)
         bmi088_raw_temp -= 2048;
     }
 
-    *temperate = bmi088_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
+    *temperature = bmi088_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
 }
 
 uint32_t get_BMI088_sensor_time(void)
@@ -463,24 +463,24 @@ uint32_t get_BMI088_sensor_time(void)
     return sensor_time;
 }
 
-fp32 get_BMI088_temperate(void)
+fp32 get_BMI088_temperature(void)
 {
     uint8_t buf[2];
-    fp32 temperate;
-    int16_t temperate_raw_temp;
+    fp32 temperature;
+    int16_t temperature_raw_temp;
 
     BMI088_accel_read_muli_reg(BMI088_TEMP_M, buf, 2);
 
-    temperate_raw_temp = (int16_t)((buf[0] << 3) | (buf[1] >> 5));
+    temperature_raw_temp = (int16_t)((buf[0] << 3) | (buf[1] >> 5));
 
-    if (temperate_raw_temp > 1023)
+    if (temperature_raw_temp > 1023)
     {
-        temperate_raw_temp -= 2048;
+        temperature_raw_temp -= 2048;
     }
 
-    temperate = temperate_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
+    temperature = temperature_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
 
-    return temperate;
+    return temperature;
 }
 
 void get_BMI088_gyro(int16_t gyro[3])
