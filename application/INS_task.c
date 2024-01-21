@@ -158,9 +158,25 @@ static fp32 INS_mag[3] = {0.0f, 0.0f, 0.0f};
 static fp32 INS_quat[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 fp32 INS_angle[3] = {0.0f, 0.0f, 0.0f};      //euler angle, unit rad.Å·À­½Ç µ¥Î» rad
 
+#if IMU_JSCOPE_DEBUG
+fp32 roll_fp32, pitch_fp32, yaw_fp32;
+fp32 roll_dot_fp32, pitch_dot_fp32, yaw_dot_fp32;
+fp32 accel_x_fp32, accel_y_fp32, accel_z_fp32;
+static void jscope_imu_test(void)
+{
+	roll_fp32 = INS_angle[INS_ROLL_ADDRESS_OFFSET];
+  pitch_fp32 = INS_angle[INS_PITCH_ADDRESS_OFFSET];
+  yaw_fp32 = INS_angle[INS_YAW_ADDRESS_OFFSET];
 
+	roll_dot_fp32 = INS_gyro[INS_GYRO_X_ADDRESS_OFFSET];
+  pitch_dot_fp32 = INS_gyro[INS_GYRO_Y_ADDRESS_OFFSET];
+  yaw_dot_fp32 = INS_gyro[INS_GYRO_Z_ADDRESS_OFFSET];
 
-
+	accel_x_fp32 = INS_gyro[INS_ACCEL_X_ADDRESS_OFFSET];
+  accel_y_fp32 = INS_gyro[INS_ACCEL_Y_ADDRESS_OFFSET];
+  accel_z_fp32 = INS_gyro[INS_ACCEL_Z_ADDRESS_OFFSET];
+}
+#endif
 
 /**
   * @brief          imu task, init bmi088, ist8310, calculate the euler angle
@@ -190,7 +206,7 @@ void INS_task(void const *pvParameters)
     //rotate and zero drift 
     imu_cali_solve(INS_gyro, INS_accel, INS_mag, &bmi088_real_data, &ist8310_real_data);
 
-    PID_init(&imu_temp_pid, PID_POSITION, imu_temp_PID, TEMPERATURE_PID_MAX_OUT, TEMPERATURE_PID_MAX_IOUT, &raw_err_handler);
+    PID_init(&imu_temp_pid, PID_POSITION, imu_temp_PID, TEMPERATURE_PID_MAX_OUT, TEMPERATURE_PID_MAX_IOUT, 1.0f, &raw_err_handler);
     AHRS_init(INS_quat, INS_accel, INS_mag);
 
     accel_fliter_1[0] = accel_fliter_2[0] = accel_fliter_3[0] = INS_accel[0];
@@ -276,6 +292,9 @@ void INS_task(void const *pvParameters)
 //            ist8310_read_mag(ist8310_real_data.mag);
         }
 
+#if IMU_JSCOPE_DEBUG
+        jscope_imu_test();
+#endif
     }
 }
 
@@ -327,7 +346,8 @@ static void imu_temp_control(fp32 temp)
     static uint8_t temp_constant_time = 0;
     if (first_temperature)
     {
-        PID_calc(&imu_temp_pid, temp, get_control_temperature());
+        // dt = 1 because PID tuning didn't consider unit
+        PID_calc(&imu_temp_pid, temp, get_control_temperature(), 1);
         if (imu_temp_pid.out < 0.0f)
         {
             imu_temp_pid.out = 0.0f;

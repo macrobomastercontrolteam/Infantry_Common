@@ -397,7 +397,7 @@ static void RC_cmd_to_calibrate(void)
         cali_sensor[CALI_GIMBAL].cali_cmd = 1;
         cali_buzzer_off();
     }
-    else if (rc_action_flag == 3 && rc_cmd_time > RC_CMD_LONG_TIME)
+    else if (rc_action_flag == GYRO_FLAG && rc_cmd_time > RC_CMD_LONG_TIME)
     {
         //gyro cali
         rc_action_flag = 0;
@@ -417,9 +417,9 @@ static void RC_cmd_to_calibrate(void)
         rc_cmd_time = 0;
         //send CAN reset ID cmd to M3508
         //发送CAN重设ID命令到3508
-        CAN_cmd_chassis_reset_ID();
-        CAN_cmd_chassis_reset_ID();
-        CAN_cmd_chassis_reset_ID();
+        // CAN_cmd_chassis_reset_ID();
+        // CAN_cmd_chassis_reset_ID();
+        // CAN_cmd_chassis_reset_ID();
         cali_buzzer_off();
     }
 
@@ -639,8 +639,8 @@ static bool_t cali_head_hook(uint32_t *cali, bool_t cmd)
     local_cali_t->firmware_version = FIRMWARE_VERSION;
     // //shenzhen latitude 
     // local_cali_t->latitude = 22.0f;
-    // university of washington latitude 
-    local_cali_t->latitude = 47.39f;
+    // university of Colorado Boulder latitude
+    local_cali_t->latitude = 40.0073f;
 
     return 1;
 }
@@ -716,32 +716,32 @@ static bool_t cali_gyro_hook(uint32_t *cali, bool_t cmd)
 static bool_t cali_gimbal_hook(uint32_t *cali, bool_t cmd)
 {
 
-    gimbal_cali_t *local_cali_t = (gimbal_cali_t *)cali;
-    if (cmd == CALI_FUNC_CMD_INIT)
-    {
-        set_cali_gimbal_hook(local_cali_t->yaw_offset, local_cali_t->pitch_offset,
-                             local_cali_t->yaw_max_angle, local_cali_t->yaw_min_angle,
-                             local_cali_t->pitch_max_angle, local_cali_t->pitch_min_angle);
+    // gimbal_cali_t *local_cali_t = (gimbal_cali_t *)cali;
+    // if (cmd == CALI_FUNC_CMD_INIT)
+    // {
+    //     set_cali_gimbal_hook(local_cali_t->yaw_offset, local_cali_t->pitch_offset,
+    //                          local_cali_t->yaw_max_angle, local_cali_t->yaw_min_angle,
+    //                          local_cali_t->pitch_max_angle, local_cali_t->pitch_min_angle);
         
-        return 0;
-    }
-    else if (cmd == CALI_FUNC_CMD_ON)
-    {
-        if (cmd_cali_gimbal_hook(&local_cali_t->yaw_offset, &local_cali_t->pitch_offset,
-                                 &local_cali_t->yaw_max_angle, &local_cali_t->yaw_min_angle,
-                                 &local_cali_t->pitch_max_angle, &local_cali_t->pitch_min_angle))
-        {
-            cali_buzzer_off();
+    //     return 0;
+    // }
+    // else if (cmd == CALI_FUNC_CMD_ON)
+    // {
+    //     if (cmd_cali_gimbal_hook(&local_cali_t->yaw_offset, &local_cali_t->pitch_offset,
+    //                              &local_cali_t->yaw_max_angle, &local_cali_t->yaw_min_angle,
+    //                              &local_cali_t->pitch_max_angle, &local_cali_t->pitch_min_angle))
+    //     {
+    //         cali_buzzer_off();
             
-            return 1;
-        }
-        else
-        {
-            gimbal_start_buzzer();
+    //         return 1;
+    //     }
+    //     else
+    //     {
+    //         gimbal_start_buzzer();
             
-            return 0;
-        }
-    }
+    //         return 0;
+    //     }
+    // }
     
     return 0;
 }

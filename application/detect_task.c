@@ -260,10 +260,12 @@ static void detect_init(uint32_t time)
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
-            {10, 10, 11},   //motor1
-            {10, 10, 10},   //motor2
-            {10, 10, 9},    //motor3
-            {10, 10, 8},    //motor4
+            {30, 10, 11},   //hip motor1
+            {30, 10, 11},   //hip motor2
+            {30, 10, 11},    //hip motor3
+            {30, 10, 11},    //hip motor4
+            {30, 10, 10},   //drive motor1
+            {30, 10, 10},   //drive motor2
             {2, 3, 14},     //yaw
             {2, 3, 13},     //pitch
             {10, 10, 12},   //trigger

@@ -22,9 +22,6 @@
 #include <stdio.h>
 #endif
 
-#ifndef MIN
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#endif /* MIN */
 #define DATA_PACKAGE_SIZE 21
 #define DATA_PACKAGE_HEADER_SIZE 2
 #define DATA_PACKAGE_HEADLESS_SIZE (DATA_PACKAGE_SIZE - DATA_PACKAGE_HEADER_SIZE)

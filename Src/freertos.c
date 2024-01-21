@@ -146,13 +146,13 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of test */
-  osThreadDef(test, test_task, osPriorityNormal, 0, 128);
-  testHandle = osThreadCreate(osThread(test), NULL);
+  // osThreadDef(test, test_task, osPriorityNormal, 0, 128);
+  // testHandle = osThreadCreate(osThread(test), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-    osThreadDef(cali, calibrate_task, osPriorityNormal, 0, 512);
-    calibrate_tast_handle = osThreadCreate(osThread(cali), NULL);
+    osThreadDef(CalibrateTask, calibrate_task, osPriorityNormal, 0, 512);
+    calibrate_tast_handle = osThreadCreate(osThread(CalibrateTask), NULL);
 
     osThreadDef(ChassisTask, chassis_task, osPriorityAboveNormal, 0, 512);
     chassisTaskHandle = osThreadCreate(osThread(ChassisTask), NULL);
@@ -160,8 +160,8 @@ void MX_FREERTOS_Init(void) {
     osThreadDef(DETECT, detect_task, osPriorityNormal, 0, 256);
     detect_handle = osThreadCreate(osThread(DETECT), NULL);
 
-    osThreadDef(gimbalTask, gimbal_task, osPriorityHigh, 0, 512);
-    gimbalTaskHandle = osThreadCreate(osThread(gimbalTask), NULL);
+    // osThreadDef(gimbalTask, gimbal_task, osPriorityHigh, 0, 512);
+    // gimbalTaskHandle = osThreadCreate(osThread(gimbalTask), NULL);
 
     osThreadDef(imuTask, INS_task, osPriorityRealtime, 0, 1024);
     imuTaskHandle = osThreadCreate(osThread(imuTask), NULL);
@@ -174,24 +174,24 @@ void MX_FREERTOS_Init(void) {
     // oled_handle = osThreadCreate(osThread(OLED), NULL);
 
 
-    osThreadDef(REFEREE, referee_usart_task, osPriorityNormal, 0, 128);
-    referee_usart_task_handle = osThreadCreate(osThread(REFEREE), NULL);
+    // osThreadDef(REFEREE, referee_usart_task, osPriorityNormal, 0, 128);
+    // referee_usart_task_handle = osThreadCreate(osThread(REFEREE), NULL);
 
 
     osThreadDef(USBTask, usb_task, osPriorityNormal, 0, 128);
     usb_task_handle = osThreadCreate(osThread(USBTask), NULL);
 
-    osThreadDef(BATTERY_VOLTAGE, battery_voltage_task, osPriorityNormal, 0, 128);
-    battery_voltage_handle = osThreadCreate(osThread(BATTERY_VOLTAGE), NULL);
+    // osThreadDef(BATTERY_VOLTAGE, battery_voltage_task, osPriorityNormal, 0, 128);
+    // battery_voltage_handle = osThreadCreate(osThread(BATTERY_VOLTAGE), NULL);
 
     // osThreadDef(SERVO, servo_task, osPriorityNormal, 0, 128);
     // servo_task_handle = osThreadCreate(osThread(SERVO), NULL);
-#if defined(CV_INTERFACE)
-    osThreadDef(CVTask, cv_usart_task, osPriorityNormal, 0, 256);
-    cv_usart_task_handle = osThreadCreate(osThread(CVTask), NULL);
-#else
-    UNUSED(cv_usart_task_handle);
-#endif
+// #if defined(CV_INTERFACE)
+//     osThreadDef(CVTask, cv_usart_task, osPriorityNormal, 0, 256);
+//     cv_usart_task_handle = osThreadCreate(osThread(CVTask), NULL);
+// #else
+//     UNUSED(cv_usart_task_handle);
+// #endif
 
   /* USER CODE END RTOS_THREADS */
 

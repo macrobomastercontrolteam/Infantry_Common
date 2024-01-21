@@ -5,6 +5,39 @@
 		}
 	],
 	"settings": {
-		"files.encoding": "gb2312"
+		"files.encoding": "gb2312",
+		"files.associations": {
+			"cmsis_os.h": "c",
+			"chassis_behaviour.h": "c",
+			"chassis_task.h": "c",
+			"string": "c",
+			"array": "c",
+			"iterator": "c",
+			"span": "c",
+			"string_view": "c",
+			"vector": "c",
+			"can_receive.h": "c",
+			"charconv": "c",
+			"main.h": "c",
+			"detect_task.h": "c",
+			"__locale": "c",
+			"chrono": "c",
+			"functional": "c",
+			"cstdint": "c",
+			"struct_typedef.h": "c",
+			"arm_math.h": "c",
+			"ios": "c",
+			"format": "c",
+			"bsp_rng.h": "c",
+			"chassis_power_control.h": "c",
+			"pid.h": "c",
+			"user_lib.h": "c",
+			"cmath": "c",
+			"complex": "c",
+			"ins_task.h": "c",
+			"biped_leg.h": "c",
+			"biped.h": "c",
+			"__node_handle": "c"
+		}
 	}
 }

@@ -25,6 +25,7 @@
 #define INS_Task_H
 #include "struct_typedef.h"
 
+#define IMU_JSCOPE_DEBUG 0
 
 #define SPI_DMA_GYRO_LENGTH       8
 #define SPI_DMA_ACCEL_LENGTH      9

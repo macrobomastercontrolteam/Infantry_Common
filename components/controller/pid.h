@@ -33,6 +33,7 @@ typedef struct
 
     fp32 max_out;  //最大输出
     fp32 max_iout; //最大积分输出
+    fp32 filter_coeff;
 
     fp32 set;
     fp32 fdb;
@@ -44,7 +45,7 @@ typedef struct
     fp32 Dbuf[3];  //微分项 0最新 1上一次 2上上次
     fp32 error[3]; //误差项 0最新 1上一次 2上上次
 
-    fp32 (*err_handler)(fp32 set, fp32 ref);
+    fp32 (*err_handler)(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
 
 } pid_type_def;
 /**
@@ -67,7 +68,7 @@ typedef struct
   * @param[in]      max_iout: pid最大积分输出
   * @retval         none
   */
-extern void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 max_out, fp32 max_iout, fp32 (*err_handler)(fp32 set, fp32 ref));
+extern void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 max_out, fp32 max_iout, fp32 filter_coeff, fp32 (*err_handler)(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff));
 
 /**
   * @brief          pid calculate 
@@ -83,7 +84,7 @@ extern void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 ma
   * @param[in]      set: 设定值
   * @retval         pid输出
   */
-extern fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set);
+extern fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set, fp32 dt);
 
 /**
   * @brief          pid out clear
@@ -97,8 +98,9 @@ extern fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set);
   */
 extern void PID_clear(pid_type_def *pid);
 
-extern void LimitMax(fp32 *num, fp32 Limit);
-
-fp32 raw_err_handler(fp32 set, fp32 ref);
+fp32 raw_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
+fp32 rad_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
+fp32 filter_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
+fp32 filter_rad_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
 
 #endif

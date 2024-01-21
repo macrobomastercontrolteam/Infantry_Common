@@ -18,12 +18,19 @@
 // #define FRIC_UP 1310 // test result on INFANTRY_3 (M2305 snail motor): slightly below 15m/s
 #define FRIC_UP 1250 // test result on INFANTRY_3 (M2305 snail motor): 12.8m/s to 13.2m/s
 #define FRIC_DOWN 1320
+#elif defined(INFANTRY_4)
+// @TODO
+#define FRIC_UP 1250
+#define FRIC_DOWN 1320
 #elif defined(SENTRY_1)
 // sentry limit by rule: 28m/s
 // test result: 24.5m/s for safety
 #define FRIC_UP 1500
 #define FRIC_DOWN 1320
+#else
+#error "Robot Index not specified"
 #endif
+
 #define FRIC_OFF 1000
 
 extern void fric_off(void);

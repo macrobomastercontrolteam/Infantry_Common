@@ -1,6 +1,7 @@
 #ifndef USER_LIB_H
 #define USER_LIB_H
 #include "struct_typedef.h"
+#include "arm_math.h"
 
 /** A compile time assertion check.
  *
@@ -30,30 +31,39 @@
 #define _impl_CASSERT_LINE(predicate, line, file) \
     typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 
+// switches between original, RM, capstone models
+#define MODEL_ORIG_RM_CAP 1
+
 #define HALF_ECD_RANGE 4096
 #define ECD_RANGE 8192
 #define MOTOR_RAD_TO_ECD 1303.7972938088067f  // 8192/(2*PI)
 #define MOTOR_ECD_TO_RAD 0.000766990394f //      2*PI/8192
+
+#define G_gravity 9.81f
+
 #define MOVING_AVERAGE_RESET 1
 #define MOVING_AVERAGE_CALC 0
 
+// reverse hip motor direction
+#define REVERSE_LB_HIP_MOTOR_DIRECTION 1
+#define REVERSE_LF_HIP_MOTOR_DIRECTION 0
+#define REVERSE_RB_HIP_MOTOR_DIRECTION 0
+#define REVERSE_RF_HIP_MOTOR_DIRECTION 1
+#define REVERSE_LEFT_DRIVE_MOTOR_DIRECTION 1
+#define REVERSE_RIGHT_DRIVE_MOTOR_DIRECTION 0
+
 #define DISABLE_DRIVE_MOTOR_POWER 0
-#define DISABLE_STEER_MOTOR_POWER 0
-#define DISABLE_YAW_MOTOR_POWER 0
-#define DISABLE_PITCH_MOTOR_POWER 0
-#define DISABLE_SHOOT_MOTOR_POWER 0
+#define DISABLE_HIP_MOTOR_POWER 1
+#define DISABLE_STEER_MOTOR_POWER 1
+#define DISABLE_YAW_MOTOR_POWER 1
+#define DISABLE_PITCH_MOTOR_POWER 1
+#define DISABLE_SHOOT_MOTOR_POWER 1
 
 /**
   * @brief          remote control dealline solve,because the value of rocker is not zero in middle place,
   * @param          input:the raw channel value 
   * @param          output: the processed channel value
   * @param          deadline
-  */
-/**
-  * @brief          遥控器的死区判断，因为遥控器的拨杆在中位的时候，不一定为0，
-  * @param          输入的遥控器值
-  * @param          输出的死区处理后遥控器值
-  * @param          死区值
   */
 #define deadband_limit(input, output, deadline)            \
     {                                                      \
@@ -117,8 +127,6 @@ extern void first_order_filter_init(first_order_filter_type_t *first_order_filte
 extern void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type, fp32 input);
 //moving average
 extern fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fInit);
-//判断符号位
-extern fp32 sign(fp32 value);
 //浮点死区
 extern fp32 fp32_deadline(fp32 Value, fp32 minValue, fp32 maxValue);
 //int26死区
@@ -131,8 +139,40 @@ extern int16_t int16_constrain(int16_t Value, int16_t minValue, int16_t maxValue
 extern fp32 loop_fp32_constrain(fp32 Input, fp32 minValue, fp32 maxValue);
 //角度 °限幅 180 ~ -180
 extern fp32 theta_format(fp32 Ang);
+extern uint8_t matrixMultiplication(uint8_t m1_rows, uint8_t m1_cols, uint8_t m2_rows, uint8_t m2_cols, fp32 m1[m1_rows][m1_cols], fp32 m2[m2_rows][m2_cols], fp32 result[m1_rows][m2_cols]);
+extern void LimitMax(fp32 *num, fp32 Limit);
+extern fp32 first_order_filter(fp32 input, fp32 prev_output, fp32 coeff);
+extern fp32 second_order_filter(fp32 input, fp32 output_prev1, fp32 output_prev2, fp32 coeff1, fp32 coeff2);
+fp32 brakezone(fp32 input, fp32 threshold, fp32 order);
+fp32 brakezone_symmetric(fp32 input, fp32 threshold, fp32 order);
 
 //弧度格式化为-PI~PI
+#ifndef rad_format
 #define rad_format(Ang) loop_fp32_constrain((Ang), -PI, PI)
+#endif /* rad_format */
 
-#endif
+#ifndef Limit
+#define Limit(x, max, min) ((x) > (MAX(min, max)) ? (MAX(min, max)) : ((x) < (MIN(min, max)) ? (MIN(min, max)) : (x)))
+#endif /* Limit */
+
+#ifndef MAX
+#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
+#endif /* MAX */
+
+#ifndef MIN
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif /* MIN */
+
+#ifndef ABS
+#define ABS(x) ((x) > 0 ? (x) : (-x))
+#endif /* ABS */
+
+#ifndef SIGN
+#define SIGN(x) ((x) > 0 ? 1 : ((x) < 0 ? -1 : 0))
+#endif /* SIGN */
+
+#ifndef Deadzone
+#define Deadzone(input, threshold) ((fabs(input) < threshold) ? 0 : input)
+#endif /* Deadzone */
+
+#endif /* USER_LIB_H */

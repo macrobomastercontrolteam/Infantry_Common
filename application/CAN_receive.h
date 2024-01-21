@@ -4,7 +4,7 @@
   * @brief      there is CAN interrupt function  to receive motor data,
   *             and CAN send function to send motor current to control motor.
   *             这里是CAN中断接收函数，接收电机数据,CAN发送函数发送电机电流控制电机.
-  * @note       
+  * @note
   * @history
   *  Version    Date            Author          Modification
   *  V1.0.0     Dec-26-2018     RM              1. done
@@ -21,168 +21,141 @@
 #ifndef CAN_RECEIVE_H
 #define CAN_RECEIVE_H
 
+#pragma anon_unions
+#include "stm32f4xx_hal.h"
 #include "struct_typedef.h"
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
-#define get_motor_array_index(_CAN_ID) (_CAN_ID - CAN_3508_M1_ID)
 
-/* CAN send and receive ID */
+// main msg IDs are used to represent motors, and also count number of motors
 typedef enum
 {
-    /*******Tx CAN IDs********/
-    CAN_CHASSIS_M3508_TX_ID = 0x200,
-    CAN_GIMBAL_ALL_TX_ID = 0x1FF,
-#if defined(INFANTRY_3)
-    CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
-    CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
-#endif
-
-    /*******Chassis CAN IDs********/
-    CAN_3508_M1_ID = 0x201,
-    CAN_3508_M2_ID = 0x202,
-    CAN_3508_M3_ID = 0x203,
-    CAN_3508_M4_ID = 0x204,
-    CAN_YAW_MOTOR_ID = 0x205,
-
-    /********Gimbal CAN IDs********/
-    CAN_PIT_MOTOR_ID = 0x206,
-
-    /********Other CAN IDs: Location depends on Model********/
-    // Infantry_2: On gimbal
-    // Infantry_3: On chassis
-    // Sentry_1: On chassis
-    CAN_TRIGGER_MOTOR_ID = 0x207,
-
-    CAN_LAST_ID = CAN_TRIGGER_MOTOR_ID,
+	CAN_HIP1_TX_ID = 0x001,
+	CAN_HIP2_TX_ID = 0x002,
+	CAN_HIP3_TX_ID = 0x003,
+	CAN_HIP4_TX_ID = 0x004,
+	CAN_DRIVE1_PVT_TX_ID = 0x401,
+	CAN_DRIVE2_PVT_TX_ID = 0x402,
+	CAN_YAW_MOTOR_FEEDBACK_ID = 0x205,
+	CAN_PIT_MOTOR_FEEDBACK_ID = 0x206,
+	CAN_TRIGGER_MOTOR_FEEDBACK_ID = 0x207,
 } can_msg_id_e;
 
-//rm motor data
-typedef struct
+// Corresponding continuous indices for can_msg_id_e
+typedef enum
 {
-    uint16_t ecd;
-    int16_t speed_rpm;
-    int16_t given_current;
-    uint8_t temperate;
-    int16_t last_ecd;
+	CHASSIS_ID_HIP_RF = 0, // right front
+	CHASSIS_ID_HIP_LF = 1, // left front
+	CHASSIS_ID_HIP_LB = 2, // left back
+	CHASSIS_ID_HIP_RB = 3, // right back
+	CHASSIS_ID_DRIVE_RIGHT = 4,
+	CHASSIS_ID_DRIVE_LEFT = 5,
+	CHASSIS_ID_YAW = 6,
+	CHASSIS_ID_PIT = 7,
+	CHASSIS_ID_TRIGGER = 8,
+	CHASSIS_ID_LAST = CHASSIS_ID_TRIGGER + 1,
+} chassis_motor_ID_e;
+
+typedef enum
+{
+	CAN_GIMBAL_ALL_TX_ID = 0x1FF,
+
+	CAN_HIP_MOTOR_FEEDBACK_ID = 0x0FF,
+
+	// PVT means simultaneous position, velocity, torque control
+	CAN_DRIVE_MOTOR_PVT_FEEDBACK_ID1 = 0x501,
+	CAN_DRIVE_MOTOR_PVT_FEEDBACK_ID2 = 0x502,
+
+	CAN_DRIVE_MOTOR_SINGLECMD_TX_ID = 0x140,
+	CAN_DRIVE_MOTOR_MULTICMD_TX_ID = 0x280,
+	CAN_DRIVE_MOTOR_CMD_FEEDBACK_ID1 = 0x241,
+	CAN_DRIVE_MOTOR_CMD_FEEDBACK_ID2 = 0x242,
+} can_other_msg_id_e;
+
+typedef enum
+{
+	CAN_9015_MULTIANGLE_MSG_ID = 0x92,
+	CAN_9015_SET_CURRENT_ZERO_POINT_MSG_ID = 0x64,
+} can_msg_type_e;
+
+typedef enum
+{
+	DM_8006 = 0,
+	MA_9015 = 1,
+	LAST_MOTOR_TYPE = 2,
+} motor_type_e;
+
+// rm motor data
+typedef union
+{
+	uint8_t temperature;
+	struct
+	{
+		uint16_t ecd;
+		int16_t speed_rpm;
+		int16_t given_current;
+		int16_t last_ecd;
+	};
+	struct
+	{
+		// for 8006, angle follows right-hand rule along output axis
+		fp32 output_angle; // rad
+		fp32 input_angle; // rad
+		fp32 velocity; // rad/s
+		fp32 torque;   // Nm
+	};
 } motor_measure_t;
 
+extern motor_measure_t motor_measure[CHASSIS_ID_LAST];
+
+extern const float MOTOR_P_MAX[LAST_MOTOR_TYPE];
+extern const float MOTOR_P_MIN[LAST_MOTOR_TYPE];
+extern const float MOTOR_V_MAX[LAST_MOTOR_TYPE];
+extern const float MOTOR_V_MIN[LAST_MOTOR_TYPE];
+extern const float MOTOR_T_MAX[LAST_MOTOR_TYPE];
+extern const float MOTOR_T_MIN[LAST_MOTOR_TYPE];
+extern const float MOTOR_KP_MAX[LAST_MOTOR_TYPE];
+extern const float MOTOR_KP_MIN[LAST_MOTOR_TYPE];
+extern const float MOTOR_KD_MAX[LAST_MOTOR_TYPE];
+extern const float MOTOR_KD_MIN[LAST_MOTOR_TYPE];
 
 /**
-  * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
-  * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000] 
-  * @param[in]      pitch: (0x206) 6020 motor control current, range [-30000,30000]
-  * @param[in]      shoot: (0x207) 2006 motor control current, range [-10000,10000]
-  * @param[in]      rev: (0x208) reserve motor control current
-  * @retval         none
-  */
+ * @brief          return the chassis 3508 motor data point
+ * @param[in]      i: motor number,range [0,3]
+ * @retval         motor data point
+ */
 /**
-  * @brief          发送电机控制电流(0x205,0x206,0x207,0x208)
-  * @param[in]      yaw: (0x205) 6020电机控制电流, 范围 [-30000,30000]
-  * @param[in]      pitch: (0x206) 6020电机控制电流, 范围 [-30000,30000]
-  * @param[in]      shoot: (0x207) 2006电机控制电流, 范围 [-10000,10000]
-  * @param[in]      rev: (0x208) 保留，电机控制电流
-  * @retval         none
-  */
+ * @brief          返回底盘电机 3508电机数据指针
+ * @param[in]      i: 电机编号,范围[0,3]
+ * @retval         电机数据指针
+ */
+uint8_t get_motor_array_index(can_msg_id_e _SINGLE_CAN_ID);
+
+extern void enable_all_motor_control(uint8_t _enable);
+extern void request_9015_multiangle_data(void);
+extern HAL_StatusTypeDef encode_motor_control(uint16_t id, float _pos, float _vel, float _KP, float _KD, float _torq, uint8_t blocking_call, motor_type_e motor_type);
+extern HAL_StatusTypeDef enable_motor_control_8006(uint32_t id, uint8_t _enable);
+extern uint8_t hip_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float RB_torq);
+extern uint8_t hip_motor_set_position(float RF_pos, float LF_pos, float LB_pos, float RB_pos, float pos_Kp, float pos_Kd);
+extern uint8_t drive_motor_set_torque(float R_torq, float L_torq);
+
+/**
+ * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
+ * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000]
+ * @param[in]      pitch: (0x206) 6020 motor control current, range [-30000,30000]
+ * @param[in]      shoot: (0x207) 2006 motor control current, range [-10000,10000]
+ * @param[in]      rev: (0x208) reserve motor control current
+ * @retval         none
+ */
+/**
+ * @brief          发送电机控制电流(0x205,0x206,0x207,0x208)
+ * @param[in]      yaw: (0x205) 6020电机控制电流, 范围 [-30000,30000]
+ * @param[in]      pitch: (0x206) 6020电机控制电流, 范围 [-30000,30000]
+ * @param[in]      shoot: (0x207) 2006电机控制电流, 范围 [-10000,10000]
+ * @param[in]      rev: (0x208) 保留，电机控制电流
+ * @retval         none
+ */
 extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev);
-
-/**
-  * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
-  * @param[in]      none
-  * @retval         none
-  */
-/**
-  * @brief          发送ID为0x700的CAN包,它会设置3508电机进入快速设置ID
-  * @param[in]      none
-  * @retval         none
-  */
-extern void CAN_cmd_chassis_reset_ID(void);
-
-#if defined(INFANTRY_3)
-/**
-  * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
-  * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      steer_motor1: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
-  * @param[in]      steer_motor2: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
-  * @param[in]      steer_motor3: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
-  * @param[in]      steer_motor4: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
-  * @retval         none
-  */
-extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, uint16_t steer_motor1, uint16_t steer_motor2, uint16_t steer_motor3, uint16_t steer_motor4);
-#else
-/**
-  * @brief          send control current of motor (0x201, 0x202, 0x203, 0x204)
-  * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
-  * @retval         none
-  */
-/**
-  * @brief          发送电机控制电流(0x201,0x202,0x203,0x204)
-  * @param[in]      motor1: (0x201) 3508电机控制电流, 范围 [-16384,16384]
-  * @param[in]      motor2: (0x202) 3508电机控制电流, 范围 [-16384,16384]
-  * @param[in]      motor3: (0x203) 3508电机控制电流, 范围 [-16384,16384]
-  * @param[in]      motor4: (0x204) 3508电机控制电流, 范围 [-16384,16384]
-  * @retval         none
-  */
-extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
-#endif
-
-#if defined(INFANTRY_3)
-extern void CAN_cmd_load_servo(uint8_t fServoSwitch);
-#endif
-
-/**
-  * @brief          return the yaw 6020 motor data point
-  * @param[in]      none
-  * @retval         motor data point
-  */
-/**
-  * @brief          返回yaw 6020电机数据指针
-  * @param[in]      none
-  * @retval         电机数据指针
-  */
-extern const motor_measure_t *get_yaw_gimbal_motor_measure_point(void);
-
-/**
-  * @brief          return the pitch 6020 motor data point
-  * @param[in]      none
-  * @retval         motor data point
-  */
-/**
-  * @brief          返回pitch 6020电机数据指针
-  * @param[in]      none
-  * @retval         电机数据指针
-  */
-extern const motor_measure_t *get_pitch_gimbal_motor_measure_point(void);
-
-/**
-  * @brief          return the trigger 2006 motor data point
-  * @param[in]      none
-  * @retval         motor data point
-  */
-/**
-  * @brief          返回拨弹电机 2006电机数据指针
-  * @param[in]      none
-  * @retval         电机数据指针
-  */
-extern const motor_measure_t *get_trigger_motor_measure_point(void);
-
-/**
-  * @brief          return the chassis 3508 motor data point
-  * @param[in]      i: motor number,range [0,3]
-  * @retval         motor data point
-  */
-/**
-  * @brief          返回底盘电机 3508电机数据指针
-  * @param[in]      i: 电机编号,范围[0,3]
-  * @retval         电机数据指针
-  */
-extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t i);
-
 
 #endif

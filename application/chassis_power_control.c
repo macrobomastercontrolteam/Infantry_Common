@@ -23,6 +23,7 @@
 #include "referee.h"
 #include "arm_math.h"
 #include "detect_task.h"
+#include "biped.h"
 
 #if defined(INFANTRY_2) || defined(INFANTRY_3)
 // @TODO: change limit according to chassis_power_limit field of referee serial data
@@ -40,6 +41,10 @@
 #define NO_JUDGE_TOTAL_CURRENT_LIMIT    64000.0f    //16000 * 4, 
 #define BUFFER_TOTAL_CURRENT_LIMIT      16000.0f
 #define POWER_TOTAL_CURRENT_LIMIT       20000.0f
+
+#if defined(INFANTRY_4)
+#define DRIVE_MOTOR_TORQUE_TO_CURRENT_RATIO   2.2222f
+#endif
 
 /**
   * @brief          limit the power, mainly limit driver motor current
@@ -123,23 +128,13 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
         }
     }
 
-    
-    total_current = 0.0f;
-    //calculate the original motor current set
-    //计算原本电机电流设定
-    for(uint8_t i = 0; i < 4; i++)
-    {
-        total_current += fabs(chassis_power_control->motor_speed_pid[i].out);
-    }
-    
+	total_current = (fabs(biped.leg_L.TWheel_set) + fabs(biped.leg_R.TWheel_set)) * DRIVE_MOTOR_TORQUE_TO_CURRENT_RATIO;
 
-    if(total_current > total_current_limit)
-    {
-        // only limit current of driver motors, because power usage by steering motors is small and difficult to estimate. Because we control voltage input to steering motor (GM6020), not current
-        fp32 current_scale = total_current_limit / total_current;
-        chassis_power_control->motor_speed_pid[0].out*=current_scale;
-        chassis_power_control->motor_speed_pid[1].out*=current_scale;
-        chassis_power_control->motor_speed_pid[2].out*=current_scale;
-        chassis_power_control->motor_speed_pid[3].out*=current_scale;
-    }
+	if (total_current > total_current_limit)
+	{
+		// only limit current of driver motors, because power usage by steering motors is small and difficult to estimate. Because we control voltage input to steering motor (GM6020), not current
+		fp32 current_scale = total_current_limit / total_current;
+        biped.leg_L.TWheel_set *= current_scale;
+        biped.leg_R.TWheel_set *= current_scale;
+	}
 }

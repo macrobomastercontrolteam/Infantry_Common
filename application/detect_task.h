@@ -63,11 +63,13 @@ enum errorList
 {
     // chassis related TOEs (make sure this group is continuous)
     DBUS_TOE = 0,
-    // M3508 control speed
-    CHASSIS_MOTOR1_TOE,
-    CHASSIS_MOTOR2_TOE,
-    CHASSIS_MOTOR3_TOE,
-    CHASSIS_MOTOR4_TOE,
+    // Hip motor
+    CHASSIS_HIP_MOTOR1_TOE,
+    CHASSIS_HIP_MOTOR2_TOE,
+    CHASSIS_HIP_MOTOR3_TOE,
+    CHASSIS_HIP_MOTOR4_TOE,
+    CHASSIS_DRIVE_MOTOR1_TOE,
+    CHASSIS_DRIVE_MOTOR2_TOE,
     // // Currently, there's no ACK implemented in controller
     // // GM6020 control angle
     // CHASSIS_STEER_MOTOR_CONTROLLER_TOE,
