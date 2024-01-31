@@ -297,6 +297,21 @@ void get_shoot_heat1_limit_and_heat1(uint16_t *heat1_limit, uint16_t *heat1)
     *heat1 = power_heat_data_t.shooter_17mm_2_barrel_heat;;
 }
 
+/** 
+  * @brief Gets the id of the last armor plate hit by a projectile
+  * @param[out] armor_id: id of the armor plate hit
+  * @retval 0: no armor plate hit
+  */
+uint8_t get_last_armor_plate_hit(uint8_t *armor_id) {
+    // HP Deduction was caused by armor plate being hit by projectiles
+    if (robot_hurt_t.HP_deduction_reason == 0) {
+        *armor_id = robot_hurt_t.armor_id;
+        return 1;
+    }
+
+    return 0;
+}
+
 // GRAPHICS stuff here cause i'm lazy
 
 typedef __packed struct
@@ -442,4 +457,3 @@ void init_graphic_data() {
     }
     // Here, only graphic 1 is drawn; refer to the above for assigning values to the graphic data array for other graphics
     referee_data_pack_handle(0xA5, 0x0301, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
-}
