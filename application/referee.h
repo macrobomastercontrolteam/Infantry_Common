@@ -272,44 +272,6 @@ typedef __packed struct // 0x0301
     //uint8_t user_data[x]; //x <= 113
 } ext_student_interactive_data_t;
 
-typedef __packed struct //0x0100
-{
-uint8_t delete_type;
-uint8_t layer;
-}ext_interaction_layer_delete_t;
-
-typedef __packed struct //0x0101
-{
-uint8_t figure_name[3];
-uint32_t operate_tpye:3;
-uint32_t figure_tpye:3;
-uint32_t layer:4;
-uint32_t color:4;
-uint32_t details_a:9;
-uint32_t details_b:9;
-uint32_t width:10;
-uint32_t start_x:11;
-uint32_t start_y:11;
-uint32_t details_c:10;
-uint32_t details_d:11;
-uint32_t details_e:11;
-}ext_interaction_figure_t;
-
-typedef __packed struct //0x0102
-{
-    ext_interaction_figure_t interaction_figure[2];
-}ext_interaction_figure_2_t;
-
-typedef __packed struct //0x0103
-{
-    ext_interaction_figure_t interaction_figure[5];
-}ext_interaction_figure_3_t;
-
-typedef __packed struct //0x0104
-{
-    ext_interaction_figure_t interaction_figure[7];
-}ext_interaction_figure_4_t;
-
 typedef __packed struct //0x0110
 {
 graphic_data_struct_t grapic_data_struct;
@@ -339,7 +301,7 @@ uint8_t radar_cmd;
 //     uint8_t cmd_keyboard;
 //     uint8_t target_robot_id;
 //     uint8_t cmd_source;
-// } ext_robot_command_t; //Current: map_command_t
+// } ext_map_command_t;
 
 // typedef __pack struct // 0x0304
 // {
@@ -357,7 +319,7 @@ uint8_t radar_cmd;
 //     uint16_t target_robot_id;
 //     float target_position_x;
 //     float target_position_y;
-// } ext_client_map_command_t; //Current: map_robot_data_t;
+// } ext_map_robot_data_t;
 
 typedef __packed struct //0x0306
 {

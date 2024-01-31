@@ -36,16 +36,12 @@ ext_sentry_info_t sentry_info_t;                                //0x020D
 ext_radar_info_t radar_info_t;                                  //0x020E
 // ext_bullet_remaining_t bullet_remaining_t;
 ext_student_interactive_data_t student_interactive_data_t;
-ext_interaction_layer_delete_t interaction_layer_delete_t;
-ext_interaction_figure_t interaction_figure_t;
-ext_interaction_figure_2_t interaction_figure_2_t;
-ext_interaction_figure_3_t interaction_figure_3_t;
-ext_interaction_figure_4_t interaction_figure_4_t;
 ext_client_custom_character_t client_custom_character_t;
 ext_sentry_cmd_t sentry_cmd_t;
 ext_radar_cmd_t radar_cmd_t;
 // ext_robot_interactive_data_t robot_interactive_data_t;
-// ext_robot_command_t robot_command_t;
+// ext_map_command_t map_command_t;
+// ext_map_robot_data_t map_robot_data_t;
 // ext_robot_keyboard_mouse_command_t robot_keyboard_mouse_command_t;
 // ext_client_map_command_t client_map_command_t;
 ext_custom_client_data_t custom_client_data_t;
@@ -78,11 +74,12 @@ void init_referee_struct_data(void)
     memset(&ground_robot_position_t, 0, sizeof(ext_ground_robot_position_t));
     memset(&sentry_info_t, 0, sizeof(ext_sentry_info_t));
     memset(&radar_info_t, 0, sizeof(ext_radar_info_t));
-    memset(&interaction_layer_delete_t, 0, sizeof(ext_interaction_layer_delete_t));
-    memset(&interaction_figure_t, 0, sizeof(ext_interaction_figure_t));
-    memset(&interaction_figure_2_t, 0, sizeof(ext_interaction_figure_2_t));
-    memset(&interaction_figure_3_t, 0, sizeof(ext_interaction_figure_3_t));
-    memset(&interaction_figure_4_t, 0, sizeof(ext_interaction_figure_4_t));
+    memset(&sentry_cmd_t, 0, sizeof(ext_sentry_cmd_t));
+    memset(&radar_cmd_t, 0, sizeof(ext_radar_cmd_t));
+    // memset(&map_command_t, 0, sizeof(ext_map_command_t));
+    // memset(&map_robot_data_t, 0, sizeof(ext_map_robot_data_t)); 
+    memset(&custom_info_t, 0, sizeof(ext_custom_info_t)); 
+    memset(&custom_client_data_t, 0, sizeof(ext_custom_client_data_t));
 
     memset(&student_interactive_data_t, 0, sizeof(ext_student_interactive_data_t));
 }
@@ -218,14 +215,24 @@ void referee_data_solve(uint8_t *frame)
         memcpy(&radar_info_t, frame + index, sizeof(radar_info_t));
         break;
     }
-    case INTERACTION_LAYER_DELETE_CMD_ID:
+    case SENTRY_DECISION_CMD_ID:
     {
-        memcpy(&interaction_layer_delete_t, frame + index, sizeof(interaction_layer_delete_t));
+        memcpy(&sentry_cmd_t, frame + index, sizeof(sentry_cmd_t));
         break;
     }
-    case INTERACTION_FIGURE1_CMD_ID:
+    case RADAR_DECISION_CMD_ID:
     {
-        memcpy(&interaction_figure_t, frame + index, sizeof(interaction_figure_t));
+        memcpy(&sentry_cmd_t, frame + index, sizeof(sentry_cmd_t));
+        break;
+    }
+    case CUSTOM_INFO_CMD_ID:
+    {
+        memcpy(&custom_info_t, frame + index, sizeof(custom_info_t));
+        break;
+    }
+    case CUSTOM_CLIENT_DATA_CMD_ID:
+    {
+        memcpy(&custom_client_data_t, frame + index, sizeof(custom_client_data_t));
         break;
     }
     // case DART_ROBOT_INSTRUCTIONS_ID:
