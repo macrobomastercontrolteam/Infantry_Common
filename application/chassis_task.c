@@ -172,7 +172,15 @@ void chassis_task(void const *pvParameters)
 
     while (1)
     {
-//         //set chassis control mode
+      uint8_t armor_id;
+      uint8_t status;
+      static int counter = 0;
+      status = get_last_armor_plate_hit(&armor_id);
+
+      if (status == 1) {
+        counter++;
+      }
+      //         //set chassis control mode
 //         //设置底盘控制模式
 //         chassis_set_mode(&chassis_move);
 //         //when mode changes, some data save

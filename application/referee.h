@@ -209,7 +209,7 @@ typedef __packed struct // 0x0208
 
 typedef __packed struct // 0x0209
 {
-    uint32_t rfid_status
+    uint32_t rfid_status;
 } ext_rfid_status_t;
 
 // typedef __packed struct // 0x020A
@@ -274,7 +274,6 @@ typedef __packed struct // 0x0301
 
 typedef __packed struct //0x0110
 {
-graphic_data_struct_t grapic_data_struct;
 uint8_t data[30];
 } ext_client_custom_character_t;
 
@@ -376,5 +375,6 @@ extern uint8_t get_robot_id(void);
 extern void get_shoot_heat0_limit_and_heat0(uint16_t *heat0_limit, uint16_t *heat0);
 extern void get_shoot_heat1_limit_and_heat1(uint16_t *heat1_limit, uint16_t *heat1);
 extern void init_graphic_data(void);
+extern uint8_t get_last_armor_plate_hit(uint8_t *armor_id_ptr);
 
 #endif

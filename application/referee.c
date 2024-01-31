@@ -299,13 +299,19 @@ void get_shoot_heat1_limit_and_heat1(uint16_t *heat1_limit, uint16_t *heat1)
 
 /** 
   * @brief Gets the id of the last armor plate hit by a projectile
-  * @param[out] armor_id: id of the armor plate hit
+  * @param[out] armor_id_ptr: id of the armor plate hit
   * @retval 0: no armor plate hit
   */
-uint8_t get_last_armor_plate_hit(uint8_t *armor_id) {
+uint8_t get_last_armor_plate_hit(uint8_t *armor_id_ptr) {
     // HP Deduction was caused by armor plate being hit by projectiles
     if (robot_hurt_t.HP_deduction_reason == 0) {
-        *armor_id = robot_hurt_t.armor_id;
+        *armor_id_ptr = robot_hurt_t.armor_id;
+        return 1;
+    }
+
+    // HP Deduction was caused by an armor plate suffered a collision
+    if (robot_hurt_t.HP_deduction_reason == 5) {
+        *armor_id_ptr = robot_hurt_t.armor_id;
         return 1;
     }
 
@@ -406,54 +412,3 @@ void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uin
     HAL_UART_Transmit(&huart6, tx_buff, frame_length, 10000);
 
 }
-
-// 屏幕分辨率1920x1080
-#define SCREEN_WIDTH 1080
-#define SCREEN_LENGTH 1920
-ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
-ext_client_custom_graphic_t custom_graphic;               // 自定义图像
-
-// Screen resolution is 1920x1080
-#define SCREEN_WIDTH 1080
-#define SCREEN_LENGTH 1920
-
-// Custom graphic draw header data
-ext_student_interactive_header_data_t custom_grapic_draw;
-
-// Custom graphic structure
-ext_client_custom_graphic_t custom_graphic;
-
-// Initialize graphic data variables
-void init_graphic_data() {
-    static long calledTimes = 0;
-    calledTimes++;
-
-    // Custom graphic draw
-    custom_grapic_draw.data_cmd_id = 0x0104; // Draw seven graphics (Content ID, refer to the referee system manual for queries)
-
-    // TODO: There are multiple blue standard robot ids
-    // These ones might be wrong
-    custom_grapic_draw.sender_ID = 105;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
-    custom_grapic_draw.receiver_ID = 0x0169;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
-
-    // Custom graphic data
-    {
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_name[0] = 97;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_name[1] = 97;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_name[2] = 0; // Graphic name
-        // The above three bytes represent the graphic name, used for graphic indexing, can be defined as needed
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].operate_tpye = 1; // Graphic operation, 0: empty operation; 1: add; 2: modify; 3: delete;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_tpye = 0; // Graphic type, 0 for a straight line, refer to the user manual for others
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].layer = 1;        // Graphic layer
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].color = 1;        // Color
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_angle = 0;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_angle = 0;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].width = 1;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_x = SCREEN_LENGTH / 2;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_y = SCREEN_WIDTH / 2;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_x = SCREEN_LENGTH / 2;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_y = SCREEN_WIDTH / 2 - 300;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].radius = 0;
-    }
-    // Here, only graphic 1 is drawn; refer to the above for assigning values to the graphic data array for other graphics
-    referee_data_pack_handle(0xA5, 0x0301, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
