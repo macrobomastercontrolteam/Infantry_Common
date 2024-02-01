@@ -172,6 +172,7 @@ void chassis_task(void const *pvParameters)
 
     while (1)
     {
+      init_graphic_data();
 //         //set chassis control mode
 //         //设置底盘控制模式
 //         chassis_set_mode(&chassis_move);

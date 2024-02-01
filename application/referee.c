@@ -299,23 +299,6 @@ void get_shoot_heat1_limit_and_heat1(uint16_t *heat1_limit, uint16_t *heat1)
 
 // GRAPHICS stuff here cause i'm lazy
 
-typedef __packed struct
-{
-    uint8_t graphic_name[3];
-    uint32_t operate_tpye : 3;
-    uint32_t graphic_tpye : 3;
-    uint32_t layer : 4;
-    uint32_t color : 4;
-    uint32_t start_angle : 9;
-    uint32_t end_angle : 9;
-    uint32_t width : 10;
-    uint32_t start_x : 11;
-    uint32_t start_y : 11;
-    uint32_t radius : 10;
-    uint32_t end_x : 11;
-    uint32_t end_y : 11;
-} graphic_data_struct_t;
-
 // Client Drawing Graphics
 typedef __packed struct
 {
@@ -418,8 +401,8 @@ void init_graphic_data() {
 
     // TODO: There are multiple blue standard robot ids
     // These ones might be wrong
-    custom_grapic_draw.sender_ID = 105;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
-    custom_grapic_draw.receiver_ID = 0x0169;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
+    custom_grapic_draw.sender_ID = 103;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
+    custom_grapic_draw.receiver_ID = 0x0167;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
 
     // Custom graphic data
     {
@@ -434,9 +417,9 @@ void init_graphic_data() {
         custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_angle = 0;
         custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_angle = 0;
         custom_grapic_draw.graphic_custom.grapic_data_struct[0].width = 1;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_x = SCREEN_LENGTH / 2;
+        custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_x = SCREEN_LENGTH / 2 + 600;
         custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_y = SCREEN_WIDTH / 2;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_x = SCREEN_LENGTH / 2;
+        custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_x = SCREEN_LENGTH / 2 + 200;
         custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_y = SCREEN_WIDTH / 2 - 300;
         custom_grapic_draw.graphic_custom.grapic_data_struct[0].radius = 0;
     }

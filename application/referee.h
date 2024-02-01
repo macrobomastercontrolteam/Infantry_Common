@@ -272,6 +272,24 @@ typedef __packed struct // 0x0301
     //uint8_t user_data[x]; //x <= 113
 } ext_student_interactive_data_t;
 
+
+typedef __packed struct
+{
+    uint8_t graphic_name[3];
+    uint32_t operate_tpye : 3;
+    uint32_t graphic_tpye : 3;
+    uint32_t layer : 4;
+    uint32_t color : 4;
+    uint32_t start_angle : 9;
+    uint32_t end_angle : 9;
+    uint32_t width : 10;
+    uint32_t start_x : 11;
+    uint32_t start_y : 11;
+    uint32_t radius : 10;
+    uint32_t end_x : 11;
+    uint32_t end_y : 11;
+} graphic_data_struct_t;
+
 typedef __packed struct //0x0110
 {
 graphic_data_struct_t grapic_data_struct;
