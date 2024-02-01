@@ -203,6 +203,81 @@ fp32 theta_format(fp32 Ang)
     return loop_fp32_constrain(Ang, -180.0f, 180.0f);
 }
 
+// Static Arr Implementation
+
+// Filling the array
+void fill_buffer(int input_angle, circular_buffer_t *circular_buffer)
+{
+    if (circular_buffer->current_buffer_index != circular_buffer->buffer_size - 1)
+    {
+        circular_buffer->angle_buffer[circular_buffer->current_buffer_index] = input_angle;
+        circular_buffer->current_buffer_index++;
+    }
+    else if (circular_buffer->current_buffer_index == circular_buffer->buffer_size - 1)
+    {
+        circular_buffer->buffer_full_flag = 1;
+        circular_buffer->angle_buffer[circular_buffer->current_buffer_index] = input_angle;
+        circular_buffer->current_buffer_index = 0;
+    }
+}
+
+// Accessing Angle
+fp32 access_angle(uint16_t target_timestamp, circular_buffer_t *circular_buffer)
+{
+    uint16_t signal_interval = 50;
+    uint16_t current_time = 1000;
+    float time_delta = current_time - target_timestamp;
+    int n = (int)(fabs(time_delta) / (float)signal_interval);
+    int time_before = current_time - signal_interval * (n + 1);
+
+    if ((n + 1) < circular_buffer->current_buffer_index)
+    {
+        float angle_after = circular_buffer->angle_buffer[circular_buffer->current_buffer_index - (n + 1)];
+        float angle_before = circular_buffer->angle_buffer[circular_buffer->current_buffer_index - (n + 2)];
+        return (angle_before + (target_timestamp - time_before) * (angle_after - angle_before) / (signal_interval));
+    }
+    else if ((n + 1) == circular_buffer->current_buffer_index)
+    {
+        if (circular_buffer->buffer_full_flag)
+        {
+            float angle_after = circular_buffer->angle_buffer[circular_buffer->current_buffer_index - (n + 1)];
+            float angle_before = circular_buffer->angle_buffer[circular_buffer->current_buffer_index - (n + 2) + circular_buffer->buffer_size];
+            return (angle_before + (target_timestamp - time_before) * (angle_after - angle_before) / (signal_interval));
+        }
+        else
+        {
+            return circular_buffer->angle_buffer[0];
+        }
+    }
+    else if ((n + 1) > circular_buffer->current_buffer_index)
+    {
+        if ((n + 2) <= circular_buffer->buffer_size)
+        {
+            if (circular_buffer->buffer_full_flag)
+            {
+                float angle_after = circular_buffer->angle_buffer[circular_buffer->current_buffer_index - (n + 1) + circular_buffer->buffer_size];
+                float angle_before = circular_buffer->angle_buffer[circular_buffer->current_buffer_index - (n + 2) + circular_buffer->buffer_size];
+                return (angle_before + (target_timestamp - time_before) * (angle_after - angle_before) / (signal_interval));
+            }
+            else
+            {
+                return circular_buffer->angle_buffer[0];
+            }
+        }
+        else
+        {
+            if (circular_buffer->buffer_full_flag)
+            {
+                return circular_buffer->angle_buffer[circular_buffer->current_buffer_index]; // current_buffer_index is 1 past the index of the latest datapoint so no need to add 1, also current_buffer_index < BUFF_SIZE so no modulo needed
+            }
+            else
+            {
+                return circular_buffer->angle_buffer[0];
+            }
+        }
+    }
+}
+
 uint8_t checkAndResetFlag(uint8_t *pbFlag)
 {
     uint8_t temp = *pbFlag;

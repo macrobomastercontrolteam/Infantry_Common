@@ -98,6 +98,15 @@ typedef struct
     fp32 *ring;
     fp32 sum;
 } moving_average_type_t;
+
+typedef struct
+{
+    fp32 *angle_buffer;            // Initializing space for static list
+    uint16_t buffer_size;          // Size of the buffer
+    uint16_t current_buffer_index; // Current index at fill position
+    uint8_t buffer_full_flag;      // Flag to indicate filled arrays
+} circular_buffer_t;
+
 //快速开方
 extern fp32 invSqrt(fp32 num);
 

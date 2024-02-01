@@ -215,6 +215,9 @@
 #define GIMBAL_MOTIONLESS_RC_DEADLINE 10
 #define GIMBAL_MOTIONLESS_TIME_MAX    3000
 
+#define YAW_BUFF_SIZE 5
+#define PITCH_BUFF_SIZE 5
+
 #define int_abs(x) ((x) > 0 ? (x) : (-x))
 
 typedef enum
@@ -295,6 +298,8 @@ typedef struct
     gimbal_motor_t gimbal_yaw_motor;
     gimbal_motor_t gimbal_pitch_motor;
     gimbal_step_cali_t gimbal_cali;
+    circular_buffer_t *yaw_angle;
+    circular_buffer_t *pitch_angle;
 } gimbal_control_t;
 
 /**
