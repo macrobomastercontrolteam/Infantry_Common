@@ -146,6 +146,7 @@ void CvCmder_Init(void)
     memset(&CvCmdHandler, 0, sizeof(CvCmdHandler));       // clear status
     CvCmdHandler.cv_rc_ctrl = get_remote_control_point(); // reserved, not used yet
 
+    CvCmdHandler.fCvMode = 0;
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
     CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT, 1);
 #if !SENTRY_HW_TEST
