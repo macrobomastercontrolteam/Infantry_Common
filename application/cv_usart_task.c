@@ -43,7 +43,7 @@ typedef enum
     MSG_CV_CMD = 0x20,
     MSG_ACK = 0x40,
     MSG_INFO_REQUEST = 0x50,
-    MSG_INFO_FEEDBACK = 0x51,
+    MSG_INFO_DATA = 0x51,
 } eMsgTypes;
 
 typedef enum
@@ -94,7 +94,7 @@ void CvCmder_PollForModeChange(void);
 void CvCmder_RxParser(void);
 void CvCmder_EchoTxMsgToUsb(void);
 void CvCmder_SendSetModeRequest(void);
-void CvCmder_SendInfoFeedback(eInfoBits InfoBit);
+void CvCmder_SendInfoData(eInfoBits InfoBit);
 void CvCmder_UpdateTranDelta(void);
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
 #if DEBUG_CV_WITH_USB
@@ -202,6 +202,7 @@ void CvCmder_PollForModeChange(void)
         }
         else
         {
+            // Session established until communication timeout
             eCvCmderState = CMDER_STATE_IDLE;
         }
         break;
@@ -264,9 +265,9 @@ void CvCmder_SendSetModeRequest(void)
     CvCmder_EchoTxMsgToUsb();
 }
 
-void CvCmder_SendInfoFeedback(eInfoBits InfoBit)
+void CvCmder_SendInfoData(eInfoBits InfoBit)
 {
-    CvTxBuffer.tData.bMsgType = MSG_INFO_FEEDBACK;
+    CvTxBuffer.tData.bMsgType = MSG_INFO_DATA;
     // If current timestamp is smaller than sync_time, add 0x10000 to it. It's automatically handled by uint16_t type
     CvTxBuffer.tData.uiTimestamp = (uint16_t)xTaskGetTickCount() - CvTimestamps.uiCtrlSyncTime;
     memset(CvTxBuffer.tData.abPayload, CHAR_UNUSED, DATA_PACKAGE_PAYLOAD_SIZE);
@@ -368,7 +369,7 @@ void CvCmder_RxParser(void)
             {
                 if (CvRxBuffer.tData.abPayload[0] & bInfoTestBit)
                 {
-                    CvCmder_SendInfoFeedback((eInfoBits)bInfoTestBit);
+                    CvCmder_SendInfoData((eInfoBits)bInfoTestBit);
                 }
                 bInfoTestBit = bInfoTestBit << 1;
             }
