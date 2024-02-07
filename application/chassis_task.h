@@ -18,7 +18,7 @@
   */
 #ifndef CHASSIS_TASK_H
 #define CHASSIS_TASK_H
-#include "struct_typedef.h"
+#include "global_inc.h"
 #include "CAN_receive.h"
 #include "gimbal_task.h"
 #include "pid.h"
@@ -65,28 +65,28 @@
 
 #define CHASSIS_TEST_MODE 1
 
-#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
-#elif defined(INFANTRY_3)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // avoid changing angle too often near zero speed
 #define STEER_TURN_X_SPEED_DEADZONE 0.01f
 #define STEER_TURN_Y_SPEED_DEADZONE (STEER_TURN_X_SPEED_DEADZONE*CHASSIS_VY_RC_SEN/CHASSIS_VX_RC_SEN)
 #define STEER_TURN_W_SPEED_DEADZONE 0.01f
 #endif
 
-#if defined(INFANTRY_1)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM)
 #define MOTOR_DISTANCE_TO_CENTER 0.2f
-#elif defined(INFANTRY_2)
+#elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define MOTOR_DISTANCE_TO_CENTER 0.2788f
-#elif defined(INFANTRY_3)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define MOTOR_DISTANCE_TO_CENTER 0.28284271247461906f // sqrt(pow(CHASSIS_Y_DIRECTION_HALF_LENGTH,2)+pow(CHASSIS_X_DIRECTION_HALF_LENGTH,2))
 #define CHASSIS_Y_DIRECTION_HALF_LENGTH 0.2f
 #define CHASSIS_X_DIRECTION_HALF_LENGTH 0.2f
 #define CHASSIS_ANGLE_COS 0.7071067811865475f // (CHASSIS_X_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
 #define CHASSIS_ANGLE_SIN 0.7071067811865475f // (CHASSIS_Y_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
-#elif defined(SENTRY_1)
+#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define MOTOR_DISTANCE_TO_CENTER 0.2f // @TODO: update this
 #endif
 
@@ -118,10 +118,10 @@
 //m3508 rmp change to chassis speed,
 //m3508转化成底盘速度(m/s)的比例，
 // Equals to (2*PI/60)*Radius/Reduction_Ratio, where Reduction_Ratio=3591/187
-#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
 // Radius = 0.07625
 #define M3508_MOTOR_RPM_TO_VECTOR 0.000415809748903494517209f
-#elif defined(INFANTRY_3)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // Radius = 0.04
 #define M3508_MOTOR_RPM_TO_VECTOR 0.00021812970434281678f
 #endif
@@ -138,7 +138,7 @@
 #define NORMAL_MAX_CHASSIS_SPEED_Y 1.0f
 
 // Arbitrary offsets between chassis rotational center and centroid
-#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(INFANTRY_3) || defined(SENTRY_1)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
 // slip ring is at the center of chassis
 #define CHASSIS_WZ_SET_SCALE 0.0f
 #else
@@ -188,7 +188,7 @@ typedef struct
   int16_t give_current;
 } chassis_motor_t;
 
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 typedef struct
 {
   uint16_t target_ecd; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
@@ -206,7 +206,7 @@ typedef struct
   chassis_motor_t motor_chassis[4];          //chassis motor data.底盘电机数据
   pid_type_def motor_speed_pid[4];             //motor speed PID.底盘电机速度pid
   pid_type_def chassis_angle_pid;              //follow angle PID.底盘跟随角度pid
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
   chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data.底盘舵轮电机数据
   pid_type_def steer_motor_angle_pid[4];       //steering motor angle PID.底盘舵轮电机角度pid
 #endif
@@ -214,7 +214,7 @@ typedef struct
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
   first_order_filter_type_t chassis_cmd_slow_set_vy;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
 
-#if !defined(INFANTRY_3)
+#if !(ROBOT_TYPE == INFANTRY_2023_SWERVE)
   fp32 vx;                          //chassis vertical speed, positive means forward,unit m/s. 底盘速度 前进方向 前为正，单位 m/s
   fp32 vy;                          //chassis horizontal speed, positive means letf,unit m/s.底盘速度 左右方向 左为正  单位 m/s
   fp32 wz;                          //chassis rotation speed, positive means counterclockwise,unit rad/s.底盘旋转角速度，逆时针为正 单位 rad/s

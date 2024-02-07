@@ -99,7 +99,7 @@
 #ifndef CALIBRATE_TASK_H
 #define CALIBRATE_TASK_H
 
-#include "struct_typedef.h"
+#include "global_inc.h"
 
 //when imu is calibrating ,buzzer set frequency and strength. 当imu在校准,蜂鸣器的设置频率和强度
 #define imu_start_buzzer()          buzzer_on(95, 10000)    

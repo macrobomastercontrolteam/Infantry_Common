@@ -21,7 +21,7 @@
 #ifndef CAN_RECEIVE_H
 #define CAN_RECEIVE_H
 
-#include "struct_typedef.h"
+#include "global_inc.h"
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
@@ -33,7 +33,7 @@ typedef enum
     /*******Tx CAN IDs********/
     CAN_CHASSIS_M3508_TX_ID = 0x200,
     CAN_GIMBAL_ALL_TX_ID = 0x1FF,
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
     CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
     CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
 #endif
@@ -49,9 +49,9 @@ typedef enum
     CAN_PIT_MOTOR_ID = 0x206,
 
     /********Other CAN IDs: Location depends on Model********/
-    // Infantry_2: On gimbal
-    // Infantry_3: On chassis
-    // Sentry_1: On chassis
+    // INFANTRY_2023_MECANUM: On gimbal
+    // INFANTRY_2023_SWERVE: On chassis
+    // SENTRY_2023_MECANUM: On chassis
     CAN_TRIGGER_MOTOR_ID = 0x207,
 
     CAN_LAST_ID = CAN_TRIGGER_MOTOR_ID,
@@ -98,7 +98,7 @@ extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t re
   */
 extern void CAN_cmd_chassis_reset_ID(void);
 
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 /**
   * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
   * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
@@ -132,7 +132,7 @@ extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int1
 extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
 #endif
 
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 extern void CAN_cmd_load_servo(uint8_t fServoSwitch);
 #endif
 

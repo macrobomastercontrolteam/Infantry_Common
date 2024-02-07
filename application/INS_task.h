@@ -23,7 +23,7 @@
 
 #ifndef INS_Task_H
 #define INS_Task_H
-#include "struct_typedef.h"
+#include "global_inc.h"
 
 
 #define SPI_DMA_GYRO_LENGTH       8

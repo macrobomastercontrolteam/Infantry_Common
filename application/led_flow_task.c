@@ -64,7 +64,7 @@ void led_RGB_flow_task(void const * argument)
             delta_blue /= RGB_FLOW_COLOR_CHANGE_TIME;
             for(j = 0; j < RGB_FLOW_COLOR_CHANGE_TIME; j++)
             {
-#if defined(DEBUG_CV)
+#if DEBUG_CV_WITH_USB
                 // turn blue or off
                 if (CvCmder_CheckAndResetUserKeyEdge()){
                   alpha = (RGB_flow_color[0] & 0xFF000000) >> 24;
@@ -83,7 +83,7 @@ void led_RGB_flow_task(void const * argument)
                 red += delta_red;
                 green += delta_green;
                 blue += delta_blue;
-#endif // defined(DEBUG_CV)
+#endif // DEBUG_CV_WITH_USB
 
                 aRGB = ((uint32_t)(alpha)) << 24 | ((uint32_t)(red)) << 16 | ((uint32_t)(green)) << 8 | ((uint32_t)(blue)) << 0;
                 aRGB_led_show(aRGB);

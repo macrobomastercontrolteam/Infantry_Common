@@ -1,6 +1,5 @@
 #ifndef BSP_I2C_H
 #define BSP_I2C_H
-#include "struct_typedef.h"
 #include "main.h"
 
 #define I2C_ACK 1

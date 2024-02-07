@@ -1,6 +1,6 @@
 #ifndef USER_LIB_H
 #define USER_LIB_H
-#include "struct_typedef.h"
+#include "global_inc.h"
 
 /** A compile time assertion check.
  *
@@ -34,14 +34,9 @@
 #define ECD_RANGE 8192
 #define MOTOR_RAD_TO_ECD 1303.7972938088067f  // 8192/(2*PI)
 #define MOTOR_ECD_TO_RAD 0.000766990394f //      2*PI/8192
+
 #define MOVING_AVERAGE_RESET 1
 #define MOVING_AVERAGE_CALC 0
-
-#define DISABLE_DRIVE_MOTOR_POWER 0
-#define DISABLE_STEER_MOTOR_POWER 0
-#define DISABLE_YAW_MOTOR_POWER 0
-#define DISABLE_PITCH_MOTOR_POWER 0
-#define DISABLE_SHOOT_MOTOR_POWER 0
 
 /**
   * @brief          remote control dealline solve,because the value of rocker is not zero in middle place,

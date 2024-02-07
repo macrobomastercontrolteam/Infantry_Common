@@ -124,7 +124,7 @@ int16_t shoot_control_loop(void)
     {
     case SHOOT_STOP_INIT:
     {
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
         CAN_cmd_load_servo(0);
         CAN_cmd_load_servo(0);
         CAN_cmd_load_servo(0);
@@ -146,7 +146,7 @@ int16_t shoot_control_loop(void)
     }
     case SHOOT_READY_BULLET_INIT:
     {
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
         CAN_cmd_load_servo(1);
         CAN_cmd_load_servo(1);
         CAN_cmd_load_servo(1);
@@ -179,7 +179,7 @@ int16_t shoot_control_loop(void)
         }
 //         else
 //         {
-// #if !(!defined(SENTRY_HW_TEST) && defined(SENTRY_1))
+// #if !(!SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM))
 //             // long press mouse to rapid fire
 //             if ((shoot_control.press_l && shoot_control.last_press_l == 0) || (shoot_control.press_r && shoot_control.last_press_r == 0))
 // #endif
@@ -233,7 +233,7 @@ int16_t shoot_control_loop(void)
     // Continue bullet logic: must be used after state machine, since SHOOT_CONTINUE_BULLET switch back to SHOOT_READY_BULLET if not triggered
     if (shoot_control.shoot_mode > SHOOT_READY_FRIC)
     {
-#if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
+#if !SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM)
         shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
 #else
         // 鼠标长按一直进入射击状态 保持连发
@@ -290,7 +290,7 @@ int16_t shoot_control_loop(void)
   */
 static void shoot_set_mode(void)
 {
-#if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
+#if !SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM)
     static uint8_t lastCvShootMode = 0;
     uint8_t CvShootMode = CvCmder_GetMode(CV_MODE_SHOOT_BIT);
     if (CvShootMode != lastCvShootMode)

@@ -3,7 +3,7 @@
 #ifndef ROBOMASTER_PROTOCOL_H
 #define ROBOMASTER_PROTOCOL_H
 
-#include "struct_typedef.h"
+#include "global_inc.h"
 
 #define HEADER_SOF 0xA5
 #define REF_PROTOCOL_FRAME_MAX_SIZE         128

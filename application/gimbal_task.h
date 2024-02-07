@@ -27,7 +27,7 @@
 
 #ifndef GIMBAL_TASK_H
 #define GIMBAL_TASK_H
-#include "struct_typedef.h"
+#include "global_inc.h"
 #include "CAN_receive.h"
 #include "pid.h"
 #include "remote_control.h"
@@ -129,7 +129,7 @@
 //遥控器输入死区，因为遥控器存在差异，摇杆在中间，其值不一定为零
 #define RC_DEADBAND   10
 
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
 // #define CV_CAMERA_YAW_DEADBAND   0.0174533f // 1 degree
 // #define CV_CAMERA_PITCH_DEADBAND   0.0174533f // 1 degree
 #define CV_CAMERA_YAW_DEADBAND   0.0f
@@ -179,7 +179,7 @@
 //云台测试模式 宏定义 0 为不使用测试模式
 #define GIMBAL_TEST_MODE 1
 
-#if defined(SENTRY_1)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define PITCH_TURN  0
 #else
 #define PITCH_TURN  1
@@ -268,7 +268,7 @@ typedef struct
     fp32 current_set;
     int16_t given_current;
 
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
     moving_average_type_t CvCmdAngleFilter;
     fp32 CvCmdAngleFilterBuffer[CV_ANGLE_FILTER_SIZE];
 #endif

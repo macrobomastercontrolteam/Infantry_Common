@@ -725,7 +725,7 @@ static void gimbal_init(gimbal_control_t *init)
     gimbal_PID_init(&init->gimbal_pitch_motor.gimbal_motor_relative_angle_pid, PITCH_ENCODE_RELATIVE_PID_MAX_OUT, PITCH_ENCODE_RELATIVE_PID_MAX_IOUT, PITCH_ENCODE_RELATIVE_PID_KP, PITCH_ENCODE_RELATIVE_PID_KI, PITCH_ENCODE_RELATIVE_PID_KD);
     gimbal_pitch_abs_angle_PID_init(init);
 
-  #if defined(CV_INTERFACE)
+  #if CV_INTERFACE
     init->gimbal_pitch_motor.CvCmdAngleFilter.size = CV_ANGLE_FILTER_SIZE;
     init->gimbal_pitch_motor.CvCmdAngleFilter.cursor = 0;
     init->gimbal_pitch_motor.CvCmdAngleFilter.ring = init->gimbal_pitch_motor.CvCmdAngleFilterBuffer;
@@ -994,7 +994,7 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
     bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
     //relative angle + angle error + add_angle > max_relative angle
     //云台相对角度+ 误差角度 + 新增角度 如果大于 最大机械角度
-#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(INFANTRY_3) || defined(SENTRY_1)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
     // Remove yaw motor limit for robots with slip ring
     if (motor_select != GIMBAL_YAW_MOTOR)
 #endif
@@ -1042,7 +1042,7 @@ static void gimbal_relative_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
     }
     gimbal_motor->relative_angle_set += add;
     // 是否超过最大 最小值
-#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(INFANTRY_3) || defined(SENTRY_1)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
     // Remove yaw motor limit for robots with slip ring
     if (motor_select != GIMBAL_YAW_MOTOR)
 #endif
@@ -1182,7 +1182,7 @@ fp32 shoot_speed_set_global;
 uint8_t cv_toe_global;
 static void J_scope_gimbal_test(void)
 {
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
     yaw_cv_delta_int_1000 = (int32_t)(-CvCmdHandler.CvCmdMsg.xDeltaAngle * 1000);
 #endif
     yaw_ins_int_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.absolute_angle * 1000);
@@ -1292,7 +1292,7 @@ bool_t gimbal_emergency_stop(void)
     }
     else
     {
-#if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
+#if !SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM)
         // E-stop if remote controller is connected, and also not in calibration mode
         // uint8_t fSentryDbusEnable = toe_is_error(DBUS_TOE);
 				uint8_t fSentryDbusEnable = 1;

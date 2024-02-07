@@ -10,14 +10,13 @@
 // Start of section using anonymous unions
 
 #include "cv_usart_task.h"
-#include "main.h"
 #include "cmsis_os.h"
 
 #include "usart.h"
 #include "bsp_usart.h"
 #include "string.h"
 #include "detect_task.h"
-#if defined(DEBUG_CV)
+#if DEBUG_CV_WITH_USB
 #include "usb_task.h"
 #include <stdio.h>
 #endif
@@ -36,7 +35,7 @@
 // Test result with pyserial: Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
 uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE * 3];
 
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
 
 typedef enum
 {
@@ -98,7 +97,7 @@ void CvCmder_SendSetModeRequest(void);
 void CvCmder_SendInfoFeedback(eInfoBits InfoBit);
 void CvCmder_UpdateTranDelta(void);
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
-#if defined(DEBUG_CV)
+#if DEBUG_CV_WITH_USB
 uint8_t CvCmder_MockModeChange(void);
 #endif
 
@@ -111,7 +110,7 @@ const uint8_t abExpectedMessageHeader[DATA_PACKAGE_HEADER_SIZE] = {'>', '>'};
 uint8_t abExpectedUnusedPayload[DATA_PACKAGE_PAYLOAD_SIZE];
 tCvTimestamps CvTimestamps;
 
-#if defined(DEBUG_CV)
+#if DEBUG_CV_WITH_USB
 uint8_t fIsUserKeyPressingEdge = 0;
 char usbMsg[500];
 volatile uint16_t uiUsbMsgSize;
@@ -147,9 +146,9 @@ void CvCmder_Init(void)
     memset(&CvCmdHandler, 0, sizeof(CvCmdHandler));       // clear status
     CvCmdHandler.cv_rc_ctrl = get_remote_control_point(); // reserved, not used yet
 
-#if defined(SENTRY_1)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
     CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT, 1);
-#if !defined(SENTRY_HW_TEST)
+#if !SENTRY_HW_TEST
     CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 1);
 #endif
     CvCmdHandler.fIsModeChanged = 1;
@@ -180,7 +179,7 @@ void CvCmder_PollForModeChange(void)
     {
     case CMDER_STATE_IDLE:
     {
-#if defined(DEBUG_CV)
+#if DEBUG_CV_WITH_USB
         if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE) || CvCmder_MockModeChange())
 #else
         if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE))
@@ -233,7 +232,7 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
 
 void CvCmder_EchoTxMsgToUsb(void)
 {
-#if defined(DEBUG_CV)
+#if DEBUG_CV_WITH_USB
     // echo to usb
     // watch out of null character at the end
     memcpy(usbMsg, "Sent: ", sizeof("Sent: ") - 1);
@@ -383,7 +382,7 @@ void CvCmder_RxParser(void)
         detect_hook(CV_TOE);
     }
 
-#if defined(DEBUG_CV)
+#if DEBUG_CV_WITH_USB
     // echo to usb
     uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fValid ? "Valid" : "Invalid");
 
@@ -433,7 +432,7 @@ uint8_t CvCmder_CheckAndResetFlag(uint8_t *pbFlag)
     return temp;
 }
 
-#if defined(DEBUG_CV)
+#if DEBUG_CV_WITH_USB
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void)
 {
     return CvCmder_CheckAndResetFlag(&fIsUserKeyPressingEdge);
@@ -494,15 +493,15 @@ uint8_t CvCmder_MockModeChange(void)
     }
     return fIsUserKeyPressingEdge;
 }
-#endif // defined(DEBUG_CV)
+#endif // DEBUG_CV_WITH_USB
 
-#endif // defined(CV_INTERFACE)
+#endif // CV_INTERFACE
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     if (huart->Instance == USART1)
     {
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
         uint16_t uiHeaderFinder = 0;
         while ((uiHeaderFinder < Size) && (Size - uiHeaderFinder >= sizeof(CvRxBuffer.abData)))
         {

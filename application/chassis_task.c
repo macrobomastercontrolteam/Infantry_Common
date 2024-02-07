@@ -101,7 +101,7 @@ static void chassis_set_control(chassis_move_t *chassis_move_control);
   */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static uint16_t motor_angle_to_ecd_change(fp32 angle);
 #endif
 
@@ -147,7 +147,7 @@ void chassis_task(void const *pvParameters)
     uint8_t fIsError = 0;
     uint8_t bToeIndex;
     do {
-#if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
+#if !SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM)
       for (bToeIndex = CV_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
 #else
       for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
@@ -197,7 +197,7 @@ void chassis_task(void const *pvParameters)
             chassis_move.motor_chassis[3].give_current = 0;
 #endif
 
-#if !defined(SENTRY_HW_TEST) && defined(SENTRY_1)
+#if !SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM)
             // Remote controller act as emergency stop
             if (toe_is_error(CV_TOE) || gimbal_emergency_stop())
 #else
@@ -205,7 +205,7 @@ void chassis_task(void const *pvParameters)
             // 当遥控器掉线的时候，发送给底盘电机零电流.
             if (toe_is_error(DBUS_TOE))
 #endif
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
             {
               CAN_cmd_chassis(0, 0, 0, 0, 0, 0, 0, 0);
             }
@@ -412,7 +412,7 @@ static void chassis_feedback_update(chassis_move_t *chassis_move_update)
         chassis_move_update->motor_chassis[i].accel = chassis_move_update->motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
     }
 
-#if !defined(INFANTRY_3)
+#if !(ROBOT_TYPE == INFANTRY_2023_SWERVE)
     //calculate vertical speed, horizontal speed ,rotation speed, left hand rule 
     //更新底盘纵向速度 x， 平移速度y，旋转速度wz，坐标系为右手系
     chassis_move_update->vx = (-chassis_move_update->motor_chassis[0].speed + chassis_move_update->motor_chassis[1].speed + chassis_move_update->motor_chassis[2].speed - chassis_move_update->motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
@@ -580,7 +580,7 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
     }
 }
 
-#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
 /**
   * @brief          four mecanum wheels speed is calculated by three param. 
   * @param[in]      vx_set: vertial speed
@@ -606,7 +606,7 @@ static void chassis_vector_to_mecanum_wheel_speed(const fp32 vx_set, const fp32 
     wheel_speed[2] = vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * MOTOR_DISTANCE_TO_CENTER * wz_set;
     wheel_speed[3] = -vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * MOTOR_DISTANCE_TO_CENTER * wz_set;
 }
-#elif defined(INFANTRY_3)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 /**
   * @brief          four drive wheels' speeds and four steering wheels' angles are calculated by three chassis param. 
   * @param[in]      vx_set: vertial speed (up is positive)
@@ -708,12 +708,12 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
     fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
     uint8_t i = 0;
 
-#if defined(INFANTRY_1) || defined(INFANTRY_2) || defined(SENTRY_1)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
     //mecanum wheel speed calculation
     //麦轮运动分解
     chassis_vector_to_mecanum_wheel_speed(chassis_move_control_loop->vx_set,
                                           chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, wheel_speed);
-#elif defined(INFANTRY_3)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
     //wheel vector calculation
     //舵轮运动分解
     fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit rad
@@ -743,7 +743,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
             max_vector = temp;
         }
 
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
         // steer motor encoder value set
         chassis_move_control_loop->steer_motor_chassis[i].target_ecd = motor_angle_to_ecd_change(steer_wheel_angle[i]);
 #endif
@@ -782,7 +782,7 @@ fp32 abs_err_handler(fp32 set, fp32 ref)
   return rad_format(set - ref);
 }
 
-#if defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 /**
  * @brief Convert motor angle from radian to encoder unit
  * Requirements:

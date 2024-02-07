@@ -18,7 +18,7 @@
 #define LED_TRIGGER_TASK_H
 
 
-#include "struct_typedef.h"
+#include "global_inc.h"
 
 /**
   * @brief          led rgb task

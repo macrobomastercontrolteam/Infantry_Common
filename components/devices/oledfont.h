@@ -10,7 +10,7 @@
 
 // #ifndef __OLED__FONT__H
 // #define __OLED__FONT__H
-// #include "struct_typedef.h"
+// #include "global_inc.h"
 // //PC2LCD2002取模方式设置：阴码+逐列式+顺向+C51格式
 // typedef struct
 // {

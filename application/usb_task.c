@@ -44,12 +44,12 @@ void usb_task(void const * argument)
 
     while(1)
     {
-#if defined(DEBUG_CV)
+#if DEBUG_CV_WITH_USB
     UNUSED(status);
 #else
         osDelay(1000);
         usb_printf(
-#if defined(TEST_NO_REF)
+#if TEST_NO_REF
 "******************************\r\n\
 voltage percentage:%d%% \r\n\
 DBUS:%s\r\n\
@@ -98,7 +98,7 @@ cv usart:%s\r\n\
             status[error_list_usb_local[BOARD_MAG_TOE].error_exist],
             status[error_list_usb_local[REFEREE_TOE].error_exist],
             status[error_list_usb_local[CV_TOE].error_exist]);
-#endif // defined(DEBUG_CV)
+#endif // DEBUG_CV_WITH_USB
     }
 
 }

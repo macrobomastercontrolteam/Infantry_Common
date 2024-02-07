@@ -17,7 +17,7 @@
 
 #ifndef SHOOT_H
 #define SHOOT_H
-#include "struct_typedef.h"
+#include "global_inc.h"
 
 #include "CAN_receive.h"
 #include "gimbal_task.h"
@@ -33,9 +33,9 @@
 #define SHOOT_CONTROL_TIME          GIMBAL_CONTROL_TIME
 
 // Start friction wheel immediately
-#if defined(INFANTRY_2)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define SHOOT_FRIC_PWM_ADD_VALUE    2000.0f
-#elif defined(SENTRY_1)
+#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define SHOOT_FRIC_PWM_ADD_VALUE    2000.0f
 #else
 #define SHOOT_FRIC_PWM_ADD_VALUE    2000.0f
@@ -72,16 +72,14 @@
 #define REVERSE_TIME                500
 #define REVERSE_SPEED_LIMIT         13.0f
 
-#if defined(INFANTRY_1) 
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) 
 #define TRIGGER_ANGLE_INCREMENT     (PI/7.0f)
-#elif defined(INFANTRY_2)
+#elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define TRIGGER_ANGLE_INCREMENT     (PI/8.0f)
-#elif defined(INFANTRY_3)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define TRIGGER_ANGLE_INCREMENT     (PI/12.0f)
-#elif defined(SENTRY_1)
+#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define TRIGGER_ANGLE_INCREMENT     (PI/9.0f)
-#else
-#error "Robot Index not specified"
 #endif
 
 //²¦µ¯ÂÖµç»úPID
@@ -95,7 +93,7 @@
 #define TRIGGER_READY_PID_MAX_OUT   10000.0f
 #define TRIGGER_READY_PID_MAX_IOUT  7000.0f
 
-#if defined(INFANTRY_2)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define TRIGGER_TURN
 #endif
 

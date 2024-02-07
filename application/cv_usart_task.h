@@ -6,16 +6,12 @@
 #ifndef CV_USART_TASK_H
 #define CV_USART_TASK_H
 
-#if defined(DEBUG_CV) && (!defined(CV_INTERFACE))
-#error "DEBUG_CV cannot be defined without CV_INTERFACE"
-#endif
-
-#if defined(CV_INTERFACE)
-
+#include "global_inc.h"
 #include "main.h"
-#include "struct_typedef.h"
-#include "remote_control.h"
 #include "user_lib.h" // moving_average_type_t, STATIC_ASSERT
+#include "remote_control.h"
+
+#if CV_INTERFACE
 
 typedef struct __attribute__((packed))
 {
@@ -54,12 +50,12 @@ uint8_t CvCmder_GetMode(uint8_t bCvModeBit);
 tCvCmdHandler* CvCmder_GetHandler(void);
 void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd);
 uint8_t CvCmder_CheckAndResetFlag(uint8_t *pbFlag);
-#if defined(DEBUG_CV)
+#if DEBUG_CV_WITH_USB
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void);
-#endif // defined(DEBUG_CV)
+#endif // DEBUG_CV_WITH_USB
 
 extern tCvCmdHandler CvCmdHandler;
 
-#endif // defined(CV_INTERFACE)
+#endif // CV_INTERFACE
 
 #endif // CV_USART_TASK_H

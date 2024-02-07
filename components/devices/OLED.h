@@ -11,7 +11,7 @@
 
 #ifndef OLED_H
 #define OLED_H
-#include "struct_typedef.h"
+#include "global_inc.h"
 #include "oledfont.h"
 
 

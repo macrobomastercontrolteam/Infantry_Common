@@ -18,7 +18,7 @@
   */
 #ifndef VOLTAGE_TASK_H
 #define VOLTAGE_TASK_H
-#include "struct_typedef.h"
+#include "global_inc.h"
 
 
 

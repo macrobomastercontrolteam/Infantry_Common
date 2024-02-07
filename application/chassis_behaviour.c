@@ -165,7 +165,7 @@ static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_se
 
 static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 #endif
 
@@ -258,7 +258,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
         return;
     }
 
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
     if (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT))
     {
         chassis_behaviour_mode = CHASSIS_CV_CONTROL_SPINNING;
@@ -266,7 +266,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
     else
 #endif
     {
-#if !(!defined(SENTRY_HW_TEST) && defined(SENTRY_1))
+#if !(!SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM))
         // remote control  set chassis behaviour mode
         // Ò£¿ØÆ÷ÉèÖÃÄ£Ê½
         if (switch_is_mid(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
@@ -282,7 +282,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
         }
         else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
         {
-#if defined(SENTRY_1)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
             chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
 #else
             chassis_behaviour_mode = CHASSIS_SPINNING;
@@ -329,7 +329,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
     {
         chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
     }
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
     else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
     {
         chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
@@ -396,7 +396,7 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
     {
         chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
     }
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
     else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
     {
         chassis_cv_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
@@ -575,14 +575,14 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
     // }
     // else
     {
-#if defined(SENTRY_1)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
         spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
 #else
         if (chassis_move_rc_to_vector->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
         {
-#if defined(INFANTRY_2)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
             spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-#elif defined(INFANTRY_3)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
             spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
 #endif
         }
@@ -595,7 +595,7 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
     *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
 }
 
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
 {
     if (vx_set == NULL || vy_set == NULL || angle_set == NULL)

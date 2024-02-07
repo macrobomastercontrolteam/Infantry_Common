@@ -16,7 +16,7 @@
   */
 #ifndef USB_TASK_H
 #define USB_TASK_H
-#include "struct_typedef.h"
+#include "global_inc.h"
 
 
 

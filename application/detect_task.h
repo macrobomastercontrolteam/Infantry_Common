@@ -52,7 +52,7 @@
   
 #ifndef DETECT_TASK_H
 #define DETECT_TASK_H
-#include "struct_typedef.h"
+#include "global_inc.h"
 
 
 #define DETECT_TASK_INIT_TIME 57

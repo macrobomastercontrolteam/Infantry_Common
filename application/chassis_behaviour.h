@@ -80,7 +80,7 @@
 
 #ifndef CHASSIS_BEHAVIOUR_H
 #define CHASSIS_BEHAVIOUR_H
-#include "struct_typedef.h"
+#include "global_inc.h"
 #include "chassis_task.h"
 
 typedef enum

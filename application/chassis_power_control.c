@@ -24,11 +24,11 @@
 #include "arm_math.h"
 #include "detect_task.h"
 
-#if defined(INFANTRY_2) || defined(INFANTRY_3)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // @TODO: change limit according to chassis_power_limit field of referee serial data
 #define POWER_LIMIT         40.0f
 #define WARNING_POWER       35.0f
-#elif defined(SENTRY_1)
+#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define POWER_LIMIT         95.0f
 #define WARNING_POWER       65.0f
 #else

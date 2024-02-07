@@ -186,7 +186,7 @@ void MX_FREERTOS_Init(void) {
 
     // osThreadDef(SERVO, servo_task, osPriorityNormal, 0, 128);
     // servo_task_handle = osThreadCreate(osThread(SERVO), NULL);
-#if defined(CV_INTERFACE)
+#if CV_INTERFACE
     osThreadDef(CVTask, cv_usart_task, osPriorityNormal, 0, 256);
     cv_usart_task_handle = osThreadCreate(osThread(CVTask), NULL);
 #else
