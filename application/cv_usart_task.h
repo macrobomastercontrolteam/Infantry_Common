@@ -49,7 +49,6 @@ void cv_usart_task(void const *argument);
 uint8_t CvCmder_GetMode(uint8_t bCvModeBit);
 tCvCmdHandler* CvCmder_GetHandler(void);
 void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd);
-uint8_t CvCmder_CheckAndResetFlag(uint8_t *pbFlag);
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void);
 #endif // DEBUG_CV_WITH_USB

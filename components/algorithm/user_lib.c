@@ -202,3 +202,10 @@ fp32 theta_format(fp32 Ang)
 {
     return loop_fp32_constrain(Ang, -180.0f, 180.0f);
 }
+
+uint8_t checkAndResetFlag(uint8_t *pbFlag)
+{
+    uint8_t temp = *pbFlag;
+    *pbFlag = 0;
+    return temp;
+}

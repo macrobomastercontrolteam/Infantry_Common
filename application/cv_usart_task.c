@@ -180,9 +180,9 @@ void CvCmder_PollForModeChange(void)
     case CMDER_STATE_IDLE:
     {
 #if DEBUG_CV_WITH_USB
-        if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE) || CvCmder_MockModeChange())
+        if (checkAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE) || CvCmder_MockModeChange())
 #else
-        if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE))
+        if (checkAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE))
 #endif
         {
             CvCmder_SendSetModeRequest();
@@ -426,17 +426,10 @@ tCvCmdHandler *CvCmder_GetHandler(void)
     return &CvCmdHandler;
 }
 
-uint8_t CvCmder_CheckAndResetFlag(uint8_t *pbFlag)
-{
-    uint8_t temp = *pbFlag;
-    *pbFlag = 0;
-    return temp;
-}
-
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void)
 {
-    return CvCmder_CheckAndResetFlag(&fIsUserKeyPressingEdge);
+    return checkAndResetFlag(&fIsUserKeyPressingEdge);
 }
 
 /**
