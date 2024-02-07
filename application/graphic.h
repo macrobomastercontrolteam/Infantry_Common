@@ -122,3 +122,9 @@ typedef struct
    uint8_t delete_operate;         // Delete operation
    uint8_t layer;                  // Layer to be deleted
 } graphic_delete;                  // Frame for deleting a layer
+
+typedef struct
+{
+   graphic_data_struct_t graph_control;
+   uint8_t show_data[30];
+} string_data;    

@@ -300,27 +300,27 @@ void Float_Draw(Float_Data *image, char imagename[3], uint32_t Graph_Operate, ui
  * @param[in]      start_y: starting y-coordinate
  * @param[in]      *char_data: pointer to the start of the string data to be drawn
  */
-void Char_Draw(String_Data *image, char figure_name[3], u32 Graph_Operate, u32 Graph_Layer, u32 Graph_Color, u32 Graph_Size, u32 Graph_Digit, u32 Graph_Width, u32 Start_x, u32 Start_y, char *Char_Data)
+void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, char *char_data)
 {
     int i;
    
     for (i = 0; i < 3 && figure_name[i] != '\0'; i++)
-        image->Graph_Control.graphic_name[i] = figure_name[i];
+        image->graph_control.figure_name[i] = figure_name[i];
 	
-    image->Graph_Control.graphic_tpye = UI_Graph_Char;
-    image->Graph_Control.operate_tpye = Graph_Operate;
-    image->Graph_Control.layer = Graph_Layer;
-    image->Graph_Control.color = Graph_Color;
-    image->Graph_Control.width = Graph_Width;
-    image->Graph_Control.start_x = Start_x;
-    image->Graph_Control.start_y = Start_y;
-    image->Graph_Control.start_angle = Graph_Size;
-    image->Graph_Control.end_angle = Graph_Digit;
+    image->graph_control.figure_type = UI_Graph_Char;
+    image->graph_control.operate_type = graph_operate;
+    image->graph_control.layer = graph_layer;
+    image->graph_control.color = graph_color;
+    image->graph_control.width = graph_width;
+    image->graph_control.start_x = start_x;
+    image->graph_control.start_y = start_y;
+    image->graph_control.details_a = graph_size;
+    image->graph_control.details_b = graph_digit;
    
-    for (i = 0; i < Graph_Digit; i++)
+    for (i = 0; i < graph_digit; i++)
     {
-        image->show_Data[i] = *Char_Data;
-        Char_Data++;
+        image->show_data[i] = *char_data;
+        char_data++;
     }
 }
 
