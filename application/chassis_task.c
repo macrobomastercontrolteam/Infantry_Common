@@ -147,12 +147,14 @@ void chassis_task(void const *pvParameters)
     uint8_t fIsError = 0;
     uint8_t bToeIndex;
     do {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-      for (bToeIndex = CV_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-#else
       for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-#endif
       {
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
+        if (bToeIndex == DBUS_TOE)
+        {
+          bToeIndex = CV_TOE;
+        }
+#endif
         if (toe_is_error(bToeIndex))
         {
           fIsError = 1;
