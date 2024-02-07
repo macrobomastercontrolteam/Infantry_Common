@@ -152,7 +152,6 @@ void CvCmder_Init(void)
 #if !SENTRY_HW_TEST
     CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 1);
 #endif
-    CvCmdHandler.fIsModeChanged = 1;
 #endif
 
     // Get a callback when DMA completes or IDLE
@@ -226,7 +225,6 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
         {
             // keyboard "G" button toggles auto-aim mode
             CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT, CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT) ? 0 : 1);
-            CvCmdHandler.fIsModeChanged = 1;
         }
         fLastKeySignal = fIsKeyPressed;
     }
@@ -415,7 +413,12 @@ uint8_t CvCmder_GetMode(uint8_t bCvModeBit)
 
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag)
 {
-    CvCmdHandler.fCvMode = (CvCmdHandler.fCvMode & ~bCvModeBit) | (fFlag ? bCvModeBit : 0);
+    uint8_t fLastMode = CvCmder_GetMode(bCvModeBit);
+    if (fLastMode != fFlag)
+    {
+        CvCmdHandler.fCvMode = (CvCmdHandler.fCvMode & ~bCvModeBit) | (fFlag ? bCvModeBit : 0);
+        CvCmdHandler.fIsModeChanged = 1;
+    }
 }
 
 /**
