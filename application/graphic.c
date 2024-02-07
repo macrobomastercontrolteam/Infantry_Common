@@ -262,28 +262,37 @@ void arc_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_
  * @param[in]      graph_color: color of the graphic
  * @param[in]      graph_width: line width of the graphic
  * @param[in]      graph_size: font size
- * @param[in]      graph_digit: number of decimal places
  * @param[in]      start_x: starting x-coordinate
  * @param[in]      start_y: starting y-coordinate
- * @param[in]      graph_float: variable to display
+ * @param[in]      graph_float: variable to display, the value gets divided by 1000 and then displayed
+ *                              ex. if graph_float = 1234, the display will show 1.234
  */
-void Float_Draw(Float_Data *image, char imagename[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color, uint32_t Graph_Size, uint32_t Graph_Digit, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, float Graph_Float)
+void float_draw(graphic_data_struct_t *image, char imagename[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t graph_float)
 {
     int i;
-   
     for (i = 0; i < 3 && imagename[i] != '\0'; i++)
-        image->graphic_name[i] = imagename[i];
+        image->figure_name[i] = imagename[i];
 	
-    image->graphic_tpye = UI_Graph_Float;
-    image->operate_tpye = Graph_Operate;
-    image->layer = Graph_Layer;
-    image->color = Graph_Color;
-    image->width = Graph_Width;
-    image->start_x = Start_x;
-    image->start_y = Start_y;
-    image->start_angle = Graph_Size;
-    image->end_angle = Graph_Digit;
-    image->graph_Float = (int32_t)(1000 * Graph_Float); // multiply by 1000 to preserve three decimal places
+    image->figure_type = UI_Graph_Float;
+    image->operate_type = graph_operate;
+    image->layer = graph_layer;
+    image->color = graph_color;
+    image->width = graph_width;
+    image->start_x = start_x;
+    image->start_y = start_y;
+    image->details_a = graph_size;
+
+    // Get the last 11 bits
+    unsigned mask = (1 << 11) - 1;
+    image -> details_e = graph_float & mask;
+
+    // Get the next 11 bits
+    mask = mask << 11;
+    image -> details_d = graph_float & mask;
+
+    // Get the first 10 bits
+    mask = ((1 << 10) - 1) << 22;
+    image->details_c = graph_float & mask;
 }
 
 /**
