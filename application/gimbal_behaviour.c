@@ -484,7 +484,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
 
         //超过初始化最大时间，或者已经稳定到中值一段时间，退出初始化状态开关打下档，或者掉线
-#if !SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
         if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME && !toe_is_error(CV_TOE))
 #else
         if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME &&
@@ -500,7 +500,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
     }
 
-#if !SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
     // DBUS act as emergency stop
     if (toe_is_error(CV_TOE) || gimbal_emergency_stop())
     {

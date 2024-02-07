@@ -147,7 +147,7 @@ void chassis_task(void const *pvParameters)
     uint8_t fIsError = 0;
     uint8_t bToeIndex;
     do {
-#if !SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
       for (bToeIndex = CV_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
 #else
       for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
@@ -197,7 +197,7 @@ void chassis_task(void const *pvParameters)
             chassis_move.motor_chassis[3].give_current = 0;
 #endif
 
-#if !SENTRY_HW_TEST && (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
             // Remote controller act as emergency stop
             if (toe_is_error(CV_TOE) || gimbal_emergency_stop())
 #else
