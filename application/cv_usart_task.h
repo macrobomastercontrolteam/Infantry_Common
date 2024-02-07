@@ -15,8 +15,8 @@
 
 typedef struct __attribute__((packed))
 {
-    fp32 xDeltaAngle; ///< unit: rad
-    fp32 yDeltaAngle; ///< unit: rad
+    fp32 xTargetAngle; ///< unit: rad
+    fp32 yTargetAngle; ///< unit: rad
     fp32 xSpeed;
     fp32 ySpeed;
 } tCvCmdMsg;
@@ -27,7 +27,8 @@ typedef enum
     CV_MODE_AUTO_MOVE_BIT = 1 << 1,
     CV_MODE_ENEMY_DETECTED_BIT = 1 << 2,
     CV_MODE_SHOOT_BIT = 1 << 3,
-    CV_MODE_LAST_BIT = 1 << 4,
+    CV_MODE_IMU_CALI_BIT = 1 << 4, ///< 1 means IMU calibration is not done yet, and gimbal is powered to held at a fixed center position
+    CV_MODE_LAST_BIT = 1 << 5,
 } eModeControlBits;
 STATIC_ASSERT(CV_MODE_LAST_BIT <= (1 << 8));
 
