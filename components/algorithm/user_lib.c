@@ -1,7 +1,7 @@
 #include "user_lib.h"
 #include "arm_math.h"
 
-//¿ìËÙ¿ª·½
+//ï¿½ï¿½ï¿½Ù¿ï¿½ï¿½ï¿½
 fp32 invSqrt(fp32 num)
 {
     fp32 halfnum = 0.5f * num;
@@ -14,13 +14,13 @@ fp32 invSqrt(fp32 num)
 }
 
 /**
-  * @brief          Ð±²¨º¯Êý³õÊ¼»¯
+  * @brief          Ð±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½
   * @author         RM
-  * @param[in]      Ð±²¨º¯Êý½á¹¹Ìå
-  * @param[in]      ¼ä¸ôµÄÊ±¼ä£¬µ¥Î» s
-  * @param[in]      ×î´óÖµ
-  * @param[in]      ×îÐ¡Öµ
-  * @retval         ·µ»Ø¿Õ
+  * @param[in]      Ð±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á¹¹ï¿½ï¿½
+  * @param[in]      ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£¬ï¿½ï¿½Î» s
+  * @param[in]      ï¿½ï¿½ï¿½Öµ
+  * @param[in]      ï¿½ï¿½Ð¡Öµ
+  * @retval         ï¿½ï¿½ï¿½Ø¿ï¿½
   */
 void ramp_init(ramp_function_source_t *ramp_source_type, fp32 frame_period, fp32 max, fp32 min)
 {
@@ -32,12 +32,12 @@ void ramp_init(ramp_function_source_t *ramp_source_type, fp32 frame_period, fp32
 }
 
 /**
-  * @brief          Ð±²¨º¯Êý¼ÆËã£¬¸ù¾ÝÊäÈëµÄÖµ½øÐÐµþ¼Ó£¬ ÊäÈëµ¥Î»Îª /s ¼´Ò»ÃëºóÔö¼ÓÊäÈëµÄÖµ
+  * @brief          Ð±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½Ðµï¿½ï¿½Ó£ï¿½ ï¿½ï¿½ï¿½ëµ¥Î»Îª /s ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
   * @author         RM
-  * @param[in]      Ð±²¨º¯Êý½á¹¹Ìå
-  * @param[in]      ÊäÈëÖµ
-  * @param[in]      ÂË²¨²ÎÊý
-  * @retval         ·µ»Ø¿Õ
+  * @param[in]      Ð±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á¹¹ï¿½ï¿½
+  * @param[in]      ï¿½ï¿½ï¿½ï¿½Öµ
+  * @param[in]      ï¿½Ë²ï¿½ï¿½ï¿½ï¿½ï¿½
+  * @retval         ï¿½ï¿½ï¿½Ø¿ï¿½
   */
 void ramp_calc(ramp_function_source_t *ramp_source_type, fp32 input)
 {
@@ -53,12 +53,12 @@ void ramp_calc(ramp_function_source_t *ramp_source_type, fp32 input)
     }
 }
 /**
-  * @brief          Ò»½×µÍÍ¨ÂË²¨³õÊ¼»¯
+  * @brief          Ò»ï¿½×µï¿½Í¨ï¿½Ë²ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½
   * @author         RM
-  * @param[in]      Ò»½×µÍÍ¨ÂË²¨½á¹¹Ìå
-  * @param[in]      ¼ä¸ôµÄÊ±¼ä£¬µ¥Î» s
-  * @param[in]      ÂË²¨²ÎÊý
-  * @retval         ·µ»Ø¿Õ
+  * @param[in]      Ò»ï¿½×µï¿½Í¨ï¿½Ë²ï¿½ï¿½á¹¹ï¿½ï¿½
+  * @param[in]      ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£¬ï¿½ï¿½Î» s
+  * @param[in]      ï¿½Ë²ï¿½ï¿½ï¿½ï¿½ï¿½
+  * @retval         ï¿½ï¿½ï¿½Ø¿ï¿½
   */
 void first_order_filter_init(first_order_filter_type_t *first_order_filter_type, fp32 frame_period, const fp32 num[1])
 {
@@ -69,11 +69,11 @@ void first_order_filter_init(first_order_filter_type_t *first_order_filter_type,
 }
 
 /**
-  * @brief          Ò»½×µÍÍ¨ÂË²¨¼ÆËã
+  * @brief          Ò»ï¿½×µï¿½Í¨ï¿½Ë²ï¿½ï¿½ï¿½ï¿½ï¿½
   * @author         RM
-  * @param[in]      Ò»½×µÍÍ¨ÂË²¨½á¹¹Ìå
-  * @param[in]      ¼ä¸ôµÄÊ±¼ä£¬µ¥Î» s
-  * @retval         ·µ»Ø¿Õ
+  * @param[in]      Ò»ï¿½×µï¿½Í¨ï¿½Ë²ï¿½ï¿½á¹¹ï¿½ï¿½
+  * @param[in]      ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£¬ï¿½ï¿½Î» s
+  * @retval         ï¿½ï¿½ï¿½Ø¿ï¿½
   */
 void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type, fp32 input)
 {
@@ -113,7 +113,7 @@ fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type,
     return output;
 }
 
-//ÅÐ¶Ï·ûºÅÎ»
+//ï¿½Ð¶Ï·ï¿½ï¿½ï¿½Î»
 fp32 sign(fp32 value)
 {
     if (value >= 0.0f)
@@ -126,7 +126,7 @@ fp32 sign(fp32 value)
     }
 }
 
-//¸¡µãËÀÇø
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 fp32 fp32_deadline(fp32 Value, fp32 minValue, fp32 maxValue)
 {
     if (Value < maxValue && Value > minValue)
@@ -136,7 +136,7 @@ fp32 fp32_deadline(fp32 Value, fp32 minValue, fp32 maxValue)
     return Value;
 }
 
-//int26ËÀÇø
+//int26ï¿½ï¿½ï¿½ï¿½
 int16_t int16_deadline(int16_t Value, int16_t minValue, int16_t maxValue)
 {
     if (Value < maxValue && Value > minValue)
@@ -146,7 +146,7 @@ int16_t int16_deadline(int16_t Value, int16_t minValue, int16_t maxValue)
     return Value;
 }
 
-//ÏÞ·ùº¯Êý
+//ï¿½Þ·ï¿½ï¿½ï¿½ï¿½ï¿½
 fp32 fp32_constrain(fp32 Value, fp32 minValue, fp32 maxValue)
 {
     if (Value < minValue)
@@ -157,7 +157,7 @@ fp32 fp32_constrain(fp32 Value, fp32 minValue, fp32 maxValue)
         return Value;
 }
 
-//ÏÞ·ùº¯Êý
+//ï¿½Þ·ï¿½ï¿½ï¿½ï¿½ï¿½
 int16_t int16_constrain(int16_t Value, int16_t minValue, int16_t maxValue)
 {
     if (Value < minValue)
@@ -168,7 +168,7 @@ int16_t int16_constrain(int16_t Value, int16_t minValue, int16_t maxValue)
         return Value;
 }
 
-//Ñ­»·ÏÞ·ùº¯Êý
+//Ñ­ï¿½ï¿½ï¿½Þ·ï¿½ï¿½ï¿½ï¿½ï¿½
 fp32 loop_fp32_constrain(fp32 Input, fp32 minValue, fp32 maxValue)
 {
     if (maxValue < minValue)
@@ -195,9 +195,9 @@ fp32 loop_fp32_constrain(fp32 Input, fp32 minValue, fp32 maxValue)
     return Input;
 }
 
-//»¡¶È¸ñÊ½»¯Îª-PI~PI
+//ï¿½ï¿½ï¿½È¸ï¿½Ê½ï¿½ï¿½Îª-PI~PI
 
-//½Ç¶È¸ñÊ½»¯Îª-180~180
+//ï¿½Ç¶È¸ï¿½Ê½ï¿½ï¿½Îª-180~180
 fp32 theta_format(fp32 Ang)
 {
     return loop_fp32_constrain(Ang, -180.0f, 180.0f);
@@ -206,7 +206,7 @@ fp32 theta_format(fp32 Ang)
 // Static Arr Implementation
 
 // Filling the array
-void fill_buffer(int input_angle, circular_buffer_t *circular_buffer)
+void fill_buffer(fp32 input_angle, circular_buffer_t *circular_buffer)
 {
     if (circular_buffer->current_buffer_index != circular_buffer->buffer_size - 1)
     {

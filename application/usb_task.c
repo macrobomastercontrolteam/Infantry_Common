@@ -1,7 +1,7 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       usb_task.c/h
-  * @brief      usb outputs the error message.usbÊä³ö´íÎóÐÅÏ¢
+  * @brief      usb outputs the error message.usbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï?
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -99,6 +99,12 @@ cv usart:%s\r\n\
             status[error_list_usb_local[REFEREE_TOE].error_exist],
             status[error_list_usb_local[CV_TOE].error_exist]);
 #endif // DEBUG_CV_WITH_USB
+        fp32 yaw_angle_to_print = access_angle(xTaskGetTickCount(),&(gimbal_control.yaw_angle));
+        fp32 pitch_angle_to_print = access_angle(xTaskGetTickCount(),&(gimbal_control.pitch_angle));
+
+
+        usb_printf("yaw: %f, pitch: %f",yaw_angle_to_print,pitch_angle_to_print);
+
     }
 
 }
