@@ -36,7 +36,7 @@ ext_sentry_info_t sentry_info_t;                                //0x020D
 ext_radar_info_t radar_info_t;                                  //0x020E
 // ext_bullet_remaining_t bullet_remaining_t;
 ext_student_interactive_data_t student_interactive_data_t;
-ext_client_custom_character_t client_custom_character_t;
+// ext_client_custom_character_t client_custom_character_t;
 ext_sentry_cmd_t sentry_cmd_t;
 ext_radar_cmd_t radar_cmd_t;
 // ext_robot_interactive_data_t robot_interactive_data_t;
@@ -299,147 +299,147 @@ void get_shoot_heat1_limit_and_heat1(uint16_t *heat1_limit, uint16_t *heat1)
 
 // GRAPHICS stuff here cause i'm lazy
 
-typedef __packed struct
-{
-    uint8_t graphic_name[3];
-    uint32_t operate_tpye : 3;
-    uint32_t graphic_tpye : 3;
-    uint32_t layer : 4;
-    uint32_t color : 4;
-    uint32_t start_angle : 9;
-    uint32_t end_angle : 9;
-    uint32_t width : 10;
-    uint32_t start_x : 11;
-    uint32_t start_y : 11;
-    uint32_t radius : 10;
-    uint32_t end_x : 11;
-    uint32_t end_y : 11;
-} graphic_data_struct_t;
+// typedef __packed struct
+// {
+//     uint8_t graphic_name[3];
+//     uint32_t operate_tpye : 3;
+//     uint32_t graphic_tpye : 3;
+//     uint32_t layer : 4;
+//     uint32_t color : 4;
+//     uint32_t start_angle : 9;
+//     uint32_t end_angle : 9;
+//     uint32_t width : 10;
+//     uint32_t start_x : 11;
+//     uint32_t start_y : 11;
+//     uint32_t radius : 10;
+//     uint32_t end_x : 11;
+//     uint32_t end_y : 11;
+// } graphic_data_struct_t;
 
-// Client Drawing Graphics
-typedef __packed struct
-{
-    // Number of graphics to be drawn, i.e., the length of the graphic data array.
-    // However, it is important to carefully check the content ID corresponding to the increase 
-    // in the number of graphics provided by the referee system.
-    graphic_data_struct_t grapic_data_struct[7];  
+// // Client Drawing Graphics
+// typedef __packed struct
+// {
+//     // Number of graphics to be drawn, i.e., the length of the graphic data array.
+//     // However, it is important to carefully check the content ID corresponding to the increase 
+//     // in the number of graphics provided by the referee system.
+//     graphic_data_struct_t grapic_data_struct[7];  
 
-} ext_client_custom_graphic_t;
+// } ext_client_custom_graphic_t;
 
-// Interactive Data Information
-typedef __packed struct
-{
-    uint16_t data_cmd_id;                        // Data segment content ID
-    uint16_t sender_ID;                          // Sender ID
-    uint16_t receiver_ID;                        // Receiver ID
-    ext_client_custom_graphic_t graphic_custom;  // Custom graphic data
+// // Interactive Data Information
+// typedef __packed struct
+// {
+//     uint16_t data_cmd_id;                        // Data segment content ID
+//     uint16_t sender_ID;                          // Sender ID
+//     uint16_t receiver_ID;                        // Receiver ID
+//     ext_client_custom_graphic_t graphic_custom;  // Custom graphic data
 
-} ext_student_interactive_header_data_t;
+// } ext_student_interactive_header_data_t;
 
-/**
- * @brief     Pack data to the bottom device
- * @param[in] sof: frame header
- * @param[in] cmd_id: command ID of the data
- * @param[in] *p_data: pointer to the data to be sent
- * @param[in] len: the data length
- */
-#define MAX_SIZE 128      // Maximum length of uploaded data
-#define frameheader_len 5 // Frame header length
-#define cmd_len 2         // Command code length
-#define crc_len 2         // CRC16 checksum
-uint8_t seq = 0;
+// /**
+//  * @brief     Pack data to the bottom device
+//  * @param[in] sof: frame header
+//  * @param[in] cmd_id: command ID of the data
+//  * @param[in] *p_data: pointer to the data to be sent
+//  * @param[in] len: the data length
+//  */
+// #define MAX_SIZE 128      // Maximum length of uploaded data
+// #define frameheader_len 5 // Frame header length
+// #define cmd_len 2         // Command code length
+// #define crc_len 2         // CRC16 checksum
+// uint8_t seq = 0;
 
-void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uint16_t len)
-{
-    uint8_t tx_buff[MAX_SIZE];
+// void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uint16_t len)
+// {
+//     uint8_t tx_buff[MAX_SIZE];
 
-    uint16_t frame_length = frameheader_len + cmd_len + len + crc_len; // Data frame length
+//     uint16_t frame_length = frameheader_len + cmd_len + len + crc_len; // Data frame length
 
-    memset(tx_buff, 0, frame_length); // Clear the array for storing data
+//     memset(tx_buff, 0, frame_length); // Clear the array for storing data
 
-    /***** Frame Header Packing *****/
-    tx_buff[0] = sof;                                  // Start byte of the data frame
-    memcpy(&tx_buff[1], (uint8_t *)&len, sizeof(len)); // Length of the data in the data frame
-    tx_buff[3] = seq;                                  // Packet sequence number
-    append_CRC8_check_sum(tx_buff, frameheader_len);   // Frame header CRC8 checksum
+//     /***** Frame Header Packing *****/
+//     tx_buff[0] = sof;                                  // Start byte of the data frame
+//     memcpy(&tx_buff[1], (uint8_t *)&len, sizeof(len)); // Length of the data in the data frame
+//     tx_buff[3] = seq;                                  // Packet sequence number
+//     append_CRC8_check_sum(tx_buff, frameheader_len);   // Frame header CRC8 checksum
 
-    /***** Command Code Packing *****/
-    memcpy(&tx_buff[frameheader_len], (uint8_t *)&cmd_id, cmd_len);
+//     /***** Command Code Packing *****/
+//     memcpy(&tx_buff[frameheader_len], (uint8_t *)&cmd_id, cmd_len);
 
-    /***** Data Packing *****/
-    memcpy(&tx_buff[frameheader_len + cmd_len], p_data, len);
-    append_CRC16_check_sum(tx_buff, frame_length); // Data frame CRC16 checksum
+//     /***** Data Packing *****/
+//     memcpy(&tx_buff[frameheader_len + cmd_len], p_data, len);
+//     append_CRC16_check_sum(tx_buff, frame_length); // Data frame CRC16 checksum
 
-    if (seq == 0xff)
-        seq = 0;
-    else
-        seq++;
+//     if (seq == 0xff)
+//         seq = 0;
+//     else
+//         seq++;
 
-    /***** Data Upload *****/
-    // TODO: Figure out how to send data to the ref system
-    // Might need this?
-    // USART_ClearFlag(UART4, USART_FLAG_TC);
-    // for (i = 0; i < frame_length; i++)
-    // {
-    //     // USART_SendData(UART4, tx_buff[i]); // Don't think i need this
-    //     // TODO: Not sure if need to change the huart number from 6 to 4?
-    //     HAL_UART_Transmit(&huart6, tx_buff[i], 1, 10);
-    //     while (USART_GetFlagStatus(UART4, USART_FLAG_TC) == RESET); // Wait for the previous character to be sent
-    // }    
+//     /***** Data Upload *****/
+//     // TODO: Figure out how to send data to the ref system
+//     // Might need this?
+//     // USART_ClearFlag(UART4, USART_FLAG_TC);
+//     // for (i = 0; i < frame_length; i++)
+//     // {
+//     //     // USART_SendData(UART4, tx_buff[i]); // Don't think i need this
+//     //     // TODO: Not sure if need to change the huart number from 6 to 4?
+//     //     HAL_UART_Transmit(&huart6, tx_buff[i], 1, 10);
+//     //     while (USART_GetFlagStatus(UART4, USART_FLAG_TC) == RESET); // Wait for the previous character to be sent
+//     // }    
 
-    // I'm just gonna send it all at once, fuck it wii ball
-    HAL_UART_Transmit(&huart6, tx_buff, frame_length, 10000);
+//     // I'm just gonna send it all at once, fuck it wii ball
+//     HAL_UART_Transmit(&huart6, tx_buff, frame_length, 10000);
 
-}
+// }
 
-// 屏幕分辨率1920x1080
-#define SCREEN_WIDTH 1080
-#define SCREEN_LENGTH 1920
-ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
-ext_client_custom_graphic_t custom_graphic;               // 自定义图像
+// // 屏幕分辨率1920x1080
+// #define SCREEN_WIDTH 1080
+// #define SCREEN_LENGTH 1920
+// ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
+// ext_client_custom_graphic_t custom_graphic;               // 自定义图像
 
-// Screen resolution is 1920x1080
-#define SCREEN_WIDTH 1080
-#define SCREEN_LENGTH 1920
+// // Screen resolution is 1920x1080
+// #define SCREEN_WIDTH 1080
+// #define SCREEN_LENGTH 1920
 
-// Custom graphic draw header data
-ext_student_interactive_header_data_t custom_grapic_draw;
+// // Custom graphic draw header data
+// ext_student_interactive_header_data_t custom_grapic_draw;
 
-// Custom graphic structure
-ext_client_custom_graphic_t custom_graphic;
+// // Custom graphic structure
+// ext_client_custom_graphic_t custom_graphic;
 
-// Initialize graphic data variables
-void init_graphic_data() {
-    static long calledTimes = 0;
-    calledTimes++;
+// // Initialize graphic data variables
+// void init_graphic_data() {
+//     static long calledTimes = 0;
+//     calledTimes++;
 
-    // Custom graphic draw
-    custom_grapic_draw.data_cmd_id = 0x0104; // Draw seven graphics (Content ID, refer to the referee system manual for queries)
+//     // Custom graphic draw
+//     custom_grapic_draw.data_cmd_id = 0x0104; // Draw seven graphics (Content ID, refer to the referee system manual for queries)
 
-    // TODO: There are multiple blue standard robot ids
-    // These ones might be wrong
-    custom_grapic_draw.sender_ID = 105;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
-    custom_grapic_draw.receiver_ID = 0x0169;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
+//     // TODO: There are multiple blue standard robot ids
+//     // These ones might be wrong
+//     custom_grapic_draw.sender_ID = 105;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
+//     custom_grapic_draw.receiver_ID = 0x0169;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
 
-    // Custom graphic data
-    {
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_name[0] = 97;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_name[1] = 97;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_name[2] = 0; // Graphic name
-        // The above three bytes represent the graphic name, used for graphic indexing, can be defined as needed
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].operate_tpye = 1; // Graphic operation, 0: empty operation; 1: add; 2: modify; 3: delete;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_tpye = 0; // Graphic type, 0 for a straight line, refer to the user manual for others
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].layer = 1;        // Graphic layer
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].color = 1;        // Color
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_angle = 0;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_angle = 0;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].width = 1;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_x = SCREEN_LENGTH / 2;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_y = SCREEN_WIDTH / 2;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_x = SCREEN_LENGTH / 2;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_y = SCREEN_WIDTH / 2 - 300;
-        custom_grapic_draw.graphic_custom.grapic_data_struct[0].radius = 0;
-    }
-    // Here, only graphic 1 is drawn; refer to the above for assigning values to the graphic data array for other graphics
-    referee_data_pack_handle(0xA5, 0x0301, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
-}
+//     // Custom graphic data
+//     {
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_name[0] = 97;
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_name[1] = 97;
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_name[2] = 0; // Graphic name
+//         // The above three bytes represent the graphic name, used for graphic indexing, can be defined as needed
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].operate_tpye = 1; // Graphic operation, 0: empty operation; 1: add; 2: modify; 3: delete;
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].graphic_tpye = 0; // Graphic type, 0 for a straight line, refer to the user manual for others
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].layer = 1;        // Graphic layer
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].color = 1;        // Color
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_angle = 0;
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_angle = 0;
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].width = 1;
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_x = SCREEN_LENGTH / 2;
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].start_y = SCREEN_WIDTH / 2;
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_x = SCREEN_LENGTH / 2;
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].end_y = SCREEN_WIDTH / 2 - 300;
+//         custom_grapic_draw.graphic_custom.grapic_data_struct[0].radius = 0;
+//     }
+//     // Here, only graphic 1 is drawn; refer to the above for assigning values to the graphic data array for other graphics
+//     referee_data_pack_handle(0xA5, 0x0301, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
+// }

@@ -5,6 +5,9 @@
 		}
 	],
 	"settings": {
-		"files.encoding": "gb2312"
+		"files.encoding": "gb2312",
+		"files.associations": {
+			"graphic.h": "c"
+		}
 	}
 }

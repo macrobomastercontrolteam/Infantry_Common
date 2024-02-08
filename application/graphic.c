@@ -357,7 +357,7 @@ int UI_ReFresh(int cnt, ...)
     framehead.SOF = UI_SOF;
     framehead.data_length = 6 + cnt * 15;
     framehead.seq = UI_Seq;
-    framehead.CRC8 = Get_CRC8_Check_Sum_UI(framepoint, 4, 0xFF);
+    framehead.CRC8 = get_CRC8_check_sum(framepoint, 4, 0xFF);
     framehead.cmd_ID = UI_CMD_Robo_Exchange; // Fill in the package header data
 
     switch (cnt)
@@ -379,56 +379,59 @@ int UI_ReFresh(int cnt, ...)
     }
 
     // Dynamic reception of Referee System ID
-    datahead.sender_ID = get_robot_id();
-    switch (get_robot_id())
-    {
-    case UI_Data_RobotID_RHero:
-        datahead.receiver_ID = UI_Data_CilentID_RHero; // 为英雄操作手客户端(红)
-        break;
-    case UI_Data_RobotID_REngineer:
-        datahead.receiver_ID = UI_Data_CilentID_REngineer;
-        break;
-    case UI_Data_RobotID_RStandard1:
-        datahead.receiver_ID = UI_Data_CilentID_RStandard1;
-        break;
-    case UI_Data_RobotID_RStandard2:
-        datahead.receiver_ID = UI_Data_CilentID_RStandard2;
-        break;
-    case UI_Data_RobotID_RStandard3:
-        datahead.receiver_ID = UI_Data_CilentID_RStandard3;
-        break;
-    case UI_Data_RobotID_RAerial:
-        datahead.receiver_ID = UI_Data_CilentID_RAerial;
-        break;
+    // datahead.sender_ID = get_robot_id();
+    datahead.sender_ID = UI_Data_RobotID_BStandard3;
+    // switch (get_robot_id())
+    // {
+    // case UI_Data_RobotID_RHero:
+    //     datahead.receiver_ID = UI_Data_CilentID_RHero; // 为英雄操作手客户端(红)
+    //     break;
+    // case UI_Data_RobotID_REngineer:
+    //     datahead.receiver_ID = UI_Data_CilentID_REngineer;
+    //     break;
+    // case UI_Data_RobotID_RStandard1:
+    //     datahead.receiver_ID = UI_Data_CilentID_RStandard1;
+    //     break;
+    // case UI_Data_RobotID_RStandard2:
+    //     datahead.receiver_ID = UI_Data_CilentID_RStandard2;
+    //     break;
+    // case UI_Data_RobotID_RStandard3:
+    //     datahead.receiver_ID = UI_Data_CilentID_RStandard3;
+    //     break;
+    // case UI_Data_RobotID_RAerial:
+    //     datahead.receiver_ID = UI_Data_CilentID_RAerial;
+    //     break;
 
-    case UI_Data_RobotID_BHero:
-        datahead.receiver_ID = UI_Data_CilentID_BHero;
-        break;
-    case UI_Data_RobotID_BEngineer:
-        datahead.receiver_ID = UI_Data_CilentID_BEngineer;
-        break;
-    case UI_Data_RobotID_BStandard1:
-        datahead.receiver_ID = UI_Data_CilentID_BStandard1;
-        break;
-    case UI_Data_RobotID_BStandard2:
-        datahead.receiver_ID = UI_Data_CilentID_BStandard2;
-        break;
-    case UI_Data_RobotID_BStandard3:
-        datahead.receiver_ID = UI_Data_CilentID_BStandard3;
-        break;
-    case UI_Data_RobotID_BAerial:
-        datahead.receiver_ID = UI_Data_CilentID_BAerial;
-        break;
-    default:
-        datahead.receiver_ID = Default_Robot_ID; // Default: send to a client regardless
-        datahead.sender_ID = Default_Client_ID;
-        break;
-    }
+    // case UI_Data_RobotID_BHero:
+    //     datahead.receiver_ID = UI_Data_CilentID_BHero;
+    //     break;
+    // case UI_Data_RobotID_BEngineer:
+    //     datahead.receiver_ID = UI_Data_CilentID_BEngineer;
+    //     break;
+    // case UI_Data_RobotID_BStandard1:
+    //     datahead.receiver_ID = UI_Data_CilentID_BStandard1;
+    //     break;
+    // case UI_Data_RobotID_BStandard2:
+    //     datahead.receiver_ID = UI_Data_CilentID_BStandard2;
+    //     break;
+    // case UI_Data_RobotID_BStandard3:
+    //     datahead.receiver_ID = UI_Data_CilentID_BStandard3;
+    //     break;
+    // case UI_Data_RobotID_BAerial:
+    //     datahead.receiver_ID = UI_Data_CilentID_BAerial;
+    //     break;
+    // default:
+    //     datahead.receiver_ID = Default_Robot_ID; // Default: send to a client regardless
+    //     datahead.sender_ID = Default_Client_ID;
+    //     break;
+    // }
+    datahead.sender_ID = UI_Data_RobotID_BStandard3;
+    datahead.receiver_ID = UI_Data_CilentID_BStandard3;
 
     framepoint = (unsigned char *)&framehead;
-    frametail = Get_CRC16_Check_Sum_UI(framepoint, sizeof(framehead), frametail);
+    frametail = get_CRC16_check_sum(framepoint, sizeof(framehead), frametail);
     framepoint = (unsigned char *)&datahead;
-    frametail = Get_CRC16_Check_Sum_UI(framepoint, sizeof(datahead), frametail); // Partial calculation of CRC16 checksum
+    frametail = get_CRC16_check_sum(framepoint, sizeof(datahead), frametail); // Partial calculation of CRC16 checksum
 
     framepoint = (unsigned char *)&framehead;
     for (i = 0; i < sizeof(framehead); i++)
@@ -449,7 +452,7 @@ int UI_ReFresh(int cnt, ...)
         graphic_data_struct_t imageData = va_arg(ap, graphic_data_struct_t);
 
         framepoint = (unsigned char *)&imageData;
-        frametail = Get_CRC16_Check_Sum_UI(framepoint, sizeof(imageData), frametail); // CRC16 checksum
+        frametail = get_CRC16_check_sum(framepoint, sizeof(imageData), frametail); // CRC16 checksum
 
         for (n = 0; n < sizeof(imageData); n++)
         {

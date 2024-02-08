@@ -1,3 +1,5 @@
+#ifndef GRAPHIC_H
+#define GRAPHIC_H
 #include <stdint.h>
 
 #define UI_SOF 0xA5
@@ -128,3 +130,7 @@ typedef struct
    graphic_data_struct_t graph_control;
    uint8_t show_data[30];
 } string_data;    
+
+void line_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t end_x, uint32_t end_y);
+int UI_ReFresh(int cnt, ...);
+#endif
