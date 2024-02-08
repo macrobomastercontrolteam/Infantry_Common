@@ -357,7 +357,11 @@ int UI_ReFresh(int cnt, ...)
     framehead.SOF = UI_SOF;
     framehead.data_length = 6 + cnt * 15;
     framehead.seq = UI_Seq;
+<<<<<<< HEAD
     framehead.CRC8 = get_CRC8_check_sum(framepoint, 4, 0xFF);
+=======
+    framehead.CRC8 = Get_CRC8_Check_Sum_UI(framepoint, 4, 0xFF);
+>>>>>>> 6effc2a03133988fd8b48a950a4dab1ef9945cc9
     framehead.cmd_ID = UI_CMD_Robo_Exchange; // Fill in the package header data
 
     switch (cnt)
@@ -452,7 +456,11 @@ int UI_ReFresh(int cnt, ...)
         graphic_data_struct_t imageData = va_arg(ap, graphic_data_struct_t);
 
         framepoint = (unsigned char *)&imageData;
+<<<<<<< HEAD
         frametail = get_CRC16_check_sum(framepoint, sizeof(imageData), frametail); // CRC16 checksum
+=======
+        frametail = Get_CRC16_Check_Sum_UI(framepoint, sizeof(imageData), frametail); // CRC16 checksum
+>>>>>>> 6effc2a03133988fd8b48a950a4dab1ef9945cc9
 
         for (n = 0; n < sizeof(imageData); n++)
         {
