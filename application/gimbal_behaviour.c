@@ -256,6 +256,15 @@ static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *
 //云台行为状态机
 gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
 
+#if GIMBAL_TEST_MODE
+fp32 yaw_ins_delta_1000;
+uint8_t gimbal_behaviour_global;
+static void J_scope_gimbal_behavior_test(void)
+{
+    gimbal_behaviour_global = gimbal_behaviour;
+}
+#endif
+
 /**
   * @brief          the function is called by gimbal_set_mode function in gimbal_task.c
   *                 the function set gimbal_behaviour variable, and set motor mode.
@@ -315,6 +324,10 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
         gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCONDE;
         gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCONDE;
     }
+
+#if GIMBAL_TEST_MODE
+    J_scope_gimbal_behavior_test();
+#endif
 }
 
 /**
@@ -508,7 +521,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
     }
     else
     {
-        gimbal_behaviour = GIMBAL_AUTO_AIM_PATROL;
+        gimbal_behaviour = GIMBAL_AUTO_AIM;
     }
 #else
     // 开关控制 云台状态
@@ -776,15 +789,37 @@ static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_c
         return;
     }
 
-    fp32 cv_yaw_channel = 0;
-    fp32 cv_pitch_channel = 0;
-    if (checkAndResetFlag(&CvCmdHandler.fCvCmdValid))
+    // Positive Directions
+    // CvCmdHandler.CvCmdMsg.xTargetAngle: right
+    // CvCmdHandler.CvCmdMsg.yTargetAngle: up
+    // yaw_target_adjustment : left (same direction as IMU)
+    // pitch_target_adjustment: down (same direction as IMU)
+    static fp32 cv_yaw_reference = 0;
+    static fp32 cv_pitch_reference = 0;
+    if (CvCmder_GetMode(CV_MODE_IMU_CALI_BIT) == 1)
     {
-        deadband_limit(CvCmdHandler.CvCmdMsg.xDeltaAngle, cv_yaw_channel, CV_CAMERA_YAW_DEADBAND);
-        deadband_limit(CvCmdHandler.CvCmdMsg.yDeltaAngle, cv_pitch_channel, CV_CAMERA_PITCH_DEADBAND);
+        // fix the gimbal to the middle position to let CV IMU record the center position
+        gimbal_control_set->gimbal_yaw_motor.absolute_angle_set = (gimbal_control_set->gimbal_yaw_motor.max_relative_angle + gimbal_control_set->gimbal_yaw_motor.min_relative_angle)/2;
+        gimbal_control_set->gimbal_pitch_motor.absolute_angle_set = (gimbal_control_set->gimbal_pitch_motor.max_relative_angle + gimbal_control_set->gimbal_pitch_motor.min_relative_angle)/2;
+        cv_yaw_reference = gimbal_control_set->gimbal_yaw_motor.absolute_angle_set;
+        cv_pitch_reference = gimbal_control_set->gimbal_pitch_motor.absolute_angle_set;
+        *yaw = 0;
+        *pitch = 0;
     }
-    *yaw = moving_average_calc(cv_yaw_channel, &(gimbal_control_set->gimbal_yaw_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
-    *pitch = moving_average_calc(cv_pitch_channel, &(gimbal_control_set->gimbal_pitch_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
+    else if (checkAndResetFlag(&CvCmdHandler.fCvCmdValid))
+    {
+        *yaw = rad_format(CvCmdHandler.CvCmdMsg.xTargetAngle + cv_yaw_reference - gimbal_control_set->gimbal_yaw_motor.absolute_angle);
+        *pitch = rad_format(CvCmdHandler.CvCmdMsg.yTargetAngle + cv_pitch_reference - gimbal_control_set->gimbal_pitch_motor.absolute_angle);
+        // *yaw = -CvCmdHandler.CvCmdMsg.xDeltaAngle - rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle_set - gimbal_control_set->gimbal_yaw_motor.absolute_angle);
+        // *pitch = -CvCmdHandler.CvCmdMsg.yDeltaAngle - rad_format(gimbal_control_set->gimbal_pitch_motor.absolute_angle_set - gimbal_control_set->gimbal_pitch_motor.absolute_angle);
+    }
+    // brakeband_limit(yaw_target_adjustment, yaw_target_adjustment, CV_CAMERA_YAW_BRAKEBAND);
+    // brakeband_limit(pitch_target_adjustment, pitch_target_adjustment, CV_CAMERA_PITCH_BRAKEBAND);
+    // *yaw = moving_average_calc(yaw_target_adjustment, &(gimbal_control_set->gimbal_yaw_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
+    // *pitch = moving_average_calc(pitch_target_adjustment, &(gimbal_control_set->gimbal_pitch_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
+// #if GIMBAL_TEST_MODE
+//     yaw_ins_delta_1000 = yaw_target_adjustment * 1000;
+// #endif
 }
 
 /**

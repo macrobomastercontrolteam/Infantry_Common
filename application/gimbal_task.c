@@ -984,21 +984,20 @@ static void gimbal_set_control(gimbal_control_t *set_control)
   */
 static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, uint8_t motor_select)
 {
-    static fp32 bias_angle;
     if (gimbal_motor == NULL)
     {
         return;
     }
-    //now angle error
-    //当前控制误差角度
-    bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
-    //relative angle + angle error + add_angle > max_relative angle
-    //云台相对角度+ 误差角度 + 新增角度 如果大于 最大机械角度
 #if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
     // Remove yaw motor limit for robots with slip ring
     if (motor_select != GIMBAL_YAW_MOTOR)
 #endif
     {
+        //now angle error
+        //当前控制误差角度
+        fp32 bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
+        //relative angle + angle error + add_angle > max_relative angle
+        //云台相对角度+ 误差角度 + 新增角度 如果大于 最大机械角度
         if (gimbal_motor->relative_angle + bias_angle + add > gimbal_motor->max_relative_angle)
         {
             // 如果是往最大机械角度控制方向

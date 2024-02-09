@@ -145,6 +145,7 @@ void CvCmder_Init(void)
 
     memset(&CvCmdHandler, 0, sizeof(CvCmdHandler));       // clear status
     CvCmdHandler.cv_rc_ctrl = get_remote_control_point(); // reserved, not used yet
+    CvCmder_ChangeMode(CV_MODE_IMU_CALI_BIT, 1);
 
     CvCmdHandler.fCvMode = 0;
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
@@ -185,6 +186,9 @@ void CvCmder_PollForModeChange(void)
         if (checkAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE))
 #endif
         {
+            // Redo IMU calibration because CV may be power cycled
+            CvCmder_ChangeMode(CV_MODE_IMU_CALI_BIT, 1);
+
             CvCmder_SendSetModeRequest();
             CvCmdHandler.fIsWaitingForAck = 1;
             eCvCmderState = CMDER_STATE_WAIT_FOR_ACK;
@@ -328,6 +332,7 @@ void CvCmder_RxParser(void)
         fValid &= (memcmp(CvRxBuffer.tData.CvAckMsgPayload.abAckAscii, abExpectedAckPayload, sizeof(abExpectedAckPayload)) == 0);
         if (fValid)
         {
+            CvCmder_ChangeMode(CV_MODE_IMU_CALI_BIT, 0);
             // Synchronize time after ACK
             uint16_t uiCtrlTimestamp = xTaskGetTickCount();
             int16_t iTranDelta = ((uiCtrlTimestamp - CvTimestamps.uiCtrlSyncTime) - CvRxBuffer.tData.CvAckMsgPayload.uiReqTimestamp - CvRxBuffer.tData.CvAckMsgPayload.uiExecDelta) / 2;
