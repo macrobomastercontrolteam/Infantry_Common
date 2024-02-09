@@ -1294,8 +1294,8 @@ bool_t gimbal_emergency_stop(void)
     {
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
         // E-stop if remote controller is connected, and also not in calibration mode
-        // uint8_t fSentryDbusEnable = toe_is_error(DBUS_TOE);
-				uint8_t fSentryDbusEnable = 1;
+        uint8_t fSentryDbusEnable = toe_is_error(DBUS_TOE);
+				// uint8_t fSentryDbusEnable = 1;
         fSentryDbusEnable |= switch_is_down(chassis_move.chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]) && switch_is_down(chassis_move.chassis_RC->rc.s[GIMBAL_MODE_CHANNEL]);
 
         fEStop = toe_is_error(CV_TOE) && (gimbal_behaviour != GIMBAL_CALI);

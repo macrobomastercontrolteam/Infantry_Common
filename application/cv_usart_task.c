@@ -155,12 +155,12 @@ void CvCmder_Init(void)
 #endif
 
     // Get a callback when DMA completes or IDLE
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart6, abUsartRxBuf, sizeof(abUsartRxBuf));
     // disable half transfer interrupt, because if it coincide with IDLE or DMA interrupt, callback will be called twice
-    __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+    __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT);
 
     // RXNE is not used
-    __HAL_UART_DISABLE_IT(&huart1, UART_IT_RXNE);
+    __HAL_UART_DISABLE_IT(&huart6, UART_IT_RXNE);
 }
 
 /**
@@ -197,8 +197,8 @@ void CvCmder_PollForModeChange(void)
         {
             CvCmder_SendSetModeRequest();
             // reset receive interrupt to detect new UART connection, in case CV boots up after control
-            HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
-            __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+            HAL_UARTEx_ReceiveToIdle_DMA(&huart6, abUsartRxBuf, sizeof(abUsartRxBuf));
+            __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT);
         }
         else
         {
@@ -258,7 +258,7 @@ void CvCmder_SendSetModeRequest(void)
     CvTxBuffer.tData.uiTimestamp = (uint16_t)xTaskGetTickCount() - CvTimestamps.uiCtrlSyncTime;
     memset(CvTxBuffer.tData.abPayload, CHAR_UNUSED, DATA_PACKAGE_PAYLOAD_SIZE);
     CvTxBuffer.tData.abPayload[0] = CvCmdHandler.fCvMode;
-    HAL_UART_Transmit(&huart1, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
+    HAL_UART_Transmit(&huart6, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
 
     CvCmdHandler.fCvCmdValid = CvCmdHandler.fCvCmdValid && (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT) || CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT));
     CvCmder_EchoTxMsgToUsb();
@@ -289,7 +289,7 @@ void CvCmder_SendInfoData(eInfoBits InfoBit)
         return;
     }
     }
-    HAL_UART_Transmit(&huart1, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
+    HAL_UART_Transmit(&huart6, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
     CvCmder_EchoTxMsgToUsb();
 }
 
@@ -497,7 +497,7 @@ uint8_t CvCmder_MockModeChange(void)
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
-    if (huart->Instance == USART1)
+    if (huart->Instance == USART6)
     {
 #if CV_INTERFACE
         uint16_t uiHeaderFinder = 0;
@@ -528,8 +528,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
         // @TODO: change to circular buffer strategy for faster restart time of DMA
         /* start the DMA again */
         // Do not remove this, otherwise RTOS task will stuck for unkown reasons
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
-        __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart6, abUsartRxBuf, sizeof(abUsartRxBuf));
+        __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT);
     }
 }
 

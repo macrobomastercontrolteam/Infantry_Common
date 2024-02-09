@@ -183,40 +183,40 @@ void referee_unpack_fifo_data(void)
 }
 
 
-void USART6_IRQHandler(void)
-{
-    static volatile uint8_t res;
-    if(USART6->SR & UART_FLAG_IDLE)
-    {
-        __HAL_UART_CLEAR_PEFLAG(&huart6);
+// void USART6_IRQHandler(void)
+// {
+//     static volatile uint8_t res;
+//     if(USART6->SR & UART_FLAG_IDLE)
+//     {
+//         __HAL_UART_CLEAR_PEFLAG(&huart6);
 
-        static uint16_t this_time_rx_len = 0;
+//         static uint16_t this_time_rx_len = 0;
 
-        if ((huart6.hdmarx->Instance->CR & DMA_SxCR_CT) == RESET)
-        {
-            __HAL_DMA_DISABLE(huart6.hdmarx);
-            this_time_rx_len = USART_RX_BUF_LENGTH - __HAL_DMA_GET_COUNTER(huart6.hdmarx);
-            __HAL_DMA_SET_COUNTER(huart6.hdmarx, USART_RX_BUF_LENGTH);
-            huart6.hdmarx->Instance->CR |= DMA_SxCR_CT;
-            __HAL_DMA_ENABLE(huart6.hdmarx);
-            fifo_s_puts(&referee_fifo, (char*)usart6_buf[0], this_time_rx_len);
-#if !TEST_NO_REF
-            detect_hook(REFEREE_TOE);
-#endif
-        }
-        else
-        {
-            __HAL_DMA_DISABLE(huart6.hdmarx);
-            this_time_rx_len = USART_RX_BUF_LENGTH - __HAL_DMA_GET_COUNTER(huart6.hdmarx);
-            __HAL_DMA_SET_COUNTER(huart6.hdmarx, USART_RX_BUF_LENGTH);
-            huart6.hdmarx->Instance->CR &= ~(DMA_SxCR_CT);
-            __HAL_DMA_ENABLE(huart6.hdmarx);
-            fifo_s_puts(&referee_fifo, (char*)usart6_buf[1], this_time_rx_len);
-#if !TEST_NO_REF
-            detect_hook(REFEREE_TOE);
-#endif
-        }
-    }
-}
+//         if ((huart6.hdmarx->Instance->CR & DMA_SxCR_CT) == RESET)
+//         {
+//             __HAL_DMA_DISABLE(huart6.hdmarx);
+//             this_time_rx_len = USART_RX_BUF_LENGTH - __HAL_DMA_GET_COUNTER(huart6.hdmarx);
+//             __HAL_DMA_SET_COUNTER(huart6.hdmarx, USART_RX_BUF_LENGTH);
+//             huart6.hdmarx->Instance->CR |= DMA_SxCR_CT;
+//             __HAL_DMA_ENABLE(huart6.hdmarx);
+//             fifo_s_puts(&referee_fifo, (char*)usart6_buf[0], this_time_rx_len);
+// #if !TEST_NO_REF
+//             detect_hook(REFEREE_TOE);
+// #endif
+//         }
+//         else
+//         {
+//             __HAL_DMA_DISABLE(huart6.hdmarx);
+//             this_time_rx_len = USART_RX_BUF_LENGTH - __HAL_DMA_GET_COUNTER(huart6.hdmarx);
+//             __HAL_DMA_SET_COUNTER(huart6.hdmarx, USART_RX_BUF_LENGTH);
+//             huart6.hdmarx->Instance->CR &= ~(DMA_SxCR_CT);
+//             __HAL_DMA_ENABLE(huart6.hdmarx);
+//             fifo_s_puts(&referee_fifo, (char*)usart6_buf[1], this_time_rx_len);
+// #if !TEST_NO_REF
+//             detect_hook(REFEREE_TOE);
+// #endif
+//         }
+//     }
+// }
 
 
