@@ -843,9 +843,8 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     feedback_update->gimbal_yaw_motor.motor_gyro = arm_cos_f32(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_Z_ADDRESS_OFFSET))
                                                         - arm_sin_f32(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_X_ADDRESS_OFFSET));
 
-
-    fill_buffer(feedback_update->gimbal_yaw_motor.absolute_angle, &yaw_buffer_struct);
-    fill_buffer(feedback_update->gimbal_pitch_motor.absolute_angle, &pitch_buffer_struct);
+    fill_buffer(feedback_update->gimbal_yaw_motor.absolute_angle, &(feedback_update->yaw_angle));
+    fill_buffer(feedback_update->gimbal_pitch_motor.absolute_angle, &(feedback_update->pitch_angle));
 
 }
 
