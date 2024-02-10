@@ -44,6 +44,9 @@
 #include "pid.h"
 #include "cv_usart_task.h"
 
+#define DISABLE_YAW_MOTOR_POWER 1
+#define DISABLE_PITCH_MOTOR_POWER 1
+#define DISABLE_SHOOT_MOTOR_POWER 1
 
 //motor enconde value format, range[0-8191]
 //电机编码值规整 0—8191

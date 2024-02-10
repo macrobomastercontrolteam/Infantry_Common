@@ -13,12 +13,6 @@
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define TEST_NO_REF 1
-
-#define DISABLE_DRIVE_MOTOR_POWER 1
-#define DISABLE_STEER_MOTOR_POWER 1
-#define DISABLE_YAW_MOTOR_POWER 1
-#define DISABLE_PITCH_MOTOR_POWER 1
-#define DISABLE_SHOOT_MOTOR_POWER 1
 /********************* Only Modify this area (end) *********************/
 
 #if (ROBOT_TYPE != SENTRY_2023_MECANUM) && SENTRY_HW_TEST
