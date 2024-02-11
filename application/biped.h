@@ -7,31 +7,6 @@
 #include "arm_math.h"
 #include "CAN_receive.h"
 
-#define MANUAL_MULTIANGLE_REQUEST 1
-
-#define DRIVE_WHEEL_RADIUS 0.0675f
-
-#define MOTOR_TORQUE_CLEARANCE 0.2f
-#define HIP_TORQUE_BURST_MAX (20.0f - MOTOR_TORQUE_CLEARANCE)
-// #define HIP_TORQUE_MAX 8.0f
-// #define DRIVE_TORQUE_MAX 3.0f
-
-#define UNLOADED_ROBOT_MASS 5.0f                                          // unit is kg
-#define UNLOADED_ROBOT_HALF_WEIGHT (UNLOADED_ROBOT_MASS / 2.0f * G_gravity) // unit is N
-
-#define HIP_TORQUE_MAX 3.5f
-#define DRIVE_TORQUE_MAX 3.0f
-
-#define SINGLE_LEG_TEST 0
-
-#define BIPED_ROLL_DEADZONE 0.0f
-#define BIPED_PITCH_DEADZONE 0.0f
-#define BIPED_YAW_DEADZONE 0.0f
-
-#define BIPED_ROLL_DOT_DEADZONE 0.0f
-#define BIPED_PITCH_DOT_DEADZONE 0.0f
-#define BIPED_YAW_DOT_DEADZONE 0.0f
-
 typedef enum
 {
 	JUMP_IDLE = 0,
@@ -67,7 +42,7 @@ typedef struct
 	fp32 HipTorque_MaxLimit;
 	fp32 DriveTorque_MaxLimit;
 	// fp32 yaw_dot_last;
-	variable_status_t velocity, yaw, pitch, roll;
+	variable_status_t yaw, pitch, roll;
 	// fp32 accel_x, accel_y, accel_z;
 
 	LegClass_t leg_L, leg_R, leg_simplified;

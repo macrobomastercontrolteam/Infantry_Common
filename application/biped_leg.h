@@ -23,16 +23,6 @@ typedef struct
 	// fp32 ddot; // second derivative
 } variable_status_t;
 
-#if (MODEL_ORIG_RM_CAP == 0)
-#define LEG_L0_MIN 0.2f
-#define LEG_L0_MAX 0.35f
-#elif ((MODEL_ORIG_RM_CAP == 1) || (MODEL_ORIG_RM_CAP == 2))
-#define LEG_L0_MIN 0.15f
-#define LEG_L0_MAX 0.35f
-#endif
-#define LEG_L0_MID ((LEG_L0_MAX + LEG_L0_MIN) / 2.0f)
-#define LEG_L0_RANGE (LEG_L0_MAX - LEG_L0_MIN)
-
 typedef struct
 {
 	// data

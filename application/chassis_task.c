@@ -114,13 +114,8 @@ static void jscope_chassis_test(void)
 #endif
 
 /**
- * @brief          chassis task, osDelay CHASSIS_CONTROL_TIME_MS (2ms)
+ * @brief          chassis task, osDelay CHASSIS_CONTROL_TIME_MS
  * @param[in]      pvParameters: null
- * @retval         none
- */
-/**
- * @brief          µ×ÅÌÈÎÎñ£¬¼ä¸ô CHASSIS_CONTROL_TIME_MS 2ms
- * @param[in]      pvParameters: ¿Õ
  * @retval         none
  */
 void chassis_task(void const *pvParameters)
@@ -282,10 +277,8 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 		return;
 	}
 
-	const static fp32 chassis_x_order_filter[1] = {CHASSIS_ACCEL_X_NUM};
-
 	chassis_move_init->chassis_mode = CHASSIS_VECTOR_RAW;
-	chassis_move_init->last_chassis_mode = CHASSIS_VECTOR_RAW;
+	chassis_move_init->last_chassis_mode = chassis_move_init->chassis_mode;
 
 	chassis_move_init->chassis_RC = get_remote_control_point();
 	chassis_move_init->chassis_INS_angle = get_INS_angle_point();
@@ -344,14 +337,10 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				biped.jumpState = JUMP_IDLE;
 				biped.brakeState = BRAKE_IDLE;
 
-				biped.roll.last = biped.roll.now;
-
 				biped.yaw.set = biped.yaw.now;
-				biped.yaw.last = biped.yaw.now;
 
 				biped.pitch.set = 0.0f;
 				// @TODO: biped.balance_angle
-				biped.pitch.last = biped.pitch.now;
 
 				// biped.velocity.set = 0;
 				// biped.velocity.last = biped.velocity.now;
@@ -361,6 +350,10 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				biped.leg_simplified.dis.now = 0;
 				biped.leg_simplified.dis.set = biped.leg_simplified.dis.now;
 
+				biped.leg_L.dis.last = biped.leg_L.dis.now;
+				biped.leg_R.dis.last = biped.leg_R.dis.now;
+				biped.leg_simplified.dis.last = biped.leg_simplified.dis.now;
+
 				biped.leg_L.angle0.last = biped.leg_L.angle0.now;
 				biped.leg_R.angle0.last = biped.leg_R.angle0.now;
 
@@ -368,9 +361,6 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				biped.leg_R.L0.set = LEG_L0_MID;
 				biped.leg_L.L0.last = biped.leg_L.L0.now;
 				biped.leg_R.L0.last = biped.leg_R.L0.now;
-
-				biped.leg_L.dis.last = biped.leg_L.dis.now;
-				biped.leg_R.dis.last = biped.leg_R.dis.now;
 
 				biped.leg_L.fResetMultiAngleOffset = 1;
 				biped.leg_R.fResetMultiAngleOffset = 1;
@@ -568,7 +558,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 		}
 		default:
 		{
-			// osDelay(CHASSIS_CONTROL_TIME_MS); // no delay so that it blocks LED flow
+			// no delay so that it blocks LED flow
 			break;
 		}
 	}
@@ -576,23 +566,3 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 	// @TODO: power control according to ref
 	// chassis_power_control(chassis_move_control_loop);
 }
-
-fp32 abs_err_handler(fp32 set, fp32 ref)
-{
-	return rad_format(set - ref);
-}
-
-#if defined(INFANTRY_3)
-/**
- * @brief Convert motor angle from radian to encoder unit
- * Requirements:
- *    0 rad = 0 ecd
- *    input and output increase in the same clockwise direction
- * @param[in] angle range [-PI, PI]
- * @param[in] ecd range [0, ECD_RANGE-1]
- */
-static uint16_t motor_angle_to_ecd_change(fp32 angle)
-{
-	return (uint16_t)(loop_fp32_constrain(angle, 0.0f, 2 * PI) * MOTOR_RAD_TO_ECD);
-}
-#endif

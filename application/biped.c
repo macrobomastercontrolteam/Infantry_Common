@@ -6,18 +6,13 @@
 #include "stdio.h"
 #include "string.h"
 
-biped_t biped;
-
 #define JUMP_CHARGE_WAIT_MS 100.0f
 #define JUMP_CHARGE_TIMEOUT_MS 1000.0f
 #define JUMP_LAUNCH_TIMEOUT_MS 1000.0f
 #define JUMP_SUPPORT_FORCE_IGNORE_TIMEOUT_MS 300.0f
 #define JUMP_SHRINK_TIMEOUT_MS 1000.0f
 
-#define LEG_L0_MIN_THRESHOLD (LEG_L0_MIN + 0.04f)
-#define LEG_L0_MAX_THRESHOLD (LEG_L0_MAX - 0.04f)
-
-#define LQR_ADJUST_COEFF 0.175f
+biped_t biped;
 
 // Jump parameters
 const fp32 JumpTorqueDecayTau = 0.01f;
@@ -26,7 +21,7 @@ void command_motor(void);
 
 void biped_init(void)
 {
-	biped.time_step_s = CHASSIS_CONTROL_TIME_MS / 1000.0f;
+	biped.time_step_s = CHASSIS_CONTROL_TIME_S;
 
 	LegClass_t_Init(&biped.leg_L);
 	LegClass_t_Init(&biped.leg_R);
@@ -141,15 +136,16 @@ void biped_status_update(void)
 
 	biped.roll.now = -*(chassis_move.chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
 	biped.roll.dot = -*(chassis_move.chassis_INS_speed + INS_GYRO_X_ADDRESS_OFFSET);
+	biped.roll.last = biped.roll.now;
 
 	biped.pitch.now = *(chassis_move.chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET);
 	biped.pitch.now -= biped.balance_angle; // the angle relative to the balanced pitch
 	biped.pitch.dot = *(chassis_move.chassis_INS_speed + INS_GYRO_Y_ADDRESS_OFFSET);
 	// biped.pitch.dot = first_order_filter(*(chassis_move.chassis_INS_speed + INS_GYRO_Y_ADDRESS_OFFSET), biped.pitch.dot, 1.000f);
+	biped.pitch.last = biped.pitch.now;
 
 	biped.yaw.now = *(chassis_move.chassis_INS_angle + INS_YAW_ADDRESS_OFFSET);
 	biped.yaw.dot = *(chassis_move.chassis_INS_speed + INS_GYRO_Z_ADDRESS_OFFSET);
-
 	biped.yaw.last = biped.yaw.now;
 
 	// biped.accel_x = *(chassis_move.chassis_INS_accel + INS_ACCEL_X_ADDRESS_OFFSET);
@@ -159,35 +155,10 @@ void biped_status_update(void)
 	// biped.yaw.ddot = (biped.yaw.dot - biped.yaw_dot_last) / (biped.time_step_s);
 	// biped.yaw_dot_last = biped.yaw.dot;
 
+	// @TODO: take care of overflow event
+	// @TODO: try to use input angle encoder, which doesn't require additional request
 	biped.leg_L.dis.now = motor_measure[CHASSIS_ID_DRIVE_LEFT].output_angle * DRIVE_WHEEL_RADIUS;
 	biped.leg_R.dis.now = motor_measure[CHASSIS_ID_DRIVE_RIGHT].output_angle * DRIVE_WHEEL_RADIUS;
-
-	// @TODO: take care of overflow event
-	// fp32 leg_L_input_angle_diff = motor_measure[CHASSIS_ID_DRIVE_LEFT].input_angle - motor_measure[CHASSIS_ID_DRIVE_LEFT].last_output_angle;
-	// // if (fabs(leg_L_input_angle_diff) > 0.01f)
-	// {
-	// 	motor_measure[CHASSIS_ID_DRIVE_LEFT].last_output_angle = motor_measure[CHASSIS_ID_DRIVE_LEFT].input_angle;
-
-	// 	biped.leg_L.dis.now += leg_L_input_angle_diff * DRIVE_WHEEL_RADIUS;
-	// 	if ((fabs(leg_L_input_angle_diff)) && (SIGN(leg_L_input_angle_diff) != SIGN(biped.leg_L.dis.dot)))
-	// 	{
-	// 		// wrap around case
-	// 		biped.leg_L.dis.now += (MOTOR_P_MAX[MA_9015] - MOTOR_P_MIN[MA_9015]) * DRIVE_WHEEL_RADIUS;
-	// 	}
-	// }
-
-	// fp32 leg_R_input_angle_diff = motor_measure[CHASSIS_ID_DRIVE_RIGHT].input_angle - motor_measure[CHASSIS_ID_DRIVE_RIGHT].last_output_angle;
-	// // if (fabs(leg_R_input_angle_diff) > 0.01f)
-	// {
-	// 	motor_measure[CHASSIS_ID_DRIVE_RIGHT].last_output_angle = motor_measure[CHASSIS_ID_DRIVE_RIGHT].input_angle;
-
-	// 	biped.leg_R.dis.now += leg_R_input_angle_diff * DRIVE_WHEEL_RADIUS;
-	// 	if ((fabs(leg_R_input_angle_diff)) && (SIGN(leg_R_input_angle_diff) != SIGN(biped.leg_R.dis.dot)))
-	// 	{
-	// 		// wrap around case
-	// 		biped.leg_R.dis.now += (MOTOR_P_MAX[MA_9015] - MOTOR_P_MIN[MA_9015]) * DRIVE_WHEEL_RADIUS;
-	// 	}
-	// }
 
 #if SINGLE_LEG_TEST
 	// biped.leg_simplified.dis.now = biped.leg_L.dis.now;
@@ -209,13 +180,6 @@ void biped_status_update(void)
 	// {
 	// biped.leg_simplified.dis.set += biped.velocity.set * biped.time_step_s;
 	// }
-
-	// static fp32 leg_L_dis_last_dot = 0;
-	// static fp32 leg_R_dis_last_dot = 0;
-	// biped.leg_L.dis.ddot = (biped.leg_L.dis.dot - leg_L_dis_last_dot) / biped.time_step_s;
-	// biped.leg_R.dis.ddot = (biped.leg_R.dis.dot - leg_R_dis_last_dot) / biped.time_step_s;
-	// leg_L_dis_last_dot = biped.leg_L.dis.dot;
-	// leg_R_dis_last_dot = biped.leg_R.dis.dot;
 
 	biped.leg_L.dis.last = biped.leg_L.dis.now;
 	biped.leg_R.dis.last = biped.leg_R.dis.now;

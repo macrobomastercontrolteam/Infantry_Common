@@ -121,13 +121,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		case CAN_DRIVE_MOTOR_CMD_FEEDBACK_ID1:
 		case CAN_DRIVE_MOTOR_CMD_FEEDBACK_ID2:
 		{
-#if MANUAL_MULTIANGLE_REQUEST
 			bMotorId = (rx_header.StdId == CAN_DRIVE_MOTOR_CMD_FEEDBACK_ID1) ? CHASSIS_ID_DRIVE_RIGHT : CHASSIS_ID_DRIVE_LEFT;
 			if (rx_data[0] == CAN_9015_MULTIANGLE_MSG_ID)
 			{
 				decode_9015_motor_multiangle_feedback(rx_data, bMotorId);
 			}
-#endif
 			break;
 		}
 		case CAN_YAW_MOTOR_FEEDBACK_ID:
