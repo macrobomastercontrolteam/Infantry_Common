@@ -17,8 +17,8 @@ fp32 invSqrt(fp32 num)
   * @brief          б��������ʼ��
   * @author         RM
   * @param[in]      б�������ṹ��
-  * @param[in]      �����ʱ�䣬��λ s
-  * @param[in]      ���ֵ
+  * @param[in]      �����ʱ��?��λ s
+  * @param[in]      ����?
   * @param[in]      ��Сֵ
   * @retval         ���ؿ�
   */
@@ -32,7 +32,7 @@ void ramp_init(ramp_function_source_t *ramp_source_type, fp32 frame_period, fp32
 }
 
 /**
-  * @brief          б���������㣬���������ֵ���е��ӣ� ���뵥λΪ /s ��һ������������ֵ
+  * @brief          б���������㣬���������ֵ���е��ӣ�? ���뵥λΪ /s ��һ������������ֵ
   * @author         RM
   * @param[in]      б�������ṹ��
   * @param[in]      ����ֵ
@@ -56,7 +56,7 @@ void ramp_calc(ramp_function_source_t *ramp_source_type, fp32 input)
   * @brief          һ�׵�ͨ�˲���ʼ��
   * @author         RM
   * @param[in]      һ�׵�ͨ�˲��ṹ��
-  * @param[in]      �����ʱ�䣬��λ s
+  * @param[in]      �����ʱ��?��λ s
   * @param[in]      �˲�����
   * @retval         ���ؿ�
   */
@@ -72,7 +72,7 @@ void first_order_filter_init(first_order_filter_type_t *first_order_filter_type,
   * @brief          һ�׵�ͨ�˲�����
   * @author         RM
   * @param[in]      һ�׵�ͨ�˲��ṹ��
-  * @param[in]      �����ʱ�䣬��λ s
+  * @param[in]      �����ʱ��?��λ s
   * @retval         ���ؿ�
   */
 void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type, fp32 input)
@@ -276,6 +276,7 @@ fp32 access_angle(uint16_t target_timestamp, circular_buffer_t *circular_buffer)
             }
         }
     }
+    return -1; // Only because return required at end of function
 }
 
 uint8_t checkAndResetFlag(uint8_t *pbFlag)

@@ -90,7 +90,7 @@
 
 #define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN*0.10471975511965977f)
 #define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(25.0f))
-#define SPINNING_CHASSIS_MED_OMEGA (RPM_TO_RADS(30.0f))
+#define SPINNING_CHASSIS_MED_OMEGA (RPM_TO_RADS(30.0f)) //Maybe change to 20
 #define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(35.0f))
 
 #if CHASSIS_TEST_MODE
@@ -284,9 +284,9 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
         {
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
             chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
-#else
+#else */
             chassis_behaviour_mode = CHASSIS_SPINNING;
-#endif
+/* #endif */
         }
 #endif
     }

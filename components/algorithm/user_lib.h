@@ -107,6 +107,9 @@ typedef struct
     uint8_t buffer_full_flag;      // Flag to indicate filled arrays
 } circular_buffer_t;
 
+void fill_buffer(fp32 input_angle, circular_buffer_t *circular_buffer);
+fp32 access_angle(uint16_t target_timestamp, circular_buffer_t *circular_buffer);
+
 //快速开方
 extern fp32 invSqrt(fp32 num);
 

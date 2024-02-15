@@ -2,6 +2,7 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       usb_task.c/h
   * @brief      usb outputs the error message.usbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï?
+  * @brief      usb outputs the error message.usbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï?
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -27,11 +28,14 @@
 #include "detect_task.h"
 #include "voltage_task.h"
 
+#include "gimbal_task.h"
+
+extern gimbal_control_t gimbal_control;
 
 void usb_printf(const char *fmt,...);
 
 static uint8_t usb_buf[400];
-static const char status[2][7] = {"OK", "ERROR!"};
+static const char status[2][7] = {"OK", "ERROR!"}; // Unused variable
 const error_t *error_list_usb_local;
 
 
@@ -46,6 +50,24 @@ void usb_task(void const * argument)
     {
 #if DEBUG_CV_WITH_USB
     UNUSED(status);
+    usb_printf(
+#if defined(TEST_NO_REF)
+        "******************************\r\n\
+voltage percentage:%d%% \r\n\
+DBUS:%s\r\n\
+chassis drive motor1:%s\r\n\
+chassis drive motor2:%s\r\n\
+chassis drive motor3:%s\r\n\
+chassis drive motor4:%s\r\n\
+yaw motor:%s\r\n\
+pitch motor:%s\r\n\
+trigger motor:%s\r\n\
+gyro sensor:%s\r\n\
+accel sensor:%s\r\n\
+mag sensor:%s\r\n\
+referee usart (ignored):%s\r\n\
+cv usart:%s\r\n\
+******************************\r\n",
 #else
         osDelay(1000);
         usb_printf(
@@ -103,11 +125,11 @@ cv usart:%s\r\n\
         fp32 pitch_angle_to_print = access_angle(xTaskGetTickCount(),&(gimbal_control.pitch_angle));
 
 
-        usb_printf("yaw: %f, pitch: %f",yaw_angle_to_print,pitch_angle_to_print);
-
+        usb_printf("yaw: %f, pitch: %f",yaw_angle_to_print,pitch_angle_to_print); */
+//#endif
     }
 
-}
+//}
 
 void usb_printf(const char *fmt,...)
 {
