@@ -284,9 +284,9 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
         {
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
             chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
-#else */
+#else
             chassis_behaviour_mode = CHASSIS_SPINNING;
-/* #endif */
+#endif
         }
 #endif
     }
