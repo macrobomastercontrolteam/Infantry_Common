@@ -2,7 +2,7 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       usb_task.c/h
   * @brief      usb outputs the error message.usb?????ик?ио????
-  * @note
+  * @note       
   * @history
   *  Version    Date            Author          Modification
   *  V1.0.0     Nov-11-2019     RM              1. done
@@ -47,6 +47,61 @@ void usb_task(void const * argument)
 
     while(1)
     {
+    /* #if DEBUG_CV_WITH_USB
+    UNUSED(status);
+    #else
+            osDelay(1000);
+            usb_printf(
+    #if TEST_NO_REF
+    "******************************\r\n\
+    voltage percentage:%d%% \r\n\
+    DBUS:%s\r\n\
+    chassis drive motor1:%s\r\n\
+    chassis drive motor2:%s\r\n\
+    chassis drive motor3:%s\r\n\
+    chassis drive motor4:%s\r\n\
+    yaw motor:%s\r\n\
+    pitch motor:%s\r\n\
+    trigger motor:%s\r\n\
+    gyro sensor:%s\r\n\
+    accel sensor:%s\r\n\
+    mag sensor:%s\r\n\
+    referee usart (ignored):%s\r\n\
+    cv usart:%s\r\n\
+    ******************************\r\n",
+    #else
+    "******************************\r\n\
+    voltage percentage:%d%% \r\n\
+    DBUS:%s\r\n\
+    chassis drive motor1:%s\r\n\
+    chassis drive motor2:%s\r\n\
+    chassis drive motor3:%s\r\n\
+    chassis drive motor4:%s\r\n\
+    yaw motor:%s\r\n\
+    pitch motor:%s\r\n\
+    trigger motor:%s\r\n\
+    gyro sensor:%s\r\n\
+    accel sensor:%s\r\n\
+    mag sensor:%s\r\n\
+    referee usart:%s\r\n\
+    cv usart:%s\r\n\
+    ******************************\r\n",
+    #endif
+                get_battery_percentage(), 
+                status[error_list_usb_local[DBUS_TOE].error_exist],
+                status[error_list_usb_local[CHASSIS_MOTOR1_TOE].error_exist],
+                status[error_list_usb_local[CHASSIS_MOTOR2_TOE].error_exist],
+                status[error_list_usb_local[CHASSIS_MOTOR3_TOE].error_exist],
+                status[error_list_usb_local[CHASSIS_MOTOR4_TOE].error_exist],
+                status[error_list_usb_local[YAW_GIMBAL_MOTOR_TOE].error_exist],
+                status[error_list_usb_local[PITCH_GIMBAL_MOTOR_TOE].error_exist],
+                status[error_list_usb_local[TRIGGER_MOTOR_TOE].error_exist],
+                status[error_list_usb_local[BOARD_GYRO_TOE].error_exist],
+                status[error_list_usb_local[BOARD_ACCEL_TOE].error_exist],
+                status[error_list_usb_local[BOARD_MAG_TOE].error_exist],
+                status[error_list_usb_local[REFEREE_TOE].error_exist],
+                status[error_list_usb_local[CV_TOE].error_exist]);
+    #endif // DEBUG_CV_WITH_USB */
     #if DEBUG_CV_WITH_USB
         fp32 yaw_angle_to_print = access_angle(xTaskGetTickCount(),&(gimbal_control.yaw_angle));
         fp32 pitch_angle_to_print = access_angle(xTaskGetTickCount(),&(gimbal_control.pitch_angle));
