@@ -1,7 +1,7 @@
 
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
-  * @file       AHRS_MiddleWare.c/h
+  * @file       AHRS_middleware.c/h
   * @brief      姿态解算中间层，为姿态解算提供相关函数
   * @note       
   * @history

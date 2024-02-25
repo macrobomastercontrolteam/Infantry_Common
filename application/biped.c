@@ -1,5 +1,5 @@
-#include "INS_task.h"
 #include "biped.h"
+#include "INS_task.h"
 #include "chassis_task.h"
 #include "cmsis_os.h"
 #include "detect_task.h"
@@ -11,6 +11,8 @@
 #define JUMP_LAUNCH_TIMEOUT_MS 1000.0f
 #define JUMP_SUPPORT_FORCE_IGNORE_TIMEOUT_MS 300.0f
 #define JUMP_SHRINK_TIMEOUT_MS 1000.0f
+
+#define LQR_ADJUST_COEFF 0.25f
 
 biped_t biped;
 
@@ -54,17 +56,17 @@ void biped_init(void)
 
 	// fragile, must keep Ki very small
 	const fp32 split_pid_param[3] = {100, 0, 10}; // for 5ms loop time
-	PID_init(&biped.split_pid, PID_POSITION, split_pid_param, HIP_TORQUE_MAX, HIP_TORQUE_MAX / 2.0f, 0.9f, &filter_err_handler);
+	PID_init(&biped.split_pid, PID_POSITION, split_pid_param, HIP_TORQUE_MAX, HIP_TORQUE_MAX / 2.0f, 0.9f, &rad_err_handler);
 
 	const fp32 roll_pid_param[3] = {1000, 0, 10};
-	PID_init(&biped.roll_pid, PID_POSITION, roll_pid_param, 25, 0, 0.9f, &filter_err_handler);
+	PID_init(&biped.roll_pid, PID_POSITION, roll_pid_param, 25, 0, 0.9f, &rad_err_handler);
 
 	const fp32 invPendulumInAir_pid_param[3] = {200, 10, 10};
-	PID_init(&biped.invPendulumInAir_pid, PID_POSITION, invPendulumInAir_pid_param, HIP_TORQUE_MAX * 2.0f, HIP_TORQUE_MAX * 2.0f, 0.9f, &filter_err_handler);
+	PID_init(&biped.invPendulumInAir_pid, PID_POSITION, invPendulumInAir_pid_param, HIP_TORQUE_MAX * 2.0f, HIP_TORQUE_MAX * 2.0f, 0.9f, &rad_err_handler);
 
 	const fp32 wheelBrakeInAir_pid_param[3] = {7, 1, 0};
-	PID_init(&biped.wheelBrakeInAirL_pid, PID_POSITION, wheelBrakeInAir_pid_param, DRIVE_TORQUE_MAX, DRIVE_TORQUE_MAX, 0.9f, &filter_err_handler);
-	PID_init(&biped.wheelBrakeInAirR_pid, PID_POSITION, wheelBrakeInAir_pid_param, DRIVE_TORQUE_MAX, DRIVE_TORQUE_MAX, 0.9f, &filter_err_handler);
+	PID_init(&biped.wheelBrakeInAirL_pid, PID_POSITION, wheelBrakeInAir_pid_param, DRIVE_TORQUE_MAX, DRIVE_TORQUE_MAX, 0.9f, &rad_err_handler);
+	PID_init(&biped.wheelBrakeInAirR_pid, PID_POSITION, wheelBrakeInAir_pid_param, DRIVE_TORQUE_MAX, DRIVE_TORQUE_MAX, 0.9f, &rad_err_handler);
 
 #if (MODEL_ORIG_RM_CAP == 0)
 	const fp32 K_coeff_init[12][4] = {
@@ -102,12 +104,12 @@ void biped_init(void)
 	{
 		for (uint8_t col = 0; col < 4; col++)
 		{
-			// higher gain for dis
-			if ((row == 2 * 2 + 0) || (row == 2 * 2 + 1))
-			{
-				biped.K_coeff[row][col] *= 0.25f;
-			}
-			else
+			// // higher gain for dis
+			// if ((row == 2 * 2 + 0) || (row == 2 * 2 + 1))
+			// {
+			// 	biped.K_coeff[row][col] *= 0.25f; // the best so far
+			// }
+			// else
 			{
 				biped.K_coeff[row][col] *= LQR_ADJUST_COEFF;
 			}
@@ -160,12 +162,7 @@ void biped_status_update(void)
 	biped.leg_L.dis.now = motor_measure[CHASSIS_ID_DRIVE_LEFT].output_angle * DRIVE_WHEEL_RADIUS;
 	biped.leg_R.dis.now = motor_measure[CHASSIS_ID_DRIVE_RIGHT].output_angle * DRIVE_WHEEL_RADIUS;
 
-#if SINGLE_LEG_TEST
-	// biped.leg_simplified.dis.now = biped.leg_L.dis.now;
-	biped.leg_simplified.dis.now = biped.leg_R.dis.now;
-#else
 	biped.leg_simplified.dis.now = (biped.leg_L.dis.now + biped.leg_R.dis.now) / 2.0f;
-#endif
 
 	biped.leg_L.dis.dot = (biped.leg_L.dis.now - biped.leg_L.dis.last) / biped.time_step_s;
 	biped.leg_R.dis.dot = (biped.leg_R.dis.now - biped.leg_R.dis.last) / biped.time_step_s;
@@ -185,10 +182,17 @@ void biped_status_update(void)
 	biped.leg_R.dis.last = biped.leg_R.dis.now;
 	biped.leg_simplified.dis.last = biped.leg_simplified.dis.now;
 
-	biped.leg_L.angle1 = PI - motor_measure[CHASSIS_ID_HIP_LF].output_angle;
-	biped.leg_L.angle4 = -motor_measure[CHASSIS_ID_HIP_LB].output_angle;
-	biped.leg_R.angle1 = PI + motor_measure[CHASSIS_ID_HIP_RF].output_angle;
-	biped.leg_R.angle4 = motor_measure[CHASSIS_ID_HIP_RB].output_angle;
+	// 9005 motor as hip
+	// biped.leg_L.angle1 = PI - motor_measure[CHASSIS_ID_HIP_LF].output_angle;
+	// biped.leg_L.angle4 = -motor_measure[CHASSIS_ID_HIP_LB].output_angle;
+	// biped.leg_R.angle1 = PI + motor_measure[CHASSIS_ID_HIP_RF].output_angle;
+	// biped.leg_R.angle4 = motor_measure[CHASSIS_ID_HIP_RB].output_angle;
+
+	// 6012 motor as hip
+	biped.leg_L.angle1 = loop_fp32_constrain(PI - motor_measure[CHASSIS_ID_HIP_LF].output_angle, 0, 2 * PI);
+	biped.leg_L.angle4 = rad_format(motor_measure[CHASSIS_ID_HIP_LB].output_angle);
+	biped.leg_R.angle1 = loop_fp32_constrain(PI - motor_measure[CHASSIS_ID_HIP_RF].output_angle, 0, 2 * PI);
+	biped.leg_R.angle4 = rad_format(motor_measure[CHASSIS_ID_HIP_RB].output_angle);
 
 	LegClass_t_ForwardKinematics(&biped.leg_L, biped.pitch.now);
 	biped.leg_L.angle0.dot = (biped.leg_L.angle0.now - biped.leg_L.angle0.last) / biped.time_step_s;
@@ -196,15 +200,8 @@ void biped_status_update(void)
 	LegClass_t_ForwardKinematics(&biped.leg_R, biped.pitch.now);
 	biped.leg_R.angle0.dot = (biped.leg_R.angle0.now - biped.leg_R.angle0.last) / biped.time_step_s;
 
-#if SINGLE_LEG_TEST
-	biped.leg_simplified.angle1 = biped.leg_R.angle1;
-	biped.leg_simplified.angle4 = biped.leg_R.angle4;
-	// biped.leg_simplified.angle1 = biped.leg_L.angle1;
-	// biped.leg_simplified.angle4 = biped.leg_L.angle4;
-#else
 	biped.leg_simplified.angle1 = (biped.leg_L.angle1 + biped.leg_R.angle1) / 2.0f;
 	biped.leg_simplified.angle4 = (biped.leg_L.angle4 + biped.leg_R.angle4) / 2.0f;
-#endif
 	LegClass_t_ForwardKinematics(&biped.leg_simplified, biped.pitch.now);
 	biped.leg_simplified.angle0.dot = (biped.leg_simplified.angle0.now - biped.leg_simplified.angle0.last) / biped.time_step_s;
 	// biped.leg_simplified.angle0.dot = first_order_filter((biped.leg_simplified.angle0.now - biped.leg_simplified.angle0.last) / biped.time_step_s, biped.leg_simplified.angle0.dot, 1.000f);
@@ -256,13 +253,8 @@ void inv_pendulum_ctrl(void)
 		biped.leg_simplified.X[4][0] = biped.pitch.now;
 		biped.leg_simplified.X[5][0] = biped.pitch.dot;
 
-#if SINGLE_LEG_TEST
-		biped.leg_simplified.X[4][0] = 0;
-		biped.leg_simplified.X[5][0] = 0;
-#endif
-
 		fp32 matrix_Xd_minus_X[6][1];
-		// oscillation amplitude: 0.15, 4, 0, 1, 0.15, 3.7
+		// oscillation amplitude at LEG_L0_MIN without hip: 0.15, 4, 0, 1, 0.15, 3.7
 		// for LQR_ADJUST_COEFF = 1, gain = 25%
 		// const fp32 brakezone_order[6] = {1.25f, 1.25f, 1.25f, 1.25f, 1.25f, 1.25f};
 		// const fp32 brakezone_threshold[6] = {0.46f, 12.1f, 0.0f, 3.03f, 0.46f, 12.1f};
@@ -281,6 +273,8 @@ void inv_pendulum_ctrl(void)
 		// for LQR_ADJUST_COEFF = 0.25, gain = 20%
 		// const fp32 brakezone_order[6] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
 		// const fp32 brakezone_threshold[6] = {0.1875f, 5.0f, 0.0f, 1.25f, 0.1875f, 5.0f};
+
+		// oscillation amplitude at LEG_L0_MIN with hip: 0.1, 3, 0,
 		for (uint8_t row = 0; row < 6; row++)
 		{
 			matrix_Xd_minus_X[row][0] = biped.leg_simplified.Xd[row][0] - biped.leg_simplified.X[row][0];
@@ -589,7 +583,9 @@ uint8_t biped_jumpStart(void)
 
 fp32 biped_limitVelocity(fp32 speed_set, fp32 L0)
 {
-	fp32 speed_max = -30.0f * L0 + 10.7f;
+	const fp32 speed_at_L0_min = 6.2f;
+	const fp32 speed_at_L0_max = 2.0f;
+	fp32 speed_max = (LEG_L0_MAX - L0) / LEG_L0_RANGE * (speed_at_L0_min - speed_at_L0_max) + speed_at_L0_max;
 	if (speed_max < 0)
 	{
 		speed_max = 0;

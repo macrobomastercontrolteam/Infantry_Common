@@ -37,7 +37,9 @@
 			"ins_task.h": "c",
 			"biped_leg.h": "c",
 			"biped.h": "c",
-			"__node_handle": "c"
+			"__node_handle": "c",
+			"gimbal_task.h": "c",
+			"remote_control.h": "c"
 		}
 	}
 }

@@ -10,6 +10,7 @@
 #include "arm_math.h"
 #include "string.h"
 #include "user_lib.h"
+#include "AHRS_middleware.h"
 
 // Unit mm
 #if (MODEL_ORIG_RM_CAP == 0)
@@ -62,14 +63,14 @@ void LegClass_t_Init(LegClass_t *leg)
 	memcpy(leg->K, K_init, sizeof(leg->X));
 
 	// avoid saturation here to maintain scale in motor torques
-	const fp32 supportF_pid_param[3] = {1000, 20, 500};
-	PID_init(&(leg->supportF_pid), PID_POSITION, supportF_pid_param, 99999, 10, 0.9f, &filter_err_handler);
+	const fp32 supportF_pid_param[3] = {1000, 20, 200};
+	PID_init(&(leg->supportF_pid), PID_POSITION, supportF_pid_param, 99999, 10, 0.9f, &raw_err_handler);
 
 	const fp32 supportFInAir_pid_param[3] = {500, 10, 250};
-	PID_init(&(leg->supportFInAir_pid), PID_POSITION, supportFInAir_pid_param, 99999, 10, 0.9f, &filter_err_handler);
+	PID_init(&(leg->supportFInAir_pid), PID_POSITION, supportFInAir_pid_param, 99999, 10, 0.9f, &raw_err_handler);
 
 	// 	const fp32 supportFCharge_pid_param[3] = {1000, 20, 500};
-	// 	PID_init(&(leg->supportFCharge_pid), PID_POSITION, supportFCharge_pid_param, 99999, 10, 0.9f, &filter_err_handler);
+	// 	PID_init(&(leg->supportFCharge_pid), PID_POSITION, supportFCharge_pid_param, 99999, 10, 0.9f, &raw_err_handler);
 }
 
 void LegClass_t_InvKinematics(LegClass_t *leg, const fp32 xc, const fp32 yc)
@@ -85,11 +86,11 @@ void LegClass_t_InvKinematics(LegClass_t *leg, const fp32 xc, const fp32 yc)
 	C = LEG_LENGTH_2 * LEG_LENGTH_2 - LEG_LENGTH_1 * LEG_LENGTH_1 - xc * xc - yc * yc - LEG_LENGTH_5 * LEG_LENGTH_5 / 4 + xc * LEG_LENGTH_5;
 	leg->angle1 = 2 * atan2f((A + sqrtf_wrapper(A * A + B * B - C * C)), (B - C));
 
-	m = LEG_LENGTH_1 * arm_cos_f32(leg->angle1);
-	n = LEG_LENGTH_1 * arm_sin_f32(leg->angle1);
+	m = LEG_LENGTH_1 * AHRS_cosf(leg->angle1);
+	n = LEG_LENGTH_1 * AHRS_sinf(leg->angle1);
 	b = 0;
-	x1 = ((xc - m) * arm_cos_f32(b) - (yc - n) * arm_sin_f32(b)) + m;
-	y1 = ((xc - m) * arm_sin_f32(b) + (yc - n) * arm_cos_f32(b)) + n;
+	x1 = ((xc - m) * AHRS_cosf(b) - (yc - n) * AHRS_sinf(b)) + m;
+	y1 = ((xc - m) * AHRS_sinf(b) + (yc - n) * AHRS_cosf(b)) + n;
 	A = 2 * y1 * LEG_LENGTH_4;
 	B = 2 * LEG_LENGTH_4 * (x1 - LEG_LENGTH_5 / 2);
 	C = LEG_LENGTH_3 * LEG_LENGTH_3 + LEG_LENGTH_5 * x1 - LEG_LENGTH_4 * LEG_LENGTH_4 - LEG_LENGTH_5 * LEG_LENGTH_5 / 4 - x1 * x1 - y1 * y1;
@@ -98,10 +99,10 @@ void LegClass_t_InvKinematics(LegClass_t *leg, const fp32 xc, const fp32 yc)
 
 void LegClass_t_ForwardKinematics(LegClass_t *leg, const fp32 pitch)
 {
-	leg->xb = LEG_LENGTH_1 * arm_cos_f32(leg->angle1) - LEG_LENGTH_5 / 2;
-	leg->yb = LEG_LENGTH_1 * arm_sin_f32(leg->angle1);
-	leg->xd = LEG_LENGTH_5 / 2 + LEG_LENGTH_4 * arm_cos_f32(leg->angle4);
-	leg->yd = LEG_LENGTH_4 * arm_sin_f32(leg->angle4);
+	leg->xb = LEG_LENGTH_1 * AHRS_cosf(leg->angle1) - LEG_LENGTH_5 / 2;
+	leg->yb = LEG_LENGTH_1 * AHRS_sinf(leg->angle1);
+	leg->xd = LEG_LENGTH_5 / 2 + LEG_LENGTH_4 * AHRS_cosf(leg->angle4);
+	leg->yd = LEG_LENGTH_4 * AHRS_sinf(leg->angle4);
 	fp32 lbd = sqrtf_wrapper(pow((leg->xd - leg->xb), 2) + pow((leg->yd - leg->yb), 2));
 	fp32 A0 = 2 * LEG_LENGTH_2 * (leg->xd - leg->xb);
 	fp32 B0 = 2 * LEG_LENGTH_2 * (leg->yd - leg->yb);
@@ -109,18 +110,20 @@ void LegClass_t_ForwardKinematics(LegClass_t *leg, const fp32 pitch)
 	fp32 D0 = pow(LEG_LENGTH_3, 2) + pow(lbd, 2) - pow(LEG_LENGTH_2, 2);
 	leg->angle2 = 2 * atan2f((B0 + sqrtf_wrapper(pow(A0, 2) + pow(B0, 2) - pow(C0, 2))), (A0 + C0));
 	leg->angle3 = PI - 2 * atan2f((B0 + sqrtf_wrapper(pow(A0, 2) + pow(B0, 2) - pow(D0, 2))), (A0 + D0));
-	leg->xc = leg->xb + LEG_LENGTH_2 * arm_cos_f32(leg->angle2);
-	leg->yc = leg->yb + LEG_LENGTH_2 * arm_sin_f32(leg->angle2);
+	leg->xc = leg->xb + LEG_LENGTH_2 * AHRS_cosf(leg->angle2);
+	leg->yc = leg->yb + LEG_LENGTH_2 * AHRS_sinf(leg->angle2);
+
+	// leg->xc = brakezone(leg->xc, 0.02f, 1);
 
 	leg->L0.now = sqrtf_wrapper(pow(leg->xc, 2) + pow(leg->yc, 2));
 	// Multiply by the rotation matrix of pitch
 	fp32 matrix_R[2][2];
 	fp32 cor_XY[2][1];
 	fp32 cor_XY_then[2][1];
-	matrix_R[0][0] = arm_cos_f32(pitch);
-	matrix_R[0][1] = -arm_sin_f32(pitch);
-	matrix_R[1][0] = arm_sin_f32(pitch);
-	matrix_R[1][1] = arm_cos_f32(pitch);
+	matrix_R[0][0] = AHRS_cosf(pitch);
+	matrix_R[0][1] = -AHRS_sinf(pitch);
+	matrix_R[1][0] = AHRS_sinf(pitch);
+	matrix_R[1][1] = AHRS_cosf(pitch);
 	cor_XY[0][0] = leg->xc;
 	cor_XY[1][0] = leg->yc;
 	matrixMultiplication(2, 2, 2, 1, matrix_R, cor_XY, cor_XY_then);
@@ -134,10 +137,10 @@ void LegClass_t_VMC(LegClass_t *leg, const fp32 F, const fp32 Tp, fp32 ActualF[2
 	fp32 Trans[2][2];
 	fp32 VirtualF[2][1];
 
-	Trans[0][0] = LEG_LENGTH_1 * arm_cos_f32(leg->angle0.now + leg->angle3) * arm_sin_f32(leg->angle1 - leg->angle2) / arm_sin_f32(leg->angle2 - leg->angle3);
-	Trans[0][1] = LEG_LENGTH_1 * arm_sin_f32(leg->angle0.now + leg->angle3) * arm_sin_f32(leg->angle1 - leg->angle2) / (leg->L0.now * arm_sin_f32(leg->angle2 - leg->angle3));
-	Trans[1][0] = LEG_LENGTH_4 * arm_cos_f32(leg->angle0.now + leg->angle2) * arm_sin_f32(leg->angle3 - leg->angle4) / arm_sin_f32(leg->angle2 - leg->angle3);
-	Trans[1][1] = LEG_LENGTH_4 * arm_sin_f32(leg->angle0.now + leg->angle2) * arm_sin_f32(leg->angle3 - leg->angle4) / (leg->L0.now * arm_sin_f32(leg->angle2 - leg->angle3));
+	Trans[0][0] = LEG_LENGTH_1 * AHRS_cosf(leg->angle0.now + leg->angle3) * AHRS_sinf(leg->angle1 - leg->angle2) / AHRS_sinf(leg->angle2 - leg->angle3);
+	Trans[0][1] = LEG_LENGTH_1 * AHRS_sinf(leg->angle0.now + leg->angle3) * AHRS_sinf(leg->angle1 - leg->angle2) / (leg->L0.now * AHRS_sinf(leg->angle2 - leg->angle3));
+	Trans[1][0] = LEG_LENGTH_4 * AHRS_cosf(leg->angle0.now + leg->angle2) * AHRS_sinf(leg->angle3 - leg->angle4) / AHRS_sinf(leg->angle2 - leg->angle3);
+	Trans[1][1] = LEG_LENGTH_4 * AHRS_sinf(leg->angle0.now + leg->angle2) * AHRS_sinf(leg->angle3 - leg->angle4) / (leg->L0.now * AHRS_sinf(leg->angle2 - leg->angle3));
 
 	VirtualF[0][0] = F;
 	VirtualF[1][0] = Tp;
@@ -150,10 +153,10 @@ void LegClass_t_Inv_VMC(LegClass_t *leg, const fp32 TL, const fp32 TR, fp32 Virt
 	fp32 TransInv[2][2];
 	fp32 ActualF[2][1];
 
-	TransInv[0][0] = arm_sin_f32(leg->angle0.now + leg->angle2) / (LEG_LENGTH_1 * arm_sin_f32(leg->angle1 - leg->angle2));
-	TransInv[0][1] = -arm_sin_f32(leg->angle0.now + leg->angle3) / (LEG_LENGTH_4 * arm_sin_f32(leg->angle3 - leg->angle4));
-	TransInv[1][0] = -(leg->L0.now * arm_cos_f32(leg->angle0.now + leg->angle2)) / (LEG_LENGTH_1 * arm_sin_f32(leg->angle1 - leg->angle2));
-	TransInv[1][1] = (leg->L0.now * arm_cos_f32(leg->angle0.now + leg->angle3)) / (LEG_LENGTH_4 * arm_sin_f32(leg->angle3 - leg->angle4));
+	TransInv[0][0] = AHRS_sinf(leg->angle0.now + leg->angle2) / (LEG_LENGTH_1 * AHRS_sinf(leg->angle1 - leg->angle2));
+	TransInv[0][1] = -AHRS_sinf(leg->angle0.now + leg->angle3) / (LEG_LENGTH_4 * AHRS_sinf(leg->angle3 - leg->angle4));
+	TransInv[1][0] = -(leg->L0.now * AHRS_cosf(leg->angle0.now + leg->angle2)) / (LEG_LENGTH_1 * AHRS_sinf(leg->angle1 - leg->angle2));
+	TransInv[1][1] = (leg->L0.now * AHRS_cosf(leg->angle0.now + leg->angle3)) / (LEG_LENGTH_4 * AHRS_sinf(leg->angle3 - leg->angle4));
 
 	ActualF[0][0] = TL;
 	ActualF[1][0] = TR;
@@ -168,6 +171,11 @@ fp32 sqrtf_wrapper(fp32 x)
 	// 	return 0;
 	// }
 	// else
+	if (x<0)
+	{
+		return 0;
+	}
+	else
 	{
 		return sqrtf(x);
 	}

@@ -1,6 +1,6 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
-  * @file       AHRS_MiddleWare.c/h
+  * @file       AHRS_middleware.c/h
   * @brief      姿态解算中间层，为姿态解算提供相关函数
   * @note
   * @history
@@ -15,7 +15,7 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
 
-#include "AHRS_MiddleWare.h"
+#include "AHRS_middleware.h"
 #include "AHRS.h"
 #include "arm_math.h"
 #include "main.h"
@@ -80,7 +80,14 @@ fp32 AHRS_invSqrt(fp32 num)
 
 fp32 AHRS_sinf(fp32 angle)
 {
-    return arm_sin_f32(angle);
+    if (fabs(angle) <= 1e-6f)
+    {
+        return 0.0f;
+    }
+    else
+    {
+        return arm_sin_f32(angle);
+    }
 }
 /**
  * @brief          cos函数

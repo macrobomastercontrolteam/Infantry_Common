@@ -47,38 +47,28 @@
 /******************************* Robot control enables *******************************/
 // switches between original, RM, capstone models
 #define MODEL_ORIG_RM_CAP 1
-#define SINGLE_LEG_TEST 0
 
 // reverse hip motor direction
-#define REVERSE_LB_HIP_MOTOR_DIRECTION 1
-#define REVERSE_LF_HIP_MOTOR_DIRECTION 0
-#define REVERSE_RB_HIP_MOTOR_DIRECTION 0
-#define REVERSE_RF_HIP_MOTOR_DIRECTION 1
+#define REVERSE_LB_HIP_MOTOR_DIRECTION 0
+#define REVERSE_LF_HIP_MOTOR_DIRECTION 1
+#define REVERSE_RB_HIP_MOTOR_DIRECTION 1
+#define REVERSE_RF_HIP_MOTOR_DIRECTION 0
 #define REVERSE_LEFT_DRIVE_MOTOR_DIRECTION 1
 #define REVERSE_RIGHT_DRIVE_MOTOR_DIRECTION 0
-
-#define DISABLE_DRIVE_MOTOR_POWER 0
-#define DISABLE_HIP_MOTOR_POWER 1
-#define DISABLE_STEER_MOTOR_POWER 1
-#define DISABLE_YAW_MOTOR_POWER 1
-#define DISABLE_PITCH_MOTOR_POWER 1
-#define DISABLE_SHOOT_MOTOR_POWER 1
 
 /******************************* Robot control configs *******************************/
 #define NORMAL_MAX_CHASSIS_SPEED_X 2.5f // chassis forward or back max speed
 #define NORMAL_MAX_CHASSIS_SPEED_YAW 2.5f
-#define MAX_CHASSIS_ROLL 0.4f
+#define MAX_CHASSIS_ROLL (10.0f / 180.0f * PI)
 
 #define MOTOR_TORQUE_CLEARANCE 0.2f
 #define HIP_TORQUE_BURST_MAX (20.0f - MOTOR_TORQUE_CLEARANCE)
 // #define HIP_TORQUE_MAX 8.0f
-#define HIP_TORQUE_MAX 3.5f
+#define HIP_TORQUE_MAX 4.0f
 #define DRIVE_TORQUE_MAX 3.0f
 
 #define UNLOADED_ROBOT_MASS 5.0f                                            // unit is kg
 #define UNLOADED_ROBOT_HALF_WEIGHT (UNLOADED_ROBOT_MASS / 2.0f * G_gravity) // unit is N
-
-#define LQR_ADJUST_COEFF 0.175f
 
 #if (MODEL_ORIG_RM_CAP == 0)
 #define LEG_L0_MIN 0.2f

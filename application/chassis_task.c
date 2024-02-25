@@ -16,8 +16,8 @@
   @endverbatim
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
-#include "chassis_behaviour.h"
 #include "chassis_task.h"
+#include "chassis_behaviour.h"
 
 #include "cmsis_os.h"
 
@@ -29,6 +29,9 @@
 #include "detect_task.h"
 #include "pid.h"
 #include "remote_control.h"
+
+#define DISABLE_DRIVE_MOTOR_POWER 0
+#define DISABLE_HIP_MOTOR_POWER 0
 
 static void wait_until_motors_online(void);
 static void chassis_init(chassis_move_t *chassis_move_init);
@@ -47,12 +50,15 @@ uint32_t chassis_high_water;
 
 // 底盘运动数据
 chassis_move_t chassis_move;
+fp32 chassis_task_loop_delay;
 
 #if CHASSIS_JSCOPE_DEBUG
 fp32 leg_L_dis_now = 0;
 fp32 leg_R_dis_now = 0;
 fp32 leg_L_drive_multiangle = 0;
 fp32 leg_R_drive_multiangle = 0;
+fp32 leg_L_drive_input_angle = 0;
+fp32 leg_R_drive_input_angle = 0;
 fp32 out_LF = 0;
 fp32 out_LB = 0;
 fp32 out_RF = 0;
@@ -75,10 +81,16 @@ fp32 biped_pitch_now = 0;
 fp32 biped_pitch_dot = 0;
 fp32 biped_yaw_now = 0;
 fp32 biped_yaw_set = 0;
+fp32 biped_roll_now = 0;
+fp32 biped_roll_set = 0;
+uint32_t loop_delay = 0;
 static void jscope_chassis_test(void)
 {
 	leg_L_dis_now = biped.leg_L.dis.now;
 	leg_R_dis_now = biped.leg_R.dis.now;
+
+	leg_L_drive_input_angle = motor_measure[CHASSIS_ID_DRIVE_LEFT].input_angle;
+	leg_R_drive_input_angle = motor_measure[CHASSIS_ID_DRIVE_RIGHT].input_angle;
 
 	leg_L_drive_multiangle = motor_measure[CHASSIS_ID_DRIVE_LEFT].output_angle;
 	leg_R_drive_multiangle = motor_measure[CHASSIS_ID_DRIVE_RIGHT].output_angle;
@@ -88,10 +100,10 @@ static void jscope_chassis_test(void)
 	out_RF = motor_measure[CHASSIS_ID_HIP_RF].output_angle;
 	out_RB = motor_measure[CHASSIS_ID_HIP_RB].output_angle;
 
-	angle_L1 = biped.leg_L.angle1;
-	angle_L4 = biped.leg_L.angle4;
-	angle_R1 = biped.leg_R.angle1;
-	angle_R4 = biped.leg_R.angle4;
+	angle_L1 = biped.leg_L.angle1*180.0f/PI;
+	angle_L4 = biped.leg_L.angle4*180.0f/PI;
+	angle_R1 = biped.leg_R.angle1*180.0f/PI;
+	angle_R4 = biped.leg_R.angle4*180.0f/PI;
 
 	leg_R_TL_set = biped.leg_R.TL_set;
 	leg_R_TR_set = biped.leg_R.TR_set;
@@ -110,6 +122,11 @@ static void jscope_chassis_test(void)
 
 	biped_yaw_now = biped.yaw.now;
 	biped_yaw_set = biped.yaw.set;
+
+	biped_roll_now = biped.roll.now*180.0f/PI;
+	biped_roll_set = biped.roll.set*180.0f/PI;
+
+	loop_delay = HAL_GetTick() - biped.time_ms;
 }
 #endif
 
@@ -120,7 +137,7 @@ static void jscope_chassis_test(void)
  */
 void chassis_task(void const *pvParameters)
 {
-	uint8_t fValidCmd = 1;
+	// uint8_t fValidCmd = 1;
 	osDelay(BIPED_CHASSIS_TASK_INIT_TIME);
 
 	chassis_init(&chassis_move);
@@ -170,36 +187,25 @@ void chassis_task(void const *pvParameters)
 		biped.leg_L.TWheel_set = fp32_constrain(biped.leg_L.TWheel_set, -biped.DriveTorque_MaxLimit, biped.DriveTorque_MaxLimit);
 		biped.leg_R.TWheel_set = fp32_constrain(biped.leg_R.TWheel_set, -biped.DriveTorque_MaxLimit, biped.DriveTorque_MaxLimit);
 
-#if DISABLE_HIP_MOTOR_POWER
-		// if (chassis_move.chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW)
-		// {
-		fValidCmd &= hip_motor_set_position(0, 0, 0, 0, 15.0f, 1.0f);
-		// }
-		// else
-		// {
-		// 	fValidCmd &= hip_motor_set_torque(0, 0, 0, 0);
-		// }
-#else
-
-#if SINGLE_LEG_TEST
-		// fValidCmd &= hip_motor_set_torque(0, biped.leg_L.TR_set, biped.leg_L.TL_set, 0);
-		fValidCmd &= hip_motor_set_torque(biped.leg_R.TR_set, 0, 0, biped.leg_R.TL_set);
-#else
-		fValidCmd &= hip_motor_set_torque(biped.leg_R.TR_set, biped.leg_L.TR_set, biped.leg_L.TL_set, biped.leg_R.TL_set);
-#endif
-
-#endif
-
+		uint8_t blocking_call = 1;
+		uint8_t fValidCmd = 1;
 #if DISABLE_DRIVE_MOTOR_POWER
-		fValidCmd &= drive_motor_set_torque(0, 0);
+		fValidCmd &= drive_motor_set_torque(0, 0, blocking_call);
 #else
-		fValidCmd &= drive_motor_set_torque(biped.leg_R.TWheel_set, biped.leg_L.TWheel_set);
+		fValidCmd &= drive_motor_set_torque(biped.leg_R.TWheel_set, biped.leg_L.TWheel_set, blocking_call);
 #endif
-		if (biped.fBipedEnable && (fValidCmd == 0))
+
+#if DISABLE_HIP_MOTOR_POWER
+		fValidCmd &= hip_motor_set_torque(0, 0, 0, 0, blocking_call);
+#else
+		fValidCmd &= hip_motor_set_torque(biped.leg_R.TR_set, biped.leg_L.TR_set, biped.leg_L.TL_set, biped.leg_R.TL_set, blocking_call);
+#endif
+
+		chassis_task_loop_delay = xTaskGetTickCount() - biped.time_ms;
+		if (chassis_task_loop_delay < CHASSIS_CONTROL_TIME_MS)
 		{
-			break;
+			osDelay(CHASSIS_CONTROL_TIME_MS - chassis_task_loop_delay);
 		}
-		osDelay(2);
 
 #if CHASSIS_JSCOPE_DEBUG
 		jscope_chassis_test();
@@ -213,8 +219,12 @@ void chassis_task(void const *pvParameters)
 
 static void wait_until_motors_online(void)
 {
-	// keep redialling until all chassis motors are online
+	// keep dialling until all chassis motors are online
+	uint8_t blocking_call = 1;
 	uint8_t bToeIndex;
+	hip_motor_set_torque(0, 0, 0, 0, blocking_call);
+	drive_motor_set_torque(0, 0, blocking_call);
+	osDelay(15);
 	for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_DRIVE_MOTOR2_TOE; bToeIndex++)
 	{
 		while (toe_is_error(bToeIndex))
@@ -226,37 +236,43 @@ static void wait_until_motors_online(void)
 				case CHASSIS_HIP_MOTOR3_TOE:
 				case CHASSIS_HIP_MOTOR4_TOE:
 				{
-					enable_motor_control_8006(bToeIndex - CHASSIS_HIP_MOTOR1_TOE + CAN_HIP1_TX_ID, 1);
+					// enable_motor_control_8006(bToeIndex - CHASSIS_HIP_MOTOR1_TOE + CAN_HIP1_TX_ID, 1);
+					hip_motor_set_torque(0, 0, 0, 0, blocking_call);
 					break;
 				}
 				case CHASSIS_DRIVE_MOTOR1_TOE:
+				{
+					encode_motor_control(CAN_DRIVE1_PVT_TX_ID, 0, 0, 0, 0, 0, blocking_call, MA_9015);
+					break;
+				}
 				case CHASSIS_DRIVE_MOTOR2_TOE:
 				{
-					encode_motor_control(bToeIndex - CHASSIS_DRIVE_MOTOR1_TOE + CAN_DRIVE1_PVT_TX_ID, 0, 0, 0, 0, 0, 1, MA_9015);
+					encode_motor_control(CAN_DRIVE2_PVT_TX_ID, 0, 0, 0, 0, 0, blocking_call, MA_9015);
 					break;
 				}
 				case DBUS_TOE:
 				{
+					osDelay(10);
 					break;
 				}
 			}
-			osDelay(10);
 		}
 	}
 
+	// retrigger motor feedback to get them online
+	hip_motor_set_torque(0, 0, 0, 0, blocking_call);
+	drive_motor_set_torque(0, 0, blocking_call);
+	osDelay(15);
 	// fake online
-	for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_DRIVE_MOTOR2_TOE; bToeIndex++)
-	{
-		detect_hook(bToeIndex);
-	}
-	osDelay(20);
-	for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_DRIVE_MOTOR2_TOE; bToeIndex++)
-	{
-		detect_hook(bToeIndex);
-	}
-
-	hip_motor_set_torque(0, 0, 0, 0);
-	drive_motor_set_torque(0, 0);
+	// uint8_t repeat_index;
+	// for (repeat_index = 0; repeat_index < 2; repeat_index++)
+	// {
+	// 	for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_DRIVE_MOTOR2_TOE; bToeIndex++)
+	// 	{
+	// 		detect_hook(bToeIndex);
+	// 	}
+	// 	osDelay(15);
+	// }
 }
 
 /**
@@ -340,6 +356,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				biped.yaw.set = biped.yaw.now;
 
 				biped.pitch.set = 0.0f;
+				biped.roll.set = 0.0f;
 				// @TODO: biped.balance_angle
 
 				// biped.velocity.set = 0;
@@ -357,8 +374,8 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				biped.leg_L.angle0.last = biped.leg_L.angle0.now;
 				biped.leg_R.angle0.last = biped.leg_R.angle0.now;
 
-				biped.leg_L.L0.set = LEG_L0_MID;
-				biped.leg_R.L0.set = LEG_L0_MID;
+				biped.leg_L.L0.set = LEG_L0_MIN;
+				biped.leg_R.L0.set = LEG_L0_MIN;
 				biped.leg_L.L0.last = biped.leg_L.L0.now;
 				biped.leg_R.L0.last = biped.leg_R.L0.now;
 
@@ -474,7 +491,7 @@ void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector)
 		}
 		case BRAKE_ENABLE:
 		{
-			if (fabs(biped.leg_simplified.dis.dot) < 0.3f)
+			if (fabs(biped.leg_simplified.dis.dot) < 0.4f)
 			{
 				biped.brakeState = BRAKE_IDLE;
 				biped.leg_simplified.dis.set = biped.leg_simplified.dis.now;
@@ -541,6 +558,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 		}
 		case CHASSIS_VECTOR_NO_FOLLOW_YAW:
 		{
+			// 1ms processing time
 			inv_pendulum_ctrl();
 			torque_ctrl();
 
