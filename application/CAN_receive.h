@@ -25,19 +25,11 @@
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
-#define get_motor_array_index(_CAN_ID) (_CAN_ID - CAN_3508_M1_ID)
+#define CAN_ID_TO_MOTOR_INDEX(_CAN_ID) (_CAN_ID - CAN_3508_M1_ID)
 
 /* CAN send and receive ID */
 typedef enum
 {
-    /*******Tx CAN IDs********/
-    CAN_CHASSIS_M3508_TX_ID = 0x200,
-    CAN_GIMBAL_ALL_TX_ID = 0x1FF,
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-    CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
-    CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
-#endif
-
     /*******Chassis CAN IDs********/
     CAN_3508_M1_ID = 0x201,
     CAN_3508_M2_ID = 0x202,
@@ -56,6 +48,29 @@ typedef enum
 
     CAN_LAST_ID = CAN_TRIGGER_MOTOR_ID,
 } can_msg_id_e;
+
+typedef enum
+{
+	MOTOR_INDEX_3508_M1 = 0,
+	MOTOR_INDEX_3508_M2,
+	MOTOR_INDEX_3508_M3,
+	MOTOR_INDEX_3508_M4,
+	MOTOR_INDEX_YAW,
+	MOTOR_INDEX_PITCH,
+	MOTOR_INDEX_TRIGGER,
+	MOTOR_LIST_LENGTH,
+} can_motor_id_e;
+
+typedef enum
+{
+	/*******Tx CAN IDs********/
+	CAN_CHASSIS_M3508_TX_ID = 0x200,
+	CAN_GIMBAL_ALL_TX_ID = 0x1FF,
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+	CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
+	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
+#endif
+} can_other_msg_id_e;
 
 //rm motor data
 typedef struct
@@ -182,7 +197,7 @@ extern const motor_measure_t *get_trigger_motor_measure_point(void);
   * @param[in]      i: 电机编号,范围[0,3]
   * @retval         电机数据指针
   */
-extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t i);
+extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_index);
 
 
 #endif

@@ -48,7 +48,7 @@ extern CAN_HandleTypeDef hcan2;
  * Gimbal CAN:
  * 5:pitch gimbal motor 6020;
  */
-static motor_measure_t motor_chassis[get_motor_array_index(CAN_LAST_ID) + 1];
+static motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
 static CAN_TxHeaderTypeDef  gimbal_tx_message;
 static uint8_t              gimbal_can_send_data[8];
@@ -101,7 +101,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     }
     
     if (bMotorValid == 1) {
-        uint8_t bMotorId = get_motor_array_index(rx_header.StdId);
+        uint8_t bMotorId = CAN_ID_TO_MOTOR_INDEX(rx_header.StdId);
         get_motor_measure(&motor_chassis[bMotorId], rx_data);
         detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
     }
@@ -282,7 +282,7 @@ void CAN_cmd_load_servo(uint8_t fServoSwitch)
   */
 const motor_measure_t *get_yaw_gimbal_motor_measure_point(void)
 {
-    return &motor_chassis[get_motor_array_index(CAN_YAW_MOTOR_ID)];
+    return &motor_chassis[MOTOR_INDEX_YAW];
 }
 
 /**
@@ -297,7 +297,7 @@ const motor_measure_t *get_yaw_gimbal_motor_measure_point(void)
   */
 const motor_measure_t *get_pitch_gimbal_motor_measure_point(void)
 {
-    return &motor_chassis[get_motor_array_index(CAN_PIT_MOTOR_ID)];
+    return &motor_chassis[MOTOR_INDEX_PITCH];
 }
 
 
@@ -313,7 +313,7 @@ const motor_measure_t *get_pitch_gimbal_motor_measure_point(void)
   */
 const motor_measure_t *get_trigger_motor_measure_point(void)
 {
-    return &motor_chassis[get_motor_array_index(CAN_TRIGGER_MOTOR_ID)];
+    return &motor_chassis[MOTOR_INDEX_TRIGGER];
 }
 
 
@@ -327,7 +327,14 @@ const motor_measure_t *get_trigger_motor_measure_point(void)
   * @param[in]      i: 电机编号,范围[0,3]
   * @retval         电机数据指针
   */
-const motor_measure_t *get_chassis_motor_measure_point(uint8_t i)
+const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_index)
 {
-    return &motor_chassis[(i & 0x03)];
+	if (motor_index >= MOTOR_LIST_LENGTH)
+	{
+		return NULL;
+	}
+	else
+	{
+		return &motor_chassis[motor_index];
+	}
 }
