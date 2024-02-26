@@ -22,7 +22,8 @@
 		  "${workspaceFolder}/MDK-ARM/../application/protocol",
 		  "${workspaceFolder}/MDK-ARM/../components/controller",
 		  "${workspaceFolder}/MDK-ARM/../Middlewares/ST/STM32_USB_Device_Library/Core/Inc",
-		  "${workspaceFolder}/MDK-ARM/../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc"
+		  "${workspaceFolder}/MDK-ARM/../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc",
+		  "${workspaceFolder}/Inc"
 		],
 		  "defines": [
 		  "CV_INTERFACE",

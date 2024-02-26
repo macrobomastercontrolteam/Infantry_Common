@@ -66,9 +66,11 @@ uint8_t convertCanIdToMotorIndex(uint32_t canId)
 		case CAN_3508_M2_ID:
 		case CAN_3508_M3_ID:
 		case CAN_3508_M4_ID:
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
 		case CAN_YAW_MOTOR_ID:
 		case CAN_PIT_MOTOR_ID:
 		case CAN_TRIGGER_MOTOR_ID:
+#endif
 		{
 			return (canId - CAN_3508_M1_ID);
 		}
@@ -96,8 +98,23 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     uint8_t bMotorValid = 0;
 
     HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
-    
-    if (hcan == &GIMBAL_CAN) {
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+    switch (rx_header.StdId)
+    {
+        case CAN_3508_M1_ID:
+        case CAN_3508_M2_ID:
+        case CAN_3508_M3_ID:
+        case CAN_3508_M4_ID:
+        {
+            if (hcan == &hcan2)
+            {
+              bMotorValid = 1;
+            }
+            break;
+        }
+    }
+#else
+	if (hcan == &GIMBAL_CAN) {
         switch (rx_header.StdId) {
             case CAN_PIT_MOTOR_ID:
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
@@ -123,6 +140,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             }
         }
     }
+#endif
     
     if (bMotorValid == 1) {
         uint8_t bMotorId = convertCanIdToMotorIndex(rx_header.StdId);
@@ -131,8 +149,43 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     }
 }
 
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+void CAN_cmd_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t cmd_x, int16_t cmd_y, int16_t cmd_z)
+{
+    uint32_t send_mail_box;
+    gimbal_tx_message.IDE = CAN_ID_STD;
+    gimbal_tx_message.RTR = CAN_RTR_DATA;
+    gimbal_tx_message.DLC = 0x08;
+	  
+    // position
+    gimbal_tx_message.StdId = CAN_GIMBAL_CONTROLLER_POSITION_TX_ID;
+    gimbal_can_send_data[0] = *(uint8_t *)(&cmd_roll);
+    gimbal_can_send_data[1] = *((uint8_t *)(&cmd_roll) + 1);
+    gimbal_can_send_data[2] = *(uint8_t *)(&cmd_pitch);
+    gimbal_can_send_data[3] = *((uint8_t *)(&cmd_pitch) + 1);
+    gimbal_can_send_data[4] = *(uint8_t *)(&cmd_yaw);
+    gimbal_can_send_data[5] = *((uint8_t *)(&cmd_yaw) + 1);
+    gimbal_can_send_data[6] = 0;
+    gimbal_can_send_data[7] = 0;
+    HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
+    osDelay(1);
 
+    // orientation
+    gimbal_tx_message.StdId = CAN_GIMBAL_CONTROLLER_ORIENTATION_TX_ID;
+    gimbal_can_send_data[0] = *(uint8_t *)(&cmd_x);
+    gimbal_can_send_data[1] = *((uint8_t *)(&cmd_x) + 1);
+    gimbal_can_send_data[2] = *(uint8_t *)(&cmd_y);
+    gimbal_can_send_data[3] = *((uint8_t *)(&cmd_y) + 1);
+    gimbal_can_send_data[4] = *(uint8_t *)(&cmd_z);
+    gimbal_can_send_data[5] = *((uint8_t *)(&cmd_z) + 1);
+    gimbal_can_send_data[6] = 0;
+    gimbal_can_send_data[7] = 0;
+    HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+}
+#endif
+
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
   * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000] 
@@ -169,6 +222,7 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev)
     // control pitch motor
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
+#endif
 
 /**
   * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
@@ -294,6 +348,7 @@ void CAN_cmd_load_servo(uint8_t fServoSwitch)
 }
 #endif
 
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
 /**
   * @brief          return the yaw 6020 motor data point
   * @param[in]      none
@@ -339,6 +394,7 @@ const motor_measure_t *get_trigger_motor_measure_point(void)
 {
     return &motor_chassis[MOTOR_INDEX_TRIGGER];
 }
+#endif
 
 
 /**

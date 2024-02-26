@@ -55,6 +55,16 @@
 #define KEY_PRESSED_OFFSET_V            ((uint16_t)1 << 14)
 #define KEY_PRESSED_OFFSET_B            ((uint16_t)1 << 15)
 
+#define JOYSTICK_RIGHT_HORIZONTAL_CHANNEL 0
+#define JOYSTICK_RIGHT_VERTICAL_CHANNEL 1
+#define JOYSTICK_LEFT_HORIZONTAL_CHANNEL 2
+#define JOYSTICK_LEFT_VERTICAL_CHANNEL 3
+#define RIGHT_LEVER_CHANNEL 0
+#define LEFT_LEVER_CHANNEL 1
+
+#define JOYSTICK_HALF_RANGE 660.0f
+#define JOYSTICK_FULL_RANGE (JOYSTICK_HALF_RANGE*2.0f)
+
 // toggle auto-aim mode
 #define AUTO_AIM_TOGGLE_KEYBOARD KEY_PRESSED_OFFSET_G
 /* ----------------------- Data Struct ------------------------------------- */

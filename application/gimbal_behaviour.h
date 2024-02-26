@@ -83,6 +83,9 @@
 #include "global_inc.h"
 
 #include "gimbal_task.h"
+
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
+
 typedef enum
 {
   GIMBAL_ZERO_FORCE = 0, 
@@ -153,4 +156,5 @@ extern bool_t gimbal_cmd_to_chassis_stop(void);
   */
 extern bool_t gimbal_cmd_to_shoot_stop(void);
 
+#endif /* (ROBOT_TYPE != ENGINEER_2024_MECANUM) */
 #endif

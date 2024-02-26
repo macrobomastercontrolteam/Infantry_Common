@@ -53,6 +53,7 @@
   */
 void chassis_power_control(chassis_move_t *chassis_power_control)
 {
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
     fp32 chassis_power = 0.0f;
     fp32 chassis_power_buffer = 0.0f;
     fp32 total_current_limit = 0.0f;
@@ -142,4 +143,5 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
         chassis_power_control->motor_speed_pid[2].out*=current_scale;
         chassis_power_control->motor_speed_pid[3].out*=current_scale;
     }
+#endif
 }

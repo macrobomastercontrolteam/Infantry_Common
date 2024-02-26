@@ -100,5 +100,6 @@ extern void PID_clear(pid_type_def *pid);
 extern void LimitMax(fp32 *num, fp32 Limit);
 
 fp32 raw_err_handler(fp32 set, fp32 ref);
+fp32 abs_err_handler(fp32 set, fp32 ref);
 
 #endif

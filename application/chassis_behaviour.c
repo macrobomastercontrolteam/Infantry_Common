@@ -143,6 +143,7 @@ static void chassis_zero_force_control(fp32 *vx_can_set, fp32 *vy_can_set, fp32 
   */
 static void chassis_no_move_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
 
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
 /**
   * @brief          when chassis behaviour mode is CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW, chassis control mode is speed control mode.
   *                 chassis will follow gimbal, chassis rotation speed is calculated from the angle difference.
@@ -188,7 +189,7 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
   * @retval         返回空
   */
 static void chassis_engineer_follow_chassis_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
-
+#endif /* (ROBOT_TYPE != ENGINEER_2024_MECANUM) */
 /**
   * @brief          when chassis behaviour mode is CHASSIS_NO_FOLLOW_YAW, chassis control mode is speed control mode.
   *                 chassis will no follow angle, chassis rotation speed is set by wz_set.
@@ -269,20 +270,20 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 #if !((ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST))
         // remote control  set chassis behaviour mode
         // 遥控器设置模式
-        if (switch_is_mid(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+        if (switch_is_mid(chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL]))
         {
             // can change to CHASSIS_ZERO_FORCE,CHASSIS_NO_MOVE,CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,
             // CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW,CHASSIS_NO_FOLLOW_YAW,CHASSIS_OPEN
             // Remember to change gimbal_behaviour logic correspondingly
-            chassis_behaviour_mode = CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW;
-        }
-        else if (switch_is_down(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+			chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+		}
+        else if (switch_is_down(chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL]))
         {
             chassis_behaviour_mode = CHASSIS_NO_MOVE;
         }
-        else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+        else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL]))
         {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if ((ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM))
             chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
 #else
             chassis_behaviour_mode = CHASSIS_SPINNING;
@@ -291,13 +292,36 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 #endif
     }
 
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+    switch (chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL])
+	{
+		case RC_SW_UP:
+		{
+			chassis_move_mode->arm_behaviour_mode = ROBOT_ARM_ENABLED;
+			break;
+		}
+		case RC_SW_MID:
+		{
+			chassis_move_mode->arm_behaviour_mode = ROBOT_ARM_REST_POSITION;
+			break;
+		}
+		case RC_SW_DOWN:
+		default:
+		{
+			chassis_move_mode->arm_behaviour_mode = ROBOT_ARM_ZERO_FORCE;
+			break;
+		}
+	}
+#endif
+
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
     //when gimbal in some mode, such as init mode, chassis must's move
     //当云台在某些模式下，像初始化， 底盘不动
     if (gimbal_cmd_to_chassis_stop())
     {
         chassis_behaviour_mode = CHASSIS_NO_MOVE;
     }
-
+#endif
 
     //accord to beheviour mode, choose chassis control mode
     //根据行为模式选择一个底盘控制模式
@@ -376,14 +400,6 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
     {
         chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
     }
-    else if (chassis_behaviour_mode == CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
-    {
-        chassis_infantry_follow_gimbal_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW)
-    {
-        chassis_engineer_follow_chassis_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
     else if (chassis_behaviour_mode == CHASSIS_NO_FOLLOW_YAW)
     {
         chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
@@ -392,15 +408,25 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
     {
         chassis_open_set_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
     }
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
     else if (chassis_behaviour_mode == CHASSIS_SPINNING)
     {
         chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+    }
+    else if (chassis_behaviour_mode == CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
+    {
+        chassis_infantry_follow_gimbal_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+    }
+    else if (chassis_behaviour_mode == CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW)
+    {
+        chassis_engineer_follow_chassis_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
     }
 #if CV_INTERFACE
     else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
     {
         chassis_cv_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
     }
+#endif
 #endif
 }
 
@@ -465,6 +491,7 @@ static void chassis_no_move_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, ch
     *wz_set = 0.0f;
 }
 
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
 /**
   * @brief          when chassis behaviour mode is CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW, chassis control mode is speed control mode.
   *                 chassis will follow gimbal, chassis rotation speed is calculated from the angle difference.
@@ -651,6 +678,7 @@ static void chassis_engineer_follow_chassis_yaw_control(fp32 *vx_set, fp32 *vy_s
 
     *angle_set = rad_format(chassis_move_rc_to_vector->chassis_yaw_set - CHASSIS_ANGLE_Z_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_WZ_CHANNEL]);
 }
+#endif /* (ROBOT_TYPE != ENGINEER_2024_MECANUM) */
 
 /**
   * @brief          when chassis behaviour mode is CHASSIS_NO_FOLLOW_YAW, chassis control mode is speed control mode.

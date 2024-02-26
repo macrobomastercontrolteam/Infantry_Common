@@ -500,28 +500,28 @@ static void RC_cmd_to_calibrate(void)
   */
 void cali_param_init(void)
 {
-    uint8_t i = 0;
+	uint8_t i = 0;
 
-    for (i = 0; i < CALI_LIST_LENGTH; i++)
-    {
-        cali_sensor[i].flash_len = cali_sensor_size[i];
-        cali_sensor[i].flash_buf = cali_sensor_buf[i];
-        cali_sensor[i].cali_hook = (bool_t(*)(uint32_t *, bool_t))cali_hook_fun[i];
-    }
+	for (i = 0; i < CALI_LIST_LENGTH; i++)
+	{
+		cali_sensor[i].flash_len = cali_sensor_size[i];
+		cali_sensor[i].flash_buf = cali_sensor_buf[i];
+		cali_sensor[i].cali_hook = (bool_t(*)(uint32_t *, bool_t))cali_hook_fun[i];
+	}
 
     cali_data_read();
 
-    for (i = 0; i < CALI_LIST_LENGTH; i++)
-    {
-        if (cali_sensor[i].cali_done == CALIED_FLAG)
-        {
-            if (cali_sensor[i].cali_hook != NULL)
-            {
-                //if has been calibrated, set to init 
-                cali_sensor[i].cali_hook(cali_sensor_buf[i], CALI_FUNC_CMD_INIT);
-            }
-        }
-    }
+	for (i = 0; i < CALI_LIST_LENGTH; i++)
+	{
+		if (cali_sensor[i].cali_done == CALIED_FLAG)
+		{
+			if (cali_sensor[i].cali_hook != NULL)
+			{
+				//if has been calibrated, set to init
+				cali_sensor[i].cali_hook(cali_sensor_buf[i], CALI_FUNC_CMD_INIT);
+			}
+		}
+	}
 }
 
 /**
@@ -716,32 +716,33 @@ static bool_t cali_gyro_hook(uint32_t *cali, bool_t cmd)
 static bool_t cali_gimbal_hook(uint32_t *cali, bool_t cmd)
 {
 
-    gimbal_cali_t *local_cali_t = (gimbal_cali_t *)cali;
-    if (cmd == CALI_FUNC_CMD_INIT)
-    {
-        set_cali_gimbal_hook(local_cali_t->yaw_offset, local_cali_t->pitch_offset,
-                             local_cali_t->yaw_max_angle, local_cali_t->yaw_min_angle,
-                             local_cali_t->pitch_max_angle, local_cali_t->pitch_min_angle);
+    // gimbal_cali_t *local_cali_t = (gimbal_cali_t *)cali;
+    // if (cmd == CALI_FUNC_CMD_INIT)
+    // {
+    //     set_cali_gimbal_hook(local_cali_t->yaw_offset, local_cali_t->pitch_offset,
+    //                          local_cali_t->yaw_max_angle, local_cali_t->yaw_min_angle,
+    //                          local_cali_t->pitch_max_angle, local_cali_t->pitch_min_angle);
         
-        return 0;
-    }
-    else if (cmd == CALI_FUNC_CMD_ON)
-    {
-        if (cmd_cali_gimbal_hook(&local_cali_t->yaw_offset, &local_cali_t->pitch_offset,
-                                 &local_cali_t->yaw_max_angle, &local_cali_t->yaw_min_angle,
-                                 &local_cali_t->pitch_max_angle, &local_cali_t->pitch_min_angle))
-        {
-            cali_buzzer_off();
+    //     return 0;
+    // }
+    // else if (cmd == CALI_FUNC_CMD_ON)
+    // {
+    //     if (cmd_cali_gimbal_hook(&local_cali_t->yaw_offset, &local_cali_t->pitch_offset,
+    //                              &local_cali_t->yaw_max_angle, &local_cali_t->yaw_min_angle,
+    //                              &local_cali_t->pitch_max_angle, &local_cali_t->pitch_min_angle))
+    //     {
+    //         cali_buzzer_off();
             
-            return 1;
-        }
-        else
-        {
-            gimbal_start_buzzer();
+    //         return 1;
+    //     }
+    //     else
+    //     {
+    //         gimbal_start_buzzer();
             
-            return 0;
-        }
-    }
+    //         return 0;
+    //     }
+    // }
     
-    return 0;
+    // return 0;
+    return 1;
 }

@@ -14,7 +14,6 @@
   @endverbatim
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
-
 #include "shoot.h"
 #include "main.h"
 
@@ -31,6 +30,8 @@
 #include "detect_task.h"
 #include "pid.h"
 #include "cv_usart_task.h"
+
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
 
 #define shoot_fric1_on(pwm) fric1_on((pwm)) //Ä¦²ÁÂÖ1pwmºê¶¨Òå
 #define shoot_fric2_on(pwm) fric2_on((pwm)) //Ä¦²ÁÂÖ2pwmºê¶¨Òå
@@ -518,4 +519,4 @@ static void shoot_bullet_control(void)
         shoot_control.move_flag = 0;
     }
 }
-
+#endif

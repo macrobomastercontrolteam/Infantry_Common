@@ -6,11 +6,12 @@
 #define INFANTRY_2023_SWERVE 2
 #define INFANTRY_BIPED 3
 #define SENTRY_2023_MECANUM 4
+#define ENGINEER_2024_MECANUM 5
 
 /********************* Only Modify this area (start) *********************/
-#define ROBOT_TYPE SENTRY_2023_MECANUM
+#define ROBOT_TYPE ENGINEER_2024_MECANUM
 #define SENTRY_HW_TEST 0
-#define CV_INTERFACE 1
+#define CV_INTERFACE 0
 #define DEBUG_CV_WITH_USB 0
 #define TEST_NO_REF 1
 /********************* Only Modify this area (end) *********************/

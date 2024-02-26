@@ -40,9 +40,6 @@
 //在特殊模式下，可以通过遥控器控制旋转
 #define CHASSIS_WZ_CHANNEL 2
 
-//the channel of choosing chassis mode,
-//选择底盘状态 开关通道号
-#define CHASSIS_MODE_CHANNEL 0
 //rocker value (max 660) change to vertial speed (m/s) 
 //遥控器前进摇杆（max 660）转化成车体前进速度（m/s）的比例
 #define CHASSIS_VX_RC_SEN 0.006f
@@ -65,7 +62,7 @@
 
 #define CHASSIS_TEST_MODE 1
 
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
@@ -78,16 +75,18 @@
 
 #if (ROBOT_TYPE == INFANTRY_2018_MECANUM)
 #define MOTOR_DISTANCE_TO_CENTER 0.2f
+#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#define MOTOR_DISTANCE_TO_CENTER 0.2f // @TODO: update this
 #elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define MOTOR_DISTANCE_TO_CENTER 0.2788f
+#elif (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+#define MOTOR_DISTANCE_TO_CENTER 0.2861018068591153f
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define MOTOR_DISTANCE_TO_CENTER 0.28284271247461906f // sqrt(pow(CHASSIS_Y_DIRECTION_HALF_LENGTH,2)+pow(CHASSIS_X_DIRECTION_HALF_LENGTH,2))
 #define CHASSIS_Y_DIRECTION_HALF_LENGTH 0.2f
 #define CHASSIS_X_DIRECTION_HALF_LENGTH 0.2f
 #define CHASSIS_ANGLE_COS 0.7071067811865475f // (CHASSIS_X_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
 #define CHASSIS_ANGLE_SIN 0.7071067811865475f // (CHASSIS_Y_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
-#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define MOTOR_DISTANCE_TO_CENTER 0.2f // @TODO: update this
 #endif
 
 //chassis task control time  2ms
@@ -115,30 +114,36 @@
 #define CHASSIS_LEFT_KEY KEY_PRESSED_OFFSET_A
 #define CHASSIS_RIGHT_KEY KEY_PRESSED_OFFSET_D
 
-//m3508 rmp change to chassis speed,
+//Convert M3508 speed (rpm) to chassis speed (m/s)
 //m3508转化成底盘速度(m/s)的比例，
-// Equals to (2*PI/60)*Radius/Reduction_Ratio, where Reduction_Ratio=3591/187
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
-// Radius = 0.07625
-#define M3508_MOTOR_RPM_TO_VECTOR 0.000415809748903494517209f
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+// #define DRIVE_WHEEL_RADIUS 0.07625f // official iron wheel
+#define DRIVE_WHEEL_RADIUS 0.077f // 3rd party wheel with motor 3508 embedded into wheel
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-// Radius = 0.04
-#define M3508_MOTOR_RPM_TO_VECTOR 0.00021812970434281678f
+#define DRIVE_WHEEL_RADIUS 0.04f
 #endif
+#define MOTOR_3508_REDUCTION_RATIO (3591.0f/187.0f)
+#define M3508_MOTOR_RPM_TO_VECTOR ((2.0f*PI/60.0f)*DRIVE_WHEEL_RADIUS/MOTOR_3508_REDUCTION_RATIO)
+
 #define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
 
 //single chassis motor max speed
 //单个底盘电机最大速度
 #define MAX_WHEEL_SPEED 4.0f
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 //chassis forward or back max speed
 //底盘运动过程最大前进速度
-#define NORMAL_MAX_CHASSIS_SPEED_X 1.0f
+#define NORMAL_MAX_CHASSIS_SPEED_X 3.0f
 //chassis left or right max speed
 //底盘运动过程最大平移速度
+#define NORMAL_MAX_CHASSIS_SPEED_Y 3.0f
+#else
+#define NORMAL_MAX_CHASSIS_SPEED_X 1.0f
 #define NORMAL_MAX_CHASSIS_SPEED_Y 1.0f
+#endif
 
 // Arbitrary offsets between chassis rotational center and centroid
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 // slip ring is at the center of chassis
 #define CHASSIS_WZ_SET_SCALE 0.0f
 #else
@@ -195,11 +200,20 @@ typedef struct
 } chassis_steer_motor_t;
 #endif
 
+typedef enum
+{
+  ROBOT_ARM_ENABLED,
+  ROBOT_ARM_REST_POSITION,
+  ROBOT_ARM_ZERO_FORCE,
+} robot_arm_behaviour_e;
+
 typedef struct
 {
   const RC_ctrl_t *chassis_RC;               //底盘使用的遥控器指针, the point to remote control
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
   const gimbal_motor_t *chassis_yaw_motor;   //will use the relative angle of yaw gimbal motor to calculate the euler angle.底盘使用到yaw云台电机的相对角度来计算底盘的欧拉角.
   const gimbal_motor_t *chassis_pitch_motor; //will use the relative angle of pitch gimbal motor to calculate the euler angle.底盘使用到pitch云台电机的相对角度来计算底盘的欧拉角
+#endif
   const fp32 *chassis_INS_angle;             //the point to the euler angle of gyro sensor.获取陀螺仪解算出的欧拉角指针
   chassis_mode_e chassis_mode;               //state machine. 底盘控制状态机
   chassis_mode_e last_chassis_mode;          //last state machine.底盘上次控制状态机
@@ -222,8 +236,10 @@ typedef struct
   fp32 vx_set;                      //chassis set vertical speed,positive means forward,unit m/s.底盘设定速度 前进方向 前为正，单位 m/s
   fp32 vy_set;                      //chassis set horizontal speed,positive means left,unit m/s.底盘设定速度 左右方向 左为正，单位 m/s
   fp32 wz_set;                      //chassis set rotation speed,positive means counterclockwise,unit rad/s.底盘设定旋转角速度，逆时针为正 单位 rad/s
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
   fp32 chassis_relative_angle;      //the relative angle between chassis and gimbal.底盘与云台的相对角度，单位 rad
   fp32 chassis_relative_angle_set;  //the set relative angle.设置相对云台控制角度
+#endif
   fp32 chassis_yaw_set;             
 
   fp32 vx_max_speed;  //max forward speed, unit m/s.前进方向最大速度 单位m/s
@@ -233,6 +249,8 @@ typedef struct
   fp32 chassis_yaw;   //the yaw angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的yaw角度
   fp32 chassis_pitch; //the pitch angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的pitch角度
   fp32 chassis_roll;  //the roll angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的roll角度
+
+  robot_arm_behaviour_e arm_behaviour_mode;
 
 } chassis_move_t;
 
@@ -265,8 +283,6 @@ extern void chassis_task(void const *pvParameters);
   * @retval         none
   */
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
-
-fp32 abs_err_handler(fp32 set, fp32 ref);
 
 extern chassis_move_t chassis_move;
 

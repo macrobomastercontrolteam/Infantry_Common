@@ -29,8 +29,9 @@
 #include "INS_task.h"
 #include "chassis_power_control.h"
 
-#define DISABLE_DRIVE_MOTOR_POWER 1
+#define DISABLE_DRIVE_MOTOR_POWER 0
 #define DISABLE_STEER_MOTOR_POWER 1
+#define DISABLE_ARM_MOTOR_POWER 1
 
 /**
   * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
@@ -118,12 +119,9 @@ uint32_t chassis_high_water;
 chassis_move_t chassis_move;
 
 #if CHASSIS_TEST_MODE
-int32_t chassis_relative_angle_int_1000;
-int32_t chassis_relative_angle_set_int_1000;
 static void J_scope_chassis_test(void)
 {
-    chassis_relative_angle_int_1000 = (int32_t)(chassis_move.chassis_yaw_motor->relative_angle * 1000);
-    chassis_relative_angle_set_int_1000 = (int32_t)(chassis_move.chassis_relative_angle_set * 1000);
+  ;
 }
 #endif
 
@@ -289,6 +287,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     //in beginning， chassis mode is raw 
     //底盘开机状态为原始
     chassis_move_init->chassis_mode = CHASSIS_VECTOR_RAW;
+    chassis_move_init->arm_behaviour_mode = ROBOT_ARM_ZERO_FORCE;
     //get remote control point
     //获取遥控器指针
     chassis_move_init->chassis_RC = get_remote_control_point();
@@ -297,9 +296,11 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     chassis_move_init->chassis_INS_angle = get_INS_angle_point();
     //get gimbal motor data point
     //获取云台电机数据指针
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
     chassis_move_init->chassis_yaw_motor = get_yaw_motor_point();
     chassis_move_init->chassis_pitch_motor = get_pitch_motor_point();
-    
+#endif
+
     //get chassis motor data point,  initialize motor speed PID
     //获取底盘电机数据指针，初始化PID 
     for (i = 0; i < 4; i++)
@@ -370,6 +371,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
     {
         switch (chassis_move_transit->chassis_mode)
         {
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
         case CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW:
         {
           chassis_move_transit->chassis_relative_angle_set = 0.0f;
@@ -381,6 +383,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
           break;
         }
         case CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW:
+#endif
         case CHASSIS_VECTOR_NO_FOLLOW_YAW:
         {
           chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
@@ -417,7 +420,7 @@ static void chassis_feedback_update(chassis_move_t *chassis_move_update)
         chassis_move_update->motor_chassis[i].accel = chassis_move_update->motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
     }
 
-#if !(ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE != INFANTRY_2023_SWERVE)
     //calculate vertical speed, horizontal speed ,rotation speed, left hand rule 
     //更新底盘纵向速度 x， 平移速度y，旋转速度wz，坐标系为右手系
     chassis_move_update->vx = (-chassis_move_update->motor_chassis[0].speed + chassis_move_update->motor_chassis[1].speed + chassis_move_update->motor_chassis[2].speed - chassis_move_update->motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
@@ -425,11 +428,16 @@ static void chassis_feedback_update(chassis_move_t *chassis_move_update)
     chassis_move_update->wz = (-chassis_move_update->motor_chassis[0].speed - chassis_move_update->motor_chassis[1].speed - chassis_move_update->motor_chassis[2].speed - chassis_move_update->motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / MOTOR_DISTANCE_TO_CENTER;
 #endif
 
+    chassis_move_update->chassis_roll = *(chassis_move_update->chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+    chassis_move_update->chassis_yaw = rad_format(*(chassis_move_update->chassis_INS_angle + INS_YAW_ADDRESS_OFFSET));
+    chassis_move_update->chassis_pitch = rad_format(*(chassis_move_update->chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET));
+#else
     //calculate chassis euler angle, if chassis add a new gyro sensor,please change this code
     //计算底盘姿态角度, 如果底盘上有陀螺仪请更改这部分代码
     chassis_move_update->chassis_yaw = rad_format(*(chassis_move_update->chassis_INS_angle + INS_YAW_ADDRESS_OFFSET) - chassis_move_update->chassis_yaw_motor->relative_angle);
     chassis_move_update->chassis_pitch = rad_format(*(chassis_move_update->chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET) - chassis_move_update->chassis_pitch_motor->relative_angle);
-    chassis_move_update->chassis_roll = *(chassis_move_update->chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
+#endif
 }
 /**
   * @brief          accroding to the channel value of remote control, calculate chassis vertical and horizontal speed set-point
@@ -526,7 +534,8 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
     //get three control set-point, 获取三个控制设置值
     chassis_behaviour_control_set(&vx_set, &vy_set, &angle_set, chassis_move_control);
 
-    //follow gimbal mode
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
+	//follow gimbal mode
     //跟随云台模式
     if ((chassis_move_control->chassis_mode == CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW)
         // Spinning mode is a combination of extra constant wz and vector-follow-gimbal mode
@@ -565,27 +574,31 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
         chassis_move_control->vx_set = fp32_constrain(vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
         chassis_move_control->vy_set = fp32_constrain(vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
     }
-    else if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW)
+	else
+#endif
     {
-        //"angle_set" is rotation speed set-point
-        //“angle_set” 是旋转速度控制
-        chassis_move_control->wz_set = angle_set;
-        chassis_move_control->vx_set = fp32_constrain(vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
-        chassis_move_control->vy_set = fp32_constrain(vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
-    }
-    else if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_RAW)
-    {
-        //in raw mode, set-point is sent to CAN bus
-        //在原始模式，设置值是发送到CAN总线
-        chassis_move_control->vx_set = vx_set;
-        chassis_move_control->vy_set = vy_set;
-        chassis_move_control->wz_set = angle_set;
-        chassis_move_control->chassis_cmd_slow_set_vx.out = 0.0f;
-        chassis_move_control->chassis_cmd_slow_set_vy.out = 0.0f;
-    }
+		if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW)
+		{
+			//"angle_set" is rotation speed set-point
+			// “angle_set” 是旋转速度控制
+			chassis_move_control->wz_set = angle_set;
+			chassis_move_control->vx_set = fp32_constrain(vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
+			chassis_move_control->vy_set = fp32_constrain(vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
+		}
+		else if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_RAW)
+		{
+			// in raw mode, set-point is sent to CAN bus
+			// 在原始模式，设置值是发送到CAN总线
+			chassis_move_control->vx_set = vx_set;
+			chassis_move_control->vy_set = vy_set;
+			chassis_move_control->wz_set = angle_set;
+			chassis_move_control->chassis_cmd_slow_set_vx.out = 0.0f;
+			chassis_move_control->chassis_cmd_slow_set_vy.out = 0.0f;
+		}
+	}
 }
 
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 /**
   * @brief          four mecanum wheels speed is calculated by three param. 
   * @param[in]      vx_set: vertial speed
@@ -713,7 +726,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
     fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
     uint8_t i = 0;
 
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM)
     //mecanum wheel speed calculation
     //麦轮运动分解
     chassis_vector_to_mecanum_wheel_speed(chassis_move_control_loop->vx_set,
@@ -780,11 +793,6 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
     {
         chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(chassis_move_control_loop->motor_speed_pid[i].out);
     }
-}
-
-fp32 abs_err_handler(fp32 set, fp32 ref)
-{
-  return rad_format(set - ref);
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)

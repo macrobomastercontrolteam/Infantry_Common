@@ -17,6 +17,7 @@
 
 #ifndef SHOOT_H
 #define SHOOT_H
+
 #include "global_inc.h"
 
 #include "CAN_receive.h"
@@ -24,7 +25,7 @@
 #include "remote_control.h"
 #include "user_lib.h"
 
-
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
 
 //射击发射开关通道数据
 #define SHOOT_RC_MODE_CHANNEL       1
@@ -157,5 +158,7 @@ extern int16_t shoot_control_loop(void);
 #if defined(GIMBAL_TEST_MODE)
 extern shoot_control_t shoot_control;
 #endif
+
+#endif /* (ROBOT_TYPE != ENGINEER_2024_MECANUM) */
 
 #endif

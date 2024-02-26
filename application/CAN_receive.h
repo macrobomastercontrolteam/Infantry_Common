@@ -23,43 +23,15 @@
 
 #include "global_inc.h"
 
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+#define CHASSIS_CAN hcan2
+#define GIMBAL_CAN hcan1
+#else
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
+#endif
 
 /* CAN send and receive ID */
-typedef enum
-{
-    /*******Chassis CAN IDs********/
-    CAN_3508_M1_ID = 0x201,
-    CAN_3508_M2_ID = 0x202,
-    CAN_3508_M3_ID = 0x203,
-    CAN_3508_M4_ID = 0x204,
-    CAN_YAW_MOTOR_ID = 0x205,
-
-    /********Gimbal CAN IDs********/
-    CAN_PIT_MOTOR_ID = 0x206,
-
-    /********Other CAN IDs: Location depends on Model********/
-    // INFANTRY_2023_MECANUM: On gimbal
-    // INFANTRY_2023_SWERVE: On chassis
-    // SENTRY_2023_MECANUM: On chassis
-    CAN_TRIGGER_MOTOR_ID = 0x207,
-
-    CAN_LAST_ID = CAN_TRIGGER_MOTOR_ID,
-} can_msg_id_e;
-
-typedef enum
-{
-	MOTOR_INDEX_3508_M1 = 0,
-	MOTOR_INDEX_3508_M2,
-	MOTOR_INDEX_3508_M3,
-	MOTOR_INDEX_3508_M4,
-	MOTOR_INDEX_YAW,
-	MOTOR_INDEX_PITCH,
-	MOTOR_INDEX_TRIGGER,
-	MOTOR_LIST_LENGTH,
-} can_motor_id_e;
-
 typedef enum
 {
 	/*******Tx CAN IDs********/
@@ -69,7 +41,45 @@ typedef enum
 	CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
 	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
 #endif
-} can_other_msg_id_e;
+
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+	CAN_GIMBAL_CONTROLLER_POSITION_TX_ID = 0x114,
+	CAN_GIMBAL_CONTROLLER_ORIENTATION_TX_ID = 0x115,
+#endif
+
+	/*******Chassis CAN IDs********/
+	CAN_3508_M1_ID = 0x201,
+	CAN_3508_M2_ID = 0x202,
+	CAN_3508_M3_ID = 0x203,
+	CAN_3508_M4_ID = 0x204,
+
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
+	CAN_YAW_MOTOR_ID = 0x205,
+
+	/********Gimbal CAN IDs********/
+	CAN_PIT_MOTOR_ID = 0x206,
+
+	/********Other CAN IDs: Location depends on Model********/
+	// INFANTRY_2023_MECANUM: On gimbal
+	// INFANTRY_2023_SWERVE: On chassis
+	// SENTRY_2023_MECANUM: On chassis
+	CAN_TRIGGER_MOTOR_ID = 0x207,
+#endif
+} can_msg_id_e;
+
+typedef enum
+{
+	MOTOR_INDEX_3508_M1 = 0,
+	MOTOR_INDEX_3508_M2,
+	MOTOR_INDEX_3508_M3,
+	MOTOR_INDEX_3508_M4,
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
+	MOTOR_INDEX_YAW,
+	MOTOR_INDEX_PITCH,
+	MOTOR_INDEX_TRIGGER,
+#endif
+	MOTOR_LIST_LENGTH,
+} can_motor_id_e;
 
 //rm motor data
 typedef struct
@@ -81,7 +91,11 @@ typedef struct
     int16_t last_ecd;
 } motor_measure_t;
 
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+void CAN_cmd_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t cmd_x, int16_t cmd_y, int16_t cmd_z);
+#endif
 
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
   * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000] 
@@ -99,6 +113,7 @@ typedef struct
   * @retval         none
   */
 extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev);
+#endif
 
 /**
   * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
@@ -150,6 +165,7 @@ extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int1
 extern void CAN_cmd_load_servo(uint8_t fServoSwitch);
 #endif
 
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
 /**
   * @brief          return the yaw 6020 motor data point
   * @param[in]      none
@@ -185,6 +201,7 @@ extern const motor_measure_t *get_pitch_gimbal_motor_measure_point(void);
   * @retval         电机数据指针
   */
 extern const motor_measure_t *get_trigger_motor_measure_point(void);
+#endif
 
 /**
   * @brief          return the chassis 3508 motor data point

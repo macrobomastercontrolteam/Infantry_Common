@@ -1,6 +1,7 @@
 #ifndef USER_LIB_H
 #define USER_LIB_H
 #include "global_inc.h"
+#include "arm_math.h"
 
 /** A compile time assertion check.
  *

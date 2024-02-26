@@ -17,6 +17,7 @@
 
 #include "pid.h"
 #include "main.h"
+#include "user_lib.h"
 
 void LimitMax(fp32 *num, fp32 Limit)
 {
@@ -145,4 +146,9 @@ void PID_clear(pid_type_def *pid)
 fp32 raw_err_handler(fp32 set, fp32 ref)
 {
   return set - ref;
+}
+
+fp32 abs_err_handler(fp32 set, fp32 ref)
+{
+  return rad_format(set - ref);
 }

@@ -87,6 +87,8 @@
 #include "user_lib.h"
 #include "cv_usart_task.h"
 
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
+
 //when gimbal is in calibrating, set buzzer frequency and strenght
 //当云台在校准, 设置蜂鸣器频率和强度
 #define gimbal_warn_buzzer_on() buzzer_on(31, 20000)
@@ -865,3 +867,5 @@ static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *
     *yaw = 0.0f;
     *pitch = 0.0f;
 }
+
+#endif /* (ROBOT_TYPE != ENGINEER_2024_MECANUM) */
