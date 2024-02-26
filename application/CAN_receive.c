@@ -39,6 +39,9 @@ extern CAN_HandleTypeDef hcan2;
         (ptr)->given_current = (uint16_t)((data)[4] << 8 | (data)[5]);  \
         (ptr)->temperate = (data)[6];                                   \
     }
+
+uint8_t convertCanIdToMotorIndex(uint32_t canId);
+
 /**
  * @brief motor feedback data
  * Chassis CAN:
@@ -54,6 +57,27 @@ static CAN_TxHeaderTypeDef  gimbal_tx_message;
 static uint8_t              gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef  chassis_tx_message;
 static uint8_t              chassis_can_send_data[8];
+
+uint8_t convertCanIdToMotorIndex(uint32_t canId)
+{
+	switch (canId)
+	{
+		case CAN_3508_M1_ID:
+		case CAN_3508_M2_ID:
+		case CAN_3508_M3_ID:
+		case CAN_3508_M4_ID:
+		case CAN_YAW_MOTOR_ID:
+		case CAN_PIT_MOTOR_ID:
+		case CAN_TRIGGER_MOTOR_ID:
+		{
+			return (canId - CAN_3508_M1_ID);
+		}
+		default:
+		{
+			return 0;
+		}
+	}
+}
 
 /**
   * @brief          hal CAN fifo call back, receive motor data
@@ -101,7 +125,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     }
     
     if (bMotorValid == 1) {
-        uint8_t bMotorId = CAN_ID_TO_MOTOR_INDEX(rx_header.StdId);
+        uint8_t bMotorId = convertCanIdToMotorIndex(rx_header.StdId);
         get_motor_measure(&motor_chassis[bMotorId], rx_data);
         detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
     }

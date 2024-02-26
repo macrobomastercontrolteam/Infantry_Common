@@ -25,7 +25,6 @@
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
-#define CAN_ID_TO_MOTOR_INDEX(_CAN_ID) (_CAN_ID - CAN_3508_M1_ID)
 
 /* CAN send and receive ID */
 typedef enum
