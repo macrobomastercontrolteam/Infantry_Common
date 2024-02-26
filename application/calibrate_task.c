@@ -743,5 +743,6 @@ static bool_t cali_gimbal_hook(uint32_t *cali, bool_t cmd)
     //     }
     // }
     
-    return 0;
+    // return 0;
+    return 1;
 }
