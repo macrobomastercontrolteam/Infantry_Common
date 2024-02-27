@@ -25,7 +25,7 @@
 #include "main.h"
 #include "bsp_rng.h"
 
-
+#include "user_lib.h"
 #include "detect_task.h"
 
 extern CAN_HandleTypeDef hcan1;
@@ -150,7 +150,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 }
 
 #if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
-void CAN_cmd_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t cmd_x, int16_t cmd_y, int16_t cmd_z)
+void CAN_cmd_robot_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t cmd_x, int16_t cmd_y, int16_t cmd_z)
 {
     uint32_t send_mail_box;
     gimbal_tx_message.IDE = CAN_ID_STD;
@@ -165,8 +165,9 @@ void CAN_cmd_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t c
     gimbal_can_send_data[3] = *((uint8_t *)(&cmd_pitch) + 1);
     gimbal_can_send_data[4] = *(uint8_t *)(&cmd_yaw);
     gimbal_can_send_data[5] = *((uint8_t *)(&cmd_yaw) + 1);
-    gimbal_can_send_data[6] = 0;
-    gimbal_can_send_data[7] = 0;
+    // redundant data
+    gimbal_can_send_data[6] = gimbal_can_send_data[5];
+    gimbal_can_send_data[7] = gimbal_can_send_data[5];
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
     osDelay(1);
@@ -179,6 +180,46 @@ void CAN_cmd_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t c
     gimbal_can_send_data[3] = *((uint8_t *)(&cmd_y) + 1);
     gimbal_can_send_data[4] = *(uint8_t *)(&cmd_z);
     gimbal_can_send_data[5] = *((uint8_t *)(&cmd_z) + 1);
+    HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+}
+
+void CAN_cmd_robot_arm_individual_motors(fp32 motor_pos[7])
+{
+    uint32_t send_mail_box;
+    gimbal_tx_message.IDE = CAN_ID_STD;
+    gimbal_tx_message.RTR = CAN_RTR_DATA;
+    gimbal_tx_message.DLC = 0x08;
+
+    uint8_t motor_pos_index;
+    int16_t motor_pos_int16[7];
+    for (motor_pos_index = 0; motor_pos_index < 8; motor_pos_index++)
+    {
+      motor_pos_int16[motor_pos_index] = motor_pos[motor_pos_index] * RAD_TO_INT16_SCALE;
+    }
+
+	  // position
+    gimbal_tx_message.StdId = CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_1_TX_ID;
+    gimbal_can_send_data[0] = *(uint8_t *)(&motor_pos_int16[0]);
+    gimbal_can_send_data[1] = *((uint8_t *)(&motor_pos_int16[0]) + 1);
+    gimbal_can_send_data[2] = *(uint8_t *)(&motor_pos_int16[1]);
+    gimbal_can_send_data[3] = *((uint8_t *)(&motor_pos_int16[1]) + 1);
+    gimbal_can_send_data[4] = *(uint8_t *)(&motor_pos_int16[2]);
+    gimbal_can_send_data[5] = *((uint8_t *)(&motor_pos_int16[2]) + 1);
+    gimbal_can_send_data[6] = *(uint8_t *)(&motor_pos_int16[3]);
+    gimbal_can_send_data[7] = *((uint8_t *)(&motor_pos_int16[3]) + 1);
+    HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+
+    osDelay(1);
+
+    // orientation
+    gimbal_tx_message.StdId = CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_2_TX_ID;
+    gimbal_can_send_data[0] = *(uint8_t *)(&motor_pos_int16[4]);
+    gimbal_can_send_data[1] = *((uint8_t *)(&motor_pos_int16[4]) + 1);
+    gimbal_can_send_data[2] = *(uint8_t *)(&motor_pos_int16[5]);
+    gimbal_can_send_data[3] = *((uint8_t *)(&motor_pos_int16[5]) + 1);
+    gimbal_can_send_data[4] = *(uint8_t *)(&motor_pos_int16[6]);
+    gimbal_can_send_data[5] = *((uint8_t *)(&motor_pos_int16[6]) + 1);
+    // redundant data
     gimbal_can_send_data[6] = 0;
     gimbal_can_send_data[7] = 0;
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);

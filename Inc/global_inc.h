@@ -8,12 +8,16 @@
 #define SENTRY_2023_MECANUM 4
 #define ENGINEER_2024_MECANUM 5
 
+#define CUSTOM_CONTROLLER_MODE 0
+#define INDIVIDUAL_MOTOR_TEST 1
+
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE ENGINEER_2024_MECANUM
 #define SENTRY_HW_TEST 0
 #define CV_INTERFACE 0
 #define DEBUG_CV_WITH_USB 0
 #define TEST_NO_REF 1
+#define ENGINEER_CONTROL_MODE INDIVIDUAL_MOTOR_TEST
 /********************* Only Modify this area (end) *********************/
 
 #if (ROBOT_TYPE != SENTRY_2023_MECANUM) && SENTRY_HW_TEST

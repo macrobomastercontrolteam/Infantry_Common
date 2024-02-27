@@ -28,11 +28,13 @@
 #include "detect_task.h"
 #include "INS_task.h"
 #include "chassis_power_control.h"
+#include "user_lib.h"
 
-#define DISABLE_DRIVE_MOTOR_POWER 0
+#define DISABLE_DRIVE_MOTOR_POWER 1
 #define DISABLE_STEER_MOTOR_POWER 1
 #define DISABLE_ARM_MOTOR_POWER 1
 
+void wait_until_all_necessary_modules_online(void);
 /**
   * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
   *                 data point initialization, gimbal motor data point initialization, and gyro sensor angle point initialization.
@@ -105,6 +107,10 @@ static void chassis_set_control(chassis_move_t *chassis_move_control);
   */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+void robot_arm_control(void);
+#endif
+
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static uint16_t motor_angle_to_ecd_change(fp32 angle);
 #endif
@@ -145,29 +151,7 @@ void chassis_task(void const *pvParameters)
     chassis_init(&chassis_move);
     //make sure all chassis motor is online,
     //判断底盘电机是否都在线
-    uint8_t fIsError = 0;
-    uint8_t bToeIndex;
-    do {
-      for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-      {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-        if (bToeIndex == DBUS_TOE)
-        {
-          bToeIndex = CV_TOE;
-        }
-#endif
-        if (toe_is_error(bToeIndex))
-        {
-          fIsError = 1;
-          vTaskDelay(CHASSIS_CONTROL_TIME_MS);
-          break;
-        }
-      }
-      if (bToeIndex > CHASSIS_MOTOR4_TOE)
-      {
-        fIsError = 0;
-      }
-    } while (fIsError);
+	  wait_until_all_necessary_modules_online();
 
     while (1)
     {
@@ -186,61 +170,71 @@ void chassis_task(void const *pvParameters)
         //chassis control pid calculate
         //底盘控制PID计算
         chassis_control_loop(&chassis_move);
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+        robot_arm_control();
+#endif
 
-        //make sure  one motor is online at least, so that the control CAN message can be received
-        //确保至少一个电机在线， 这样CAN控制包可以被接收到
-        for (bToeIndex = DBUS_TOE + 1; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-        {
-          if (!toe_is_error(bToeIndex))
-          {
 #if DISABLE_DRIVE_MOTOR_POWER
-            chassis_move.motor_chassis[0].give_current = 0;
-            chassis_move.motor_chassis[1].give_current = 0;
-            chassis_move.motor_chassis[2].give_current = 0;
-            chassis_move.motor_chassis[3].give_current = 0;
+		chassis_move.motor_chassis[0].give_current = 0;
+		chassis_move.motor_chassis[1].give_current = 0;
+		chassis_move.motor_chassis[2].give_current = 0;
+		chassis_move.motor_chassis[3].give_current = 0;
 #endif
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-            // Remote controller act as emergency stop
-            if (toe_is_error(CV_TOE) || gimbal_emergency_stop())
-#else
-            // when remote control is offline, chassis motor should receive zero current or voltage.
-            // 当遥控器掉线的时候，发送给底盘电机零电流.
-            if (toe_is_error(DBUS_TOE))
-#endif
+		// safe guard
+		if (chassis_behaviour_mode == CHASSIS_ZERO_FORCE)
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-            {
-              CAN_cmd_chassis(0, 0, 0, 0, 0, 0, 0, 0);
-            }
-            else
-            {
+		{
+			CAN_cmd_chassis(0, 0, 0, 0, 0, 0, 0, 0);
+		}
+		else
+		{
 #if DISABLE_STEER_MOTOR_POWER
-            chassis_move.steer_motor_chassis[0].target_ecd = 0;
-            chassis_move.steer_motor_chassis[1].target_ecd = 0;
-            chassis_move.steer_motor_chassis[2].target_ecd = 0;
-            chassis_move.steer_motor_chassis[3].target_ecd = 0;
+			chassis_move.steer_motor_chassis[0].target_ecd = 0;
+			chassis_move.steer_motor_chassis[1].target_ecd = 0;
+			chassis_move.steer_motor_chassis[2].target_ecd = 0;
+			chassis_move.steer_motor_chassis[3].target_ecd = 0;
 #endif
-              // send control message
-              // 发送控制电流
-              CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current, chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current,
-                              chassis_move.steer_motor_chassis[0].target_ecd, chassis_move.steer_motor_chassis[1].target_ecd, chassis_move.steer_motor_chassis[2].target_ecd, chassis_move.steer_motor_chassis[3].target_ecd);
-            }
-#else
-            {
-              CAN_cmd_chassis(0, 0, 0, 0);
-            }
-            else
-            {
-              // send control message
-              // 发送控制电流
-              CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current,
-                              chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
-            }
-#endif
-            break;
-          }
-        }
-        //os delay
+			// send control message
+			// 发送控制电流
+			CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current, chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current,
+			                chassis_move.steer_motor_chassis[0].target_ecd, chassis_move.steer_motor_chassis[1].target_ecd, chassis_move.steer_motor_chassis[2].target_ecd, chassis_move.steer_motor_chassis[3].target_ecd);
+		}
+#elif (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+		{
+			CAN_cmd_chassis(0, 0, 0, 0);
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+      CAN_cmd_robot_arm_individual_motors(chassis_move.robot_arm_motor_pos);
+#else /* INDIVIDUAL_MOTOR_TEST */
+			CAN_cmd_robot_arm(0, 0, 0, 0, 0, 0);
+#endif /* INDIVIDUAL_MOTOR_TEST */
+		}
+		else
+		{
+			// send control message
+			// 发送控制电流
+			CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current,
+			                chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+      CAN_cmd_robot_arm_individual_motors(chassis_move.robot_arm_motor_pos);
+#else /* INDIVIDUAL_MOTOR_TEST */
+			CAN_cmd_robot_arm(chassis_move.robot_arm.roll_set, chassis_move.robot_arm.pitch_set, chassis_move.robot_arm.yaw_set, chassis_move.robot_arm.x_set, chassis_move.robot_arm.y_set, chassis_move.robot_arm.z_set);
+#endif /* INDIVIDUAL_MOTOR_TEST */
+		}
+#else /* ENGINEER_2024_MECANUM */
+		{
+			CAN_cmd_chassis(0, 0, 0, 0);
+		}
+		else
+		{
+			// send control message
+			// 发送控制电流
+			CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current,
+			                chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
+		}
+#endif /* ENGINEER_2024_MECANUM */
+
+		//os delay
         //系统延时
         vTaskDelay(CHASSIS_CONTROL_TIME_MS);
 
@@ -252,6 +246,125 @@ void chassis_task(void const *pvParameters)
         chassis_high_water = uxTaskGetStackHighWaterMark(NULL);
 #endif
     }
+}
+
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+void robot_arm_reset_position(void)
+{
+    chassis_move.robot_arm_motor_pos[0] = GIMBAL_JOINT_0_ANGLE_REST;
+    chassis_move.robot_arm_motor_pos[1] = GIMBAL_JOINT_1_ANGLE_REST;
+    chassis_move.robot_arm_motor_pos[2] = GIMBAL_JOINT_2_ANGLE_REST;
+    chassis_move.robot_arm_motor_pos[3] = GIMBAL_JOINT_3_ANGLE_REST;
+    chassis_move.robot_arm_motor_pos[4] = GIMBAL_JOINT_4_ANGLE_REST;
+    chassis_move.robot_arm_motor_pos[5] = GIMBAL_JOINT_5_ANGLE_REST;
+    chassis_move.robot_arm_motor_pos[6] = GIMBAL_JOINT_6_ANGLE_REST;
+}
+#endif
+
+void robot_arm_control(void)
+{
+	switch (chassis_move.robot_arm_mode)
+	{
+		case ROBOT_ARM_ZERO_FORCE:
+		{
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+    robot_arm_reset_position();
+#else
+		memset(&chassis_move.robot_arm, 0xFF, sizeof(chassis_move.robot_arm));
+#endif
+			break;
+		}
+		case ROBOT_ARM_REST_POSITION:
+		{
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+    robot_arm_reset_position();
+#else
+    memset(&chassis_move.robot_arm, 0, sizeof(chassis_move.robot_arm));
+#endif
+			break;
+		}
+		case ROBOT_ARM_ENABLED:
+		{
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+      fp32 right_horiz_channel, right_vert_channel, left_horiz_channel, left_vert_channel;
+      deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], right_horiz_channel, CHASSIS_RC_DEADLINE);
+      deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], right_vert_channel, CHASSIS_RC_DEADLINE);
+      deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], left_horiz_channel, CHASSIS_RC_DEADLINE);
+      deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], left_vert_channel, CHASSIS_RC_DEADLINE);
+
+      switch (chassis_move.chassis_RC->rc.s[RIGHT_LEVER_CHANNEL])
+      {
+        case RC_SW_UP:
+        {
+          // upper 4 joints control
+          chassis_move.robot_arm_motor_pos[3] = right_horiz_channel * GIMBAL_JOINT_3_RC_SEN + GIMBAL_JOINT_3_ANGLE_REST;
+          chassis_move.robot_arm_motor_pos[4] = right_vert_channel * GIMBAL_JOINT_4_RC_SEN + GIMBAL_JOINT_4_ANGLE_REST;
+          chassis_move.robot_arm_motor_pos[5] = left_horiz_channel * GIMBAL_JOINT_5_RC_SEN + GIMBAL_JOINT_5_ANGLE_REST;
+          chassis_move.robot_arm_motor_pos[6] = left_vert_channel * GIMBAL_JOINT_6_RC_SEN + GIMBAL_JOINT_6_ANGLE_REST;
+          break;
+        }
+        case RC_SW_MID:
+        {
+          // lower 3 joints control
+          chassis_move.robot_arm_motor_pos[0] = right_horiz_channel * GIMBAL_JOINT_0_RC_SEN + GIMBAL_JOINT_0_ANGLE_REST;
+          chassis_move.robot_arm_motor_pos[1] = right_vert_channel * GIMBAL_JOINT_1_RC_SEN + GIMBAL_JOINT_1_ANGLE_REST;
+          chassis_move.robot_arm_motor_pos[2] = left_horiz_channel * GIMBAL_JOINT_2_RC_SEN + GIMBAL_JOINT_2_ANGLE_REST;
+          break;
+        }
+        default:
+        {
+          // should not reach here
+          break;
+        }
+      }
+
+	  chassis_move.robot_arm_motor_pos[0] = fp32_constrain(chassis_move.robot_arm_motor_pos[0], GIMBAL_JOINT_0_ANGLE_MIN, GIMBAL_JOINT_0_ANGLE_MAX);
+	  chassis_move.robot_arm_motor_pos[1] = fp32_constrain(chassis_move.robot_arm_motor_pos[1], GIMBAL_JOINT_1_ANGLE_MIN, GIMBAL_JOINT_1_ANGLE_MAX);
+	  chassis_move.robot_arm_motor_pos[2] = fp32_constrain(chassis_move.robot_arm_motor_pos[2], GIMBAL_JOINT_2_ANGLE_MIN, GIMBAL_JOINT_2_ANGLE_MAX);
+	  chassis_move.robot_arm_motor_pos[3] = fp32_constrain(chassis_move.robot_arm_motor_pos[3], GIMBAL_JOINT_3_ANGLE_MIN, GIMBAL_JOINT_3_ANGLE_MAX);
+	  chassis_move.robot_arm_motor_pos[4] = fp32_constrain(chassis_move.robot_arm_motor_pos[4], GIMBAL_JOINT_4_ANGLE_MIN, GIMBAL_JOINT_4_ANGLE_MAX);
+	  chassis_move.robot_arm_motor_pos[5] = fp32_constrain(chassis_move.robot_arm_motor_pos[5], GIMBAL_JOINT_5_ANGLE_MIN, GIMBAL_JOINT_5_ANGLE_MAX);
+	  chassis_move.robot_arm_motor_pos[6] = fp32_constrain(chassis_move.robot_arm_motor_pos[6], GIMBAL_JOINT_6_ANGLE_MIN, GIMBAL_JOINT_6_ANGLE_MAX);
+#else
+	    // @TODO: custom controller mode
+#endif
+			break;
+		}
+    default:
+    {
+      break;
+    }
+  }
+}
+#endif
+
+void wait_until_all_necessary_modules_online(void)
+{
+	uint8_t fIsError = 0;
+	uint8_t bToeIndex;
+	do
+	{
+		for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
+		{
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
+			if (bToeIndex == DBUS_TOE)
+			{
+				bToeIndex = CV_TOE;
+			}
+#endif
+			if (toe_is_error(bToeIndex))
+			{
+				fIsError = 1;
+				vTaskDelay(CHASSIS_CONTROL_TIME_MS);
+				break;
+			}
+		}
+		if (bToeIndex > CHASSIS_MOTOR4_TOE)
+		{
+			fIsError = 0;
+		}
+	} while (fIsError);
 }
 
 /**
@@ -287,7 +400,6 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     //in beginning， chassis mode is raw 
     //底盘开机状态为原始
     chassis_move_init->chassis_mode = CHASSIS_VECTOR_RAW;
-    chassis_move_init->arm_behaviour_mode = ROBOT_ARM_ZERO_FORCE;
     //get remote control point
     //获取遥控器指针
     chassis_move_init->chassis_RC = get_remote_control_point();
@@ -325,7 +437,15 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     chassis_move_init->vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
     chassis_move_init->vy_min_speed = -NORMAL_MAX_CHASSIS_SPEED_Y;
 
-    //update data
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+    chassis_move_init->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+	  memset(&chassis_move_init->robot_arm, 0xFF, sizeof(chassis_move_init->robot_arm));
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+    robot_arm_reset_position();
+#endif
+#endif
+
+	  //update data
     //更新一下数据
     chassis_feedback_update(chassis_move_init);
 }
@@ -389,6 +509,10 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
           chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
           break;
         }
+				default:
+				{
+					break;
+				}
         }
         chassis_move_transit->last_chassis_mode = chassis_move_transit->chassis_mode;
     }

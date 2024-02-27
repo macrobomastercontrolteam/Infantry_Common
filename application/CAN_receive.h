@@ -31,6 +31,8 @@
 #define GIMBAL_CAN hcan2
 #endif
 
+#define RAD_TO_INT16_SCALE (32767.0f/PI) // (2^15-1)/PI
+
 /* CAN send and receive ID */
 typedef enum
 {
@@ -45,6 +47,10 @@ typedef enum
 #if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 	CAN_GIMBAL_CONTROLLER_POSITION_TX_ID = 0x114,
 	CAN_GIMBAL_CONTROLLER_ORIENTATION_TX_ID = 0x115,
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+	CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_1_TX_ID = 0x116,
+	CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_2_TX_ID = 0x117,
+#endif
 #endif
 
 	/*******Chassis CAN IDs********/
@@ -113,6 +119,11 @@ void CAN_cmd_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t c
   * @retval         none
   */
 extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev);
+#endif
+
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+void CAN_cmd_robot_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t cmd_x, int16_t cmd_y, int16_t cmd_z);
+void CAN_cmd_robot_arm_individual_motors(fp32 motor_pos[7]);
 #endif
 
 /**

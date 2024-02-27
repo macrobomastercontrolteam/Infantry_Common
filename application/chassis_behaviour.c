@@ -87,6 +87,7 @@
 
 #include "gimbal_behaviour.h"
 #include "cv_usart_task.h"
+#include "detect_task.h"
 
 #define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN*0.10471975511965977f)
 #define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(25.0f))
@@ -100,6 +101,8 @@ static void J_scope_chassis_behavior_test(void)
     chassis_behaviour_mode_int = (int32_t)(chassis_behaviour_mode);
 }
 #endif
+
+void chassis_behaviour_mode_safe_guard(void);
 
 /**
   * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
@@ -279,7 +282,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 		}
         else if (switch_is_down(chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL]))
         {
-            chassis_behaviour_mode = CHASSIS_NO_MOVE;
+            chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
         }
         else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL]))
         {
@@ -292,38 +295,44 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 #endif
     }
 
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
-    switch (chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL])
+	if (chassis_behaviour_mode != CHASSIS_ZERO_FORCE)
 	{
-		case RC_SW_UP:
+        chassis_behaviour_mode_safe_guard();
+	}
+
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+    if (chassis_behaviour_mode == CHASSIS_NO_FOLLOW_YAW)
+	{
+		switch (chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL])
 		{
-			chassis_move_mode->arm_behaviour_mode = ROBOT_ARM_ENABLED;
-			break;
-		}
-		case RC_SW_MID:
-		{
-			chassis_move_mode->arm_behaviour_mode = ROBOT_ARM_REST_POSITION;
-			break;
-		}
-		case RC_SW_DOWN:
-		default:
-		{
-			chassis_move_mode->arm_behaviour_mode = ROBOT_ARM_ZERO_FORCE;
-			break;
+			case RC_SW_UP:
+			{
+				chassis_move_mode->robot_arm_mode = ROBOT_ARM_ENABLED;
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+                chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+#endif
+				break;
+			}
+			case RC_SW_MID:
+			{
+				chassis_move_mode->robot_arm_mode = ROBOT_ARM_REST_POSITION;
+				break;
+			}
+			case RC_SW_DOWN:
+			default:
+			{
+				chassis_move_mode->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+				break;
+			}
 		}
 	}
-#endif
-
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-    //when gimbal in some mode, such as init mode, chassis must's move
-    //当云台在某些模式下，像初始化， 底盘不动
-    if (gimbal_cmd_to_chassis_stop())
+    else
     {
-        chassis_behaviour_mode = CHASSIS_NO_MOVE;
+        chassis_move_mode->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
     }
 #endif
 
-    //accord to beheviour mode, choose chassis control mode
+	//accord to beheviour mode, choose chassis control mode
     //根据行为模式选择一个底盘控制模式
     if (chassis_behaviour_mode == CHASSIS_ZERO_FORCE)
     {
@@ -365,6 +374,45 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 #endif
 }
 
+void chassis_behaviour_mode_safe_guard(void)
+{
+#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
+	// when gimbal in some mode, such as init mode, chassis must's move
+	// 当云台在某些模式下，像初始化， 底盘不动
+	if (gimbal_cmd_to_chassis_stop())
+	{
+		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+	}
+#endif
+
+	uint8_t bToeIndex;
+	for (bToeIndex = CHASSIS_MOTOR1_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
+	{
+		if (toe_is_error(bToeIndex))
+		{
+			chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+			chassis_move.robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+#endif
+			break;
+		}
+	}
+
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
+	// Remote controller act as emergency stop
+	if (toe_is_error(CV_TOE) || gimbal_emergency_stop())
+#else
+	// when remote control is offline, chassis motor should receive zero current or voltage.
+	// 当遥控器掉线的时候，发送给底盘电机零电流.
+	if (toe_is_error(DBUS_TOE))
+#endif
+	{
+		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+		chassis_move.robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+#endif
+	}
+}
 
 /**
   * @brief          set control set-point. three movement param, according to difference control mode,
@@ -459,6 +507,9 @@ static void chassis_zero_force_control(fp32 *vx_can_set, fp32 *vy_can_set, fp32 
     *vx_can_set = 0.0f;
     *vy_can_set = 0.0f;
     *wz_can_set = 0.0f;
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+    robot_arm_reset_position();
+#endif
 }
 
 /**
@@ -489,6 +540,9 @@ static void chassis_no_move_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, ch
     *vx_set = 0.0f;
     *vy_set = 0.0f;
     *wz_set = 0.0f;
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+    robot_arm_reset_position();
+#endif
 }
 
 #if (ROBOT_TYPE != ENGINEER_2024_MECANUM)

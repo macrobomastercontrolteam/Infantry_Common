@@ -53,6 +53,42 @@
 //不跟随云台的时候 遥控器的yaw遥杆（max 660）转化成车体旋转速度的比例
 #define CHASSIS_WZ_RC_SEN 0.01f
 
+
+#define GIMBAL_JOINT_0_ANGLE_MIN (-PI)
+#define GIMBAL_JOINT_0_ANGLE_MAX PI
+#define GIMBAL_JOINT_0_ANGLE_REST 0.0f
+#define GIMBAL_JOINT_0_RC_SEN ((GIMBAL_JOINT_0_ANGLE_MAX - GIMBAL_JOINT_0_ANGLE_MIN) / JOYSTICK_FULL_RANGE)
+
+#define GIMBAL_JOINT_1_ANGLE_MIN (-30.0f / 180.0f * PI)
+#define GIMBAL_JOINT_1_ANGLE_MAX (35.0f / 180.0f * PI)
+#define GIMBAL_JOINT_1_ANGLE_REST GIMBAL_JOINT_1_ANGLE_MAX
+#define GIMBAL_JOINT_1_RC_SEN ((GIMBAL_JOINT_1_ANGLE_MAX - GIMBAL_JOINT_1_ANGLE_MIN) / JOYSTICK_HALF_RANGE)
+
+#define GIMBAL_JOINT_2_ANGLE_MIN (-120.0f / 180.0f * PI)
+#define GIMBAL_JOINT_2_ANGLE_MAX 0.0f
+#define GIMBAL_JOINT_2_ANGLE_REST GIMBAL_JOINT_2_ANGLE_MIN
+#define GIMBAL_JOINT_2_RC_SEN ((GIMBAL_JOINT_2_ANGLE_MAX - GIMBAL_JOINT_2_ANGLE_MIN) / JOYSTICK_HALF_RANGE)
+
+#define GIMBAL_JOINT_3_ANGLE_MIN (-80.0f / 180.0f * PI)
+#define GIMBAL_JOINT_3_ANGLE_MAX (80.0f / 180.0f * PI)
+#define GIMBAL_JOINT_3_ANGLE_REST 0.0f
+#define GIMBAL_JOINT_3_RC_SEN ((GIMBAL_JOINT_3_ANGLE_MAX - GIMBAL_JOINT_3_ANGLE_MIN) / JOYSTICK_FULL_RANGE)
+
+#define GIMBAL_JOINT_4_ANGLE_MIN (-0.5f * PI)
+#define GIMBAL_JOINT_4_ANGLE_MAX (0.5f * PI)
+#define GIMBAL_JOINT_4_ANGLE_REST 0.0f
+#define GIMBAL_JOINT_4_RC_SEN ((GIMBAL_JOINT_4_ANGLE_MAX - GIMBAL_JOINT_4_ANGLE_MIN) / JOYSTICK_FULL_RANGE)
+
+#define GIMBAL_JOINT_5_ANGLE_MIN (10.0f / 180.0f * PI)
+#define GIMBAL_JOINT_5_ANGLE_MAX (170.0f / 180.0f * PI)
+#define GIMBAL_JOINT_5_ANGLE_REST (90.0f / 180.0f * PI)
+#define GIMBAL_JOINT_5_RC_SEN ((GIMBAL_JOINT_5_ANGLE_MAX - GIMBAL_JOINT_5_ANGLE_MIN) / JOYSTICK_FULL_RANGE)
+
+#define GIMBAL_JOINT_6_ANGLE_MIN (-PI)
+#define GIMBAL_JOINT_6_ANGLE_MAX PI
+#define GIMBAL_JOINT_6_ANGLE_REST 0.0f
+#define GIMBAL_JOINT_6_RC_SEN ((GIMBAL_JOINT_6_ANGLE_MAX - GIMBAL_JOINT_6_ANGLE_MIN) / JOYSTICK_FULL_RANGE)
+
 #define CHASSIS_ACCEL_X_NUM 0.1666666667f
 #define CHASSIS_ACCEL_Y_NUM 0.3333333333f
 
@@ -200,12 +236,24 @@ typedef struct
 } chassis_steer_motor_t;
 #endif
 
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 typedef enum
 {
   ROBOT_ARM_ENABLED,
   ROBOT_ARM_REST_POSITION,
   ROBOT_ARM_ZERO_FORCE,
 } robot_arm_behaviour_e;
+
+typedef struct
+{
+  fp32 roll_set;
+  fp32 pitch_set;
+  fp32 yaw_set;
+  fp32 x_set;
+  fp32 y_set;
+  fp32 z_set;
+} robot_arm_t;
+#endif
 
 typedef struct
 {
@@ -250,7 +298,13 @@ typedef struct
   fp32 chassis_pitch; //the pitch angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的pitch角度
   fp32 chassis_roll;  //the roll angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的roll角度
 
-  robot_arm_behaviour_e arm_behaviour_mode;
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+  robot_arm_behaviour_e robot_arm_mode;
+  robot_arm_t robot_arm;
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+  fp32 robot_arm_motor_pos[7];
+#endif /* INDIVIDUAL_MOTOR_TEST */
+#endif
 
 } chassis_move_t;
 
@@ -283,6 +337,12 @@ extern void chassis_task(void const *pvParameters);
   * @retval         none
   */
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
+
+#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+void robot_arm_reset_position(void);
+#endif
+#endif
 
 extern chassis_move_t chassis_move;
 
