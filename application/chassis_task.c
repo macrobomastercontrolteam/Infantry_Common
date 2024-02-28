@@ -242,12 +242,12 @@ static void wait_until_motors_online(void)
 				}
 				case CHASSIS_DRIVE_MOTOR1_TOE:
 				{
-					encode_motor_control(CAN_DRIVE1_PVT_TX_ID, 0, 0, 0, 0, 0, blocking_call, MA_9015);
+					encode_MIT_motor_control(CAN_DRIVE1_PVT_TX_ID, 0, 0, 0, 0, 0, blocking_call, MA_9015);
 					break;
 				}
 				case CHASSIS_DRIVE_MOTOR2_TOE:
 				{
-					encode_motor_control(CAN_DRIVE2_PVT_TX_ID, 0, 0, 0, 0, 0, blocking_call, MA_9015);
+					encode_MIT_motor_control(CAN_DRIVE2_PVT_TX_ID, 0, 0, 0, 0, 0, blocking_call, MA_9015);
 					break;
 				}
 				case DBUS_TOE:

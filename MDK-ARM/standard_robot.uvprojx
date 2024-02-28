@@ -599,34 +599,9 @@
               <FilePath>..\application\CAN_receive.c</FilePath>
             </File>
             <File>
-              <FileName>chassis_behaviour.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\chassis_behaviour.c</FilePath>
-            </File>
-            <File>
-              <FileName>chassis_power_control.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\chassis_power_control.c</FilePath>
-            </File>
-            <File>
-              <FileName>chassis_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\chassis_task.c</FilePath>
-            </File>
-            <File>
               <FileName>detect_task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\detect_task.c</FilePath>
-            </File>
-            <File>
-              <FileName>gimbal_behaviour.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\gimbal_behaviour.c</FilePath>
-            </File>
-            <File>
-              <FileName>gimbal_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\gimbal_task.c</FilePath>
             </File>
             <File>
               <FileName>INS_task.c</FileName>
@@ -634,44 +609,9 @@
               <FilePath>..\application\INS_task.c</FilePath>
             </File>
             <File>
-              <FileName>oled_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\oled_task.c</FilePath>
-            </File>
-            <File>
-              <FileName>referee.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\referee.c</FilePath>
-            </File>
-            <File>
-              <FileName>referee_usart_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\referee_usart_task.c</FilePath>
-            </File>
-            <File>
-              <FileName>remote_control.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\remote_control.c</FilePath>
-            </File>
-            <File>
-              <FileName>shoot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\shoot.c</FilePath>
-            </File>
-            <File>
-              <FileName>test_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\test_task.c</FilePath>
-            </File>
-            <File>
               <FileName>usb_task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\usb_task.c</FilePath>
-            </File>
-            <File>
-              <FileName>voltage_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\voltage_task.c</FilePath>
             </File>
             <File>
               <FileName>led_flow_task.c</FileName>
@@ -679,24 +619,14 @@
               <FilePath>..\application\led_flow_task.c</FilePath>
             </File>
             <File>
-              <FileName>servo_task.c</FileName>
+              <FileName>robot_arm_task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\application\servo_task.c</FilePath>
+              <FilePath>..\application\robot_arm_task.c</FilePath>
             </File>
             <File>
-              <FileName>cv_usart_task.c</FileName>
+              <FileName>remote_control.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\application\cv_usart_task.c</FilePath>
-            </File>
-            <File>
-              <FileName>biped.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\biped.c</FilePath>
-            </File>
-            <File>
-              <FileName>biped_leg.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\biped_leg.c</FilePath>
+              <FilePath>..\application\remote_control.c</FilePath>
             </File>
           </Files>
         </Group>

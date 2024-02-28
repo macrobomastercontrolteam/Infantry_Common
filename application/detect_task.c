@@ -260,22 +260,17 @@ static void detect_init(uint32_t time)
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
-            {30, 10, 11},   //hip motor1
-            {30, 10, 11},   //hip motor2
-            {30, 10, 11},    //hip motor3
-            {30, 10, 11},    //hip motor4
-            {30, 10, 10},   //drive motor1
-            {30, 10, 10},   //drive motor2
-            {2, 3, 14},     //yaw
-            {2, 3, 13},     //pitch
-            {10, 10, 12},   //trigger
+            {100, 10, 10},   // chassis controller
+            {30, 10, 11},   // joint motor 0
+            {30, 10, 12},   // joint motor 1
+            {30, 10, 13},   // joint motor 2
+            {30, 10, 14},   // joint motor 3
+            {30, 10, 15},   // joint motor 4
+            {30, 10, 16},   // joint motor 5
+            {30, 10, 17},   // joint motor 6
             {2, 3, 7},      //board gyro
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag
-            {100, 100, 5},  //referee
-            {10, 10, 7},    //rm imu
-            {1000, 10, 7},    //cv usart
-            // {100, 100, 1},  //oled
         };
 
     for (uint8_t i = 0; i < ERROR_LIST_LENGTH; i++)
@@ -287,17 +282,6 @@ static void detect_init(uint32_t time)
         error_list[i].solve_lost_fun = NULL;
         error_list[i].solve_data_error_fun = NULL;
 
-#if defined(TEST_NO_REF)
-        if (i == REFEREE_TOE)
-        {
-            // test_no_ref branch setup
-            error_list[i].enable = 0;
-            error_list[i].error_exist = 0;
-            error_list[i].is_lost = 0;
-            error_list[i].data_is_error = 0;
-        }
-        else
-#endif
         {
             error_list[i].enable = 1;
             error_list[i].error_exist = 1;

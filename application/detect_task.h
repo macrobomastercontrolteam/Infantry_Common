@@ -63,27 +63,19 @@ enum errorList
 {
     // chassis related TOEs (make sure this group is continuous)
     DBUS_TOE = 0,
-    // Hip motor
-    CHASSIS_HIP_MOTOR1_TOE,
-    CHASSIS_HIP_MOTOR2_TOE,
-    CHASSIS_HIP_MOTOR3_TOE,
-    CHASSIS_HIP_MOTOR4_TOE,
-    CHASSIS_DRIVE_MOTOR1_TOE,
-    CHASSIS_DRIVE_MOTOR2_TOE,
-    // // Currently, there's no ACK implemented in controller
-    // // GM6020 control angle
-    // CHASSIS_STEER_MOTOR_CONTROLLER_TOE,
+    CHASSIS_CONTROLLER_TOE,
+    JOINT_0_TOE,
+    JOINT_1_TOE,
+    JOINT_2_TOE,
+    JOINT_3_TOE,
+    JOINT_4_TOE,
+    JOINT_5_TOE,
+    JOINT_6_TOE,
 
-    YAW_GIMBAL_MOTOR_TOE,
-    PITCH_GIMBAL_MOTOR_TOE,
-    TRIGGER_MOTOR_TOE,
     BOARD_GYRO_TOE,
     BOARD_ACCEL_TOE,
     BOARD_MAG_TOE,
-    REFEREE_TOE,
-    RM_IMU_TOE,
-    CV_TOE,
-    // OLED_TOE,
+
     ERROR_LIST_LENGTH,
 };
 

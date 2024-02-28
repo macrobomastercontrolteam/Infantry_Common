@@ -14,17 +14,6 @@
 
 typedef struct
 {
-	/* data */
-	fp32 now;
-	fp32 last;
-	fp32 set;
-	// fp32 set_dot;
-	fp32 dot;  // derivative
-	// fp32 ddot; // second derivative
-} variable_status_t;
-
-typedef struct
-{
 	// data
 	fp32 angle1, angle2, angle3, angle4; // radians
 	variable_status_t angle0;

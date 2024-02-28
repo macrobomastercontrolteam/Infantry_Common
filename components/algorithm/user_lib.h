@@ -44,6 +44,8 @@
 
 #define DRIVE_WHEEL_RADIUS 0.0675f
 
+#define RAD_TO_INT16_SCALE (32767.0f/PI) // (2^15-1)/PI
+
 /******************************* Robot control enables *******************************/
 // switches between original, RM, capstone models
 #define MODEL_ORIG_RM_CAP 1
@@ -100,6 +102,17 @@
 			(output) = 0;                                  \
 		}                                                  \
 	}
+
+typedef __packed struct
+{
+	/* data */
+	fp32 now;
+	fp32 last;
+	fp32 set;
+	// fp32 set_dot;
+	fp32 dot;  // derivative
+	// fp32 ddot; // second derivative
+} variable_status_t;
 
 typedef __packed struct
 {

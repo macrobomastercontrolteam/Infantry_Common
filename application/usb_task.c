@@ -50,39 +50,23 @@ void usb_task(void const * argument)
         osDelay(1000);
         usb_printf(
 "******************************\r\n\
-voltage percentage:%d%% \r\n\
-DBUS:%s\r\n\
-chassis hip motor1:%s\r\n\
-chassis hip motor2:%s\r\n\
-chassis hip motor3:%s\r\n\
-chassis hip motor4:%s\r\n\
-chassis drive motor1:%s\r\n\
-chassis drive motor2:%s\r\n\
-yaw motor:%s\r\n\
-pitch motor:%s\r\n\
-trigger motor:%s\r\n\
-gyro sensor:%s\r\n\
-accel sensor:%s\r\n\
-mag sensor:%s\r\n\
-referee usart:%s\r\n\
-cv usart:%s\r\n\
+Chassis Dev C Board:%s\r\n\
+joint motor 0:%s\r\n\
+joint motor 1:%s\r\n\
+joint motor 2:%s\r\n\
+joint motor 3:%s\r\n\
+joint motor 4:%s\r\n\
+joint motor 5:%s\r\n\
+joint motor 6:%s\r\n\
 ******************************\r\n",
-            get_battery_percentage(), 
-            status[error_list_usb_local[DBUS_TOE].error_exist],
-            status[error_list_usb_local[CHASSIS_HIP_MOTOR1_TOE].error_exist],
-            status[error_list_usb_local[CHASSIS_HIP_MOTOR2_TOE].error_exist],
-            status[error_list_usb_local[CHASSIS_HIP_MOTOR3_TOE].error_exist],
-            status[error_list_usb_local[CHASSIS_HIP_MOTOR4_TOE].error_exist],
-            status[error_list_usb_local[CHASSIS_DRIVE_MOTOR1_TOE].error_exist],
-            status[error_list_usb_local[CHASSIS_DRIVE_MOTOR2_TOE].error_exist],
-            status[error_list_usb_local[YAW_GIMBAL_MOTOR_TOE].error_exist],
-            status[error_list_usb_local[PITCH_GIMBAL_MOTOR_TOE].error_exist],
-            status[error_list_usb_local[TRIGGER_MOTOR_TOE].error_exist],
-            status[error_list_usb_local[BOARD_GYRO_TOE].error_exist],
-            status[error_list_usb_local[BOARD_ACCEL_TOE].error_exist],
-            status[error_list_usb_local[BOARD_MAG_TOE].error_exist],
-            status[error_list_usb_local[REFEREE_TOE].error_exist],
-            status[error_list_usb_local[CV_TOE].error_exist]);
+            status[error_list_usb_local[CHASSIS_CONTROLLER_TOE].error_exist],
+            status[error_list_usb_local[JOINT_0_TOE].error_exist],
+            status[error_list_usb_local[JOINT_1_TOE].error_exist],
+            status[error_list_usb_local[JOINT_2_TOE].error_exist],
+            status[error_list_usb_local[JOINT_3_TOE].error_exist],
+            status[error_list_usb_local[JOINT_4_TOE].error_exist],
+            status[error_list_usb_local[JOINT_5_TOE].error_exist],
+            status[error_list_usb_local[JOINT_6_TOE].error_exist]);
 #endif // defined(DEBUG_CV)
     }
 
