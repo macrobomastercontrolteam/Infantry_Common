@@ -30,6 +30,9 @@
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
+
+#define DISABLE_ARM_MOTOR_POWER 0
+
 //motor data read
 #define get_motor_measure(ptr, data)                                    \
     {                                                                   \
@@ -194,7 +197,11 @@ void CAN_cmd_robot_arm_individual_motors(fp32 motor_pos[7])
     int16_t motor_pos_int16[7];
     for (motor_pos_index = 0; motor_pos_index < 8; motor_pos_index++)
     {
+#if DISABLE_ARM_MOTOR_POWER
+      motor_pos_int16[motor_pos_index] = 0;
+#else
       motor_pos_int16[motor_pos_index] = motor_pos[motor_pos_index] * RAD_TO_INT16_SCALE;
+#endif
     }
 
 	  // position
