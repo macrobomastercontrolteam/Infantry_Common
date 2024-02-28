@@ -298,18 +298,25 @@ void robot_arm_control(void)
         case RC_SW_UP:
         {
           // upper 4 joints control
-          chassis_move.robot_arm_motor_pos[3] = right_horiz_channel * GIMBAL_JOINT_3_RC_SEN + GIMBAL_JOINT_3_ANGLE_REST;
-          chassis_move.robot_arm_motor_pos[4] = right_vert_channel * GIMBAL_JOINT_4_RC_SEN + GIMBAL_JOINT_4_ANGLE_REST;
-          chassis_move.robot_arm_motor_pos[5] = left_horiz_channel * GIMBAL_JOINT_5_RC_SEN + GIMBAL_JOINT_5_ANGLE_REST;
-          chassis_move.robot_arm_motor_pos[6] = left_vert_channel * GIMBAL_JOINT_6_RC_SEN + GIMBAL_JOINT_6_ANGLE_REST;
+          chassis_move.robot_arm_motor_pos[3] += right_vert_channel * GIMBAL_JOINT_3_RC_SEN_INC;
+          chassis_move.robot_arm_motor_pos[4] += right_horiz_channel * GIMBAL_JOINT_4_RC_SEN_INC;
+          chassis_move.robot_arm_motor_pos[5] += left_vert_channel * GIMBAL_JOINT_5_RC_SEN_INC;
+          chassis_move.robot_arm_motor_pos[6] += left_horiz_channel * GIMBAL_JOINT_6_RC_SEN_INC;
+          // chassis_move.robot_arm_motor_pos[3] = right_vert_channel * GIMBAL_JOINT_3_RC_SEN + GIMBAL_JOINT_3_ANGLE_REST;
+          // chassis_move.robot_arm_motor_pos[4] = right_horiz_channel * GIMBAL_JOINT_4_RC_SEN + GIMBAL_JOINT_4_ANGLE_REST;
+          // chassis_move.robot_arm_motor_pos[5] = left_vert_channel * GIMBAL_JOINT_5_RC_SEN + GIMBAL_JOINT_5_ANGLE_REST;
+          // chassis_move.robot_arm_motor_pos[6] = left_horiz_channel * GIMBAL_JOINT_6_RC_SEN + GIMBAL_JOINT_6_ANGLE_REST;
           break;
         }
         case RC_SW_MID:
         {
           // lower 3 joints control
-          chassis_move.robot_arm_motor_pos[0] = right_horiz_channel * GIMBAL_JOINT_0_RC_SEN + GIMBAL_JOINT_0_ANGLE_REST;
-          chassis_move.robot_arm_motor_pos[1] = right_vert_channel * GIMBAL_JOINT_1_RC_SEN + GIMBAL_JOINT_1_ANGLE_REST;
-          chassis_move.robot_arm_motor_pos[2] = left_horiz_channel * GIMBAL_JOINT_2_RC_SEN + GIMBAL_JOINT_2_ANGLE_REST;
+          chassis_move.robot_arm_motor_pos[0] += right_horiz_channel * GIMBAL_JOINT_0_RC_SEN_INC;
+          chassis_move.robot_arm_motor_pos[1] += right_vert_channel * GIMBAL_JOINT_1_RC_SEN_INC;
+          chassis_move.robot_arm_motor_pos[2] += left_horiz_channel * GIMBAL_JOINT_2_RC_SEN_INC;
+          // chassis_move.robot_arm_motor_pos[0] = right_horiz_channel * GIMBAL_JOINT_0_RC_SEN + GIMBAL_JOINT_0_ANGLE_REST;
+          // chassis_move.robot_arm_motor_pos[1] = right_vert_channel * GIMBAL_JOINT_1_RC_SEN + GIMBAL_JOINT_1_ANGLE_REST;
+          // chassis_move.robot_arm_motor_pos[2] = left_horiz_channel * GIMBAL_JOINT_2_RC_SEN + GIMBAL_JOINT_2_ANGLE_REST;
           break;
         }
         default:
@@ -331,7 +338,7 @@ void robot_arm_control(void)
 #endif
 			break;
 		}
-    default:
+        default:
     {
       break;
     }
