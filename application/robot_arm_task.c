@@ -48,6 +48,18 @@
 #define ARM_JOINT_6_ANGLE_MAX PI
 #define ARM_JOINT_6_ANGLE_REST 0.0f
 
+#define JOINT_6_6020_ANGLE_PID_KP 15.0f
+#define JOINT_6_6020_ANGLE_PID_KI 0.00f
+#define JOINT_6_6020_ANGLE_PID_KD 0.0f
+#define JOINT_6_6020_ANGLE_PID_MAX_OUT 10.0f
+#define JOINT_6_6020_ANGLE_PID_MAX_IOUT 0.0f
+
+#define JOINT_6_6020_SPEED_PID_KP 2250.0f // pitch starts shaking at 2600
+#define JOINT_6_6020_SPEED_PID_KI 25.0f
+#define JOINT_6_6020_SPEED_PID_KD 0.0f
+#define JOINT_6_6020_SPEED_PID_MAX_OUT 30000.0f
+#define JOINT_6_6020_SPEED_PID_MAX_IOUT 10000.0f
+
 void robot_arm_init(void);
 void robot_arm_status_update(void);
 void robot_arm_control(void);
@@ -86,7 +98,7 @@ void robot_arm_task(void const *pvParameters)
 	{
 		robot_arm_status_update();
 		robot_arm_control();
-		arm_joints_cmd_position(robot_arm.joint_angle_target);
+		arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_MS);
 
 		robot_arm_task_loop_delay = xTaskGetTickCount() - robot_arm.time_ms;
 		if (robot_arm_task_loop_delay < ROBOT_ARM_CONTROL_TIME_MS)
@@ -131,6 +143,8 @@ void robot_arm_status_update(void)
 	// robot_arm.accel_x = *(robot_arm.arm_INS_accel + INS_ACCEL_X_ADDRESS_OFFSET);
 	// robot_arm.accel_y = *(robot_arm.arm_INS_accel + INS_ACCEL_Y_ADDRESS_OFFSET);
 	// robot_arm.accel_z = *(robot_arm.arm_INS_accel + INS_ACCEL_Z_ADDRESS_OFFSET);
+
+	update_joint_6_6020_angle();
 }
 
 void robot_arm_init(void)
@@ -138,6 +152,11 @@ void robot_arm_init(void)
 	robot_arm.arm_INS_angle = get_INS_angle_point();
 	robot_arm.arm_INS_speed = get_gyro_data_point();
 	// robot_arm.arm_INS_accel = get_accel_data_point();
+
+	const static fp32 joint_6_6020_angle_pid_coeffs[3] = {JOINT_6_6020_ANGLE_PID_KP, JOINT_6_6020_ANGLE_PID_KI, JOINT_6_6020_ANGLE_PID_KD};
+	PID_init(&robot_arm.joint_6_6020_angle_pid, PID_POSITION, joint_6_6020_angle_pid_coeffs, JOINT_6_6020_ANGLE_PID_MAX_OUT, JOINT_6_6020_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+	const static fp32 joint_6_6020_speed_pid_coeffs[3] = {JOINT_6_6020_SPEED_PID_KP, JOINT_6_6020_SPEED_PID_KI, JOINT_6_6020_SPEED_PID_KD};
+	PID_init(&robot_arm.joint_6_6020_speed_pid, PID_POSITION, joint_6_6020_speed_pid_coeffs, JOINT_6_6020_SPEED_PID_MAX_OUT, JOINT_6_6020_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 
 	robot_arm_reset_position();
 	enable_all_motor_control(1);

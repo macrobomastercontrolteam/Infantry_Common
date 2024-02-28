@@ -10,6 +10,7 @@ typedef struct
 	fp32 time_step_s; // second
 	uint32_t time_ms; // millisecond
 	pid_type_def joint_6_6020_angle_pid;
+	pid_type_def joint_6_6020_speed_pid;
 
 	fp32 joint_angle_target[7];
 
