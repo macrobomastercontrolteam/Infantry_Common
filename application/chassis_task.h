@@ -277,7 +277,8 @@ typedef enum
 {
   ROBOT_ARM_ENABLED,
   ROBOT_ARM_REST_POSITION,
-    ROBOT_ARM_ZERO_FORCE,
+  ROBOT_ARM_NO_MOVE,
+  ROBOT_ARM_ZERO_FORCE,
 } robot_arm_behaviour_e;
 
 typedef struct

@@ -338,7 +338,8 @@ void robot_arm_control(void)
 #endif
 			break;
 		}
-        default:
+    case ROBOT_ARM_NO_MOVE:
+    default:
     {
       break;
     }

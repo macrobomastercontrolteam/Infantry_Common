@@ -315,13 +315,13 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			}
 			case RC_SW_MID:
 			{
-				chassis_move_mode->robot_arm_mode = ROBOT_ARM_REST_POSITION;
+				chassis_move_mode->robot_arm_mode = ROBOT_ARM_NO_MOVE;
 				break;
 			}
 			case RC_SW_DOWN:
 			default:
 			{
-				chassis_move_mode->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+				chassis_move_mode->robot_arm_mode = ROBOT_ARM_REST_POSITION;
 				break;
 			}
 		}
@@ -507,9 +507,6 @@ static void chassis_zero_force_control(fp32 *vx_can_set, fp32 *vy_can_set, fp32 
     *vx_can_set = 0.0f;
     *vy_can_set = 0.0f;
     *wz_can_set = 0.0f;
-#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
-    robot_arm_reset_position();
-#endif
 }
 
 /**
@@ -540,9 +537,6 @@ static void chassis_no_move_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, ch
     *vx_set = 0.0f;
     *vy_set = 0.0f;
     *wz_set = 0.0f;
-#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
-    robot_arm_reset_position();
-#endif
 }
 
 #if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
