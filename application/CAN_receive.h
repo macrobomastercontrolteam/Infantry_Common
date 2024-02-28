@@ -43,7 +43,7 @@ typedef enum
 
     // other IDs
     CAN_DAMIAO_RX_ID = 0x0FF,
-    CAN_MOTOR_6020_TX_ID = 0x1FF,
+    CAN_MOTOR_6020_TX_ID = 0x2FF,
     CAN_JOINT_MOTOR_1_6012_RX_ID = 0x282,
     CAN_JOINT_MOTOR_2_4010_RX_ID = 0x283,
 

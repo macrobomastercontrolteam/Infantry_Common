@@ -3,7 +3,7 @@
  * Auto generated Run-Time-Environment Configuration File
  *      *** Do not modify ! ***
  *
- * Project: 'standard_robot' 
+ * Project: 'engineer_arm' 
  * Target:  'standard_robot' 
  */
 

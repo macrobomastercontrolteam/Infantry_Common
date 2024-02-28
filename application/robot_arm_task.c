@@ -17,7 +17,7 @@
 
 #define ROBOT_ARM_TASK_INIT_TIME 500.0f
 // task loop delay time
-#define ROBOT_ARM_CONTROL_TIME_MS 5.0f
+#define ROBOT_ARM_CONTROL_TIME_MS 2.0f
 #define ROBOT_ARM_CONTROL_TIME_S (ROBOT_ARM_CONTROL_TIME_MS / 1000.0f)
 
 #define ARM_JOINT_0_ANGLE_MIN (-PI)
@@ -28,7 +28,7 @@
 #define ARM_JOINT_1_ANGLE_MAX (35.0f / 180.0f * PI)
 #define ARM_JOINT_1_ANGLE_REST ARM_JOINT_1_ANGLE_MAX
 
-#define ARM_JOINT_2_ANGLE_MIN (-120.0f / 180.0f * PI)
+#define ARM_JOINT_2_ANGLE_MIN (-150.0f / 180.0f * PI)
 #define ARM_JOINT_2_ANGLE_MAX 0.0f
 #define ARM_JOINT_2_ANGLE_REST ARM_JOINT_2_ANGLE_MIN
 
@@ -42,7 +42,7 @@
 
 #define ARM_JOINT_5_ANGLE_MIN (10.0f / 180.0f * PI)
 #define ARM_JOINT_5_ANGLE_MAX (170.0f / 180.0f * PI)
-#define ARM_JOINT_5_ANGLE_REST (90.0f / 180.0f * PI)
+#define ARM_JOINT_5_ANGLE_REST ARM_JOINT_5_ANGLE_MAX
 
 #define ARM_JOINT_6_ANGLE_MIN (-PI)
 #define ARM_JOINT_6_ANGLE_MAX PI
@@ -54,8 +54,14 @@
 #define JOINT_6_6020_ANGLE_PID_MAX_OUT 10.0f
 #define JOINT_6_6020_ANGLE_PID_MAX_IOUT 0.0f
 
-#define JOINT_6_6020_SPEED_PID_KP 2250.0f // pitch starts shaking at 2600
-#define JOINT_6_6020_SPEED_PID_KI 25.0f
+// #define JOINT_6_6020_SPEED_PID_KP 2250.0f // pitch starts shaking at 2600
+// #define JOINT_6_6020_SPEED_PID_KI (25.0f * 1000.0f)
+// #define JOINT_6_6020_SPEED_PID_KD 0.0f
+// #define JOINT_6_6020_SPEED_PID_MAX_OUT 30000.0f
+// #define JOINT_6_6020_SPEED_PID_MAX_IOUT 10000.0f
+
+#define JOINT_6_6020_SPEED_PID_KP 1000.0f // pitch starts shaking at 1200
+#define JOINT_6_6020_SPEED_PID_KI 0.0f
 #define JOINT_6_6020_SPEED_PID_KD 0.0f
 #define JOINT_6_6020_SPEED_PID_MAX_OUT 30000.0f
 #define JOINT_6_6020_SPEED_PID_MAX_IOUT 10000.0f
@@ -63,7 +69,6 @@
 void robot_arm_init(void);
 void robot_arm_status_update(void);
 void robot_arm_control(void);
-void robot_arm_reset_position(void);
 
 const fp32 joint_angle_min[7] = {ARM_JOINT_0_ANGLE_MIN, ARM_JOINT_1_ANGLE_MIN, ARM_JOINT_2_ANGLE_MIN, ARM_JOINT_3_ANGLE_MIN, ARM_JOINT_4_ANGLE_MIN, ARM_JOINT_5_ANGLE_MIN, ARM_JOINT_6_ANGLE_MIN};
 const fp32 joint_angle_max[7] = {ARM_JOINT_0_ANGLE_MAX, ARM_JOINT_1_ANGLE_MAX, ARM_JOINT_2_ANGLE_MAX, ARM_JOINT_3_ANGLE_MAX, ARM_JOINT_4_ANGLE_MAX, ARM_JOINT_5_ANGLE_MAX, ARM_JOINT_6_ANGLE_MAX};
@@ -98,7 +103,6 @@ void robot_arm_task(void const *pvParameters)
 	{
 		robot_arm_status_update();
 		robot_arm_control();
-		arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_MS);
 
 		robot_arm_task_loop_delay = xTaskGetTickCount() - robot_arm.time_ms;
 		if (robot_arm_task_loop_delay < ROBOT_ARM_CONTROL_TIME_MS)
@@ -118,7 +122,18 @@ void robot_arm_task(void const *pvParameters)
 
 void robot_arm_control(void)
 {
-	// @TODO
+	// mode switch detection
+	static uint8_t prevfPowerEnabled = 0;
+	if (prevfPowerEnabled != robot_arm.fPowerEnabled)
+	{
+		enable_all_motor_control(robot_arm.fPowerEnabled);
+		prevfPowerEnabled = robot_arm.fPowerEnabled;
+	}
+
+	if (robot_arm.fPowerEnabled)
+	{
+		arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S);
+	}
 }
 
 void robot_arm_status_update(void)
@@ -152,17 +167,22 @@ void robot_arm_init(void)
 	robot_arm.arm_INS_angle = get_INS_angle_point();
 	robot_arm.arm_INS_speed = get_gyro_data_point();
 	// robot_arm.arm_INS_accel = get_accel_data_point();
+	robot_arm.fPowerEnabled = 0;
 
 	const static fp32 joint_6_6020_angle_pid_coeffs[3] = {JOINT_6_6020_ANGLE_PID_KP, JOINT_6_6020_ANGLE_PID_KI, JOINT_6_6020_ANGLE_PID_KD};
 	PID_init(&robot_arm.joint_6_6020_angle_pid, PID_POSITION, joint_6_6020_angle_pid_coeffs, JOINT_6_6020_ANGLE_PID_MAX_OUT, JOINT_6_6020_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
 	const static fp32 joint_6_6020_speed_pid_coeffs[3] = {JOINT_6_6020_SPEED_PID_KP, JOINT_6_6020_SPEED_PID_KI, JOINT_6_6020_SPEED_PID_KD};
 	PID_init(&robot_arm.joint_6_6020_speed_pid, PID_POSITION, joint_6_6020_speed_pid_coeffs, JOINT_6_6020_SPEED_PID_MAX_OUT, JOINT_6_6020_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 
-	robot_arm_reset_position();
+	robot_arm_return_to_center(0, JOINT_ID_LAST - 1);
 	enable_all_motor_control(1);
 }
 
-void robot_arm_reset_position(void)
+void robot_arm_return_to_center(uint8_t _start, uint8_t _end)
 {
-	memcpy(robot_arm.joint_angle_target, joint_angle_rest, sizeof(joint_angle_rest));
+	// inclusively from index _start to index _end
+	if (_start < _end)
+	{
+		memcpy(&robot_arm.joint_angle_target[_start], &joint_angle_rest[_start], (_end - _start + 1) * sizeof(joint_angle_rest[0]));
+	}
 }

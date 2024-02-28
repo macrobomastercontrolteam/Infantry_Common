@@ -26,6 +26,8 @@
 #include "robot_arm_task.h"
 #include "user_lib.h"
 
+#define DISABLE_ARM_MOTOR_POWER 0
+
 #define MOTOR_6012_GEAR_RATIO 36.0f
 #define MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO 0.225146199f
 #define MOTOR_6012_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO 0.212f
@@ -54,6 +56,8 @@ motor_measure_t motor_measure[JOINT_ID_LAST];
 static CAN_TxHeaderTypeDef can_tx_message;
 static uint8_t can_send_data[8];
 uint32_t send_mail_box;
+const uint8_t can_all_00_data[8] = {0};
+const uint8_t can_all_FF_data[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 const float MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 12.5f};
 const float MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -12.5f};
@@ -84,7 +88,7 @@ HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr
 // HAL_StatusTypeDef decode_9015_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
 // void decode_9015_motor_multiangle_feedback(uint8_t *data, const uint8_t bMotorId);
 
-HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable);
+HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr);
 void soft_disable_Ktech_motor(uint32_t id);
 HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data);
 float uint_to_float_motor(int x_int, float x_min, float x_max, int bits);
@@ -236,17 +240,43 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 void decode_chassis_controller_rx_1(uint8_t *data)
 {
-	robot_arm.joint_angle_target[0] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
-	robot_arm.joint_angle_target[1] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
-	robot_arm.joint_angle_target[2] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
-	robot_arm.joint_angle_target[3] = (int16_t)((data[7] << 8) | data[6]) / RAD_TO_INT16_SCALE;
+	if (memcmp(can_all_FF_data, data, sizeof(can_all_FF_data)) == 0)
+	{
+		robot_arm.fPowerEnabled = 1;
+		robot_arm_return_to_center(0, 3);
+	}
+	else if (memcmp(can_all_00_data, data, sizeof(can_all_00_data)) == 0)
+	{
+		robot_arm.fPowerEnabled = 0;
+	}
+	else
+	{
+		robot_arm.fPowerEnabled = 1;
+		robot_arm.joint_angle_target[0] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
+		robot_arm.joint_angle_target[1] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
+		robot_arm.joint_angle_target[2] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
+		robot_arm.joint_angle_target[3] = (int16_t)((data[7] << 8) | data[6]) / RAD_TO_INT16_SCALE;
+	}
 }
 
 void decode_chassis_controller_rx_2(uint8_t *data)
 {
-	robot_arm.joint_angle_target[4] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
-	robot_arm.joint_angle_target[5] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
-	robot_arm.joint_angle_target[6] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
+	if (memcmp(can_all_FF_data, data, sizeof(can_all_FF_data)) == 0)
+	{
+		robot_arm.fPowerEnabled = 1;
+		robot_arm_return_to_center(4, 6);
+	}
+	else if (memcmp(can_all_00_data, data, sizeof(can_all_00_data)) == 0)
+	{
+		robot_arm.fPowerEnabled = 0;
+	}
+	else
+	{
+		robot_arm.fPowerEnabled = 1;
+		robot_arm.joint_angle_target[4] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
+		robot_arm.joint_angle_target[5] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
+		robot_arm.joint_angle_target[6] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
+	}
 }
 
 float uint_to_float_motor(int x_int, float x_min, float x_max, int bits)
@@ -422,19 +452,23 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
 		}
 	}
 
+#if (DISABLE_ARM_MOTOR_POWER == 0)
 	uint8_t blocking_call = 1;
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, joint_angle_target_ptr[0], 0, 1, 1.5f, 0, blocking_call, DM_4310, &LOWER_3_MOTORS_CAN);
+	// According to test, CAN_JOINT_MOTOR_0_4310_TX_ID starts diverging with kd>1.5
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, joint_angle_target_ptr[0], 0, 10, 1.5f, 0, blocking_call, DM_4310, &LOWER_3_MOTORS_CAN);
 	encode_6012_motor_position_control(CAN_JOINT_MOTOR_1_6012_TX_ID, 5.0f, joint_angle_target_ptr[1], blocking_call, &LOWER_3_MOTORS_CAN);
-	encode_4010_motor_position_control(CAN_JOINT_MOTOR_2_4010_TX_ID, 5.0f, joint_angle_target_ptr[1], blocking_call, &LOWER_3_MOTORS_CAN);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_2_4010_TX_ID, joint_angle_target_ptr[3], 0, 1, 1.5f, 0, blocking_call, DM_4310, &UPPER_4_MOTORS_CAN);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4310_TX_ID, joint_angle_target_ptr[3], 0, 1, 1.5f, 0, blocking_call, DM_4310, &UPPER_4_MOTORS_CAN);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_4_4310_TX_ID, joint_angle_target_ptr[4], 0, 1, 1.5f, 0, blocking_call, DM_4310, &UPPER_4_MOTORS_CAN);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, joint_angle_target_ptr[5], 0, 2, 0.5f, 0, blocking_call, DM_4310, &UPPER_4_MOTORS_CAN);
+	osDelay(1);
+	encode_4010_motor_position_control(CAN_JOINT_MOTOR_2_4010_TX_ID, 10.0f, joint_angle_target_ptr[2], blocking_call, &LOWER_3_MOTORS_CAN);
+	osDelay(1);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4310_TX_ID, joint_angle_target_ptr[3], 0, 10, 0.5f, 0, blocking_call, DM_4310, &UPPER_4_MOTORS_CAN);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_4_4310_TX_ID, joint_angle_target_ptr[4], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_4_MOTORS_CAN);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, joint_angle_target_ptr[5], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_4_MOTORS_CAN);
 
 	// 6020 calculation
 	fp32 joint_6_6020_speed_set = PID_calc(&robot_arm.joint_6_6020_angle_pid, motor_measure[JOINT_ID_6_6020].output_angle, joint_angle_target_ptr[6], dt);
 	fp32 joint_6_6020_current_set = (int16_t)PID_calc(&robot_arm.joint_6_6020_speed_pid, motor_measure[JOINT_ID_6_6020].speed_rpm * 2 * PI / 60.0f, joint_6_6020_speed_set, dt);
-	encode_6020_motor_current_control(0, 0, joint_6_6020_current_set, blocking_call);
+	// encode_6020_motor_current_control(0, 0, joint_6_6020_current_set, blocking_call);
+#endif
 
 	return fValidInput;
 }
@@ -513,7 +547,7 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
 //	HAL_CAN_AddTxMessage(&hcan1, &can_tx_message, can_send_data, &send_mail_box);
 //}
 
-HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable)
+HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr)
 {
 	can_tx_message.StdId = id;
 	can_tx_message.IDE = CAN_ID_STD;
@@ -532,7 +566,7 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable)
 		can_send_data[7] = 0xFD;
 	}
 
-	return blocking_can_send(&hcan2, &can_tx_message, can_send_data);
+	return blocking_can_send(hcan_ptr, &can_tx_message, can_send_data);
 }
 
 HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_t current_ch_6, int16_t current_ch_7, uint8_t blocking_call)
@@ -565,7 +599,7 @@ void enable_all_motor_control(uint8_t _enable)
 {
 	// for (uint8_t trial = 0; trial <= 3; trial++)
 	{
-		enable_DaMiao_motor(CAN_JOINT_MOTOR_0_4310_TX_ID, _enable);
+		enable_DaMiao_motor(CAN_JOINT_MOTOR_0_4310_TX_ID, _enable, &hcan1);
 
 		if (_enable == 0)
 		{
@@ -577,9 +611,9 @@ void enable_all_motor_control(uint8_t _enable)
 			PID_clear(&robot_arm.joint_6_6020_speed_pid);
 		}
 
-		enable_DaMiao_motor(CAN_JOINT_MOTOR_3_4310_TX_ID, _enable);
-		enable_DaMiao_motor(CAN_JOINT_MOTOR_4_4310_TX_ID, _enable);
-		enable_DaMiao_motor(CAN_JOINT_MOTOR_5_4310_TX_ID, _enable);
+		enable_DaMiao_motor(CAN_JOINT_MOTOR_3_4310_TX_ID, _enable, &hcan2);
+		enable_DaMiao_motor(CAN_JOINT_MOTOR_4_4310_TX_ID, _enable, &hcan2);
+		enable_DaMiao_motor(CAN_JOINT_MOTOR_5_4310_TX_ID, _enable, &hcan2);
 	}
 }
 
@@ -599,7 +633,7 @@ void soft_disable_Ktech_motor(uint32_t id)
 HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
 {
 	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, -20.0f, 20.0f) * 360.0f / 60.0f * MOTOR_4010_GEAR_RATIO;
-	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f;
+	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f * MOTOR_4010_GEAR_RATIO;
 	can_tx_message.StdId = id;
 	can_tx_message.ExtId = 0x00;
 	can_tx_message.RTR = CAN_RTR_DATA;
@@ -628,7 +662,7 @@ HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_
 HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
 {
 	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, -20.0f, 20.0f) * 360.0f / 60.0f * MOTOR_6012_GEAR_RATIO;
-	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f;
+	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f * MOTOR_6012_GEAR_RATIO;
 	can_tx_message.StdId = id;
 	can_tx_message.ExtId = 0x00;
 	can_tx_message.RTR = CAN_RTR_DATA;
