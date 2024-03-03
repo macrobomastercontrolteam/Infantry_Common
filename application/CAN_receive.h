@@ -68,7 +68,7 @@ typedef enum
 
 typedef enum
 {
-    CAN_6012_TORQUE_RX_ID = 0xA1,
+    CAN_KTECH_TORQUE_ID = 0xA1,
     CAN_KTECH_TEMP_DISABLE_MOTOR_ID = 0x81,
     CAN_KTECH_MULTIANGLE_2_ID = 0xA4,
     CAN_9015_MULTIANGLE_MSG_ID = 0x92,
@@ -98,22 +98,13 @@ typedef struct
     fp32 power;
 } motor_measure_t;
 
-/**
- * @brief          return the chassis 3508 motor data point
- * @param[in]      i: motor number,range [0,3]
- * @retval         motor data point
- */
-/**
- * @brief          返回底盘电机 3508电机数据指针
- * @param[in]      i: 电机编号,范围[0,3]
- * @retval         电机数据指针
- */
-uint8_t arm_joints_cmd_position(float *joint_angle_target_ptr, fp32 dt);
-
 extern motor_measure_t motor_measure[JOINT_ID_LAST];
 
+uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt);
+void arm_joints_cmd_torque(float joint_torques[7]);
 void update_joint_6_6020_angle(void);
 void enable_all_motor_control(uint8_t _enable);
+uint8_t is_joint_target_reached(fp32 joint_angle_targets[7], fp32 tol);
 
 #ifdef __cplusplus
 }

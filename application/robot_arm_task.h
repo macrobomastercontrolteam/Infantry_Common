@@ -5,6 +5,13 @@
 #include "user_lib.h"
 #include "pid.h"
 
+typedef enum
+{
+	ARM_STATE_ZERO_FORCE = 0,
+	ARM_STATE_MOVING,
+	ARM_STATE_FIXED,
+} robot_arm_state_e;
+
 typedef struct
 {
 	fp32 time_step_s; // second
@@ -13,13 +20,13 @@ typedef struct
 	pid_type_def joint_6_6020_speed_pid;
 
 	fp32 joint_angle_target[7];
+	robot_arm_state_e arm_state;
 
 	const fp32 *arm_INS_angle;
 	const fp32 *arm_INS_speed;
 	// const fp32 *arm_INS_accel;
     variable_status_t yaw, pitch, roll;
     // fp32 accel_x, accel_y, accel_z;
-	uint8_t fPowerEnabled;
 } robot_arm_t;
 
 extern const fp32 joint_angle_min[7];

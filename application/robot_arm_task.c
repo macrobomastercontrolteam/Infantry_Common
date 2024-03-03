@@ -1,6 +1,7 @@
 #include "robot_arm_task.h"
 #include "INS_task.h"
 #include "cmsis_os.h"
+#include "detect_task.h"
 
 /*********** Robot Configs Start ***********/
 // @TODO
@@ -71,6 +72,7 @@
 void robot_arm_init(void);
 void robot_arm_status_update(void);
 void robot_arm_control(void);
+void robot_arm_state_transition(void);
 
 const fp32 joint_angle_min[7] = {ARM_JOINT_0_ANGLE_MIN, ARM_JOINT_1_ANGLE_MIN, ARM_JOINT_2_ANGLE_MIN, ARM_JOINT_3_ANGLE_MIN, ARM_JOINT_4_ANGLE_MIN, ARM_JOINT_5_ANGLE_MIN, ARM_JOINT_6_ANGLE_MIN};
 const fp32 joint_angle_max[7] = {ARM_JOINT_0_ANGLE_MAX, ARM_JOINT_1_ANGLE_MAX, ARM_JOINT_2_ANGLE_MAX, ARM_JOINT_3_ANGLE_MAX, ARM_JOINT_4_ANGLE_MAX, ARM_JOINT_5_ANGLE_MAX, ARM_JOINT_6_ANGLE_MAX};
@@ -98,13 +100,15 @@ void robot_arm_task(void const *pvParameters)
 	osDelay(ROBOT_ARM_TASK_INIT_TIME);
 
 	robot_arm_init();
+	osDelay(ROBOT_ARM_TASK_INIT_TIME);
 	robot_arm_status_update();
 	// wait_until_motors_online();
 
 	while (1)
 	{
 		robot_arm_status_update();
-				robot_arm_control();
+		robot_arm_state_transition();
+		robot_arm_control();
 
 		robot_arm_task_loop_delay = xTaskGetTickCount() - robot_arm.time_ms;
 		if (robot_arm_task_loop_delay < ROBOT_ARM_CONTROL_TIME_MS)
@@ -122,19 +126,47 @@ void robot_arm_task(void const *pvParameters)
 	}
 }
 
+void robot_arm_state_transition(void)
+{
+	static robot_arm_state_e prev_arm_state = ARM_STATE_ZERO_FORCE;
+	if (prev_arm_state != robot_arm.arm_state)
+	{
+		if ((prev_arm_state == ARM_STATE_ZERO_FORCE) || (robot_arm.arm_state == ARM_STATE_ZERO_FORCE))
+		{
+			switch_all_motor_power(prev_arm_state == ARM_STATE_ZERO_FORCE);
+		}
+
+		switch (robot_arm.arm_state)
+		{
+			case ARM_STATE_ZERO_FORCE:
+			case ARM_STATE_MOVING:
+			case ARM_STATE_FIXED:
+			default:
+			{
+				break;
+			}
+		}
+		prev_arm_state = robot_arm.arm_state;
+	}
+}
+
 void robot_arm_control(void)
 {
-	// mode switch detection
-	static uint8_t prevfPowerEnabled = 0;
-	if (prevfPowerEnabled != robot_arm.fPowerEnabled)
+	switch (robot_arm.arm_state)
 	{
-		enable_all_motor_control(robot_arm.fPowerEnabled);
-		prevfPowerEnabled = robot_arm.fPowerEnabled;
-	}
-
-	if (robot_arm.fPowerEnabled)
-	{
-		arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S);
+		case ARM_STATE_MOVING:
+		case ARM_STATE_FIXED:
+		{
+			arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S);
+			break;
+		}
+		case ARM_STATE_ZERO_FORCE:
+		default:
+		{
+			fp32 all_0_torque[7] = {0};
+			arm_joints_cmd_torque(all_0_torque);
+			break;
+		}
 	}
 }
 
@@ -175,7 +207,7 @@ void robot_arm_init(void)
 	robot_arm.arm_INS_angle = get_INS_angle_point();
 	robot_arm.arm_INS_speed = get_gyro_data_point();
 	// robot_arm.arm_INS_accel = get_accel_data_point();
-	robot_arm.fPowerEnabled = 0;
+	robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
 
 	const static fp32 joint_6_6020_angle_pid_coeffs[3] = {JOINT_6_6020_ANGLE_PID_KP, JOINT_6_6020_ANGLE_PID_KI, JOINT_6_6020_ANGLE_PID_KD};
 	PID_init(&robot_arm.joint_6_6020_angle_pid, PID_POSITION, joint_6_6020_angle_pid_coeffs, JOINT_6_6020_ANGLE_PID_MAX_OUT, JOINT_6_6020_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
