@@ -141,14 +141,20 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			break;
 		}
 		case CAN_JOINT_MOTOR_1_6012_RX_ID:
-					{
+		{
+			if (rx_data[0] == CAN_KTECH_MULTIANGLE_2_ID)
+			{
 				decode_6012_motor_torque_feedback(rx_data, bMotorId);
-						break;
+			}
+			break;
 		}
 		case CAN_JOINT_MOTOR_2_4010_RX_ID:
-					{
+		{
+			if (rx_data[0] == CAN_KTECH_MULTIANGLE_2_ID)
+			{
 				decode_4010_motor_torque_feedback(rx_data, bMotorId);
-						break;
+			}
+			break;
 		}
 		case CAN_JOINT_MOTOR_6_6020_RX_ID:
 		{
@@ -164,13 +170,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		}
 		case CAN_INTER_BOARD_POSITION_RX_ID:
 		{
-			// @TODO
+			// @TODO: end-effector control
 			detect_hook(CHASSIS_CONTROLLER_TOE);
 			break;
 		}
 		case CAN_INTER_BOARD_ORIENTATION_RX_ID:
 		{
-			// @TODO
+			// @TODO: end-effector control
 			detect_hook(CHASSIS_CONTROLLER_TOE);
 			break;
 		}
@@ -209,33 +215,21 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 		{
 			case 0x00:
 			{
-				robot_arm.fPowerEnabled = 0;
+				robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
+				robot_arm.fHoming = 0;
 				break;
 			}
 			case 0xFF:
 			{
-				robot_arm.fPowerEnabled = 1;
-				switch (id)
-				{
-					case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID:
-					{
-						robot_arm_return_to_center(0, 3);
-						break;
-					}
-					case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_2_RX_ID:
-					default:
-					{
-						robot_arm_return_to_center(4, 6);
-						break;
-					}
-				}
+				robot_arm.fHoming = 1;
+				robot_arm_return_to_center(0, JOINT_ID_LAST - 1);
 				break;
 			}
 		}
 	}
 	else
 	{
-		robot_arm.fPowerEnabled = 1;
+		robot_arm.fHoming = 0;
 		switch (id)
 		{
 			case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID:
@@ -339,7 +333,7 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
 	{
 		if ((joint_angle_target_ptr[pos_index] != joint_angle_target_ptr[pos_index]) || (joint_angle_target_ptr[pos_index] > joint_angle_max[pos_index]) || (joint_angle_target_ptr[pos_index] < joint_angle_min[pos_index]))
 		{
-			joint_angle_target_ptr[pos_index] = joint_angle_rest[pos_index];
+			joint_angle_target_ptr[pos_index] = joint_angle_home[pos_index];
 			fValidInput = 0;
 		}
 	}
@@ -429,7 +423,7 @@ HAL_StatusTypeDef soft_disable_Ktech_motor(uint32_t id, CAN_HandleTypeDef *hcan_
 	can_tx_message.DLC = 0x08;
 
 	memset(can_send_data, 0, sizeof(can_send_data));
-	can_send_data[0] = 0x81;
+	can_send_data[0] = CAN_KTECH_TEMP_DISABLE_MOTOR_ID;
 
 	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
