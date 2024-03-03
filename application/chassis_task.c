@@ -113,7 +113,10 @@ uint32_t chassis_high_water;
 
 const fp32 joint_angle_min[7] = {ARM_JOINT_0_ANGLE_MIN, ARM_JOINT_1_ANGLE_MIN, ARM_JOINT_2_ANGLE_MIN, ARM_JOINT_3_ANGLE_MIN, ARM_JOINT_4_ANGLE_MIN, ARM_JOINT_5_ANGLE_MIN, ARM_JOINT_6_ANGLE_MIN};
 const fp32 joint_angle_max[7] = {ARM_JOINT_0_ANGLE_MAX, ARM_JOINT_1_ANGLE_MAX, ARM_JOINT_2_ANGLE_MAX, ARM_JOINT_3_ANGLE_MAX, ARM_JOINT_4_ANGLE_MAX, ARM_JOINT_5_ANGLE_MAX, ARM_JOINT_6_ANGLE_MAX};
-const fp32 joint_angle_rest[7] = {ARM_JOINT_0_ANGLE_REST, ARM_JOINT_1_ANGLE_REST, ARM_JOINT_2_ANGLE_REST, ARM_JOINT_3_ANGLE_REST, ARM_JOINT_4_ANGLE_REST, ARM_JOINT_5_ANGLE_REST, ARM_JOINT_6_ANGLE_REST};
+const fp32 joint_angle_home[7] = {ARM_JOINT_0_ANGLE_HOME, ARM_JOINT_1_ANGLE_HOME, ARM_JOINT_2_ANGLE_HOME, ARM_JOINT_3_ANGLE_HOME, ARM_JOINT_4_ANGLE_HOME, ARM_JOINT_5_ANGLE_HOME, ARM_JOINT_6_ANGLE_HOME};
+const fp32 arm_end_min[6] = {ARM_END_EFFECTOR_ROLL_MIN, ARM_END_EFFECTOR_PITCH_MIN, ARM_END_EFFECTOR_YAW_MIN, ARM_END_EFFECTOR_X_MIN, ARM_END_EFFECTOR_Y_MIN, ARM_END_EFFECTOR_Z_MIN};
+const fp32 arm_end_max[6] = {ARM_END_EFFECTOR_ROLL_MAX, ARM_END_EFFECTOR_PITCH_MAX, ARM_END_EFFECTOR_YAW_MAX, ARM_END_EFFECTOR_X_MAX, ARM_END_EFFECTOR_Y_MAX, ARM_END_EFFECTOR_Z_MAX};
+const fp32 arm_end_home[6] = {ARM_END_EFFECTOR_ROLL_HOME, ARM_END_EFFECTOR_PITCH_HOME, ARM_END_EFFECTOR_YAW_HOME, ARM_END_EFFECTOR_X_HOME, ARM_END_EFFECTOR_Y_HOME, ARM_END_EFFECTOR_Z_HOME};
 
 //底盘运动数据
 chassis_move_t chassis_move;
@@ -183,25 +186,29 @@ void chassis_task(void const *pvParameters)
 	}
 }
 
-#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
-void robot_arm_reset_position(void)
+void robot_arm_set_home(void)
 {
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
 	for (uint8_t i = 0; i < 7; i++)
 	{
-		chassis_move.robot_arm_motor_pos[i] = joint_angle_rest[i];
+		chassis_move.robot_arm_motor_pos[i] = joint_angle_home[i];
 	}
+#else
+	for (uint8_t i = 0; i < 6; i++)
+	{
+		chassis_move.end_effector_cmd.setpoints[i] = arm_end_home[i];
 	}
 #endif
+}
 
 void robot_arm_control(void)
 {
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
 	switch (chassis_move.robot_arm_mode)
 	{
-case ROBOT_ARM_ZERO_FORCE:
 		case ROBOT_ARM_HOME:
 		{
-			robot_arm_reset_position();
+			robot_arm_set_home();
 			break;
 		}
 		case ROBOT_ARM_ENABLED:
@@ -223,10 +230,10 @@ case ROBOT_ARM_ZERO_FORCE:
 					chassis_move.robot_arm_motor_pos[6] += left_horiz_channel * ARM_JOINT_6_RC_SEN_INC;
 
 					// absolute control
-					// chassis_move.robot_arm_motor_pos[3] = right_vert_channel * ARM_JOINT_3_RC_SEN + ARM_JOINT_3_ANGLE_REST;
-					// chassis_move.robot_arm_motor_pos[4] = right_horiz_channel * ARM_JOINT_4_RC_SEN + ARM_JOINT_4_ANGLE_REST;
-					// chassis_move.robot_arm_motor_pos[5] = left_vert_channel * ARM_JOINT_5_RC_SEN + ARM_JOINT_5_ANGLE_REST;
-					// chassis_move.robot_arm_motor_pos[6] = left_horiz_channel * ARM_JOINT_6_RC_SEN + ARM_JOINT_6_ANGLE_REST;
+					// chassis_move.robot_arm_motor_pos[3] = right_vert_channel * ARM_JOINT_3_RC_SEN + ARM_JOINT_3_ANGLE_HOME;
+					// chassis_move.robot_arm_motor_pos[4] = right_horiz_channel * ARM_JOINT_4_RC_SEN + ARM_JOINT_4_ANGLE_HOME;
+					// chassis_move.robot_arm_motor_pos[5] = left_vert_channel * ARM_JOINT_5_RC_SEN + ARM_JOINT_5_ANGLE_HOME;
+					// chassis_move.robot_arm_motor_pos[6] = left_horiz_channel * ARM_JOINT_6_RC_SEN + ARM_JOINT_6_ANGLE_HOME;
 					break;
 				}
 				case RC_SW_MID:
@@ -237,9 +244,9 @@ case ROBOT_ARM_ZERO_FORCE:
 					chassis_move.robot_arm_motor_pos[2] += left_horiz_channel * ARM_JOINT_2_RC_SEN_INC;
 
 					// absolute control
-					// chassis_move.robot_arm_motor_pos[0] = right_horiz_channel * ARM_JOINT_0_RC_SEN + ARM_JOINT_0_ANGLE_REST;
-					// chassis_move.robot_arm_motor_pos[1] = right_vert_channel * ARM_JOINT_1_RC_SEN + ARM_JOINT_1_ANGLE_REST;
-					// chassis_move.robot_arm_motor_pos[2] = left_horiz_channel * ARM_JOINT_2_RC_SEN + ARM_JOINT_2_ANGLE_REST;
+					// chassis_move.robot_arm_motor_pos[0] = right_horiz_channel * ARM_JOINT_0_RC_SEN + ARM_JOINT_0_ANGLE_HOME;
+					// chassis_move.robot_arm_motor_pos[1] = right_vert_channel * ARM_JOINT_1_RC_SEN + ARM_JOINT_1_ANGLE_HOME;
+					// chassis_move.robot_arm_motor_pos[2] = left_horiz_channel * ARM_JOINT_2_RC_SEN + ARM_JOINT_2_ANGLE_HOME;
 					break;
 				}
 				default:
@@ -256,7 +263,8 @@ case ROBOT_ARM_ZERO_FORCE:
 			break;
 		}
 		case ROBOT_ARM_FIXED:
-				default:
+		case ROBOT_ARM_ZERO_FORCE:
+		default:
 		{
 			break;
 		}
@@ -264,22 +272,22 @@ case ROBOT_ARM_ZERO_FORCE:
 #else /* INDIVIDUAL_MOTOR_TEST == 0 */
 	switch (chassis_move.robot_arm_mode)
 	{
-case ROBOT_ARM_ZERO_FORCE:
-		{
-			memset(&chassis_move.robot_arm, 0xFF, sizeof(chassis_move.robot_arm));
-			break;
-		}
 		case ROBOT_ARM_HOME:
 		{
-			memset(&chassis_move.robot_arm, 0, sizeof(chassis_move.robot_arm));
+			robot_arm_set_home();
 			break;
 		}
 		case ROBOT_ARM_ENABLED:
 		{
-			// @TODO: custom controller mode
-						break;
+			// @TODO: end effector mode
+			for (uint8_t i = 0; i < 6; i++)
+			{
+				chassis_move.end_effector_cmd.setpoints[i] = fp32_constrain(chassis_move.end_effector_cmd.setpoints[i], arm_end_min[i], arm_end_max[i]);
+			}
+			break;
 		}
-				case ROBOT_ARM_FIXED:
+		case ROBOT_ARM_ZERO_FORCE:
+		case ROBOT_ARM_FIXED:
 		default:
 		{
 			break;
@@ -363,10 +371,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	chassis_move_init->vy_min_speed = -NORMAL_MAX_CHASSIS_SPEED_Y;
 
 	chassis_move_init->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
-	memset(&chassis_move_init->robot_arm, 0xFF, sizeof(chassis_move_init->robot_arm));
-#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
-    robot_arm_reset_position();
-#endif
+	robot_arm_set_home();
 
 	//update data
 	//更新一下数据
