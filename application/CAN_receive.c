@@ -161,7 +161,7 @@ void CAN_cmd_robot_arm_individual_motors(fp32 motor_pos[7])
 
     uint8_t motor_pos_index;
     int16_t motor_pos_int16[7];
-    for (motor_pos_index = 0; motor_pos_index < 8; motor_pos_index++)
+    for (motor_pos_index = 0; motor_pos_index < sizeof(motor_pos_int16) / sizeof(motor_pos_int16[0]); motor_pos_index++)
     {
 #if DISABLE_ARM_MOTOR_POWER
       motor_pos_int16[motor_pos_index] = 0;
