@@ -30,8 +30,6 @@
 
 #include "user_lib.h"
 
-#define DISABLE_DRIVE_MOTOR_POWER 1
-#define DISABLE_STEER_MOTOR_POWER 1
 
 void wait_until_all_necessary_modules_online(void);
 /**
