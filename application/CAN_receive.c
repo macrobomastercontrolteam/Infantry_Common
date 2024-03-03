@@ -74,20 +74,21 @@ const uint16_t joint_6_6020_offset_ecd = 0;
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, float _pos, float _vel, float _KP, float _KD, float _torq, uint8_t blocking_call, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
 HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
 HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
-HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_t current_ch_6, int16_t current_ch_7, uint8_t blocking_call);
+HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_t current_ch_6, int16_t current_ch_7, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call);
 
 void decode_chassis_controller_rx(uint8_t *data, uint32_t id);
 void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_4010_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
 
-HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr);
-void soft_disable_Ktech_motor(uint32_t id);
+HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call);
+HAL_StatusTypeDef soft_disable_Ktech_motor(uint32_t id, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call);
 HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data);
 float uint_to_float_motor(int x_int, float x_min, float x_max, int bits);
 int float_to_uint_motor(float x, float x_min, float x_max, int bits);
 uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt);
 fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
+HAL_StatusTypeDef Send_CAN_Cmd(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data, uint8_t blocking_call);
 
 uint8_t canRxIdToMotorArrayId(can_msg_id_e _SINGLE_CAN_ID)
 {
@@ -140,14 +141,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			break;
 		}
 		case CAN_JOINT_MOTOR_1_6012_RX_ID:
-		{
-			decode_6012_motor_torque_feedback(rx_data, bMotorId);
-			break;
+					{
+				decode_6012_motor_torque_feedback(rx_data, bMotorId);
+						break;
 		}
 		case CAN_JOINT_MOTOR_2_4010_RX_ID:
-		{
-			decode_4010_motor_torque_feedback(rx_data, bMotorId);
-			break;
+					{
+				decode_4010_motor_torque_feedback(rx_data, bMotorId);
+						break;
 		}
 		case CAN_JOINT_MOTOR_6_6020_RX_ID:
 		{
@@ -346,25 +347,25 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
 #if (DISABLE_ARM_MOTOR_POWER == 0)
 	uint8_t blocking_call = 1;
 	// According to test, CAN_JOINT_MOTOR_0_4310_TX_ID starts diverging with kd>1.5
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, joint_angle_target_ptr[0], 0, 10, 1.5f, 0, blocking_call, DM_4310, &LOWER_3_MOTORS_CAN);
-	encode_6012_motor_position_control(CAN_JOINT_MOTOR_1_6012_TX_ID, 5.0f, joint_angle_target_ptr[1], blocking_call, &LOWER_3_MOTORS_CAN);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, joint_angle_target_ptr[0], 0, 10, 1.5f, 0, blocking_call, DM_4310, &LOWER_MOTORS_CAN);
+	encode_6012_motor_position_control(CAN_JOINT_MOTOR_1_6012_TX_ID, 5.0f, joint_angle_target_ptr[1], blocking_call, &LOWER_MOTORS_CAN);
 	osDelay(1);
-	encode_4010_motor_position_control(CAN_JOINT_MOTOR_2_4010_TX_ID, 10.0f, joint_angle_target_ptr[2], blocking_call, &LOWER_3_MOTORS_CAN);
+	encode_4010_motor_position_control(CAN_JOINT_MOTOR_2_4010_TX_ID, 10.0f, joint_angle_target_ptr[2], blocking_call, &LOWER_MOTORS_CAN);
 	osDelay(1);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4310_TX_ID, joint_angle_target_ptr[3], 0, 10, 0.5f, 0, blocking_call, DM_4310, &UPPER_4_MOTORS_CAN);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_4_4310_TX_ID, joint_angle_target_ptr[4], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_4_MOTORS_CAN);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, joint_angle_target_ptr[5], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_4_MOTORS_CAN);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4310_TX_ID, joint_angle_target_ptr[3], 0, 10, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_4_4310_TX_ID, joint_angle_target_ptr[4], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, joint_angle_target_ptr[5], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
 
 	// 6020 calculation
 	fp32 joint_6_6020_speed_set = PID_calc(&robot_arm.joint_6_6020_angle_pid, motor_measure[JOINT_ID_6_6020].output_angle, joint_angle_target_ptr[6], dt);
 	fp32 joint_6_6020_current_set = (int16_t)PID_calc(&robot_arm.joint_6_6020_speed_pid, motor_measure[JOINT_ID_6_6020].speed_rpm * 2 * PI / 60.0f, joint_6_6020_speed_set, dt);
-	// encode_6020_motor_current_control(0, 0, joint_6_6020_current_set, blocking_call);
+	encode_6020_motor_current_control(0, 0, joint_6_6020_current_set, &LOWER_MOTORS_CAN, blocking_call);
 #endif
 
 	return fValidInput;
 }
 
-HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr)
+HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call)
 {
 	can_tx_message.StdId = id;
 	can_tx_message.IDE = CAN_ID_STD;
@@ -382,13 +383,11 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 		// disable
 		can_send_data[7] = 0xFD;
 	}
-
-	return blocking_can_send(hcan_ptr, &can_tx_message, can_send_data);
+	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
 
-HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_t current_ch_6, int16_t current_ch_7, uint8_t blocking_call)
+HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_t current_ch_6, int16_t current_ch_7, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call)
 {
-	uint32_t send_mail_box;
 	can_tx_message.StdId = CAN_MOTOR_6020_TX_ID;
 	can_tx_message.IDE = CAN_ID_STD;
 	can_tx_message.RTR = CAN_RTR_DATA;
@@ -399,42 +398,30 @@ HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_
 	can_send_data[3] = current_ch_6;
 	can_send_data[4] = (current_ch_7 >> 8);
 	can_send_data[5] = current_ch_7;
-	can_send_data[6] = 0;
-	can_send_data[7] = 0;
-
-	if (blocking_call)
-	{
-		return blocking_can_send(&UPPER_4_MOTORS_CAN, &can_tx_message, can_send_data);
-	}
-	else
-	{
-		return HAL_CAN_AddTxMessage(&UPPER_4_MOTORS_CAN, &can_tx_message, can_send_data, &send_mail_box);
-	}
+	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
 
 void enable_all_motor_control(uint8_t _enable)
 {
-	// for (uint8_t trial = 0; trial <= 3; trial++)
+	uint8_t blocking_call = 1;
+	enable_DaMiao_motor(CAN_JOINT_MOTOR_0_4310_TX_ID, _enable, &LOWER_MOTORS_CAN, blocking_call);
+
+	if (_enable == 0)
 	{
-		enable_DaMiao_motor(CAN_JOINT_MOTOR_0_4310_TX_ID, _enable, &hcan1);
+		soft_disable_Ktech_motor(CAN_JOINT_MOTOR_1_6012_TX_ID, &LOWER_MOTORS_CAN, blocking_call);
+		soft_disable_Ktech_motor(CAN_JOINT_MOTOR_2_4010_TX_ID, &LOWER_MOTORS_CAN, blocking_call);
 
-		if (_enable == 0)
-		{
-			soft_disable_Ktech_motor(CAN_JOINT_MOTOR_1_6012_TX_ID);
-			soft_disable_Ktech_motor(CAN_JOINT_MOTOR_2_4010_TX_ID);
-
-			encode_6020_motor_current_control(0, 0, 0, 1);
-			PID_clear(&robot_arm.joint_6_6020_angle_pid);
-			PID_clear(&robot_arm.joint_6_6020_speed_pid);
-		}
-
-		enable_DaMiao_motor(CAN_JOINT_MOTOR_3_4310_TX_ID, _enable, &hcan2);
-		enable_DaMiao_motor(CAN_JOINT_MOTOR_4_4310_TX_ID, _enable, &hcan2);
-		enable_DaMiao_motor(CAN_JOINT_MOTOR_5_4310_TX_ID, _enable, &hcan2);
+		encode_6020_motor_current_control(0, 0, 0, &LOWER_MOTORS_CAN, blocking_call);
+		PID_clear(&robot_arm.joint_6_6020_angle_pid);
+		PID_clear(&robot_arm.joint_6_6020_speed_pid);
 	}
+
+	enable_DaMiao_motor(CAN_JOINT_MOTOR_3_4310_TX_ID, _enable, &UPPER_MOTORS_CAN, blocking_call);
+	enable_DaMiao_motor(CAN_JOINT_MOTOR_4_4310_TX_ID, _enable, &UPPER_MOTORS_CAN, blocking_call);
+	enable_DaMiao_motor(CAN_JOINT_MOTOR_5_4310_TX_ID, _enable, &UPPER_MOTORS_CAN, blocking_call);
 }
 
-void soft_disable_Ktech_motor(uint32_t id)
+HAL_StatusTypeDef soft_disable_Ktech_motor(uint32_t id, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call)
 {
 	can_tx_message.StdId = id;
 	can_tx_message.IDE = CAN_ID_STD;
@@ -444,7 +431,7 @@ void soft_disable_Ktech_motor(uint32_t id)
 	memset(can_send_data, 0, sizeof(can_send_data));
 	can_send_data[0] = 0x81;
 
-	blocking_can_send(&LOWER_3_MOTORS_CAN, &can_tx_message, can_send_data);
+	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
 
 HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
@@ -466,14 +453,7 @@ HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_
 	can_send_data[6] = *((uint8_t *)&angle_deg + 2);
 	can_send_data[7] = *((uint8_t *)&angle_deg + 3);
 
-	if (blocking_call)
-	{
-		return blocking_can_send(&LOWER_3_MOTORS_CAN, &can_tx_message, can_send_data);
-	}
-	else
-	{
-		return HAL_CAN_AddTxMessage(&LOWER_3_MOTORS_CAN, &can_tx_message, can_send_data, &send_mail_box);
-	}
+	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
 
 HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
@@ -495,14 +475,7 @@ HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_
 	can_send_data[6] = *((uint8_t *)&angle_deg + 2);
 	can_send_data[7] = *((uint8_t *)&angle_deg + 3);
 
-	if (blocking_call)
-	{
-		return blocking_can_send(&LOWER_3_MOTORS_CAN, &can_tx_message, can_send_data);
-	}
-	else
-	{
-		return HAL_CAN_AddTxMessage(&LOWER_3_MOTORS_CAN, &can_tx_message, can_send_data, &send_mail_box);
-	}
+	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
 
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, float _pos, float _vel, float _KP, float _KD, float _torq, uint8_t blocking_call, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr)
@@ -528,13 +501,18 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, float _pos, float _vel, 
 	can_send_data[6] = ((kd_tmp & 0xF) << 4) | (tor_tmp >> 8);
 	can_send_data[7] = tor_tmp;
 
+	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
+}
+
+HAL_StatusTypeDef Send_CAN_Cmd(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data, uint8_t blocking_call)
+{
 	if (blocking_call)
 	{
-		return blocking_can_send(hcan_ptr, &can_tx_message, can_send_data);
+		return blocking_can_send(hcan, tx_header, tx_data);
 	}
 	else
 	{
-		return HAL_CAN_AddTxMessage(hcan_ptr, &can_tx_message, can_send_data, &send_mail_box);
+		return HAL_CAN_AddTxMessage(hcan, tx_header, tx_data, &send_mail_box);
 	}
 }
 

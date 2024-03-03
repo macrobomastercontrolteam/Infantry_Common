@@ -27,8 +27,8 @@ extern "C" {
 #include "struct_typedef.h"
 #include "stm32f4xx_hal.h"
 
-#define LOWER_3_MOTORS_CAN hcan1
-#define UPPER_4_MOTORS_CAN hcan2
+#define LOWER_MOTORS_CAN hcan1
+#define UPPER_MOTORS_CAN hcan2
 
 typedef enum
 {
@@ -69,7 +69,7 @@ typedef enum
 typedef enum
 {
     CAN_6012_TORQUE_RX_ID = 0xA1,
-    CAN_9015_MULTIANGLE_MSG_ID = 0x92,
+        CAN_9015_MULTIANGLE_MSG_ID = 0x92,
     CAN_9015_SET_CURRENT_ZERO_POINT_MSG_ID = 0x64,
 } can_msg_type_e;
 
