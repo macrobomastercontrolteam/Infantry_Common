@@ -85,7 +85,7 @@
 #include "chassis_task.h"
 #include "arm_math.h"
 
-#include "gimbal_behaviour.h"
+
 #include "cv_usart_task.h"
 #include "detect_task.h"
 
@@ -101,8 +101,6 @@ static void J_scope_chassis_behavior_test(void)
     chassis_behaviour_mode_int = (int32_t)(chassis_behaviour_mode);
 }
 #endif
-
-void chassis_behaviour_mode_safe_guard(void);
 
 /**
   * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
@@ -146,53 +144,6 @@ static void chassis_zero_force_control(fp32 *vx_can_set, fp32 *vy_can_set, fp32 
   */
 static void chassis_no_move_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
 
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-/**
-  * @brief          when chassis behaviour mode is CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW, chassis control mode is speed control mode.
-  *                 chassis will follow gimbal, chassis rotation speed is calculated from the angle difference.
-  * @param[out]     vx_set: vx speed value, positive value means forward speed, negative value means backward speed,
-  * @param[out]     vy_set: vy speed value, positive value means left speed, negative value means right speed.
-  * @param[out]     angle_set: control angle difference between chassis and gimbal
-  * @param[in]      chassis_move_rc_to_vector: chassis data
-  * @retval         none
-  */
-/**
-  * @brief          底盘跟随云台的行为状态机下，底盘模式是跟随云台角度，底盘旋转速度会根据角度差计算底盘旋转的角速度
-  * @author         RM
-  * @param[in]      vx_set前进的速度,正值 前进速度， 负值 后退速度
-  * @param[in]      vy_set左右的速度,正值 左移速度， 负值 右移速度
-  * @param[in]      angle_set底盘与云台控制到的相对角度
-  * @param[in]      chassis_move_rc_to_vector底盘数据
-  * @retval         返回空
-  */
-static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
-
-static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
-
-#if CV_INTERFACE
-static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
-#endif
-
-/**
-  * @brief          when chassis behaviour mode is CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, chassis control mode is speed control mode.
-  *                 chassis will follow chassis yaw, chassis rotation speed is calculated from the angle difference between set angle and chassis yaw.
-  * @param[out]     vx_set: vx speed value, positive value means forward speed, negative value means backward speed,
-  * @param[out]     vy_set: vy speed value, positive value means left speed, negative value means right speed.
-  * @param[out]     angle_set: control angle[-PI, PI]
-  * @param[in]      chassis_move_rc_to_vector: chassis data
-  * @retval         none
-  */
-/**
-  * @brief          底盘跟随底盘yaw的行为状态机下，底盘模式是跟随底盘角度，底盘旋转速度会根据角度差计算底盘旋转的角速度
-  * @author         RM
-  * @param[in]      vx_set前进的速度,正值 前进速度， 负值 后退速度
-  * @param[in]      vy_set左右的速度,正值 左移速度， 负值 右移速度
-  * @param[in]      angle_set底盘设置的yaw，范围 -PI到PI
-  * @param[in]      chassis_move_rc_to_vector底盘数据
-  * @retval         返回空
-  */
-static void chassis_engineer_follow_chassis_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
-#endif /* (ROBOT_TYPE != ENGINEER_2024_MECANUM) */
 /**
   * @brief          when chassis behaviour mode is CHASSIS_NO_FOLLOW_YAW, chassis control mode is speed control mode.
   *                 chassis will no follow angle, chassis rotation speed is set by wz_set.
@@ -212,32 +163,6 @@ static void chassis_engineer_follow_chassis_yaw_control(fp32 *vx_set, fp32 *vy_s
   * @retval         返回空
   */
 static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
-
-
-
-/**
-  * @brief          when chassis behaviour mode is CHASSIS_OPEN, chassis control mode is raw control mode.
-  *                 set value will be sent to can bus.
-  * @param[out]     vx_set: vx speed value, positive value means forward speed, negative value means backward speed,
-  * @param[out]     vy_set: vy speed value, positive value means left speed, negative value means right speed.
-  * @param[out]     wz_set: rotation speed,positive value means counterclockwise , negative value means clockwise
-  * @param[in]      chassis_move_rc_to_vector: chassis data
-  * @retval         none
-  */
-/**
-  * @brief          底盘开环的行为状态机下，底盘模式是raw原生状态，故而设定值会直接发送到can总线上
-  * @param[in]      vx_set前进的速度,正值 前进速度， 负值 后退速度
-  * @param[in]      vy_set左右的速度，正值 左移速度， 负值 右移速度
-  * @param[in]      wz_set 旋转速度， 正值 逆时针旋转，负值 顺时针旋转
-  * @param[in]      chassis_move_rc_to_vector底盘数据
-  * @retval         none
-  */
-
-static void chassis_open_set_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
-
-
-
-
 
 
 //highlight, the variable chassis behaviour mode 
@@ -262,156 +187,86 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
         return;
     }
 
-#if CV_INTERFACE
-    if (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT))
-    {
-        chassis_behaviour_mode = CHASSIS_CV_CONTROL_SPINNING;
-    }
-    else
-#endif
-    {
-#if !((ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST))
-        // remote control  set chassis behaviour mode
-        // 遥控器设置模式
-        if (switch_is_mid(chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL]))
-        {
-            // can change to CHASSIS_ZERO_FORCE,CHASSIS_NO_MOVE,CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,
-            // CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW,CHASSIS_NO_FOLLOW_YAW,CHASSIS_OPEN
-            // Remember to change gimbal_behaviour logic correspondingly
-			chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
-		}
-        else if (switch_is_down(chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL]))
-        {
-            chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
-        }
-        else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL]))
-        {
-#if ((ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM))
-            chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
-#else
-            chassis_behaviour_mode = CHASSIS_SPINNING;
-#endif
-        }
-#endif
-    }
-
-	if (chassis_behaviour_mode != CHASSIS_ZERO_FORCE)
+    switch (chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL])
 	{
-        chassis_behaviour_mode_safe_guard();
-	}
-
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
-    if (chassis_behaviour_mode == CHASSIS_NO_FOLLOW_YAW)
-	{
-		switch (chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL])
+		case RC_SW_UP:
+		case RC_SW_MID:
 		{
-			case RC_SW_UP:
-			{
-				chassis_move_mode->robot_arm_mode = ROBOT_ARM_ENABLED;
-#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
-                chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
-#endif
-				break;
-			}
-			case RC_SW_MID:
-			{
-				chassis_move_mode->robot_arm_mode = ROBOT_ARM_NO_MOVE;
-				break;
-			}
-			case RC_SW_DOWN:
-			default:
-			{
-				chassis_move_mode->robot_arm_mode = ROBOT_ARM_REST_POSITION;
-				break;
-			}
+			chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+			break;
 		}
-	}
-    else
-    {
-        chassis_move_mode->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
-    }
-#endif
-
-	//accord to beheviour mode, choose chassis control mode
-    //根据行为模式选择一个底盘控制模式
-    if (chassis_behaviour_mode == CHASSIS_ZERO_FORCE)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW; 
-    }
-    else if (chassis_behaviour_mode == CHASSIS_NO_MOVE)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW; 
-    }
-    else if (chassis_behaviour_mode == CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW; 
-    }
-    else if (chassis_behaviour_mode == CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW;
-    }
-    else if (chassis_behaviour_mode == CHASSIS_NO_FOLLOW_YAW)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
-    }
-    else if (chassis_behaviour_mode == CHASSIS_OPEN)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
-    }
-    else if (chassis_behaviour_mode == CHASSIS_SPINNING)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
-    }
-#if CV_INTERFACE
-    else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
-    }
-#endif
-
-#if CHASSIS_TEST_MODE
-    J_scope_chassis_behavior_test();
-#endif
-}
-
-void chassis_behaviour_mode_safe_guard(void)
-{
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-	// when gimbal in some mode, such as init mode, chassis must's move
-	// 当云台在某些模式下，像初始化， 底盘不动
-	if (gimbal_cmd_to_chassis_stop())
-	{
-		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
-	}
-#endif
-
-	uint8_t bToeIndex;
-	for (bToeIndex = CHASSIS_MOTOR1_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-	{
-		if (toe_is_error(bToeIndex))
+		case RC_SW_DOWN:
+        {
+            chassis_behaviour_mode = CHASSIS_NO_MOVE;
+            break;
+        }
+		default:
 		{
 			chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
-			chassis_move.robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
-#endif
 			break;
 		}
 	}
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-	// Remote controller act as emergency stop
-	if (toe_is_error(CV_TOE) || gimbal_emergency_stop())
-#else
-	// when remote control is offline, chassis motor should receive zero current or voltage.
-	// 当遥控器掉线的时候，发送给底盘电机零电流.
-	if (toe_is_error(DBUS_TOE))
-#endif
+	if (chassis_behaviour_mode != CHASSIS_ZERO_FORCE)
 	{
-		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
-		chassis_move.robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
-#endif
+		uint8_t bToeIndex;
+		for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
+		{
+			if (toe_is_error(bToeIndex))
+			{
+				chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+				chassis_move.robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+				break;
+			}
+		}
 	}
+
+	// choose chassis & arm control mode
+    switch (chassis_behaviour_mode)
+	{
+		case CHASSIS_NO_MOVE:
+        {
+            chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
+            chassis_move_mode->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+            break;
+        }
+		case CHASSIS_NO_FOLLOW_YAW:
+		{
+			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
+
+            switch (chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL])
+            {
+                case RC_SW_UP:
+                {
+                    chassis_move_mode->robot_arm_mode = ROBOT_ARM_ENABLED;
+                    break;
+                }
+                case RC_SW_MID:
+                {
+                    chassis_move_mode->robot_arm_mode = ROBOT_ARM_FIXED;
+                    break;
+                }
+                case RC_SW_DOWN:
+                default:
+                {
+                    chassis_move_mode->robot_arm_mode = ROBOT_ARM_HOME;
+                    break;
+                }
+            }
+			break;
+		}
+		case CHASSIS_ZERO_FORCE:
+		default:
+		{
+			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
+            chassis_move_mode->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+			break;
+		}
+	}
+
+#if CHASSIS_TEST_MODE
+    J_scope_chassis_behavior_test();
+#endif
 }
 
 /**
@@ -434,48 +289,37 @@ void chassis_behaviour_mode_safe_guard(void)
 
 void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
 {
+	if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
+	{
+		return;
+	}
 
-    if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
-    {
-        return;
-    }
-
-    if (chassis_behaviour_mode == CHASSIS_ZERO_FORCE)
-    {
-        chassis_zero_force_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_NO_MOVE)
-    {
-        chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_NO_FOLLOW_YAW)
-    {
-        chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_OPEN)
-    {
-        chassis_open_set_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-    else if (chassis_behaviour_mode == CHASSIS_SPINNING)
-    {
-        chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
-    {
-        chassis_infantry_follow_gimbal_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW)
-    {
-        chassis_engineer_follow_chassis_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-#if CV_INTERFACE
-    else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
-    {
-        chassis_cv_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-#endif
-#endif
+	if (chassis_move_rc_to_vector->robot_arm_mode == ROBOT_ARM_ENABLED)
+	{
+		chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+	}
+	else
+	{
+		switch (chassis_behaviour_mode)
+		{
+			case CHASSIS_NO_MOVE:
+			{
+				chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+				break;
+			}
+			case CHASSIS_NO_FOLLOW_YAW:
+			{
+				chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+				break;
+			}
+			case CHASSIS_ZERO_FORCE:
+			default:
+			{
+				chassis_zero_force_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+				break;
+			}
+		}
+	}
 }
 
 /**
@@ -539,195 +383,6 @@ static void chassis_no_move_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, ch
     *wz_set = 0.0f;
 }
 
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-/**
-  * @brief          when chassis behaviour mode is CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW, chassis control mode is speed control mode.
-  *                 chassis will follow gimbal, chassis rotation speed is calculated from the angle difference.
-  * @param[out]     vx_set: vx speed value, positive value means forward speed, negative value means backward speed,
-  * @param[out]     vy_set: vy speed value, positive value means left speed, negative value means right speed.
-  * @param[out]     angle_set: control angle difference between chassis and gimbal
-  * @param[in]      chassis_move_rc_to_vector: chassis data
-  * @retval         none
-  */
-/**
-  * @brief          底盘跟随云台的行为状态机下，底盘模式是跟随云台角度，底盘旋转速度会根据角度差计算底盘旋转的角速度
-  * @author         RM
-  * @param[in]      vx_set前进的速度,正值 前进速度， 负值 后退速度
-  * @param[in]      vy_set左右的速度,正值 左移速度， 负值 右移速度
-  * @param[in]      angle_set底盘与云台控制到的相对角度
-  * @param[in]      chassis_move_rc_to_vector底盘数据
-  * @retval         返回空
-  */
-
-static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
-{
-    if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
-    {
-        return;
-    }
-
-    //channel value and keyboard value change to speed set-point, in general
-    //遥控器的通道值以及键盘按键 得出 一般情况下的速度设定值
-    chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-
-    //swing angle is generated by sin function, swing_time is the input time of sin
-    //摇摆角度是利用sin函数生成，swing_time 是sin函数的输入值
-    static fp32 swing_time = 0.0f;
-    
-    static fp32 swing_angle = 0.0f;
-    //max_angle is the max angle that chassis will ratate
-    //max_angle 是sin函数的幅值
-    static fp32 max_angle = SWING_NO_MOVE_ANGLE;
-    //swing_time  plus the add_time in one control cycle
-    //swing_time 在一个控制周期内，加上 add_time
-    static fp32 const add_time = PI * 0.5f * configTICK_RATE_HZ / CHASSIS_CONTROL_TIME_MS;
-    
-    static uint8_t swing_flag = 0;
-
-    //judge if swing
-    //判断是否要摇摆
-    if (chassis_move_rc_to_vector->chassis_RC->key.v & SWING_KEY)
-    {
-        if (swing_flag == 0)
-        {
-            swing_flag = 1;
-            swing_time = 0.0f;
-        }
-    }
-    else
-    {
-        swing_flag = 0;
-    }
-
-    //judge if keyboard is controlling the chassis, if yes, reduce the max_angle
-    //判断键盘输入是不是在控制底盘运动，底盘在运动减小摇摆角度
-    if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_FRONT_KEY || chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_BACK_KEY ||
-        chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEFT_KEY || chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_RIGHT_KEY)
-    {
-        max_angle = SWING_MOVE_ANGLE;
-    }
-    else
-    {
-        max_angle = SWING_NO_MOVE_ANGLE;
-    }
-    
-    if (swing_flag)
-    {
-        swing_angle = max_angle * arm_sin_f32(swing_time);
-        swing_time += add_time;
-    }
-    else
-    {
-        swing_angle = 0.0f;
-    }
-    //swing_time  range [0, 2*PI]
-    //sin函数不超过2pi
-    if (swing_time > 2 * PI)
-    {
-        swing_time -= 2 * PI;
-    }
-
-
-    *angle_set = swing_angle;
-}
-
-static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
-{
-    if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
-    {
-        return;
-    }
-
-    //channel value and keyboard value change to speed set-point, in general
-    //遥控器的通道值以及键盘按键 得出 一般情况下的速度设定值
-    chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-
-    fp32 spinning_speed;
-    // @TODO: add enemy detection
-    // if (enemy_detected)
-    // {
-    //     spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-    // }
-    // else
-    {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-        spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-#else
-        if (chassis_move_rc_to_vector->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
-        {
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
-            spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-            spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-#endif
-        }
-        else
-        {
-            spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
-        }
-#endif
-    }
-    *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
-}
-
-#if CV_INTERFACE
-static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
-{
-    if (vx_set == NULL || vy_set == NULL || angle_set == NULL)
-    {
-        return;
-    }
-
-    // chassis_task should maintain previous speed if cv is offline for a short time
-    *vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
-    *vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
-
-    fp32 spinning_speed;
-    // @TODO: add enemy detection (controlled by CV)
-    // if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
-    // {
-    //     spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-    // }
-    // else
-    {
-        spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-    }
-    *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
-}
-#endif
-
-/**
-  * @brief          when chassis behaviour mode is CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, chassis control mode is speed control mode.
-  *                 chassis will follow chassis yaw, chassis rotation speed is calculated from the angle difference between set angle and chassis yaw.
-  * @param[out]     vx_set: vx speed value, positive value means forward speed, negative value means backward speed,
-  * @param[out]     vy_set: vy speed value, positive value means left speed, negative value means right speed.
-  * @param[out]     angle_set: control angle[-PI, PI]
-  * @param[in]      chassis_move_rc_to_vector: chassis data
-  * @retval         none
-  */
-/**
-  * @brief          底盘跟随底盘yaw的行为状态机下，底盘模式是跟随底盘角度，底盘旋转速度会根据角度差计算底盘旋转的角速度
-  * @author         RM
-  * @param[in]      vx_set前进的速度,正值 前进速度， 负值 后退速度
-  * @param[in]      vy_set左右的速度,正值 左移速度， 负值 右移速度
-  * @param[in]      angle_set底盘设置的yaw，范围 -PI到PI
-  * @param[in]      chassis_move_rc_to_vector底盘数据
-  * @retval         返回空
-  */
-
-static void chassis_engineer_follow_chassis_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
-{
-    if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
-    {
-        return;
-    }
-
-    chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-
-    *angle_set = rad_format(chassis_move_rc_to_vector->chassis_yaw_set - CHASSIS_ANGLE_Z_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_WZ_CHANNEL]);
-}
-#endif /* (ROBOT_TYPE != ENGINEER_2024_MECANUM) */
-
 /**
   * @brief          when chassis behaviour mode is CHASSIS_NO_FOLLOW_YAW, chassis control mode is speed control mode.
   *                 chassis will no follow angle, chassis rotation speed is set by wz_set.
@@ -756,35 +411,4 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
 
     chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
     *wz_set = -CHASSIS_WZ_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_WZ_CHANNEL];
-}
-
-/**
-  * @brief          when chassis behaviour mode is CHASSIS_OPEN, chassis control mode is raw control mode.
-  *                 set value will be sent to can bus.
-  * @param[out]     vx_set: vx speed value, positive value means forward speed, negative value means backward speed,
-  * @param[out]     vy_set: vy speed value, positive value means left speed, negative value means right speed.
-  * @param[out]     wz_set: rotation speed,positive value means counterclockwise , negative value means clockwise
-  * @param[in]      chassis_move_rc_to_vector: chassis data
-  * @retval         none
-  */
-/**
-  * @brief          底盘开环的行为状态机下，底盘模式是raw原生状态，故而设定值会直接发送到can总线上
-  * @param[in]      vx_set前进的速度,正值 前进速度， 负值 后退速度
-  * @param[in]      vy_set左右的速度，正值 左移速度， 负值 右移速度
-  * @param[in]      wz_set 旋转速度， 正值 逆时针旋转，负值 顺时针旋转
-  * @param[in]      chassis_move_rc_to_vector底盘数据
-  * @retval         none
-  */
-
-static void chassis_open_set_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector)
-{
-    if (vx_set == NULL || vy_set == NULL || wz_set == NULL || chassis_move_rc_to_vector == NULL)
-    {
-        return;
-    }
-
-    *vx_set = chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_X_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
-    *vy_set = -chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_Y_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
-    *wz_set = -chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_WZ_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
-    return;
 }

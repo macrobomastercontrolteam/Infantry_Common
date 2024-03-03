@@ -49,7 +49,6 @@ void usb_task(void const * argument)
 #else
         osDelay(1000);
 		usb_printf(
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 "******************************\r\n\
 voltage percentage:%d%% \r\n\
 DBUS:%s\r\n\
@@ -64,37 +63,13 @@ mag sensor:%s\r\n\
 referee usart:%s\r\n\
 cv usart:%s\r\n\
 ******************************\r\n",
-#else
-"******************************\r\n\
-voltage percentage:%d%% \r\n\
-DBUS:%s\r\n\
-chassis drive motor1:%s\r\n\
-chassis drive motor2:%s\r\n\
-chassis drive motor3:%s\r\n\
-chassis drive motor4:%s\r\n\
-yaw motor:%s\r\n\
-pitch motor:%s\r\n\
-trigger motor:%s\r\n\
-gyro sensor:%s\r\n\
-accel sensor:%s\r\n\
-mag sensor:%s\r\n\
-referee usart:%s\r\n\
-cv usart:%s\r\n\
-******************************\r\n",
-#endif
 			get_battery_percentage(),
 			status[error_list_usb_local[DBUS_TOE].error_exist],
 			status[error_list_usb_local[CHASSIS_MOTOR1_TOE].error_exist],
 			status[error_list_usb_local[CHASSIS_MOTOR2_TOE].error_exist],
 			status[error_list_usb_local[CHASSIS_MOTOR3_TOE].error_exist],
 			status[error_list_usb_local[CHASSIS_MOTOR4_TOE].error_exist],
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 			status[error_list_usb_local[GIMBAL_CONTROL_BOARD_TOE].error_exist],
-#else
-			status[error_list_usb_local[YAW_GIMBAL_MOTOR_TOE].error_exist],
-			status[error_list_usb_local[PITCH_GIMBAL_MOTOR_TOE].error_exist],
-			status[error_list_usb_local[TRIGGER_MOTOR_TOE].error_exist],
-#endif
 			status[error_list_usb_local[BOARD_GYRO_TOE].error_exist],
 			status[error_list_usb_local[BOARD_ACCEL_TOE].error_exist],
 			status[error_list_usb_local[BOARD_MAG_TOE].error_exist],

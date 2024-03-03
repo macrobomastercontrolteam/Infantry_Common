@@ -20,14 +20,6 @@
 #define ENGINEER_CONTROL_MODE INDIVIDUAL_MOTOR_TEST
 /********************* Only Modify this area (end) *********************/
 
-#if (ROBOT_TYPE != SENTRY_2023_MECANUM) && SENTRY_HW_TEST
-#error "SENTRY_HW_TEST is only for SENTRY_2023_MECANUM"
-#endif
-
-#if DEBUG_CV_WITH_USB && !CV_INTERFACE
-#error "DEBUG_CV_WITH_USB is only for CV_INTERFACE"
-#endif
-
 typedef signed char int8_t;
 typedef signed short int int16_t;
 typedef signed int int32_t;

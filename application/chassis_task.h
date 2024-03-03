@@ -20,7 +20,7 @@
 #define CHASSIS_TASK_H
 #include "global_inc.h"
 #include "CAN_receive.h"
-#include "gimbal_task.h"
+
 #include "pid.h"
 #include "remote_control.h"
 #include "user_lib.h"
@@ -134,32 +134,11 @@
 
 #define CHASSIS_TEST_MODE 1
 
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-// avoid changing angle too often near zero speed
-#define STEER_TURN_X_SPEED_DEADZONE 0.01f
-#define STEER_TURN_Y_SPEED_DEADZONE (STEER_TURN_X_SPEED_DEADZONE*CHASSIS_VY_RC_SEN/CHASSIS_VX_RC_SEN)
-#define STEER_TURN_W_SPEED_DEADZONE 0.01f
-#endif
 
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM)
 #define MOTOR_DISTANCE_TO_CENTER 0.2f
-#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define MOTOR_DISTANCE_TO_CENTER 0.2f // @TODO: update this
-#elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
-#define MOTOR_DISTANCE_TO_CENTER 0.2788f
-#elif (ROBOT_TYPE == ENGINEER_2024_MECANUM)
-#define MOTOR_DISTANCE_TO_CENTER 0.2861018068591153f
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-#define MOTOR_DISTANCE_TO_CENTER 0.28284271247461906f // sqrt(pow(CHASSIS_Y_DIRECTION_HALF_LENGTH,2)+pow(CHASSIS_X_DIRECTION_HALF_LENGTH,2))
-#define CHASSIS_Y_DIRECTION_HALF_LENGTH 0.2f
-#define CHASSIS_X_DIRECTION_HALF_LENGTH 0.2f
-#define CHASSIS_ANGLE_COS 0.7071067811865475f // (CHASSIS_X_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
-#define CHASSIS_ANGLE_SIN 0.7071067811865475f // (CHASSIS_Y_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
-#endif
 
 //chassis task control time  2ms
 //底盘任务控制间隔 2ms
@@ -187,14 +166,8 @@
 #define CHASSIS_LEFT_KEY KEY_PRESSED_OFFSET_A
 #define CHASSIS_RIGHT_KEY KEY_PRESSED_OFFSET_D
 
-//Convert M3508 speed (rpm) to chassis speed (m/s)
-//m3508转化成底盘速度(m/s)的比例，
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 // #define DRIVE_WHEEL_RADIUS 0.07625f // official iron wheel
 #define DRIVE_WHEEL_RADIUS 0.077f // 3rd party wheel with motor 3508 embedded into wheel
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-#define DRIVE_WHEEL_RADIUS 0.04f
-#endif
 #define MOTOR_3508_REDUCTION_RATIO (3591.0f/187.0f)
 #define M3508_MOTOR_RPM_TO_VECTOR ((2.0f*PI/60.0f)*DRIVE_WHEEL_RADIUS/MOTOR_3508_REDUCTION_RATIO)
 
@@ -203,26 +176,15 @@
 //single chassis motor max speed
 //单个底盘电机最大速度
 #define MAX_WHEEL_SPEED 4.0f
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 //chassis forward or back max speed
 //底盘运动过程最大前进速度
 #define NORMAL_MAX_CHASSIS_SPEED_X 3.0f
 //chassis left or right max speed
 //底盘运动过程最大平移速度
 #define NORMAL_MAX_CHASSIS_SPEED_Y 3.0f
-#else
-#define NORMAL_MAX_CHASSIS_SPEED_X 1.0f
-#define NORMAL_MAX_CHASSIS_SPEED_Y 1.0f
-#endif
 
 // Arbitrary offsets between chassis rotational center and centroid
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM)
-// slip ring is at the center of chassis
 #define CHASSIS_WZ_SET_SCALE 0.0f
-#else
-// Offset for the official model
-#define CHASSIS_WZ_SET_SCALE 0.1f
-#endif
 
 //when chassis is not set to move, swing max angle
 //摇摆原地不动摇摆最大角度(rad)
@@ -249,12 +211,8 @@
 
 typedef enum
 {
-  CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW,   //chassis will follow yaw gimbal motor relative angle.底盘会跟随云台相对角度
-  CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW,  //chassis will have yaw angle(chassis_yaw) close-looped control.底盘有底盘角度控制闭环
   CHASSIS_VECTOR_NO_FOLLOW_YAW,       //chassis will have rotation speed control. 底盘有旋转速度控制
   CHASSIS_VECTOR_RAW,                 //control-current will be sent to CAN bus derectly.
-  CHASSIS_VECTOR_SPINNING,            //spinning chassis
-
 } chassis_mode_e;
 
 typedef struct
@@ -266,19 +224,11 @@ typedef struct
   int16_t give_current;
 } chassis_motor_t;
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-typedef struct
-{
-  uint16_t target_ecd; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
-} chassis_steer_motor_t;
-#endif
-
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 typedef enum
 {
   ROBOT_ARM_ENABLED,
-  ROBOT_ARM_REST_POSITION,
-  ROBOT_ARM_NO_MOVE,
+  ROBOT_ARM_HOME,
+  ROBOT_ARM_FIXED,
   ROBOT_ARM_ZERO_FORCE,
 } robot_arm_behaviour_e;
 
@@ -291,41 +241,26 @@ typedef struct
   fp32 y_set;
   fp32 z_set;
 } robot_arm_t;
-#endif
 
 typedef struct
 {
   const RC_ctrl_t *chassis_RC;               //底盘使用的遥控器指针, the point to remote control
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-  const gimbal_motor_t *chassis_yaw_motor;   //will use the relative angle of yaw gimbal motor to calculate the euler angle.底盘使用到yaw云台电机的相对角度来计算底盘的欧拉角.
-  const gimbal_motor_t *chassis_pitch_motor; //will use the relative angle of pitch gimbal motor to calculate the euler angle.底盘使用到pitch云台电机的相对角度来计算底盘的欧拉角
-#endif
   const fp32 *chassis_INS_angle;             //the point to the euler angle of gyro sensor.获取陀螺仪解算出的欧拉角指针
   chassis_mode_e chassis_mode;               //state machine. 底盘控制状态机
   chassis_mode_e last_chassis_mode;          //last state machine.底盘上次控制状态机
   chassis_motor_t motor_chassis[4];          //chassis motor data.底盘电机数据
   pid_type_def motor_speed_pid[4];             //motor speed PID.底盘电机速度pid
   pid_type_def chassis_angle_pid;              //follow angle PID.底盘跟随角度pid
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-  chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data.底盘舵轮电机数据
-  pid_type_def steer_motor_angle_pid[4];       //steering motor angle PID.底盘舵轮电机角度pid
-#endif
 
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
   first_order_filter_type_t chassis_cmd_slow_set_vy;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
 
-#if !(ROBOT_TYPE == INFANTRY_2023_SWERVE)
   fp32 vx;                          //chassis vertical speed, positive means forward,unit m/s. 底盘速度 前进方向 前为正，单位 m/s
   fp32 vy;                          //chassis horizontal speed, positive means letf,unit m/s.底盘速度 左右方向 左为正  单位 m/s
   fp32 wz;                          //chassis rotation speed, positive means counterclockwise,unit rad/s.底盘旋转角速度，逆时针为正 单位 rad/s
-#endif
   fp32 vx_set;                      //chassis set vertical speed,positive means forward,unit m/s.底盘设定速度 前进方向 前为正，单位 m/s
   fp32 vy_set;                      //chassis set horizontal speed,positive means left,unit m/s.底盘设定速度 左右方向 左为正，单位 m/s
   fp32 wz_set;                      //chassis set rotation speed,positive means counterclockwise,unit rad/s.底盘设定旋转角速度，逆时针为正 单位 rad/s
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-  fp32 chassis_relative_angle;      //the relative angle between chassis and gimbal.底盘与云台的相对角度，单位 rad
-  fp32 chassis_relative_angle_set;  //the set relative angle.设置相对云台控制角度
-#endif
   fp32 chassis_yaw_set;             
 
   fp32 vx_max_speed;  //max forward speed, unit m/s.前进方向最大速度 单位m/s
@@ -336,14 +271,11 @@ typedef struct
   fp32 chassis_pitch; //the pitch angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的pitch角度
   fp32 chassis_roll;  //the roll angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的roll角度
 
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
   robot_arm_behaviour_e robot_arm_mode;
   robot_arm_t robot_arm;
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
   fp32 robot_arm_motor_pos[7];
 #endif /* INDIVIDUAL_MOTOR_TEST */
-#endif
-
 } chassis_move_t;
 
 /**
@@ -376,10 +308,8 @@ extern void chassis_task(void const *pvParameters);
   */
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
 
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
 void robot_arm_reset_position(void);
-#endif
 #endif
 
 extern chassis_move_t chassis_move;

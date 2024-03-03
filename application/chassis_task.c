@@ -27,7 +27,7 @@
 #include "CAN_receive.h"
 #include "detect_task.h"
 #include "INS_task.h"
-#include "chassis_power_control.h"
+
 #include "user_lib.h"
 
 #define DISABLE_DRIVE_MOTOR_POWER 1
@@ -106,13 +106,7 @@ static void chassis_set_control(chassis_move_t *chassis_move_control);
   */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 void robot_arm_control(void);
-#endif
-
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-static uint16_t motor_angle_to_ecd_change(fp32 angle);
-#endif
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
@@ -169,9 +163,8 @@ void chassis_task(void const *pvParameters)
         //chassis control pid calculate
         //底盘控制PID计算
         chassis_control_loop(&chassis_move);
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+
         robot_arm_control();
-#endif
 
 #if DISABLE_DRIVE_MOTOR_POWER
 		chassis_move.motor_chassis[0].give_current = 0;
@@ -182,24 +175,6 @@ void chassis_task(void const *pvParameters)
 
 		// safe guard
 		if (chassis_behaviour_mode == CHASSIS_ZERO_FORCE)
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-		{
-			CAN_cmd_chassis(0, 0, 0, 0, 0, 0, 0, 0);
-		}
-		else
-		{
-#if DISABLE_STEER_MOTOR_POWER
-			chassis_move.steer_motor_chassis[0].target_ecd = 0;
-			chassis_move.steer_motor_chassis[1].target_ecd = 0;
-			chassis_move.steer_motor_chassis[2].target_ecd = 0;
-			chassis_move.steer_motor_chassis[3].target_ecd = 0;
-#endif
-			// send control message
-			// 发送控制电流
-			CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current, chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current,
-			                chassis_move.steer_motor_chassis[0].target_ecd, chassis_move.steer_motor_chassis[1].target_ecd, chassis_move.steer_motor_chassis[2].target_ecd, chassis_move.steer_motor_chassis[3].target_ecd);
-		}
-#elif (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 		{
 			CAN_cmd_chassis(0, 0, 0, 0);
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
@@ -220,21 +195,7 @@ void chassis_task(void const *pvParameters)
 			CAN_cmd_robot_arm(chassis_move.robot_arm.roll_set, chassis_move.robot_arm.pitch_set, chassis_move.robot_arm.yaw_set, chassis_move.robot_arm.x_set, chassis_move.robot_arm.y_set, chassis_move.robot_arm.z_set);
 #endif /* INDIVIDUAL_MOTOR_TEST */
 		}
-#else /* ENGINEER_2024_MECANUM */
-		{
-			CAN_cmd_chassis(0, 0, 0, 0);
-		}
-		else
-		{
-			// send control message
-			// 发送控制电流
-			CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current,
-			                chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
-		}
-#endif /* ENGINEER_2024_MECANUM */
 
-		//os delay
-        //系统延时
         vTaskDelay(CHASSIS_CONTROL_TIME_MS);
 
 #if CHASSIS_TEST_MODE
@@ -247,7 +208,6 @@ void chassis_task(void const *pvParameters)
     }
 }
 
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
 void robot_arm_reset_position(void)
 {
@@ -263,88 +223,101 @@ void robot_arm_reset_position(void)
 
 void robot_arm_control(void)
 {
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
 	switch (chassis_move.robot_arm_mode)
 	{
 		case ROBOT_ARM_ZERO_FORCE:
 		{
-#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
-    robot_arm_reset_position();
-#else
-		memset(&chassis_move.robot_arm, 0xFF, sizeof(chassis_move.robot_arm));
-#endif
+			robot_arm_reset_position();
 			break;
 		}
-		case ROBOT_ARM_REST_POSITION:
+		case ROBOT_ARM_HOME:
 		{
-#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
-    robot_arm_reset_position();
-#else
-    memset(&chassis_move.robot_arm, 0, sizeof(chassis_move.robot_arm));
-#endif
+			robot_arm_reset_position();
 			break;
 		}
 		case ROBOT_ARM_ENABLED:
 		{
-#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
-      fp32 right_horiz_channel, right_vert_channel, left_horiz_channel, left_vert_channel;
-      deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], right_horiz_channel, CHASSIS_RC_DEADLINE);
-      deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], right_vert_channel, CHASSIS_RC_DEADLINE);
-      deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], left_horiz_channel, CHASSIS_RC_DEADLINE);
-      deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], left_vert_channel, CHASSIS_RC_DEADLINE);
+			fp32 right_horiz_channel, right_vert_channel, left_horiz_channel, left_vert_channel;
+			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], right_horiz_channel, CHASSIS_RC_DEADLINE);
+			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], right_vert_channel, CHASSIS_RC_DEADLINE);
+			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], left_horiz_channel, CHASSIS_RC_DEADLINE);
+			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], left_vert_channel, CHASSIS_RC_DEADLINE);
 
-      switch (chassis_move.chassis_RC->rc.s[RIGHT_LEVER_CHANNEL])
-      {
-        case RC_SW_UP:
-        {
-          // upper 4 joints control
-          chassis_move.robot_arm_motor_pos[3] += right_vert_channel * GIMBAL_JOINT_3_RC_SEN_INC;
-          chassis_move.robot_arm_motor_pos[4] += right_horiz_channel * GIMBAL_JOINT_4_RC_SEN_INC;
-          chassis_move.robot_arm_motor_pos[5] += left_vert_channel * GIMBAL_JOINT_5_RC_SEN_INC;
-          chassis_move.robot_arm_motor_pos[6] += left_horiz_channel * GIMBAL_JOINT_6_RC_SEN_INC;
-          // chassis_move.robot_arm_motor_pos[3] = right_vert_channel * GIMBAL_JOINT_3_RC_SEN + GIMBAL_JOINT_3_ANGLE_REST;
-          // chassis_move.robot_arm_motor_pos[4] = right_horiz_channel * GIMBAL_JOINT_4_RC_SEN + GIMBAL_JOINT_4_ANGLE_REST;
-          // chassis_move.robot_arm_motor_pos[5] = left_vert_channel * GIMBAL_JOINT_5_RC_SEN + GIMBAL_JOINT_5_ANGLE_REST;
-          // chassis_move.robot_arm_motor_pos[6] = left_horiz_channel * GIMBAL_JOINT_6_RC_SEN + GIMBAL_JOINT_6_ANGLE_REST;
-          break;
-        }
-        case RC_SW_MID:
-        {
-          // lower 3 joints control
-          chassis_move.robot_arm_motor_pos[0] += right_horiz_channel * GIMBAL_JOINT_0_RC_SEN_INC;
-          chassis_move.robot_arm_motor_pos[1] += right_vert_channel * GIMBAL_JOINT_1_RC_SEN_INC;
-          chassis_move.robot_arm_motor_pos[2] += left_horiz_channel * GIMBAL_JOINT_2_RC_SEN_INC;
-          // chassis_move.robot_arm_motor_pos[0] = right_horiz_channel * GIMBAL_JOINT_0_RC_SEN + GIMBAL_JOINT_0_ANGLE_REST;
-          // chassis_move.robot_arm_motor_pos[1] = right_vert_channel * GIMBAL_JOINT_1_RC_SEN + GIMBAL_JOINT_1_ANGLE_REST;
-          // chassis_move.robot_arm_motor_pos[2] = left_horiz_channel * GIMBAL_JOINT_2_RC_SEN + GIMBAL_JOINT_2_ANGLE_REST;
-          break;
-        }
-        default:
-        {
-          // should not reach here
-          break;
-        }
-      }
+			switch (chassis_move.chassis_RC->rc.s[RIGHT_LEVER_CHANNEL])
+			{
+				case RC_SW_UP:
+				{
+					// upper 4 joints control
+					chassis_move.robot_arm_motor_pos[3] += right_vert_channel * GIMBAL_JOINT_3_RC_SEN_INC;
+					chassis_move.robot_arm_motor_pos[4] += right_horiz_channel * GIMBAL_JOINT_4_RC_SEN_INC;
+					chassis_move.robot_arm_motor_pos[5] += left_vert_channel * GIMBAL_JOINT_5_RC_SEN_INC;
+					chassis_move.robot_arm_motor_pos[6] += left_horiz_channel * GIMBAL_JOINT_6_RC_SEN_INC;
+					// chassis_move.robot_arm_motor_pos[3] = right_vert_channel * GIMBAL_JOINT_3_RC_SEN + GIMBAL_JOINT_3_ANGLE_REST;
+					// chassis_move.robot_arm_motor_pos[4] = right_horiz_channel * GIMBAL_JOINT_4_RC_SEN + GIMBAL_JOINT_4_ANGLE_REST;
+					// chassis_move.robot_arm_motor_pos[5] = left_vert_channel * GIMBAL_JOINT_5_RC_SEN + GIMBAL_JOINT_5_ANGLE_REST;
+					// chassis_move.robot_arm_motor_pos[6] = left_horiz_channel * GIMBAL_JOINT_6_RC_SEN + GIMBAL_JOINT_6_ANGLE_REST;
+					break;
+				}
+				case RC_SW_MID:
+				{
+					// lower 3 joints control
+					chassis_move.robot_arm_motor_pos[0] += right_horiz_channel * GIMBAL_JOINT_0_RC_SEN_INC;
+					chassis_move.robot_arm_motor_pos[1] += right_vert_channel * GIMBAL_JOINT_1_RC_SEN_INC;
+					chassis_move.robot_arm_motor_pos[2] += left_horiz_channel * GIMBAL_JOINT_2_RC_SEN_INC;
+					// chassis_move.robot_arm_motor_pos[0] = right_horiz_channel * GIMBAL_JOINT_0_RC_SEN + GIMBAL_JOINT_0_ANGLE_REST;
+					// chassis_move.robot_arm_motor_pos[1] = right_vert_channel * GIMBAL_JOINT_1_RC_SEN + GIMBAL_JOINT_1_ANGLE_REST;
+					// chassis_move.robot_arm_motor_pos[2] = left_horiz_channel * GIMBAL_JOINT_2_RC_SEN + GIMBAL_JOINT_2_ANGLE_REST;
+					break;
+				}
+				default:
+				{
+					// should not reach here
+					break;
+				}
+			}
 
-	  chassis_move.robot_arm_motor_pos[0] = fp32_constrain(chassis_move.robot_arm_motor_pos[0], GIMBAL_JOINT_0_ANGLE_MIN, GIMBAL_JOINT_0_ANGLE_MAX);
-	  chassis_move.robot_arm_motor_pos[1] = fp32_constrain(chassis_move.robot_arm_motor_pos[1], GIMBAL_JOINT_1_ANGLE_MIN, GIMBAL_JOINT_1_ANGLE_MAX);
-	  chassis_move.robot_arm_motor_pos[2] = fp32_constrain(chassis_move.robot_arm_motor_pos[2], GIMBAL_JOINT_2_ANGLE_MIN, GIMBAL_JOINT_2_ANGLE_MAX);
-	  chassis_move.robot_arm_motor_pos[3] = fp32_constrain(chassis_move.robot_arm_motor_pos[3], GIMBAL_JOINT_3_ANGLE_MIN, GIMBAL_JOINT_3_ANGLE_MAX);
-	  chassis_move.robot_arm_motor_pos[4] = fp32_constrain(chassis_move.robot_arm_motor_pos[4], GIMBAL_JOINT_4_ANGLE_MIN, GIMBAL_JOINT_4_ANGLE_MAX);
-	  chassis_move.robot_arm_motor_pos[5] = fp32_constrain(chassis_move.robot_arm_motor_pos[5], GIMBAL_JOINT_5_ANGLE_MIN, GIMBAL_JOINT_5_ANGLE_MAX);
-	  chassis_move.robot_arm_motor_pos[6] = fp32_constrain(chassis_move.robot_arm_motor_pos[6], GIMBAL_JOINT_6_ANGLE_MIN, GIMBAL_JOINT_6_ANGLE_MAX);
-#else
-	    // @TODO: custom controller mode
-#endif
+			chassis_move.robot_arm_motor_pos[0] = fp32_constrain(chassis_move.robot_arm_motor_pos[0], GIMBAL_JOINT_0_ANGLE_MIN, GIMBAL_JOINT_0_ANGLE_MAX);
+			chassis_move.robot_arm_motor_pos[1] = fp32_constrain(chassis_move.robot_arm_motor_pos[1], GIMBAL_JOINT_1_ANGLE_MIN, GIMBAL_JOINT_1_ANGLE_MAX);
+			chassis_move.robot_arm_motor_pos[2] = fp32_constrain(chassis_move.robot_arm_motor_pos[2], GIMBAL_JOINT_2_ANGLE_MIN, GIMBAL_JOINT_2_ANGLE_MAX);
+			chassis_move.robot_arm_motor_pos[3] = fp32_constrain(chassis_move.robot_arm_motor_pos[3], GIMBAL_JOINT_3_ANGLE_MIN, GIMBAL_JOINT_3_ANGLE_MAX);
+			chassis_move.robot_arm_motor_pos[4] = fp32_constrain(chassis_move.robot_arm_motor_pos[4], GIMBAL_JOINT_4_ANGLE_MIN, GIMBAL_JOINT_4_ANGLE_MAX);
+			chassis_move.robot_arm_motor_pos[5] = fp32_constrain(chassis_move.robot_arm_motor_pos[5], GIMBAL_JOINT_5_ANGLE_MIN, GIMBAL_JOINT_5_ANGLE_MAX);
+			chassis_move.robot_arm_motor_pos[6] = fp32_constrain(chassis_move.robot_arm_motor_pos[6], GIMBAL_JOINT_6_ANGLE_MIN, GIMBAL_JOINT_6_ANGLE_MAX);
 			break;
 		}
-    case ROBOT_ARM_NO_MOVE:
-    default:
-    {
-      break;
-    }
-  }
-}
+		case ROBOT_ARM_FIXED:
+		default:
+		{
+			break;
+		}
+	}
+#else /* INDIVIDUAL_MOTOR_TEST == 0 */
+	switch (chassis_move.robot_arm_mode)
+	{
+		case ROBOT_ARM_ZERO_FORCE:
+		{
+			memset(&chassis_move.robot_arm, 0xFF, sizeof(chassis_move.robot_arm));
+			break;
+		}
+		case ROBOT_ARM_HOME:
+		{
+			memset(&chassis_move.robot_arm, 0, sizeof(chassis_move.robot_arm));
+			break;
+		}
+		case ROBOT_ARM_ENABLED:
+		{
+			// @TODO: custom controller mode
+			break;
+		}
+		case ROBOT_ARM_FIXED:
+		default:
+		{
+			break;
+		}
+	}
 #endif
+}
 
 void wait_until_all_necessary_modules_online(void)
 {
@@ -354,12 +327,6 @@ void wait_until_all_necessary_modules_online(void)
 	{
 		for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
 		{
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-			if (bToeIndex == DBUS_TOE)
-			{
-				bToeIndex = CV_TOE;
-			}
-#endif
 			if (toe_is_error(bToeIndex))
 			{
 				fIsError = 1;
@@ -413,12 +380,6 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     //get gyro sensor euler angle point
     //获取陀螺仪姿态角指针
     chassis_move_init->chassis_INS_angle = get_INS_angle_point();
-    //get gimbal motor data point
-    //获取云台电机数据指针
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-    chassis_move_init->chassis_yaw_motor = get_yaw_motor_point();
-    chassis_move_init->chassis_pitch_motor = get_pitch_motor_point();
-#endif
 
     //get chassis motor data point,  initialize motor speed PID
     //获取底盘电机数据指针，初始化PID 
@@ -444,12 +405,10 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     chassis_move_init->vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
     chassis_move_init->vy_min_speed = -NORMAL_MAX_CHASSIS_SPEED_Y;
 
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
     chassis_move_init->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
 	  memset(&chassis_move_init->robot_arm, 0xFF, sizeof(chassis_move_init->robot_arm));
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
     robot_arm_reset_position();
-#endif
 #endif
 
 	  //update data
@@ -498,19 +457,6 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
     {
         switch (chassis_move_transit->chassis_mode)
         {
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-        case CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW:
-        {
-          chassis_move_transit->chassis_relative_angle_set = 0.0f;
-          break;
-        }
-        case CHASSIS_VECTOR_SPINNING:
-        {
-          chassis_move_transit->chassis_relative_angle_set = chassis_move_transit->chassis_yaw_motor->relative_angle;
-          break;
-        }
-        case CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW:
-#endif
         case CHASSIS_VECTOR_NO_FOLLOW_YAW:
         {
           chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
@@ -551,24 +497,15 @@ static void chassis_feedback_update(chassis_move_t *chassis_move_update)
         chassis_move_update->motor_chassis[i].accel = chassis_move_update->motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
     }
 
-#if (ROBOT_TYPE != INFANTRY_2023_SWERVE)
     //calculate vertical speed, horizontal speed ,rotation speed, left hand rule 
     //更新底盘纵向速度 x， 平移速度y，旋转速度wz，坐标系为右手系
     chassis_move_update->vx = (-chassis_move_update->motor_chassis[0].speed + chassis_move_update->motor_chassis[1].speed + chassis_move_update->motor_chassis[2].speed - chassis_move_update->motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
     chassis_move_update->vy = (-chassis_move_update->motor_chassis[0].speed - chassis_move_update->motor_chassis[1].speed + chassis_move_update->motor_chassis[2].speed + chassis_move_update->motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
     chassis_move_update->wz = (-chassis_move_update->motor_chassis[0].speed - chassis_move_update->motor_chassis[1].speed - chassis_move_update->motor_chassis[2].speed - chassis_move_update->motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / MOTOR_DISTANCE_TO_CENTER;
-#endif
 
     chassis_move_update->chassis_roll = *(chassis_move_update->chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
     chassis_move_update->chassis_yaw = rad_format(*(chassis_move_update->chassis_INS_angle + INS_YAW_ADDRESS_OFFSET));
     chassis_move_update->chassis_pitch = rad_format(*(chassis_move_update->chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET));
-#else
-    //calculate chassis euler angle, if chassis add a new gyro sensor,please change this code
-    //计算底盘姿态角度, 如果底盘上有陀螺仪请更改这部分代码
-    chassis_move_update->chassis_yaw = rad_format(*(chassis_move_update->chassis_INS_angle + INS_YAW_ADDRESS_OFFSET) - chassis_move_update->chassis_yaw_motor->relative_angle);
-    chassis_move_update->chassis_pitch = rad_format(*(chassis_move_update->chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET) - chassis_move_update->chassis_pitch_motor->relative_angle);
-#endif
 }
 /**
   * @brief          accroding to the channel value of remote control, calculate chassis vertical and horizontal speed set-point
@@ -665,49 +602,6 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
     //get three control set-point, 获取三个控制设置值
     chassis_behaviour_control_set(&vx_set, &vy_set, &angle_set, chassis_move_control);
 
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-	//follow gimbal mode
-    //跟随云台模式
-    if ((chassis_move_control->chassis_mode == CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW)
-        // Spinning mode is a combination of extra constant wz and vector-follow-gimbal mode
-        || (chassis_move_control->chassis_mode == CHASSIS_VECTOR_SPINNING))
-    {
-        fp32 sin_yaw = 0.0f, cos_yaw = 0.0f;
-        //rotate chassis direction, make sure vertial direction follow gimbal 
-        //旋转控制底盘速度方向，保证前进方向是云台方向，有利于运动平稳
-        sin_yaw = arm_sin_f32(-chassis_move_control->chassis_yaw_motor->relative_angle);
-        cos_yaw = arm_cos_f32(-chassis_move_control->chassis_yaw_motor->relative_angle);
-        chassis_move_control->vx_set = cos_yaw * vx_set + sin_yaw * vy_set;
-        chassis_move_control->vy_set = -sin_yaw * vx_set + cos_yaw * vy_set;
-        //set control relative angle  set-point
-        //设置控制相对云台角度
-        chassis_move_control->chassis_relative_angle_set = rad_format(angle_set);
-        //calculate ratation speed
-        //计算旋转PID角速度
-        chassis_move_control->wz_set = -PID_calc(&chassis_move_control->chassis_angle_pid, chassis_move_control->chassis_yaw_motor->relative_angle, chassis_move_control->chassis_relative_angle_set);
-        //speed limit
-        //速度限幅
-        chassis_move_control->vx_set = fp32_constrain(chassis_move_control->vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
-        chassis_move_control->vy_set = fp32_constrain(chassis_move_control->vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
-    }
-    else if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW)
-    {
-        fp32 delat_angle = 0.0f;
-        //set chassis yaw angle set-point
-        //设置底盘控制的角度
-        chassis_move_control->chassis_yaw_set = rad_format(angle_set);
-        delat_angle = rad_format(chassis_move_control->chassis_yaw_set - chassis_move_control->chassis_yaw);
-        //calculate rotation speed
-        //计算旋转的角速度
-        chassis_move_control->wz_set = PID_calc(&chassis_move_control->chassis_angle_pid, 0.0f, delat_angle);
-        //speed limit
-        //速度限幅
-        chassis_move_control->vx_set = fp32_constrain(vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
-        chassis_move_control->vy_set = fp32_constrain(vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
-    }
-	else
-#endif
-    {
 		if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW)
 		{
 			//"angle_set" is rotation speed set-point
@@ -726,10 +620,8 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
 			chassis_move_control->chassis_cmd_slow_set_vx.out = 0.0f;
 			chassis_move_control->chassis_cmd_slow_set_vy.out = 0.0f;
 		}
-	}
 }
 
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 /**
   * @brief          four mecanum wheels speed is calculated by three param. 
   * @param[in]      vx_set: vertial speed
@@ -755,89 +647,6 @@ static void chassis_vector_to_mecanum_wheel_speed(const fp32 vx_set, const fp32 
     wheel_speed[2] = vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * MOTOR_DISTANCE_TO_CENTER * wz_set;
     wheel_speed[3] = -vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * MOTOR_DISTANCE_TO_CENTER * wz_set;
 }
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-/**
-  * @brief          four drive wheels' speeds and four steering wheels' angles are calculated by three chassis param. 
-  * @param[in]      vx_set: vertial speed (up is positive)
-  * @param[in]      vy_set: horizontal speed (remote controller: left is positive; internal calculation: right is positive)
-  * @param[in]      wz_set: rotation speed (counter-clockwise is positive)
-  * @param[out]     wheel_speed: four drive wheels speed
-  * @param[out]     steer_wheel_angle: four steering wheels angle. Angle between positive y-axis and total velocity
-  * @retval         none
-  */
-/**
-  * @brief          四个驱动轮速度是通过三个参数计算出来的
-  * @param[in]      vx_set: 纵向速度
-  * @param[in]      vy_set: 横向速度
-  * @param[in]      wz_set: 旋转速度
-  * @param[out]     wheel_speed: 四个驱动轮速度
-  * @param[out]     wheel_angle: 四个舵轮角度
-  * @retval         none
-  */
-void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 wheel_speed[4], fp32 steer_wheel_angle[4])
-{
-    // remote controller: left is positive; internal calculation: right is positive
-    vy_set = -vy_set;
-    //because the gimbal is behind chassis, when chassis rotates, wheel 0 and wheel 1 should be faster and wheel 2 and wheel 3 should be slower
-    //CHASSIS_WZ_SET_SCALE makes a coarse adjustment for that
-    //旋转的时候， 由于云台靠后，所以是前面两轮 0 ，1 旋转的速度变快， 后面两轮 2,3 旋转的速度变慢
-    fp32 wz_set_adjusted_front_wheels = (1.0f + CHASSIS_WZ_SET_SCALE) * wz_set;
-    fp32 tangential_speed_x_front_wheels = wz_set_adjusted_front_wheels * CHASSIS_Y_DIRECTION_HALF_LENGTH; // wz_set * R * cos(theta)
-    fp32 tangential_speed_y_front_wheels = wz_set_adjusted_front_wheels * CHASSIS_X_DIRECTION_HALF_LENGTH; // wz_set * R * sin(theta)
-
-    fp32 wz_set_adjusted_rear_wheels = (1.0f - CHASSIS_WZ_SET_SCALE) * wz_set;
-    fp32 tangential_speed_x_rear_wheels = wz_set_adjusted_rear_wheels * CHASSIS_Y_DIRECTION_HALF_LENGTH; // wz_set * R * cos(theta)
-    fp32 tangential_speed_y_rear_wheels = wz_set_adjusted_rear_wheels * CHASSIS_X_DIRECTION_HALF_LENGTH; // wz_set * R * sin(theta)
-
-    //pairs of velocities represented by (x,y)
-    fp32 wheel_velocity[4][2] = {
-      {vx_set + tangential_speed_x_front_wheels, vy_set - tangential_speed_y_front_wheels},
-      {vx_set - tangential_speed_x_front_wheels, vy_set - tangential_speed_y_front_wheels},
-      {vx_set - tangential_speed_x_rear_wheels, vy_set + tangential_speed_y_rear_wheels},
-      {vx_set + tangential_speed_x_rear_wheels, vy_set + tangential_speed_y_rear_wheels},
-    };
-
-    static fp32 last_steer_wheel_angle_target[4];
-    static uint8_t reverse_flag[4];
-    uint8_t i;
-    uint8_t fNoChange = (fabs(vy_set) <= STEER_TURN_X_SPEED_DEADZONE) && (fabs(vx_set) < STEER_TURN_X_SPEED_DEADZONE) && (fabs(wz_set) < STEER_TURN_W_SPEED_DEADZONE);
-
-    for (i=0;i<4;i++)
-    {
-      // drive wheel speed
-      wheel_speed[i] = sqrt(pow(wheel_velocity[i][0],2) +	pow(wheel_velocity[i][1],2));
-
-      //steering wheel angle
-      if (fNoChange){
-        steer_wheel_angle[i] = last_steer_wheel_angle_target[i];
-      }
-      else
-      {
-        // (https://en.cppreference.com/w/c/numeric/math/atan2)
-        // steer_wheel_angle: unit rad; range is [-PI, PI]; positive direction is clockwise
-        steer_wheel_angle[i] = atan2f(wheel_velocity[i][1],wheel_velocity[i][0]);
-
-        reverse_flag[i] = (fabs(rad_format(steer_wheel_angle[i] - last_steer_wheel_angle_target[i])) > PI/2);
-        if (reverse_flag[i])
-        {
-          // if angle between last and target is greater than 90 deg, simply reverse drive wheel reduces time to turn
-          steer_wheel_angle[i] = rad_format(steer_wheel_angle[i] + PI);
-        }
-        
-        last_steer_wheel_angle_target[i] = steer_wheel_angle[i];
-      }
-
-      if (reverse_flag[i])
-      {
-        wheel_speed[i] = -wheel_speed[i];
-      }
-    }
-
-    // reverse direction because of special initial direction
-    wheel_speed[0] = -wheel_speed[0];
-    wheel_speed[3] = -wheel_speed[3];
-}
-#endif
 
 /**
   * @brief          control loop, according to control set-point, calculate motor current, 
@@ -857,86 +666,51 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
     fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
     uint8_t i = 0;
 
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == ENGINEER_2024_MECANUM)
     //mecanum wheel speed calculation
-    //麦轮运动分解
     chassis_vector_to_mecanum_wheel_speed(chassis_move_control_loop->vx_set,
                                           chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, wheel_speed);
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-    //wheel vector calculation
-    //舵轮运动分解
-    fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit rad
-    chassis_vector_to_wheel_vector(chassis_move_control_loop->vx_set, chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, wheel_speed, steer_wheel_angle);
-#endif
 
     if (chassis_move_control_loop->chassis_mode == CHASSIS_VECTOR_RAW)
     {
-        
         for (i = 0; i < 4; i++)
         {
             chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(wheel_speed[i]);
         }
-        //in raw mode, derectly return
-        //raw控制直接返回
-        return;
     }
-
-    for (i = 0; i < 4; i++)
+    else
     {
-        //calculate the max speed in four wheels, limit the max speed
-        //计算轮子控制最大速度，并限制其最大速度
-        chassis_move_control_loop->motor_chassis[i].speed_set = wheel_speed[i];
-        temp = fabs(chassis_move_control_loop->motor_chassis[i].speed_set);
-        if (max_vector < temp)
-        {
-            max_vector = temp;
-        }
-
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-        // steer motor encoder value set
-        chassis_move_control_loop->steer_motor_chassis[i].target_ecd = motor_angle_to_ecd_change(steer_wheel_angle[i]);
-#endif
-    }
-
-    if (max_vector > MAX_WHEEL_SPEED)
-    {
-        vector_rate = MAX_WHEEL_SPEED / max_vector;
         for (i = 0; i < 4; i++)
         {
+          // calculate the max speed in four wheels, limit the max speed
+          // 计算轮子控制最大速度，并限制其最大速度
+          chassis_move_control_loop->motor_chassis[i].speed_set = wheel_speed[i];
+          temp = fabs(chassis_move_control_loop->motor_chassis[i].speed_set);
+          if (max_vector < temp)
+          {
+            max_vector = temp;
+          }
+        }
+
+        if (max_vector > MAX_WHEEL_SPEED)
+        {
+          vector_rate = MAX_WHEEL_SPEED / max_vector;
+          for (i = 0; i < 4; i++)
+          {
             chassis_move_control_loop->motor_chassis[i].speed_set *= vector_rate;
+          }
+        }
+
+        // calculate pid
+        // 计算pid
+        for (i = 0; i < 4; i++)
+        {
+          PID_calc(&chassis_move_control_loop->motor_speed_pid[i], chassis_move_control_loop->motor_chassis[i].speed, chassis_move_control_loop->motor_chassis[i].speed_set);
+        }
+
+        // 赋值电流值
+        for (i = 0; i < 4; i++)
+        {
+          chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(chassis_move_control_loop->motor_speed_pid[i].out);
         }
     }
-
-    //calculate pid
-    //计算pid
-    for (i = 0; i < 4; i++)
-    {
-        PID_calc(&chassis_move_control_loop->motor_speed_pid[i], chassis_move_control_loop->motor_chassis[i].speed, chassis_move_control_loop->motor_chassis[i].speed_set);
-    }
-
-
-    //功率控制
-    chassis_power_control(chassis_move_control_loop);
-
-
-    //赋值电流值
-    for (i = 0; i < 4; i++)
-    {
-        chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(chassis_move_control_loop->motor_speed_pid[i].out);
-    }
 }
-
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-/**
- * @brief Convert motor angle from radian to encoder unit
- * Requirements:
- *    0 rad = 0 ecd
- *    input and output increase in the same clockwise direction
- * @param[in] angle range [-PI, PI]
- * @param[in] ecd range [0, ECD_RANGE-1]
- */
-static uint16_t motor_angle_to_ecd_change(fp32 angle)
-{
-    return (uint16_t)(loop_fp32_constrain(angle, 0.0f, 2 * PI) * MOTOR_RAD_TO_ECD);
-}
-#endif

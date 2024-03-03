@@ -23,13 +23,8 @@
 
 #include "global_inc.h"
 
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 #define CHASSIS_CAN hcan2
 #define GIMBAL_CAN hcan1
-#else
-#define CHASSIS_CAN hcan1
-#define GIMBAL_CAN hcan2
-#endif
 
 #define RAD_TO_INT16_SCALE (32767.0f/PI) // (2^15-1)/PI
 
@@ -39,18 +34,12 @@ typedef enum
 	/*******Tx CAN IDs********/
 	CAN_CHASSIS_M3508_TX_ID = 0x200,
 	CAN_GIMBAL_ALL_TX_ID = 0x1FF,
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-	CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
-	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
-#endif
-
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
+  
 	CAN_GIMBAL_CONTROLLER_POSITION_TX_ID = 0x114,
 	CAN_GIMBAL_CONTROLLER_ORIENTATION_TX_ID = 0x115,
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
 	CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_1_TX_ID = 0x116,
 	CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_2_TX_ID = 0x117,
-#endif
 #endif
 
 	/*******Chassis CAN IDs********/
@@ -58,19 +47,6 @@ typedef enum
 	CAN_3508_M2_ID = 0x202,
 	CAN_3508_M3_ID = 0x203,
 	CAN_3508_M4_ID = 0x204,
-
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-	CAN_YAW_MOTOR_ID = 0x205,
-
-	/********Gimbal CAN IDs********/
-	CAN_PIT_MOTOR_ID = 0x206,
-
-	/********Other CAN IDs: Location depends on Model********/
-	// INFANTRY_2023_MECANUM: On gimbal
-	// INFANTRY_2023_SWERVE: On chassis
-	// SENTRY_2023_MECANUM: On chassis
-	CAN_TRIGGER_MOTOR_ID = 0x207,
-#endif
 } can_msg_id_e;
 
 typedef enum
@@ -79,11 +55,6 @@ typedef enum
 	MOTOR_INDEX_3508_M2,
 	MOTOR_INDEX_3508_M3,
 	MOTOR_INDEX_3508_M4,
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-	MOTOR_INDEX_YAW,
-	MOTOR_INDEX_PITCH,
-	MOTOR_INDEX_TRIGGER,
-#endif
 	MOTOR_LIST_LENGTH,
 } can_motor_id_e;
 
@@ -97,34 +68,8 @@ typedef struct
     int16_t last_ecd;
 } motor_measure_t;
 
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
-void CAN_cmd_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t cmd_x, int16_t cmd_y, int16_t cmd_z);
-#endif
-
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-/**
-  * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
-  * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000] 
-  * @param[in]      pitch: (0x206) 6020 motor control current, range [-30000,30000]
-  * @param[in]      shoot: (0x207) 2006 motor control current, range [-10000,10000]
-  * @param[in]      rev: (0x208) reserve motor control current
-  * @retval         none
-  */
-/**
-  * @brief          发送电机控制电流(0x205,0x206,0x207,0x208)
-  * @param[in]      yaw: (0x205) 6020电机控制电流, 范围 [-30000,30000]
-  * @param[in]      pitch: (0x206) 6020电机控制电流, 范围 [-30000,30000]
-  * @param[in]      shoot: (0x207) 2006电机控制电流, 范围 [-10000,10000]
-  * @param[in]      rev: (0x208) 保留，电机控制电流
-  * @retval         none
-  */
-extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev);
-#endif
-
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
 void CAN_cmd_robot_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t cmd_x, int16_t cmd_y, int16_t cmd_z);
 void CAN_cmd_robot_arm_individual_motors(fp32 motor_pos[7]);
-#endif
 
 /**
   * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
@@ -138,21 +83,6 @@ void CAN_cmd_robot_arm_individual_motors(fp32 motor_pos[7]);
   */
 extern void CAN_cmd_chassis_reset_ID(void);
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-/**
-  * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
-  * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      steer_motor1: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
-  * @param[in]      steer_motor2: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
-  * @param[in]      steer_motor3: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
-  * @param[in]      steer_motor4: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
-  * @retval         none
-  */
-extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, uint16_t steer_motor1, uint16_t steer_motor2, uint16_t steer_motor3, uint16_t steer_motor4);
-#else
 /**
   * @brief          send control current of motor (0x201, 0x202, 0x203, 0x204)
   * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
@@ -170,49 +100,6 @@ extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int1
   * @retval         none
   */
 extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
-#endif
-
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-extern void CAN_cmd_load_servo(uint8_t fServoSwitch);
-#endif
-
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-/**
-  * @brief          return the yaw 6020 motor data point
-  * @param[in]      none
-  * @retval         motor data point
-  */
-/**
-  * @brief          返回yaw 6020电机数据指针
-  * @param[in]      none
-  * @retval         电机数据指针
-  */
-extern const motor_measure_t *get_yaw_gimbal_motor_measure_point(void);
-
-/**
-  * @brief          return the pitch 6020 motor data point
-  * @param[in]      none
-  * @retval         motor data point
-  */
-/**
-  * @brief          返回pitch 6020电机数据指针
-  * @param[in]      none
-  * @retval         电机数据指针
-  */
-extern const motor_measure_t *get_pitch_gimbal_motor_measure_point(void);
-
-/**
-  * @brief          return the trigger 2006 motor data point
-  * @param[in]      none
-  * @retval         motor data point
-  */
-/**
-  * @brief          返回拨弹电机 2006电机数据指针
-  * @param[in]      none
-  * @retval         电机数据指针
-  */
-extern const motor_measure_t *get_trigger_motor_measure_point(void);
-#endif
 
 /**
   * @brief          return the chassis 3508 motor data point

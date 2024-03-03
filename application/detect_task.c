@@ -264,14 +264,7 @@ static void detect_init(uint32_t time)
             {10, 10, 10},   //motor2
             {10, 10, 9},    //motor3
             {10, 10, 8},    //motor4
-#if (ROBOT_TYPE == ENGINEER_2024_MECANUM)
             {100, 100, 12},  //gimbal control board
-#endif
-#if (ROBOT_TYPE != ENGINEER_2024_MECANUM)
-            {2, 3, 14},     //yaw
-            {2, 3, 13},     //pitch
-            {10, 10, 12},   //trigger
-#endif
             {2, 3, 7},      //board gyro
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag
