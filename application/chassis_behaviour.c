@@ -187,19 +187,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 		return;
 	}
 
-	// safety guard
-	uint8_t fIsError = 0;
-	uint8_t bToeIndex;
-	for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-	{
-		if (toe_is_error(bToeIndex))
-		{
-			fIsError = 1;
-			break;
-		}
-	}
-
-	if (fIsError)
+	if (is_error_exist_in_range(DBUS_TOE, CHASSIS_MOTOR4_TOE))
 	{
 		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
     chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;

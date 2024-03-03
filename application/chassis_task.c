@@ -317,24 +317,12 @@ void robot_arm_control(void)
 
 void wait_until_all_necessary_modules_online(void)
 {
-	uint8_t fIsError = 0;
-	uint8_t bToeIndex;
-	do
+	uint8_t fIsError = 1;
+	while (fIsError)
 	{
-		for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-		{
-			if (toe_is_error(bToeIndex))
-			{
-				fIsError = 1;
-				vTaskDelay(CHASSIS_CONTROL_TIME_MS);
-				break;
-			}
-		}
-		if (bToeIndex > CHASSIS_MOTOR4_TOE)
-		{
-			fIsError = 0;
-		}
-	} while (fIsError);
+    fIsError = is_error_exist_in_range(DBUS_TOE, CHASSIS_MOTOR4_TOE);
+    vTaskDelay(2 * CHASSIS_CONTROL_TIME_MS);
+	}
 }
 
 /**
