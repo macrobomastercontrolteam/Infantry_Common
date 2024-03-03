@@ -25,43 +25,61 @@
 
 #define ARM_JOINT_0_ANGLE_MIN (-PI + ARM_JOINT_CLEARANCE)
 #define ARM_JOINT_0_ANGLE_MAX (PI - ARM_JOINT_CLEARANCE)
-#define ARM_JOINT_0_ANGLE_REST 0.0f
+#define ARM_JOINT_0_ANGLE_HOME 0.0f
 
 #define ARM_JOINT_1_ANGLE_MIN (-30.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
 #define ARM_JOINT_1_ANGLE_MAX (35.0f / 180.0f * PI - ARM_JOINT_CLEARANCE)
-#define ARM_JOINT_1_ANGLE_REST ARM_JOINT_1_ANGLE_MAX
+#define ARM_JOINT_1_ANGLE_HOME ARM_JOINT_1_ANGLE_MAX
 
 #define ARM_JOINT_2_ANGLE_MIN (-150.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
 #define ARM_JOINT_2_ANGLE_MAX (0.0f - ARM_JOINT_CLEARANCE)
-#define ARM_JOINT_2_ANGLE_REST ARM_JOINT_2_ANGLE_MIN
+#define ARM_JOINT_2_ANGLE_HOME ARM_JOINT_2_ANGLE_MIN
 
 #define ARM_JOINT_3_ANGLE_MIN (-80.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
 #define ARM_JOINT_3_ANGLE_MAX (80.0f / 180.0f * PI - ARM_JOINT_CLEARANCE)
-#define ARM_JOINT_3_ANGLE_REST 0.0f
+#define ARM_JOINT_3_ANGLE_HOME 0.0f
 
 #define ARM_JOINT_4_ANGLE_MIN (-0.5f * PI + ARM_JOINT_CLEARANCE)
 #define ARM_JOINT_4_ANGLE_MAX (0.5f * PI - ARM_JOINT_CLEARANCE)
-#define ARM_JOINT_4_ANGLE_REST 0.0f
+#define ARM_JOINT_4_ANGLE_HOME 0.0f
 
 #define ARM_JOINT_5_ANGLE_MIN (10.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
 #define ARM_JOINT_5_ANGLE_MAX (170.0f / 180.0f * PI - ARM_JOINT_CLEARANCE)
-#define ARM_JOINT_5_ANGLE_REST ARM_JOINT_5_ANGLE_MAX
+#define ARM_JOINT_5_ANGLE_HOME ARM_JOINT_5_ANGLE_MAX
 
 #define ARM_JOINT_6_ANGLE_MIN (-PI + ARM_JOINT_CLEARANCE)
 #define ARM_JOINT_6_ANGLE_MAX (PI - ARM_JOINT_CLEARANCE)
-#define ARM_JOINT_6_ANGLE_REST 0.0f
+#define ARM_JOINT_6_ANGLE_HOME 0.0f
+
+#define ARM_END_EFFECTOR_ROLL_MIN (-PI + ARM_JOINT_CLEARANCE)
+#define ARM_END_EFFECTOR_ROLL_MAX (PI - ARM_JOINT_CLEARANCE)
+#define ARM_END_EFFECTOR_ROLL_HOME 0.0f
+
+#define ARM_END_EFFECTOR_PITCH_MIN (-PI + ARM_JOINT_CLEARANCE)
+#define ARM_END_EFFECTOR_PITCH_MAX (PI - ARM_JOINT_CLEARANCE)
+#define ARM_END_EFFECTOR_PITCH_HOME 0.0f
+
+#define ARM_END_EFFECTOR_YAW_MIN (-PI + ARM_JOINT_CLEARANCE)
+#define ARM_END_EFFECTOR_YAW_MAX (PI - ARM_JOINT_CLEARANCE)
+#define ARM_END_EFFECTOR_YAW_HOME 0.0f
+
+#define ARM_END_EFFECTOR_X_MIN (-0.5f)
+#define ARM_END_EFFECTOR_X_MAX (0.5f)
+#define ARM_END_EFFECTOR_X_HOME 0.0f
+
+#define ARM_END_EFFECTOR_Y_MIN (-0.5f)
+#define ARM_END_EFFECTOR_Y_MAX (0.5f)
+#define ARM_END_EFFECTOR_Y_HOME 0.0f
+
+#define ARM_END_EFFECTOR_Z_MIN (-0.5f)
+#define ARM_END_EFFECTOR_Z_MAX (0.5f)
+#define ARM_END_EFFECTOR_Z_HOME 0.0f
 
 #define JOINT_6_6020_ANGLE_PID_KP 15.0f
 #define JOINT_6_6020_ANGLE_PID_KI 0.00f
 #define JOINT_6_6020_ANGLE_PID_KD 0.0f
 #define JOINT_6_6020_ANGLE_PID_MAX_OUT 10.0f
 #define JOINT_6_6020_ANGLE_PID_MAX_IOUT 0.0f
-
-// #define JOINT_6_6020_SPEED_PID_KP 2250.0f // pitch starts shaking at 2600
-// #define JOINT_6_6020_SPEED_PID_KI (25.0f * 1000.0f)
-// #define JOINT_6_6020_SPEED_PID_KD 0.0f
-// #define JOINT_6_6020_SPEED_PID_MAX_OUT 30000.0f
-// #define JOINT_6_6020_SPEED_PID_MAX_IOUT 10000.0f
 
 #define JOINT_6_6020_SPEED_PID_KP 1000.0f // pitch starts shaking at 1200
 #define JOINT_6_6020_SPEED_PID_KI 0.0f
@@ -76,9 +94,14 @@ void robot_arm_state_transition(void);
 
 const fp32 joint_angle_min[7] = {ARM_JOINT_0_ANGLE_MIN, ARM_JOINT_1_ANGLE_MIN, ARM_JOINT_2_ANGLE_MIN, ARM_JOINT_3_ANGLE_MIN, ARM_JOINT_4_ANGLE_MIN, ARM_JOINT_5_ANGLE_MIN, ARM_JOINT_6_ANGLE_MIN};
 const fp32 joint_angle_max[7] = {ARM_JOINT_0_ANGLE_MAX, ARM_JOINT_1_ANGLE_MAX, ARM_JOINT_2_ANGLE_MAX, ARM_JOINT_3_ANGLE_MAX, ARM_JOINT_4_ANGLE_MAX, ARM_JOINT_5_ANGLE_MAX, ARM_JOINT_6_ANGLE_MAX};
-const fp32 joint_angle_rest[7] = {ARM_JOINT_0_ANGLE_REST, ARM_JOINT_1_ANGLE_REST, ARM_JOINT_2_ANGLE_REST, ARM_JOINT_3_ANGLE_REST, ARM_JOINT_4_ANGLE_REST, ARM_JOINT_5_ANGLE_REST, ARM_JOINT_6_ANGLE_REST};
+const fp32 joint_angle_home[7] = {ARM_JOINT_0_ANGLE_HOME, ARM_JOINT_1_ANGLE_HOME, ARM_JOINT_2_ANGLE_HOME, ARM_JOINT_3_ANGLE_HOME, ARM_JOINT_4_ANGLE_HOME, ARM_JOINT_5_ANGLE_HOME, ARM_JOINT_6_ANGLE_HOME};
+const fp32 arm_end_min[6] = {ARM_END_EFFECTOR_ROLL_MIN, ARM_END_EFFECTOR_PITCH_MIN, ARM_END_EFFECTOR_YAW_MIN, ARM_END_EFFECTOR_X_MIN, ARM_END_EFFECTOR_Y_MIN, ARM_END_EFFECTOR_Z_MIN};
+const fp32 arm_end_max[6] = {ARM_END_EFFECTOR_ROLL_MAX, ARM_END_EFFECTOR_PITCH_MAX, ARM_END_EFFECTOR_YAW_MAX, ARM_END_EFFECTOR_X_MAX, ARM_END_EFFECTOR_Y_MAX, ARM_END_EFFECTOR_Z_MAX};
+const fp32 arm_end_home[6] = {ARM_END_EFFECTOR_ROLL_HOME, ARM_END_EFFECTOR_PITCH_HOME, ARM_END_EFFECTOR_YAW_HOME, ARM_END_EFFECTOR_X_HOME, ARM_END_EFFECTOR_Y_HOME, ARM_END_EFFECTOR_Z_HOME};
 
-const fp32 yaw_offset, pitch_offset, roll_offset;
+const fp32 yaw_offset = 0;
+const fp32 pitch_offset = 0;
+const fp32 roll_offset = 0;
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t robot_arm_high_water;
@@ -133,7 +156,7 @@ void robot_arm_state_transition(void)
 	{
 		if ((prev_arm_state == ARM_STATE_ZERO_FORCE) || (robot_arm.arm_state == ARM_STATE_ZERO_FORCE))
 		{
-			switch_all_motor_power(prev_arm_state == ARM_STATE_ZERO_FORCE);
+			enable_all_motor_control(prev_arm_state == ARM_STATE_ZERO_FORCE);
 		}
 
 		switch (robot_arm.arm_state)
@@ -155,6 +178,22 @@ void robot_arm_control(void)
 	switch (robot_arm.arm_state)
 	{
 		case ARM_STATE_MOVING:
+		{
+			arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S);
+			
+			if (is_joint_target_reached(robot_arm.joint_angle_target, 0.05f))
+			{
+				if (robot_arm.fHoming)
+				{
+					robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
+				}
+				else
+				{
+					robot_arm.arm_state = ARM_STATE_FIXED;
+				}
+			}
+			break;
+		}
 		case ARM_STATE_FIXED:
 		{
 			arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S);
@@ -223,6 +262,6 @@ void robot_arm_return_to_center(uint8_t _start, uint8_t _end)
 	// inclusively from index _start to index _end
 	if (_start < _end)
 	{
-		memcpy(&robot_arm.joint_angle_target[_start], &joint_angle_rest[_start], (_end - _start + 1) * sizeof(joint_angle_rest[0]));
+		memcpy(&robot_arm.joint_angle_target[_start], &joint_angle_home[_start], (_end - _start + 1) * sizeof(joint_angle_home[0]));
 	}
 }
