@@ -119,22 +119,46 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     }
 }
 
-void CAN_cmd_robot_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t cmd_x, int16_t cmd_y, int16_t cmd_z)
+void CAN_cmd_robot_arm_by_end_effector(end_effector_cmd_t _end_effector_cmd, robot_arm_behaviour_e arm_cmd_type)
 {
     uint32_t send_mail_box;
     gimbal_tx_message.IDE = CAN_ID_STD;
     gimbal_tx_message.RTR = CAN_RTR_DATA;
     gimbal_tx_message.DLC = 0x08;
+
+    int16_t cmd_int16[6];
+    switch (arm_cmd_type)
+    {
+#if (DISABLE_ARM_MOTOR_POWER == 0)
+      case ROBOT_ARM_ENABLED:
+      case ROBOT_ARM_FIXED:
+      {
+        cmd_int16[0] = _end_effector_cmd.setpoints.roll_set * RAD_TO_INT16_SCALE;
+        cmd_int16[1] = _end_effector_cmd.setpoints.pitch_set * RAD_TO_INT16_SCALE;
+        cmd_int16[2] = _end_effector_cmd.setpoints.yaw_set * RAD_TO_INT16_SCALE;
+        cmd_int16[3] = _end_effector_cmd.setpoints.x_set * ONE_METER_TO_INT16_SCALE;
+        cmd_int16[4] = _end_effector_cmd.setpoints.y_set * ONE_METER_TO_INT16_SCALE;
+        cmd_int16[5] = _end_effector_cmd.setpoints.z_set * ONE_METER_TO_INT16_SCALE;
+        break;
+      }
+      case ROBOT_ARM_HOME:
+      {
+        memset(cmd_int16, 0xFF, sizeof(cmd_int16));
+        break;
+      }
+      case ROBOT_ARM_ZERO_FORCE:
+#endif
+      default:
+      {
+        memset(cmd_int16, 0x00, sizeof(cmd_int16));
+        break;
+      }
+    }
 	  
     // position
     gimbal_tx_message.StdId = CAN_GIMBAL_CONTROLLER_POSITION_TX_ID;
-    gimbal_can_send_data[0] = *(uint8_t *)(&cmd_roll);
-    gimbal_can_send_data[1] = *((uint8_t *)(&cmd_roll) + 1);
-    gimbal_can_send_data[2] = *(uint8_t *)(&cmd_pitch);
-    gimbal_can_send_data[3] = *((uint8_t *)(&cmd_pitch) + 1);
-    gimbal_can_send_data[4] = *(uint8_t *)(&cmd_yaw);
-    gimbal_can_send_data[5] = *((uint8_t *)(&cmd_yaw) + 1);
-    // redundant data
+    memcpy(gimbal_can_send_data, cmd_int16, 3*sizeof(cmd_int16));
+    // redundant data in case of special cmd
     gimbal_can_send_data[6] = gimbal_can_send_data[5];
     gimbal_can_send_data[7] = gimbal_can_send_data[5];
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
@@ -143,46 +167,55 @@ void CAN_cmd_robot_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int
 
     // orientation
     gimbal_tx_message.StdId = CAN_GIMBAL_CONTROLLER_ORIENTATION_TX_ID;
-    gimbal_can_send_data[0] = *(uint8_t *)(&cmd_x);
-    gimbal_can_send_data[1] = *((uint8_t *)(&cmd_x) + 1);
-    gimbal_can_send_data[2] = *(uint8_t *)(&cmd_y);
-    gimbal_can_send_data[3] = *((uint8_t *)(&cmd_y) + 1);
-    gimbal_can_send_data[4] = *(uint8_t *)(&cmd_z);
-    gimbal_can_send_data[5] = *((uint8_t *)(&cmd_z) + 1);
+    memcpy(gimbal_can_send_data, &cmd_int16[3], 3*sizeof(cmd_int16));
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
-void CAN_cmd_robot_arm_individual_motors(fp32 motor_pos[7])
+void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_type)
 {
     uint32_t send_mail_box;
     gimbal_tx_message.IDE = CAN_ID_STD;
     gimbal_tx_message.RTR = CAN_RTR_DATA;
     gimbal_tx_message.DLC = 0x08;
 
-    uint8_t motor_pos_index;
-    int16_t motor_pos_int16[7];
-    for (motor_pos_index = 0; motor_pos_index < sizeof(motor_pos_int16) / sizeof(motor_pos_int16[0]); motor_pos_index++)
+    int16_t cmd_int16[7];
+    switch (arm_cmd_type)
     {
-#if DISABLE_ARM_MOTOR_POWER
-      motor_pos_int16[motor_pos_index] = 0;
-#else
-      motor_pos_int16[motor_pos_index] = motor_pos[motor_pos_index] * RAD_TO_INT16_SCALE;
+#if (DISABLE_ARM_MOTOR_POWER == 0)
+      case ROBOT_ARM_ENABLED:
+      case ROBOT_ARM_FIXED:
+      {
+        uint8_t cmd_index;
+        for (cmd_index = 0; cmd_index < sizeof(cmd_int16) / sizeof(cmd_int16[0]); cmd_index++)
+        {
+          cmd_int16[cmd_index] = motor_pos[cmd_index] * RAD_TO_INT16_SCALE;
+        }
+        break;
+      }
+      case ROBOT_ARM_HOME:
+      {
+        memset(cmd_int16, 0xFF, sizeof(cmd_int16));
+        break;
+      }
+      case ROBOT_ARM_ZERO_FORCE:
 #endif
+      default:
+      {
+        memset(cmd_int16, 0x00, sizeof(cmd_int16));
+        break;
+      }
     }
 
 	  // position
     gimbal_tx_message.StdId = CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_1_TX_ID;
-    memcpy(gimbal_can_send_data, motor_pos_int16, sizeof(gimbal_can_send_data));
+    memcpy(gimbal_can_send_data, cmd_int16, sizeof(gimbal_can_send_data));
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
     osDelay(1);
 
     // orientation
     gimbal_tx_message.StdId = CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_2_TX_ID;
-    memcpy(gimbal_can_send_data, &motor_pos_int16[4], sizeof(motor_pos_int16) - sizeof(gimbal_can_send_data));
-    // redundant data
-    gimbal_can_send_data[6] = gimbal_can_send_data[4];
-    gimbal_can_send_data[7] = gimbal_can_send_data[5];
+    memcpy(gimbal_can_send_data, &cmd_int16[4], sizeof(cmd_int16) - sizeof(gimbal_can_send_data));
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 

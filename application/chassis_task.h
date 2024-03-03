@@ -225,24 +225,6 @@ typedef struct
   int16_t give_current;
 } chassis_motor_t;
 
-typedef enum
-{
-  ROBOT_ARM_ENABLED,
-  ROBOT_ARM_HOME,
-  ROBOT_ARM_FIXED,
-  ROBOT_ARM_ZERO_FORCE,
-} robot_arm_behaviour_e;
-
-typedef struct
-{
-  fp32 roll_set;
-  fp32 pitch_set;
-  fp32 yaw_set;
-  fp32 x_set;
-  fp32 y_set;
-  fp32 z_set;
-} robot_arm_t;
-
 typedef struct
 {
   const RC_ctrl_t *chassis_RC;               //底盘使用的遥控器指针, the point to remote control
@@ -273,7 +255,7 @@ typedef struct
   fp32 chassis_roll;  //the roll angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的roll角度
 
   robot_arm_behaviour_e robot_arm_mode;
-  robot_arm_t robot_arm;
+  end_effector_cmd_t end_effector_cmd;
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
   fp32 robot_arm_motor_pos[7];
 #endif /* INDIVIDUAL_MOTOR_TEST */

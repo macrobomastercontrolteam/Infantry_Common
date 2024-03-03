@@ -27,6 +27,7 @@
 #define GIMBAL_CAN hcan1
 
 #define RAD_TO_INT16_SCALE (32767.0f/PI) // (2^15-1)/PI
+#define ONE_METER_TO_INT16_SCALE (32767.0f/1.0f) // (2^15-1)/1.0f
 
 /* CAN send and receive ID */
 typedef enum
@@ -37,10 +38,8 @@ typedef enum
   
 	CAN_GIMBAL_CONTROLLER_POSITION_TX_ID = 0x114,
 	CAN_GIMBAL_CONTROLLER_ORIENTATION_TX_ID = 0x115,
-#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
 	CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_1_TX_ID = 0x116,
 	CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_2_TX_ID = 0x117,
-#endif
 
 	/*******Chassis CAN IDs********/
 	CAN_3508_M1_ID = 0x201,
@@ -68,8 +67,31 @@ typedef struct
     int16_t last_ecd;
 } motor_measure_t;
 
-void CAN_cmd_robot_arm(int16_t cmd_roll, int16_t cmd_pitch, int16_t cmd_yaw, int16_t cmd_x, int16_t cmd_y, int16_t cmd_z);
-void CAN_cmd_robot_arm_individual_motors(fp32 motor_pos[7]);
+typedef enum
+{
+  ROBOT_ARM_ENABLED,
+  ROBOT_ARM_HOME,
+  ROBOT_ARM_FIXED,
+  ROBOT_ARM_ZERO_FORCE,
+} robot_arm_behaviour_e;
+
+typedef union
+{
+	struct
+	{
+    // unit: rad for angle, m for position
+		fp32 roll_set;
+		fp32 pitch_set;
+		fp32 yaw_set;
+		fp32 x_set;
+		fp32 y_set;
+		fp32 z_set;
+	} setpoints;
+	fp32 setpoints_data[6];
+} end_effector_cmd_t;
+
+void CAN_cmd_robot_arm_by_end_effector(end_effector_cmd_t _end_effector_cmd, robot_arm_behaviour_e arm_cmd_type);
+void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_type);
 
 /**
   * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
