@@ -76,8 +76,7 @@ HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_
 HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
 HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_t current_ch_6, int16_t current_ch_7, uint8_t blocking_call);
 
-void decode_chassis_controller_rx_1(uint8_t *data);
-void decode_chassis_controller_rx_2(uint8_t *data);
+void decode_chassis_controller_rx(uint8_t *data, uint32_t id);
 void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_4010_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
@@ -156,14 +155,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			break;
 		}
 		case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID:
-		{
-			decode_chassis_controller_rx_1(rx_data);
-			detect_hook(CHASSIS_CONTROLLER_TOE);
-			break;
-		}
 		case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_2_RX_ID:
 		{
-			decode_chassis_controller_rx_2(rx_data);
+			decode_chassis_controller_rx(rx_data, rx_header.StdId);
 			detect_hook(CHASSIS_CONTROLLER_TOE);
 			break;
 		}
@@ -191,44 +185,75 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	}
 }
 
-void decode_chassis_controller_rx_1(uint8_t *data)
+void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 {
-	if (memcmp(can_all_FF_data, data, sizeof(can_all_FF_data)) == 0)
+	uint8_t fIsSpecialCmd = 0;
+	uint8_t specialCmd = data[0];
+	if ((specialCmd == 0x00) || (specialCmd == 0xFF))
 	{
-		robot_arm.fPowerEnabled = 1;
-		robot_arm_return_to_center(0, 3);
+		fIsSpecialCmd = 1;
+		for (uint8_t i = 1; i < 8; i++)
+		{
+			if (specialCmd != data[i])
+			{
+				fIsSpecialCmd = 0;
+				break;
+			}
+		}
 	}
-	else if (memcmp(can_all_00_data, data, sizeof(can_all_00_data)) == 0)
-	{
-		robot_arm.fPowerEnabled = 0;
-	}
-	else
-	{
-		robot_arm.fPowerEnabled = 1;
-		robot_arm.joint_angle_target[0] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
-		robot_arm.joint_angle_target[1] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
-		robot_arm.joint_angle_target[2] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
-		robot_arm.joint_angle_target[3] = (int16_t)((data[7] << 8) | data[6]) / RAD_TO_INT16_SCALE;
-	}
-}
 
-void decode_chassis_controller_rx_2(uint8_t *data)
-{
-	if (memcmp(can_all_FF_data, data, sizeof(can_all_FF_data)) == 0)
+	if (fIsSpecialCmd)
 	{
-		robot_arm.fPowerEnabled = 1;
-		robot_arm_return_to_center(4, 6);
-	}
-	else if (memcmp(can_all_00_data, data, sizeof(can_all_00_data)) == 0)
-	{
-		robot_arm.fPowerEnabled = 0;
+		switch (specialCmd)
+		{
+			case 0x00:
+			{
+				robot_arm.fPowerEnabled = 0;
+				break;
+			}
+			case 0xFF:
+			{
+				robot_arm.fPowerEnabled = 1;
+				switch (id)
+				{
+					case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID:
+					{
+						robot_arm_return_to_center(0, 3);
+						break;
+					}
+					case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_2_RX_ID:
+					default:
+					{
+						robot_arm_return_to_center(4, 6);
+						break;
+					}
+				}
+				break;
+			}
+		}
 	}
 	else
 	{
 		robot_arm.fPowerEnabled = 1;
-		robot_arm.joint_angle_target[4] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
-		robot_arm.joint_angle_target[5] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
-		robot_arm.joint_angle_target[6] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
+		switch (id)
+		{
+			case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID:
+			{
+				robot_arm.joint_angle_target[0] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
+				robot_arm.joint_angle_target[1] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
+				robot_arm.joint_angle_target[2] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
+				robot_arm.joint_angle_target[3] = (int16_t)((data[7] << 8) | data[6]) / RAD_TO_INT16_SCALE;
+				break;
+			}
+			case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_2_RX_ID:
+			default:
+			{
+				robot_arm.joint_angle_target[4] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
+				robot_arm.joint_angle_target[5] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
+				robot_arm.joint_angle_target[6] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
+				break;
+			}
+		}
 	}
 }
 
