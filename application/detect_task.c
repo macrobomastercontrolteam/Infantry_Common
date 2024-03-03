@@ -304,3 +304,22 @@ static void detect_init(uint32_t time)
 //    error_list[DBUS_TOE].solve_data_error_fun = solve_data_error;
 
 }
+
+uint8_t is_error_exist_in_range(uint8_t _start, uint8_t _end)
+{
+    uint8_t fIsError = 1;
+	if (_start <= _end)
+	{
+		fIsError = 0;
+		uint8_t bToeIndex;
+		for (bToeIndex = _start; bToeIndex <= _end; bToeIndex++)
+		{
+			if (toe_is_error(bToeIndex))
+			{
+				fIsError = 1;
+				break;
+			}
+		}
+	}
+	return fIsError;
+}

@@ -140,6 +140,12 @@ void robot_arm_control(void)
 
 void robot_arm_status_update(void)
 {
+	// safety guard
+	if (is_error_exist_in_range(CHASSIS_CONTROLLER_TOE, JOINT_6_TOE))
+	{
+		robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
+	}
+
 	robot_arm.time_ms = xTaskGetTickCount();
 
 	robot_arm.roll.now = *(robot_arm.arm_INS_angle + INS_ROLL_ADDRESS_OFFSET);
