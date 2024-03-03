@@ -172,29 +172,17 @@ void CAN_cmd_robot_arm_individual_motors(fp32 motor_pos[7])
 
 	  // position
     gimbal_tx_message.StdId = CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_1_TX_ID;
-    gimbal_can_send_data[0] = *(uint8_t *)(&motor_pos_int16[0]);
-    gimbal_can_send_data[1] = *((uint8_t *)(&motor_pos_int16[0]) + 1);
-    gimbal_can_send_data[2] = *(uint8_t *)(&motor_pos_int16[1]);
-    gimbal_can_send_data[3] = *((uint8_t *)(&motor_pos_int16[1]) + 1);
-    gimbal_can_send_data[4] = *(uint8_t *)(&motor_pos_int16[2]);
-    gimbal_can_send_data[5] = *((uint8_t *)(&motor_pos_int16[2]) + 1);
-    gimbal_can_send_data[6] = *(uint8_t *)(&motor_pos_int16[3]);
-    gimbal_can_send_data[7] = *((uint8_t *)(&motor_pos_int16[3]) + 1);
+    memcpy(gimbal_can_send_data, motor_pos_int16, sizeof(gimbal_can_send_data));
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
     osDelay(1);
 
     // orientation
     gimbal_tx_message.StdId = CAN_GIMBAL_CONTROLLER_INDIVIDUAL_MOTOR_2_TX_ID;
-    gimbal_can_send_data[0] = *(uint8_t *)(&motor_pos_int16[4]);
-    gimbal_can_send_data[1] = *((uint8_t *)(&motor_pos_int16[4]) + 1);
-    gimbal_can_send_data[2] = *(uint8_t *)(&motor_pos_int16[5]);
-    gimbal_can_send_data[3] = *((uint8_t *)(&motor_pos_int16[5]) + 1);
-    gimbal_can_send_data[4] = *(uint8_t *)(&motor_pos_int16[6]);
-    gimbal_can_send_data[5] = *((uint8_t *)(&motor_pos_int16[6]) + 1);
+    memcpy(gimbal_can_send_data, &motor_pos_int16[4], sizeof(motor_pos_int16) - sizeof(gimbal_can_send_data));
     // redundant data
-    gimbal_can_send_data[6] = 0;
-    gimbal_can_send_data[7] = 0;
+    gimbal_can_send_data[6] = gimbal_can_send_data[4];
+    gimbal_can_send_data[7] = gimbal_can_send_data[5];
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
