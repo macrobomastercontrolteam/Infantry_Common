@@ -182,90 +182,94 @@ chassis_behaviour_e chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
   */
 void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 {
-    if (chassis_move_mode == NULL)
-    {
-        return;
-    }
-
-    switch (chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL])
+	if (chassis_move_mode == NULL)
 	{
-		case RC_SW_UP:
-		case RC_SW_MID:
+		return;
+	}
+
+	// safety guard
+	uint8_t fIsError = 0;
+	uint8_t bToeIndex;
+	for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
+	{
+		if (toe_is_error(bToeIndex))
 		{
-			chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
-			break;
-		}
-		case RC_SW_DOWN:
-        {
-            chassis_behaviour_mode = CHASSIS_NO_MOVE;
-            break;
-        }
-		default:
-		{
-			chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+			fIsError = 1;
 			break;
 		}
 	}
 
-	if (chassis_behaviour_mode != CHASSIS_ZERO_FORCE)
+	if (fIsError)
 	{
-		uint8_t bToeIndex;
-		for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
+		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+    chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
+	}
+	else
+	{
+		switch (chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL])
 		{
-			if (toe_is_error(bToeIndex))
+			case RC_SW_UP:
+			case RC_SW_MID:
+			{
+				if (chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL] == RC_SW_UP)
+				{
+					chassis_behaviour_mode = CHASSIS_NO_MOVE;
+          chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
+				}
+				else
+				{
+					chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+          chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
+				}
+				break;
+			}
+			case RC_SW_DOWN:
+			default:
 			{
 				chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
-				chassis_move.robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
 				break;
 			}
 		}
 	}
 
-	// choose chassis & arm control mode
-    switch (chassis_behaviour_mode)
+  // arm control mode
+	switch (chassis_behaviour_mode)
 	{
-		case CHASSIS_NO_MOVE:
-        {
-            chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
-            chassis_move_mode->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
-            break;
-        }
 		case CHASSIS_NO_FOLLOW_YAW:
+    case CHASSIS_NO_MOVE:
 		{
-			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
-
-            switch (chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL])
-            {
-                case RC_SW_UP:
-                {
-                    chassis_move_mode->robot_arm_mode = ROBOT_ARM_ENABLED;
-                    break;
-                }
-                case RC_SW_MID:
-                {
-                    chassis_move_mode->robot_arm_mode = ROBOT_ARM_FIXED;
-                    break;
-                }
-                case RC_SW_DOWN:
-                default:
-                {
-                    chassis_move_mode->robot_arm_mode = ROBOT_ARM_HOME;
-                    break;
-                }
-            }
+			switch (chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL])
+			{
+				case RC_SW_UP:
+				{
+					chassis_move_mode->robot_arm_mode = ROBOT_ARM_ENABLED;
+					break;
+				}
+				case RC_SW_MID:
+				{
+					chassis_move_mode->robot_arm_mode = ROBOT_ARM_FIXED;
+					break;
+				}
+				case RC_SW_DOWN:
+				default:
+				{
+					chassis_move_mode->robot_arm_mode = ROBOT_ARM_HOME;
+					break;
+				}
+			}
 			break;
 		}
 		case CHASSIS_ZERO_FORCE:
 		default:
 		{
-			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
-            chassis_move_mode->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+			chassis_move_mode->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
 			break;
 		}
 	}
 
 #if CHASSIS_TEST_MODE
-    J_scope_chassis_behavior_test();
+	J_scope_chassis_behavior_test();
 #endif
 }
 
@@ -294,30 +298,23 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 		return;
 	}
 
-	if (chassis_move_rc_to_vector->robot_arm_mode == ROBOT_ARM_ENABLED)
+	switch (chassis_behaviour_mode)
 	{
-		chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-	}
-	else
-	{
-		switch (chassis_behaviour_mode)
+		case CHASSIS_NO_MOVE:
 		{
-			case CHASSIS_NO_MOVE:
-			{
-				chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-				break;
-			}
-			case CHASSIS_NO_FOLLOW_YAW:
-			{
-				chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-				break;
-			}
-			case CHASSIS_ZERO_FORCE:
-			default:
-			{
-				chassis_zero_force_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-				break;
-			}
+			chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+		case CHASSIS_NO_FOLLOW_YAW:
+		{
+			chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+		case CHASSIS_ZERO_FORCE:
+		default:
+		{
+			chassis_zero_force_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
 		}
 	}
 }
