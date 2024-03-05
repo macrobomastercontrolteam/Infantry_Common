@@ -98,7 +98,7 @@ typedef struct
 typedef __packed struct
 {
     uint8_t figure_name[3];
-    uint32_t operate_type:3;
+    uint32_t operate_type:3;       // Add, Modify, Delete
     uint32_t figure_type:3;
     uint32_t layer:4;
     uint32_t color:4;

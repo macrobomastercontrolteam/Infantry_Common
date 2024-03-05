@@ -136,7 +136,7 @@ void ui_delete(uint8_t del_operate, uint8_t del_layer)
  * @brief          Draw a straight line
  * @param[in]      *image: a pointer to a Graph_Data variable for storing graphic data
  * @param[in]      figure_name[3]: the image name used for identification
- * @param[in]      graph_operate: image operation, as defined in the header file
+ * @param[in]      graph_operate: image operation, as defined in the header file (add, modify or delete)
  * @param[in]      graph_layer: layer index from 0 to 9
  * @param[in]      graph_color: color of the graphic
  * @param[in]      graph_width: line width of the graphic
@@ -152,11 +152,15 @@ void line_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph
         image->figure_name[i] = figure_name[i];
 
     image->operate_type = graph_operate;
+    image->figure_type = UI_Graph_Line;
     image->layer = graph_layer;
     image->color = graph_color;
+    image->details_a = 0;
+    image->details_b = 0;
     image->width = graph_width;
     image->start_x = start_x;
     image->start_y = start_y;
+    // image->details_c = 0;
     image->details_d = end_x;
     image->details_e = end_y;
 }
