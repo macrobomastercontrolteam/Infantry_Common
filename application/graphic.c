@@ -476,3 +476,83 @@ int UI_ReFresh(int cnt, ...)
     UI_Seq++; // Increment package sequence number
     return 0;
 }
+
+
+// Some code to test:
+// Really lazy, just trying to test to see if the draw functions work
+// The goal is to reuse the code for sending data to the referee system
+// From a previous working version
+#define MAX_SIZE 128      // Maximum length of uploaded data
+#define frameheader_len 5 // Frame header length
+#define cmd_len 2         // Command code length
+#define crc_len 2         // CRC16 checksum
+uint8_t seq = 0;
+
+
+// Client Drawing Graphics
+typedef __packed struct
+{
+    // Number of graphics to be drawn, i.e., the length of the graphic data array.
+    // However, it is important to carefully check the content ID corresponding to the increase 
+    // in the number of graphics provided by the referee system.
+    graphic_data_struct_t grapic_data_struct[7];  
+
+} ext_client_custom_graphic_t;
+
+// Interactive Data Information
+typedef __packed struct
+{
+    uint16_t data_cmd_id;                        // Data segment content ID
+    uint16_t sender_ID;                          // Sender ID
+    uint16_t receiver_ID;                        // Receiver ID
+    ext_client_custom_graphic_t graphic_custom;  // Custom graphic data
+
+} ext_student_interactive_header_data_t;
+
+void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uint16_t len)
+{
+    uint8_t tx_buff[MAX_SIZE];
+
+    uint16_t frame_length = frameheader_len + cmd_len + len + crc_len; // Data frame length
+
+    memset(tx_buff, 0, frame_length); // Clear the array for storing data
+
+    /***** Frame Header Packing *****/
+    tx_buff[0] = sof;                                  // Start byte of the data frame
+    memcpy(&tx_buff[1], (uint8_t *)&len, sizeof(len)); // Length of the data in the data frame
+    tx_buff[3] = seq;                                  // Packet sequence number
+    append_CRC8_check_sum(tx_buff, frameheader_len);   // Frame header CRC8 checksum
+
+    /***** Command Code Packing *****/
+    memcpy(&tx_buff[frameheader_len], (uint8_t *)&cmd_id, cmd_len);
+
+    /***** Data Packing *****/
+    memcpy(&tx_buff[frameheader_len + cmd_len], p_data, len);
+    append_CRC16_check_sum(tx_buff, frame_length); // Data frame CRC16 checksum
+
+    if (seq == 0xff)
+        seq = 0;
+    else
+        seq++;
+
+    // I'm just gonna send it all at once, fuck it wii ball
+    HAL_UART_Transmit(&huart6, tx_buff, frame_length, 10000);
+}
+
+ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
+ext_client_custom_graphic_t custom_graphic;               // 自定义图像
+
+// Screen resolution is 1920x1080
+#define SCREEN_WIDTH 1080
+#define SCREEN_LENGTH 1920
+
+int update_ui(graphic_data_struct_t *image_ptr) {
+    custom_grapic_draw.data_cmd_id = 0x0104; // Draw seven graphics (Content ID, refer to the referee system manual for queries)
+
+    custom_grapic_draw.sender_ID = 103;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
+    custom_grapic_draw.receiver_ID = 0x0167;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
+
+    memcpy(custom_grapic_draw.graphic_custom.grapic_data_struct, image_ptr, sizeof(graphic_data_struct_t));
+
+    referee_data_pack_handle(0xA5, 0x0301, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
+}
