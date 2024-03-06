@@ -136,7 +136,7 @@ void ui_delete(uint8_t del_operate, uint8_t del_layer)
  * @brief          Draw a straight line
  * @param[in]      *image: a pointer to a Graph_Data variable for storing graphic data
  * @param[in]      figure_name[3]: the image name used for identification
- * @param[in]      graph_operate: image operation, as defined in the header file
+ * @param[in]      graph_operate: image operation, as defined in the header file (add, modify or delete)
  * @param[in]      graph_layer: layer index from 0 to 9
  * @param[in]      graph_color: color of the graphic
  * @param[in]      graph_width: line width of the graphic
@@ -152,11 +152,15 @@ void line_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph
         image->figure_name[i] = figure_name[i];
 
     image->operate_type = graph_operate;
+    image->figure_type = UI_Graph_Line;
     image->layer = graph_layer;
     image->color = graph_color;
+    image->details_a = 0;
+    image->details_b = 0;
     image->width = graph_width;
     image->start_x = start_x;
     image->start_y = start_y;
+    // image->details_c = 0;
     image->details_d = end_x;
     image->details_e = end_y;
 }
@@ -262,28 +266,37 @@ void arc_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_
  * @param[in]      graph_color: color of the graphic
  * @param[in]      graph_width: line width of the graphic
  * @param[in]      graph_size: font size
- * @param[in]      graph_digit: number of decimal places
  * @param[in]      start_x: starting x-coordinate
  * @param[in]      start_y: starting y-coordinate
- * @param[in]      graph_float: variable to display
+ * @param[in]      graph_float: variable to display, the value gets divided by 1000 and then displayed
+ *                              ex. if graph_float = 1234, the display will show 1.234
  */
-void Float_Draw(Float_Data *image, char imagename[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color, uint32_t Graph_Size, uint32_t Graph_Digit, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, float Graph_Float)
+void float_draw(graphic_data_struct_t *image, char imagename[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t graph_float)
 {
     int i;
-   
     for (i = 0; i < 3 && imagename[i] != '\0'; i++)
-        image->graphic_name[i] = imagename[i];
+        image->figure_name[i] = imagename[i];
 	
-    image->graphic_tpye = UI_Graph_Float;
-    image->operate_tpye = Graph_Operate;
-    image->layer = Graph_Layer;
-    image->color = Graph_Color;
-    image->width = Graph_Width;
-    image->start_x = Start_x;
-    image->start_y = Start_y;
-    image->start_angle = Graph_Size;
-    image->end_angle = Graph_Digit;
-    image->graph_Float = (int32_t)(1000 * Graph_Float); // multiply by 1000 to preserve three decimal places
+    image->figure_type = UI_Graph_Float;
+    image->operate_type = graph_operate;
+    image->layer = graph_layer;
+    image->color = graph_color;
+    image->width = graph_width;
+    image->start_x = start_x;
+    image->start_y = start_y;
+    image->details_a = graph_size;
+
+    // Get the last 11 bits
+    unsigned mask = (1 << 11) - 1;
+    image -> details_e = graph_float & mask;
+
+    // Get the next 11 bits
+    mask = mask << 11;
+    image -> details_d = graph_float & mask;
+
+    // Get the first 10 bits
+    mask = ((1 << 10) - 1) << 22;
+    image->details_c = graph_float & mask;
 }
 
 /**
@@ -348,7 +361,7 @@ int UI_ReFresh(int cnt, ...)
     framehead.SOF = UI_SOF;
     framehead.data_length = 6 + cnt * 15;
     framehead.seq = UI_Seq;
-    framehead.CRC8 = Get_CRC8_Check_Sum_UI(framepoint, 4, 0xFF);
+    framehead.CRC8 = get_CRC8_check_sum(framepoint, 4, 0xFF);
     framehead.cmd_ID = UI_CMD_Robo_Exchange; // Fill in the package header data
 
     switch (cnt)
@@ -370,56 +383,59 @@ int UI_ReFresh(int cnt, ...)
     }
 
     // Dynamic reception of Referee System ID
-    datahead.sender_ID = get_robot_id();
-    switch (get_robot_id())
-    {
-    case UI_Data_RobotID_RHero:
-        datahead.receiver_ID = UI_Data_CilentID_RHero; // 为英雄操作手客户端(红)
-        break;
-    case UI_Data_RobotID_REngineer:
-        datahead.receiver_ID = UI_Data_CilentID_REngineer;
-        break;
-    case UI_Data_RobotID_RStandard1:
-        datahead.receiver_ID = UI_Data_CilentID_RStandard1;
-        break;
-    case UI_Data_RobotID_RStandard2:
-        datahead.receiver_ID = UI_Data_CilentID_RStandard2;
-        break;
-    case UI_Data_RobotID_RStandard3:
-        datahead.receiver_ID = UI_Data_CilentID_RStandard3;
-        break;
-    case UI_Data_RobotID_RAerial:
-        datahead.receiver_ID = UI_Data_CilentID_RAerial;
-        break;
+    // datahead.sender_ID = get_robot_id();
+    datahead.sender_ID = UI_Data_RobotID_BStandard3;
+    // switch (get_robot_id())
+    // {
+    // case UI_Data_RobotID_RHero:
+    //     datahead.receiver_ID = UI_Data_CilentID_RHero; // 为英雄操作手客户端(红)
+    //     break;
+    // case UI_Data_RobotID_REngineer:
+    //     datahead.receiver_ID = UI_Data_CilentID_REngineer;
+    //     break;
+    // case UI_Data_RobotID_RStandard1:
+    //     datahead.receiver_ID = UI_Data_CilentID_RStandard1;
+    //     break;
+    // case UI_Data_RobotID_RStandard2:
+    //     datahead.receiver_ID = UI_Data_CilentID_RStandard2;
+    //     break;
+    // case UI_Data_RobotID_RStandard3:
+    //     datahead.receiver_ID = UI_Data_CilentID_RStandard3;
+    //     break;
+    // case UI_Data_RobotID_RAerial:
+    //     datahead.receiver_ID = UI_Data_CilentID_RAerial;
+    //     break;
 
-    case UI_Data_RobotID_BHero:
-        datahead.receiver_ID = UI_Data_CilentID_BHero;
-        break;
-    case UI_Data_RobotID_BEngineer:
-        datahead.receiver_ID = UI_Data_CilentID_BEngineer;
-        break;
-    case UI_Data_RobotID_BStandard1:
-        datahead.receiver_ID = UI_Data_CilentID_BStandard1;
-        break;
-    case UI_Data_RobotID_BStandard2:
-        datahead.receiver_ID = UI_Data_CilentID_BStandard2;
-        break;
-    case UI_Data_RobotID_BStandard3:
-        datahead.receiver_ID = UI_Data_CilentID_BStandard3;
-        break;
-    case UI_Data_RobotID_BAerial:
-        datahead.receiver_ID = UI_Data_CilentID_BAerial;
-        break;
-    default:
-        datahead.receiver_ID = Default_Robot_ID; // Default: send to a client regardless
-        datahead.sender_ID = Default_Client_ID;
-        break;
-    }
+    // case UI_Data_RobotID_BHero:
+    //     datahead.receiver_ID = UI_Data_CilentID_BHero;
+    //     break;
+    // case UI_Data_RobotID_BEngineer:
+    //     datahead.receiver_ID = UI_Data_CilentID_BEngineer;
+    //     break;
+    // case UI_Data_RobotID_BStandard1:
+    //     datahead.receiver_ID = UI_Data_CilentID_BStandard1;
+    //     break;
+    // case UI_Data_RobotID_BStandard2:
+    //     datahead.receiver_ID = UI_Data_CilentID_BStandard2;
+    //     break;
+    // case UI_Data_RobotID_BStandard3:
+    //     datahead.receiver_ID = UI_Data_CilentID_BStandard3;
+    //     break;
+    // case UI_Data_RobotID_BAerial:
+    //     datahead.receiver_ID = UI_Data_CilentID_BAerial;
+    //     break;
+    // default:
+    //     datahead.receiver_ID = Default_Robot_ID; // Default: send to a client regardless
+    //     datahead.sender_ID = Default_Client_ID;
+    //     break;
+    // }
+    datahead.sender_ID = UI_Data_RobotID_BStandard3;
+    datahead.receiver_ID = UI_Data_CilentID_BStandard3;
 
     framepoint = (unsigned char *)&framehead;
-    frametail = Get_CRC16_Check_Sum_UI(framepoint, sizeof(framehead), frametail);
+    frametail = get_CRC16_check_sum(framepoint, sizeof(framehead), frametail);
     framepoint = (unsigned char *)&datahead;
-    frametail = Get_CRC16_Check_Sum_UI(framepoint, sizeof(datahead), frametail); // Partial calculation of CRC16 checksum
+    frametail = get_CRC16_check_sum(framepoint, sizeof(datahead), frametail); // Partial calculation of CRC16 checksum
 
     framepoint = (unsigned char *)&framehead;
     for (i = 0; i < sizeof(framehead); i++)
@@ -440,7 +456,7 @@ int UI_ReFresh(int cnt, ...)
         graphic_data_struct_t imageData = va_arg(ap, graphic_data_struct_t);
 
         framepoint = (unsigned char *)&imageData;
-        frametail = Get_CRC16_Check_Sum_UI(framepoint, sizeof(imageData), frametail); // CRC16 checksum
+        frametail = get_CRC16_check_sum(framepoint, sizeof(imageData), frametail); // CRC16 checksum
 
         for (n = 0; n < sizeof(imageData); n++)
         {
@@ -459,4 +475,84 @@ int UI_ReFresh(int cnt, ...)
 
     UI_Seq++; // Increment package sequence number
     return 0;
+}
+
+
+// Some code to test:
+// Really lazy, just trying to test to see if the draw functions work
+// The goal is to reuse the code for sending data to the referee system
+// From a previous working version
+#define MAX_SIZE 128      // Maximum length of uploaded data
+#define frameheader_len 5 // Frame header length
+#define cmd_len 2         // Command code length
+#define crc_len 2         // CRC16 checksum
+uint8_t seq = 0;
+
+
+// Client Drawing Graphics
+typedef __packed struct
+{
+    // Number of graphics to be drawn, i.e., the length of the graphic data array.
+    // However, it is important to carefully check the content ID corresponding to the increase 
+    // in the number of graphics provided by the referee system.
+    graphic_data_struct_t grapic_data_struct[7];  
+
+} ext_client_custom_graphic_t;
+
+// Interactive Data Information
+typedef __packed struct
+{
+    uint16_t data_cmd_id;                        // Data segment content ID
+    uint16_t sender_ID;                          // Sender ID
+    uint16_t receiver_ID;                        // Receiver ID
+    ext_client_custom_graphic_t graphic_custom;  // Custom graphic data
+
+} ext_student_interactive_header_data_t;
+
+void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uint16_t len)
+{
+    uint8_t tx_buff[MAX_SIZE];
+
+    uint16_t frame_length = frameheader_len + cmd_len + len + crc_len; // Data frame length
+
+    memset(tx_buff, 0, frame_length); // Clear the array for storing data
+
+    /***** Frame Header Packing *****/
+    tx_buff[0] = sof;                                  // Start byte of the data frame
+    memcpy(&tx_buff[1], (uint8_t *)&len, sizeof(len)); // Length of the data in the data frame
+    tx_buff[3] = seq;                                  // Packet sequence number
+    append_CRC8_check_sum(tx_buff, frameheader_len);   // Frame header CRC8 checksum
+
+    /***** Command Code Packing *****/
+    memcpy(&tx_buff[frameheader_len], (uint8_t *)&cmd_id, cmd_len);
+
+    /***** Data Packing *****/
+    memcpy(&tx_buff[frameheader_len + cmd_len], p_data, len);
+    append_CRC16_check_sum(tx_buff, frame_length); // Data frame CRC16 checksum
+
+    if (seq == 0xff)
+        seq = 0;
+    else
+        seq++;
+
+    // I'm just gonna send it all at once, fuck it wii ball
+    HAL_UART_Transmit(&huart6, tx_buff, frame_length, 10000);
+}
+
+ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
+ext_client_custom_graphic_t custom_graphic;               // 自定义图像
+
+// Screen resolution is 1920x1080
+#define SCREEN_WIDTH 1080
+#define SCREEN_LENGTH 1920
+
+int update_ui(graphic_data_struct_t *image_ptr) {
+    custom_grapic_draw.data_cmd_id = 0x0104; // Draw seven graphics (Content ID, refer to the referee system manual for queries)
+
+    custom_grapic_draw.sender_ID = 103;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
+    custom_grapic_draw.receiver_ID = 0x0167;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
+
+    memcpy(custom_grapic_draw.graphic_custom.grapic_data_struct, image_ptr, sizeof(graphic_data_struct_t));
+
+    referee_data_pack_handle(0xA5, 0x0301, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
 }
