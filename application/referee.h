@@ -38,6 +38,7 @@ typedef __packed struct // 0001
     uint8_t game_type : 4;
     uint8_t game_progress : 4;
     uint16_t stage_remain_time;
+    uint64_t SyncTimeStamp;
 } ext_game_state_t;
 
 typedef __packed struct // 0002
@@ -86,7 +87,7 @@ typedef __packed struct // 0005
 
 typedef __packed struct // 0101
 {
-    uint32_t event_type;
+    uint32_t event_data;
 } ext_event_data_t;
 
 typedef __packed struct // 0x0102
@@ -118,15 +119,14 @@ typedef __packed struct // 0x0201
 {
     uint8_t robot_id;
     uint8_t robot_level;
-    uint16_t remain_HP;
-    uint16_t max_HP;
-    uint16_t shooter_heat0_cooling_rate;
-    uint16_t shooter_heat0_cooling_limit;
-    uint16_t shooter_heat1_cooling_rate;
-    uint16_t shooter_heat1_cooling_limit;
-    uint8_t mains_power_gimbal_output : 1;
-    uint8_t mains_power_chassis_output : 1;
-    uint8_t mains_power_shooter_output : 1;
+    uint16_t current_HP;
+    uint16_t maximum_HP;
+    uint16_t shooter_barrel_cooling_value;
+    uint16_t shooter_barrel_heat_limit;
+    uint16_t chassis_power_limit;
+    uint8_t power_management_gimbal_output : 1;
+    uint8_t power_management_chassis_output : 1;
+    uint8_t power_management_shooter_output : 1;
 } ext_game_robot_state_t;
 
 typedef __packed struct // 0x0202
@@ -143,8 +143,7 @@ typedef __packed struct // 0x0203
 {
     float x;
     float y;
-    float z;
-    float yaw;
+    float angle;
 } ext_game_robot_pos_t;
 
 typedef __packed struct // 0x0204
@@ -178,10 +177,10 @@ typedef __packed struct // 0x0209
 
 // typedef __packed struct // 0x020A
 // {
-//     uint8_t dart_launch_opening_status;
-//     uint8_t dart_attack_target;
-//     uint16_t target_change_time;
-//     uint16_t operate_launch_cmd_time;
+//      uint8_t dart_launch_opening_status;
+//      uint8_t reserved;
+//      uint16_t target_change_time;
+//      uint16_t latest_launch_cmd_time;
 // } ext_dart_client_cmd_t;
 
 typedef __packed struct
@@ -208,9 +207,9 @@ typedef __packed struct // 0x0301
 // {
 //     float target_position_x;
 //     float target_position_y;
-//     float target_position_z;
-//     uint8_t commd_keyboard;
-//     uint16_t target_robot_ID;
+//     uint8_t cmd_keyboard;
+//     uint8_t target_robot_id;
+//     uint8_t cmd_source;
 // } ext_robot_command_t;
 
 // typedef __pack struct // 0x0304
