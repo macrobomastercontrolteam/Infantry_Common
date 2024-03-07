@@ -29,6 +29,9 @@
 #include "main.h"
 #include "user_lib.h"
 
+#define DISABLE_DRIVE_MOTOR_POWER 0
+#define DISABLE_HIP_MOTOR_POWER 0
+
 #define MOTOR_6012_GEAR_RATIO 36.0f
 #define MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO 0.225146199f
 #define MOTOR_6012_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO 0.212f
@@ -405,6 +408,13 @@ uint8_t hip_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float 
 		fValidInput = 1;
 	}
 
+#if DISABLE_HIP_MOTOR_POWER
+	RF_torq = 0;
+	LF_torq = 0;
+	LB_torq = 0;
+	RB_torq = 0;
+#endif
+
 #if REVERSE_LB_HIP_MOTOR_DIRECTION
 	LB_torq *= -1.0f;
 #endif
@@ -451,6 +461,10 @@ uint8_t drive_motor_set_torque(float R_torq, float L_torq, uint8_t blocking_call
 	{
 		fValidInput = 1;
 	}
+#if DISABLE_DRIVE_MOTOR_POWER
+	R_torq = 0;
+	L_torq = 0;
+#endif
 
 #if REVERSE_LEFT_DRIVE_MOTOR_DIRECTION
 	L_torq *= -1.0f;

@@ -30,9 +30,6 @@
 #include "pid.h"
 #include "remote_control.h"
 
-#define DISABLE_DRIVE_MOTOR_POWER 0
-#define DISABLE_HIP_MOTOR_POWER 0
-
 static void wait_until_motors_online(void);
 static void chassis_init(chassis_move_t *chassis_move_init);
 static void chassis_set_mode(chassis_move_t *chassis_move_mode);
@@ -189,17 +186,8 @@ void chassis_task(void const *pvParameters)
 
 		uint8_t blocking_call = 1;
 		uint8_t fValidCmd = 1;
-#if DISABLE_DRIVE_MOTOR_POWER
-		fValidCmd &= drive_motor_set_torque(0, 0, blocking_call);
-#else
 		fValidCmd &= drive_motor_set_torque(biped.leg_R.TWheel_set, biped.leg_L.TWheel_set, blocking_call);
-#endif
-
-#if DISABLE_HIP_MOTOR_POWER
-		fValidCmd &= hip_motor_set_torque(0, 0, 0, 0, blocking_call);
-#else
 		fValidCmd &= hip_motor_set_torque(biped.leg_R.TR_set, biped.leg_L.TR_set, biped.leg_L.TL_set, biped.leg_R.TL_set, blocking_call);
-#endif
 
 		chassis_task_loop_delay = xTaskGetTickCount() - biped.time_ms;
 		if (chassis_task_loop_delay < CHASSIS_CONTROL_TIME_MS)
@@ -407,6 +395,20 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 
 		chassis_move_transit->last_chassis_mode = chassis_move_transit->chassis_mode;
 	}
+}
+
+void chassis_cv_control(chassis_move_t *chassis_move_ptr)
+{
+	if (chassis_move_ptr == NULL)
+	{
+		return;
+	}
+	
+    if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fCvCmdValid))
+	{
+        biped.leg_simplified.dis.set += CvCmdHandler.CvCmdMsg.xDeltaSet;
+		biped.yaw.set = rad_format(CvCmdHandler.CvCmdMsg.yawSet);
+    }
 }
 
 /**
