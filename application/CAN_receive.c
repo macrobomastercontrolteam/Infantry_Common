@@ -233,6 +233,7 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 			case 0xFF:
 			{
 				robot_arm.fHoming = 1;
+				robot_arm.fMovCmded = 1;
 				robot_arm_return_to_center(0, JOINT_ID_LAST - 1);
 				break;
 			}
@@ -241,6 +242,7 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 	else
 	{
 		robot_arm.fHoming = 0;
+		robot_arm.fMovCmded = 1;
 		switch (id)
 		{
 			case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID:

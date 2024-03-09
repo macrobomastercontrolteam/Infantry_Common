@@ -21,6 +21,7 @@ typedef struct
 
 	fp32 joint_angle_target[7];
 	robot_arm_state_e arm_state;
+	uint8_t fMovCmded;
 	uint8_t fHoming;
 
 	const fp32 *arm_INS_angle;

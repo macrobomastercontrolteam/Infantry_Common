@@ -151,6 +151,16 @@ void robot_arm_task(void const *pvParameters)
 
 void robot_arm_state_transition(void)
 {
+	// safety guard
+	if (is_error_exist_in_range(CHASSIS_CONTROLLER_TOE, JOINT_6_TOE))
+	{
+		robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
+	}
+	else if (robot_arm.fMovCmded)
+	{
+		robot_arm.arm_state = ARM_STATE_MOVING;
+	}
+	
 	static robot_arm_state_e prev_arm_state = ARM_STATE_ZERO_FORCE;
 	if (prev_arm_state != robot_arm.arm_state)
 	{
@@ -162,8 +172,12 @@ void robot_arm_state_transition(void)
 		switch (robot_arm.arm_state)
 		{
 			case ARM_STATE_ZERO_FORCE:
-			case ARM_STATE_MOVING:
 			case ARM_STATE_FIXED:
+			{
+				robot_arm.fHoming = 0;
+				break;
+			}
+			case ARM_STATE_MOVING:
 			default:
 			{
 				break;
@@ -183,6 +197,7 @@ void robot_arm_control(void)
 			
 			if (is_joint_target_reached(robot_arm.joint_angle_target, 0.05f))
 			{
+				robot_arm.fMovCmded = 0;
 				if (robot_arm.fHoming)
 				{
 					robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
@@ -211,12 +226,6 @@ void robot_arm_control(void)
 
 void robot_arm_status_update(void)
 {
-	// safety guard
-	if (is_error_exist_in_range(CHASSIS_CONTROLLER_TOE, JOINT_6_TOE))
-	{
-		robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
-	}
-
 	robot_arm.time_ms = xTaskGetTickCount();
 
 	robot_arm.roll.now = *(robot_arm.arm_INS_angle + INS_ROLL_ADDRESS_OFFSET);
@@ -247,6 +256,8 @@ void robot_arm_init(void)
 	robot_arm.arm_INS_speed = get_gyro_data_point();
 	// robot_arm.arm_INS_accel = get_accel_data_point();
 	robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
+	robot_arm.fMovCmded = 0;
+	robot_arm.fHoming = 0;
 
 	const static fp32 joint_6_6020_angle_pid_coeffs[3] = {JOINT_6_6020_ANGLE_PID_KP, JOINT_6_6020_ANGLE_PID_KI, JOINT_6_6020_ANGLE_PID_KD};
 	PID_init(&robot_arm.joint_6_6020_angle_pid, PID_POSITION, joint_6_6020_angle_pid_coeffs, JOINT_6_6020_ANGLE_PID_MAX_OUT, JOINT_6_6020_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
