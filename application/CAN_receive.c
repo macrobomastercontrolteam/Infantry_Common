@@ -464,17 +464,18 @@ HAL_StatusTypeDef soft_disable_Ktech_motor(uint32_t id, CAN_HandleTypeDef *hcan_
 
 HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
 {
-uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, -20.0f, 20.0f) * 360.0f / 60.0f * MOTOR_4010_GEAR_RATIO;
+#if DISABLE_ARM_MOTOR_POWER
+	// Warning: do not set maxSpeed_dps = 0, the motor will behave abnormally!
+	angleControl_rad = ARM_JOINT_2_ANGLE_HOME;
+#endif
+
+	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, -20.0f, 20.0f) * 360.0f / 60.0f * MOTOR_4010_GEAR_RATIO;
 	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f * MOTOR_4010_GEAR_RATIO;
 	can_tx_message.StdId = id;
 	can_tx_message.ExtId = 0x00;
 	can_tx_message.RTR = CAN_RTR_DATA;
 	can_tx_message.IDE = CAN_ID_STD;
 	can_tx_message.DLC = 8;
-
-#if DISABLE_ARM_MOTOR_POWER
-	maxSpeed_dps = 0;
-#endif
 
 	can_send_data[0] = 0xA4;
 	can_send_data[1] = 0x00;
@@ -490,17 +491,18 @@ uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, -20.0f, 20.0f) * 360.0f / 6
 
 HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
 {
-uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, -20.0f, 20.0f) * 360.0f / 60.0f * MOTOR_6012_GEAR_RATIO;
+#if DISABLE_ARM_MOTOR_POWER
+	angleControl_rad = ARM_JOINT_1_ANGLE_HOME;
+#endif
+
+	// Warning: do not set maxSpeed_dps = 0, the motor will behave abnormally!
+	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, -20.0f, 20.0f) * 360.0f / 60.0f * MOTOR_6012_GEAR_RATIO;
 	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f * MOTOR_6012_GEAR_RATIO;
 	can_tx_message.StdId = id;
 	can_tx_message.ExtId = 0x00;
 	can_tx_message.RTR = CAN_RTR_DATA;
 	can_tx_message.IDE = CAN_ID_STD;
 	can_tx_message.DLC = 8;
-
-#if DISABLE_ARM_MOTOR_POWER
-	maxSpeed_dps = 0;
-#endif
 
 	can_send_data[0] = 0xA4;
 	can_send_data[1] = 0x00;
