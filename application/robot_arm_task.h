@@ -105,9 +105,10 @@ typedef struct
 
 	fp32 joint_angle_target[7];
 	robot_arm_state_e arm_state;
-	uint8_t fMovCmded;
+	uint32_t prevStateSwitchTime;
 	uint8_t fHoming;
-	
+	uint8_t fMasterSwitch;
+
 	const fp32 *arm_INS_angle;
 	const fp32 *arm_INS_speed;
 	// const fp32 *arm_INS_accel;
@@ -119,7 +120,9 @@ extern const fp32 joint_angle_min[7];
 extern const fp32 joint_angle_max[7];
 extern const fp32 joint_angle_home[7];
 extern void robot_arm_task(void const *pvParameters);
-void robot_arm_return_to_center(uint8_t _start, uint8_t _end);
+void robot_arm_return_to_center(void);
+void robot_arm_motors_return_home(uint8_t _start, uint8_t _end);
+void robot_arm_switch_on_power(void);
 
 extern robot_arm_t robot_arm;
 
