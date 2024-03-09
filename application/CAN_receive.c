@@ -26,7 +26,7 @@
 #include "robot_arm_task.h"
 #include "user_lib.h"
 
-#define DISABLE_ARM_MOTOR_POWER 0
+#define DISABLE_ARM_MOTOR_POWER 1
 
 #define MOTOR_6012_GEAR_RATIO 36.0f
 #define MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO 0.225146199f
