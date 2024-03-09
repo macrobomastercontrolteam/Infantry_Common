@@ -469,7 +469,7 @@ HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_
 	angleControl_rad = ARM_JOINT_2_ANGLE_HOME;
 #endif
 
-	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, -20.0f, 20.0f) * 360.0f / 60.0f * MOTOR_4010_GEAR_RATIO;
+	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, 0.1f, 20.0f) * 360.0f / 60.0f * MOTOR_4010_GEAR_RATIO;
 	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f * MOTOR_4010_GEAR_RATIO;
 	can_tx_message.StdId = id;
 	can_tx_message.ExtId = 0x00;
@@ -496,7 +496,7 @@ HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_
 #endif
 
 	// Warning: do not set maxSpeed_dps = 0, the motor will behave abnormally!
-	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, -20.0f, 20.0f) * 360.0f / 60.0f * MOTOR_6012_GEAR_RATIO;
+	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, 0.1f, 20.0f) * 360.0f / 60.0f * MOTOR_6012_GEAR_RATIO;
 	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f * MOTOR_6012_GEAR_RATIO;
 	can_tx_message.StdId = id;
 	can_tx_message.ExtId = 0x00;
