@@ -318,12 +318,13 @@ void decode_4010_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
 
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
 {
-	uint8_t error_id = data[0] >> 4;
-	if (error_id != 0)
-	{
-		return HAL_ERROR;
-	}
-	else
+	// @TODO: Sometimes 4310 sends data[0] = 0x10 + ID. This might represent a real error, investigate it.
+	// uint8_t error_id = data[0] >> 4;
+	// if (error_id != 0)
+	// {
+	// 	return HAL_ERROR;
+	// }
+	// else
 	{
 		uint16_t p_int = (data[1] << 8) | data[2];         // rad
 		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
