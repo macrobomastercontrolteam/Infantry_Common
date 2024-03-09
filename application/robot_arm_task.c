@@ -28,9 +28,24 @@ fp32 robot_arm_task_loop_delay;
 
 #if ROBOT_ARM_JSCOPE_DEBUG
 uint32_t loop_delay = 0;
+fp32 out0 = 0;
+fp32 out1 = 0;
+fp32 out2 = 0;
+fp32 out3 = 0;
+fp32 out4 = 0;
+fp32 out5 = 0;
+fp32 out6 = 0;
 static void jscope_robot_arm_test(void)
 {
 	loop_delay = HAL_GetTick() - robot_arm.time_ms;
+
+	out0 = motor_measure[JOINT_ID_0_4310].output_angle;
+	out1 = motor_measure[JOINT_ID_1_6012].output_angle;
+	out2 = motor_measure[JOINT_ID_2_4010].output_angle;
+	out3 = motor_measure[JOINT_ID_3_4310].output_angle;
+	out4 = motor_measure[JOINT_ID_4_4310].output_angle;
+	out5 = motor_measure[JOINT_ID_5_4310].output_angle;
+	out6 = motor_measure[JOINT_ID_6_6020].output_angle;
 }
 #endif
 
