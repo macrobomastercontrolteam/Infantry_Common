@@ -594,7 +594,7 @@ HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef
 			break;
 		}
 		try_cnt++;
-		HAL_Delay(retry_delay_ms);
+		osDelay(retry_delay_ms);
 	}
 	return CAN_status;
 }
