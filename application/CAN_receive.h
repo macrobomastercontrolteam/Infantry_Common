@@ -103,7 +103,7 @@ extern motor_measure_t motor_measure[JOINT_ID_LAST];
 uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt);
 void arm_joints_cmd_torque(float joint_torques[7]);
 void update_joint_6_6020_angle(void);
-void switch_all_motor_power(uint8_t _enable);
+void CAN_cmd_switch_motor_power(uint8_t _enable);
 uint8_t is_joint_target_reached(fp32 joint_angle_targets[7], fp32 tol);
 
 #ifdef __cplusplus

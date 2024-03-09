@@ -166,7 +166,7 @@ void robot_arm_state_transition(void)
 	{
 		if ((prev_arm_state == ARM_STATE_ZERO_FORCE) || (robot_arm.arm_state == ARM_STATE_ZERO_FORCE))
 		{
-			switch_all_motor_power(prev_arm_state == ARM_STATE_ZERO_FORCE);
+			CAN_cmd_switch_motor_power(prev_arm_state == ARM_STATE_ZERO_FORCE);
 		}
 
 		switch (robot_arm.arm_state)
@@ -265,7 +265,7 @@ void robot_arm_init(void)
 	PID_init(&robot_arm.joint_6_6020_speed_pid, PID_POSITION, joint_6_6020_speed_pid_coeffs, JOINT_6_6020_SPEED_PID_MAX_OUT, JOINT_6_6020_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 
 	robot_arm_return_to_center(0, JOINT_ID_LAST - 1);
-	switch_all_motor_power(1);
+	CAN_cmd_switch_motor_power(1);
 }
 
 void robot_arm_return_to_center(uint8_t _start, uint8_t _end)

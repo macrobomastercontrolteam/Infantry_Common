@@ -429,7 +429,7 @@ HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_
 	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
 
-void switch_all_motor_power(uint8_t _enable)
+void CAN_cmd_switch_motor_power(uint8_t _enable)
 {
 	uint8_t blocking_call = 1;
 	enable_DaMiao_motor(CAN_JOINT_MOTOR_0_4310_TX_ID, _enable, &LOWER_MOTORS_CAN, blocking_call);
