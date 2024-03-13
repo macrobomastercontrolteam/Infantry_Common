@@ -25,8 +25,8 @@
 #include "main.h"
 #include "bsp_rng.h"
 
-
 #include "detect_task.h"
+#include "chassis_task.h"
 
 #define DISABLE_DRIVE_MOTOR_POWER 1
 #define DISABLE_STEER_MOTOR_POWER 1
@@ -216,8 +216,6 @@ void CAN_cmd_chassis_reset_ID(void)
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
 
-
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 /**
   * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
   * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
@@ -230,7 +228,7 @@ void CAN_cmd_chassis_reset_ID(void)
   * @param[in]      steer_motor4: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
   * @retval         none
   */
-void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, uint16_t steer_motor1, uint16_t steer_motor2, uint16_t steer_motor3, uint16_t steer_motor4)
+void CAN_cmd_chassis(void)
 {
     uint32_t send_mail_box;
     // driver motors (M3508)
@@ -240,10 +238,15 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     chassis_tx_message.DLC = 0x08;
 
 #if DISABLE_DRIVE_MOTOR_POWER
-    motor1 = 0;
-    motor2 = 0;
-    motor3 = 0;
-    motor4 = 0;
+    int16_t motor1 = 0;
+    int16_t motor2 = 0;
+    int16_t motor3 = 0;
+    int16_t motor4 = 0;
+#else
+    int16_t motor1 = chassis_move.motor_chassis[0].give_current;
+    int16_t motor2 = chassis_move.motor_chassis[1].give_current;
+    int16_t motor3 = chassis_move.motor_chassis[2].give_current;
+    int16_t motor4 = chassis_move.motor_chassis[3].give_current;
 #endif
 
     chassis_can_send_data[0] = motor1 >> 8;
@@ -256,14 +259,20 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     chassis_can_send_data[7] = motor4;
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
     // Send target encoder value of steering motors (GM6020) to chassis controller
     chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLER_TX_ID;
 
 #if DISABLE_STEER_MOTOR_POWER
-    steer_motor1 = 0;
-    steer_motor2 = 0;
-    steer_motor3 = 0;
-    steer_motor4 = 0;
+    uint16_t steer_motor1 = 0;
+    uint16_t steer_motor2 = 0;
+    uint16_t steer_motor3 = 0;
+    uint16_t steer_motor4 = 0;
+#else
+    uint16_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
+    uint16_t steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;
+    uint16_t steer_motor3 = chassis_move.steer_motor_chassis[2].target_ecd;
+    uint16_t steer_motor4 = chassis_move.steer_motor_chassis[3].target_ecd;
 #endif
 
     chassis_can_send_data[0] = steer_motor1 >> 8;
@@ -275,51 +284,8 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     chassis_can_send_data[6] = steer_motor4 >> 8;
     chassis_can_send_data[7] = steer_motor4;
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
-}
-#else
-/**
-  * @brief          send control current of motor (0x201, 0x202, 0x203, 0x204)
-  * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
-  * @retval         none
-  */
-/**
-  * @brief          发送电机控制电流(0x201,0x202,0x203,0x204)
-  * @param[in]      motor1: (0x201) 3508电机控制电流, 范围 [-16384,16384]
-  * @param[in]      motor2: (0x202) 3508电机控制电流, 范围 [-16384,16384]
-  * @param[in]      motor3: (0x203) 3508电机控制电流, 范围 [-16384,16384]
-  * @param[in]      motor4: (0x204) 3508电机控制电流, 范围 [-16384,16384]
-  * @retval         none
-  */
-void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4)
-{
-    uint32_t send_mail_box;
-    // driver motors (M3508)
-    chassis_tx_message.StdId = CAN_CHASSIS_M3508_TX_ID;
-    chassis_tx_message.IDE = CAN_ID_STD;
-    chassis_tx_message.RTR = CAN_RTR_DATA;
-    chassis_tx_message.DLC = 0x08;
-
-#if DISABLE_DRIVE_MOTOR_POWER
-    motor1 = 0;
-    motor2 = 0;
-    motor3 = 0;
-    motor4 = 0;
 #endif
-
-    chassis_can_send_data[0] = motor1 >> 8;
-    chassis_can_send_data[1] = motor1;
-    chassis_can_send_data[2] = motor2 >> 8;
-    chassis_can_send_data[3] = motor2;
-    chassis_can_send_data[4] = motor3 >> 8;
-    chassis_can_send_data[5] = motor3;
-    chassis_can_send_data[6] = motor4 >> 8;
-    chassis_can_send_data[7] = motor4;
-    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
-#endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void CAN_cmd_load_servo(uint8_t fServoSwitch)

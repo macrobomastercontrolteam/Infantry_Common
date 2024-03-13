@@ -125,7 +125,7 @@ extern void CAN_cmd_chassis_reset_ID(void);
   * @param[in]      steer_motor4: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
   * @retval         none
   */
-extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4, uint16_t steer_motor1, uint16_t steer_motor2, uint16_t steer_motor3, uint16_t steer_motor4);
+extern void CAN_cmd_chassis(void);
 #else
 /**
   * @brief          send control current of motor (0x201, 0x202, 0x203, 0x204)
@@ -143,7 +143,7 @@ extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int1
   * @param[in]      motor4: (0x204) 3508电机控制电流, 范围 [-16384,16384]
   * @retval         none
   */
-extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
+extern void CAN_cmd_chassis(void);
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)

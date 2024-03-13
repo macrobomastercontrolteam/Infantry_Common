@@ -28,6 +28,7 @@
 #include "detect_task.h"
 #include "INS_task.h"
 #include "chassis_power_control.h"
+#include "cv_usart_task.h"
 
 /**
   * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
@@ -142,31 +143,11 @@ void chassis_task(void const *pvParameters)
     //chassis init
     //底盘初始化
     chassis_init(&chassis_move);
-    //make sure all chassis motor is online,
-    //判断底盘电机是否都在线
-    uint8_t fIsError = 0;
-    uint8_t bToeIndex;
-    do {
-      for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-      {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-        if (bToeIndex == DBUS_TOE)
-        {
-          bToeIndex = CV_TOE;
-        }
-#endif
-        if (toe_is_error(bToeIndex))
-        {
-          fIsError = 1;
-          vTaskDelay(CHASSIS_CONTROL_TIME_MS);
-          break;
-        }
-      }
-      if (bToeIndex > CHASSIS_MOTOR4_TOE)
-      {
-        fIsError = 0;
-      }
-    } while (fIsError);
+
+    while (ifToeStatusExist(DBUS_TOE, CHASSIS_MOTOR4_TOE, TOE_STATUS_OFFLINE))
+    {
+        osDelay(CHASSIS_CONTROL_TIME_MS * 2);
+    }
 
     while (1)
     {
@@ -186,49 +167,8 @@ void chassis_task(void const *pvParameters)
         //底盘控制PID计算
         chassis_control_loop(&chassis_move);
 
-        //make sure  one motor is online at least, so that the control CAN message can be received
-        //确保至少一个电机在线， 这样CAN控制包可以被接收到
-        for (bToeIndex = DBUS_TOE + 1; bToeIndex <= CHASSIS_MOTOR4_TOE; bToeIndex++)
-        {
-          if (!toe_is_error(bToeIndex))
-          {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-            // Remote controller act as emergency stop
-            if (toe_is_error(CV_TOE) || gimbal_emergency_stop())
-#else
-            // when remote control is offline, chassis motor should receive zero current or voltage.
-            // 当遥控器掉线的时候，发送给底盘电机零电流.
-            if (toe_is_error(DBUS_TOE))
-#endif
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-            {
-              CAN_cmd_chassis(0, 0, 0, 0, 0, 0, 0, 0);
-            }
-            else
-            {
-              // send control message
-              // 发送控制电流
-              CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current, chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current,
-                              chassis_move.steer_motor_chassis[0].target_ecd, chassis_move.steer_motor_chassis[1].target_ecd, chassis_move.steer_motor_chassis[2].target_ecd, chassis_move.steer_motor_chassis[3].target_ecd);
-            }
-#else
-            {
-              CAN_cmd_chassis(0, 0, 0, 0);
-            }
-            else
-            {
-              // send control message
-              // 发送控制电流
-              CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current,
-                              chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
-            }
-#endif
-            break;
-          }
-        }
-        //os delay
-        //系统延时
-        vTaskDelay(CHASSIS_CONTROL_TIME_MS);
+        CAN_cmd_chassis();
+        osDelay(CHASSIS_CONTROL_TIME_MS);
 
 #if CHASSIS_TEST_MODE
         J_scope_chassis_test();
