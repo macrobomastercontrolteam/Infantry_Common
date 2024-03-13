@@ -28,6 +28,12 @@
 
 #include "detect_task.h"
 
+#define DISABLE_DRIVE_MOTOR_POWER 1
+#define DISABLE_STEER_MOTOR_POWER 1
+#define DISABLE_YAW_MOTOR_POWER 1
+#define DISABLE_PITCH_MOTOR_POWER 1
+#define DISABLE_SHOOT_MOTOR_POWER 1
+
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 //motor data read
@@ -156,6 +162,17 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev)
     gimbal_tx_message.IDE = CAN_ID_STD;
     gimbal_tx_message.RTR = CAN_RTR_DATA;
     gimbal_tx_message.DLC = 0x08;
+
+#if DISABLE_YAW_MOTOR_POWER
+    yaw = 0;
+#endif
+#if DISABLE_PITCH_MOTOR_POWER
+    pitch = 0;
+#endif
+#if DISABLE_SHOOT_MOTOR_POWER
+    shoot = 0;
+#endif
+
     gimbal_can_send_data[0] = (yaw >> 8);
     gimbal_can_send_data[1] = yaw;
     gimbal_can_send_data[2] = (pitch >> 8);
@@ -221,6 +238,14 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     chassis_tx_message.IDE = CAN_ID_STD;
     chassis_tx_message.RTR = CAN_RTR_DATA;
     chassis_tx_message.DLC = 0x08;
+
+#if DISABLE_DRIVE_MOTOR_POWER
+    motor1 = 0;
+    motor2 = 0;
+    motor3 = 0;
+    motor4 = 0;
+#endif
+
     chassis_can_send_data[0] = motor1 >> 8;
     chassis_can_send_data[1] = motor1;
     chassis_can_send_data[2] = motor2 >> 8;
@@ -233,6 +258,14 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
 
     // Send target encoder value of steering motors (GM6020) to chassis controller
     chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLER_TX_ID;
+
+#if DISABLE_STEER_MOTOR_POWER
+    steer_motor1 = 0;
+    steer_motor2 = 0;
+    steer_motor3 = 0;
+    steer_motor4 = 0;
+#endif
+
     chassis_can_send_data[0] = steer_motor1 >> 8;
     chassis_can_send_data[1] = steer_motor1;
     chassis_can_send_data[2] = steer_motor2 >> 8;
@@ -268,6 +301,14 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     chassis_tx_message.IDE = CAN_ID_STD;
     chassis_tx_message.RTR = CAN_RTR_DATA;
     chassis_tx_message.DLC = 0x08;
+
+#if DISABLE_DRIVE_MOTOR_POWER
+    motor1 = 0;
+    motor2 = 0;
+    motor3 = 0;
+    motor4 = 0;
+#endif
+
     chassis_can_send_data[0] = motor1 >> 8;
     chassis_can_send_data[1] = motor1;
     chassis_can_send_data[2] = motor2 >> 8;
