@@ -177,7 +177,7 @@
 
 //test mode, 0 close, 1 open
 //云台测试模式 宏定义 0 为不使用测试模式
-#define GIMBAL_TEST_MODE 1
+#define GIMBAL_TEST_MODE 0
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define PITCH_TURN  0
