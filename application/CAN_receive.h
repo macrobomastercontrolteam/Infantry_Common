@@ -26,6 +26,8 @@
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
 
+#define DISABLE_SHOOT_MOTOR_POWER 1
+
 /* CAN send and receive ID */
 typedef enum
 {

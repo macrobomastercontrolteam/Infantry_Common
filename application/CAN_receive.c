@@ -32,7 +32,6 @@
 #define DISABLE_STEER_MOTOR_POWER 1
 #define DISABLE_YAW_MOTOR_POWER 1
 #define DISABLE_PITCH_MOTOR_POWER 1
-#define DISABLE_SHOOT_MOTOR_POWER 1
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;

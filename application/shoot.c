@@ -32,8 +32,14 @@
 #include "pid.h"
 #include "cv_usart_task.h"
 
+#if DISABLE_SHOOT_MOTOR_POWER
+#define shoot_fric1_on(pwm) fric_off() //摩擦轮1pwm宏定义
+#define shoot_fric2_on(pwm) fric_off() //摩擦轮2pwm宏定义
+#else
 #define shoot_fric1_on(pwm) fric1_on((pwm)) //摩擦轮1pwm宏定义
 #define shoot_fric2_on(pwm) fric2_on((pwm)) //摩擦轮2pwm宏定义
+#endif
+
 #define shoot_fric_off()    fric_off()      //关闭两个摩擦轮
 
 #define shoot_laser_on()    laser_on()      //激光开启宏定义
@@ -106,7 +112,7 @@ void shoot_init(void)
     shoot_control.speed = 0.0f;
     shoot_control.speed_set = 0.0f;
     shoot_control.key_time = 0;
-}
+    }
 
 /**
   * @brief          射击循环
@@ -231,28 +237,28 @@ int16_t shoot_control_loop(void)
     }
 
     // Continue bullet logic: must be used after state machine, since SHOOT_CONTINUE_BULLET switch back to SHOOT_READY_BULLET if not triggered
-    if (shoot_control.shoot_mode > SHOOT_READY_FRIC)
-    {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-        shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
-#else
-        // 鼠标长按一直进入射击状态 保持连发
-        if ((shoot_control.press_l_time == PRESS_LONG_TIME) || (shoot_control.press_r_time == PRESS_LONG_TIME) || (shoot_control.rc_s_time == RC_S_LONG_TIME))
-        {
-            get_shoot_heat0_limit_and_heat0(&shoot_control.heat_limit, &shoot_control.heat);
-            if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
-            {
-                shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
-            }
-            else
-            {
-                shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
-            }
-        }
+	if (shoot_control.shoot_mode > SHOOT_READY_FRIC)
+	{
+		#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
+			shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
+		#else
+		// 鼠标长按一直进入射击状态 保持连发
+		if ((shoot_control.press_l_time == PRESS_LONG_TIME) || (shoot_control.press_r_time == PRESS_LONG_TIME) || (shoot_control.rc_s_time == RC_S_LONG_TIME))
+		{
+			get_shoot_heat0_limit_and_heat0(&shoot_control.heat_limit, &shoot_control.heat);
+			if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
+			{
+				shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
+			}
+			else
+			{
+				shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
+			}
+		}
 #endif
-    }
+	}
 
-    if(shoot_control.shoot_mode == SHOOT_STOP)
+	if(shoot_control.shoot_mode == SHOOT_STOP)
     {
         shoot_laser_off();
         shoot_control.given_current = 0;
@@ -291,62 +297,62 @@ int16_t shoot_control_loop(void)
 static void shoot_set_mode(void)
 {
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-    static uint8_t lastCvShootMode = 0;
-    uint8_t CvShootMode = CvCmder_GetMode(CV_MODE_SHOOT_BIT);
-    if (CvShootMode != lastCvShootMode)
-    {
-        if (CvShootMode == 1)
-        {
-            shoot_control.shoot_mode = SHOOT_READY_FRIC;
-        }
-        else
-        {
-            shoot_control.shoot_mode = SHOOT_STOP_INIT;
-        }
-        lastCvShootMode = CvShootMode;
-    }
-#else
-    if (gimbal_cmd_to_shoot_stop())
-    {
-        shoot_control.shoot_mode = SHOOT_STOP;
-    }
-    else
-    {
-        // remote controller S1 switch logic
-        static int8_t last_s = RC_SW_UP;
-        switch (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL])
-        {
-        case RC_SW_UP:
-        {
-            if (last_s != RC_SW_UP)
-            {
-                shoot_control.shoot_mode = SHOOT_READY_FRIC;
-            }
-            break;
-        }
-        case RC_SW_MID:
-        {
-            if (shoot_control.shoot_mode != SHOOT_STOP)
-            {
-                shoot_control.shoot_mode = SHOOT_STOP_INIT;
-            }
-            break;
-        }
-        case RC_SW_DOWN:
-        {
-            if (last_s != RC_SW_DOWN)
-            {
-                if (shoot_control.shoot_mode == SHOOT_READY)
-                {
-                    // burst fire
-                    shoot_control.shoot_mode = SHOOT_BULLET;
-                }
-            }
-            break;
-        }
-        }
-        last_s = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL];
-    }
+		static uint8_t lastCvShootMode = 0;
+		uint8_t CvShootMode = CvCmder_GetMode(CV_MODE_SHOOT_BIT);
+		if (CvShootMode != lastCvShootMode)
+		{
+			if (CvShootMode == 1)
+			{
+				shoot_control.shoot_mode = SHOOT_READY_FRIC;
+			}
+			else
+			{
+				shoot_control.shoot_mode = SHOOT_STOP_INIT;
+			}
+			lastCvShootMode = CvShootMode;
+		}
+	#else
+			if (gimbal_cmd_to_shoot_stop())
+		{
+			shoot_control.shoot_mode = SHOOT_STOP;
+		}
+		else
+		{
+			// remote controller S1 switch logic
+			static int8_t last_s = RC_SW_UP;
+			switch (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL])
+			{
+				case RC_SW_UP:
+				{
+					if (last_s != RC_SW_UP)
+					{
+						shoot_control.shoot_mode = SHOOT_READY_FRIC;
+					}
+					break;
+				}
+				case RC_SW_MID:
+				{
+					if (shoot_control.shoot_mode != SHOOT_STOP)
+					{
+						shoot_control.shoot_mode = SHOOT_STOP_INIT;
+					}
+					break;
+				}
+				case RC_SW_DOWN:
+				{
+					if (last_s != RC_SW_DOWN)
+					{
+						if (shoot_control.shoot_mode == SHOOT_READY)
+						{
+							// burst fire
+							shoot_control.shoot_mode = SHOOT_BULLET;
+						}
+					}
+					break;
+				}
+			}
+			last_s = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL];
+	}
 #endif
 }
 /**
