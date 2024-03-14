@@ -318,3 +318,24 @@ static void detect_init(uint32_t time)
 //    error_list[DBUS_TOE].solve_data_error_fun = solve_data_error;
 
 }
+
+uint8_t ifToeStatusExist(uint8_t _start, uint8_t _end, toe_status_e _status_to_find)
+{
+    // range is inclusive = [_start, _end]
+    // _status_to_find = TOE_STATUS_OFFLINE checks whether offline equipment exist, TOE_STATUS_ONLINE checks whether online equipment exist
+    uint8_t fStatusExist = 1;
+	if (_start <= _end)
+	{
+		fStatusExist = 0;
+		uint8_t bToeIndex;
+		for (bToeIndex = _start; bToeIndex <= _end; bToeIndex++)
+		{
+			if (toe_is_error(bToeIndex) == _status_to_find)
+			{
+				fStatusExist = 1;
+				break;
+			}
+		}
+	}
+	return fStatusExist;
+}

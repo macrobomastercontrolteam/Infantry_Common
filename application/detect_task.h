@@ -85,6 +85,12 @@ enum errorList
     ERROR_LIST_LENGTH,
 };
 
+typedef enum
+{
+  TOE_STATUS_ONLINE = 0,
+  TOE_STATUS_OFFLINE = 1,
+} toe_status_e;
+
 typedef __packed struct
 {
     uint32_t new_time;
@@ -153,5 +159,7 @@ extern void detect_hook(uint8_t toe);
   * @retval         error_listµÄÖ¸Õë
   */
 extern const error_t *get_error_list_point(void);
+
+uint8_t ifToeStatusExist(uint8_t _start, uint8_t _end, toe_status_e _status_to_check);
 
 #endif
