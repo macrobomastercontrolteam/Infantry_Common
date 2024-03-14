@@ -29,7 +29,9 @@
 
 #include "gimbal_task.h"
 
-extern gimbal_control_t gimbal_control;
+gimbal_control_t gimbal_control_1;
+fp32 buffer_yaw[10];
+fp32 buffer_pitch[10];
 
 void usb_printf(const char *fmt,...);
 
@@ -44,6 +46,16 @@ void usb_task(void const * argument)
     MX_USB_DEVICE_Init();
     error_list_usb_local = get_error_list_point();
 
+    gimbal_control_1.yaw_angle.angle_buffer = buffer_yaw;
+    gimbal_control_1.pitch_angle.angle_buffer = buffer_pitch;
+
+    gimbal_control_1.pitch_angle.buffer_size = 10;
+    gimbal_control_1.pitch_angle.current_buffer_index = 0;
+    gimbal_control_1.pitch_angle.buffer_full_flag = 0;
+
+    gimbal_control_1.yaw_angle.buffer_size = 10;
+    gimbal_control_1.yaw_angle.current_buffer_index = 0;
+    gimbal_control_1.yaw_angle.buffer_full_flag = 0;
 
     while(1)
     {
@@ -103,9 +115,10 @@ void usb_task(void const * argument)
                 status[error_list_usb_local[CV_TOE].error_exist]);
     #endif // DEBUG_CV_WITH_USB */
     #if DEBUG_CV_WITH_USB
-        fp32 yaw_angle_to_print = access_angle(xTaskGetTickCount(),&(gimbal_control.yaw_angle));
-        fp32 pitch_angle_to_print = access_angle(xTaskGetTickCount(),&(gimbal_control.pitch_angle));
-
+        fp32 yaw_angle_to_print = access_angle(10,&(gimbal_control_1.yaw_angle));
+        fp32 pitch_angle_to_print = access_angle(10,&(gimbal_control_1.pitch_angle));
+        fill_buffer(1000.0f,&(gimbal_control_1.yaw_angle));
+        fill_buffer(500.0f,&(gimbal_control_1.pitch_angle));
 
         usb_printf("yaw: %f, pitch: %f\n",yaw_angle_to_print,pitch_angle_to_print);
     #endif
