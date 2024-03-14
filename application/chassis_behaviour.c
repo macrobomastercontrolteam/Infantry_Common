@@ -612,21 +612,30 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
     }
 
 #if CV_INTERFACE
-	// chassis_task should maintain previous speed if cv is offline for a short time
-	*vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
-	*vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
-
   fp32 spinning_speed;
-	// @TODO: add enemy detection (controlled by CV)
-	// if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
-	// {
-	// 	spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-	// }
-	// else
-	{
-		// spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-		spinning_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
-	}
+  if (toe_is_error(CV_TOE))
+  {
+    *vx_set = 0;
+	  *vy_set = 0;
+    spinning_speed = 0;
+  }
+  else
+  {
+	  // chassis_task should maintain previous speed if cv is offline for a short time
+	  *vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
+	  *vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
+
+	  // @TODO: add enemy detection (controlled by CV)
+	  // if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
+	  // {
+	  // 	spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
+	  // }
+	  // else
+	  {
+		  // spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
+		  spinning_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
+	  }
+  }
 	*angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
 #endif
 }
