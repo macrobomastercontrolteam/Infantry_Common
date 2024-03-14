@@ -697,8 +697,12 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
         return;
     }
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+    chassis_rc_to_swerve_control_vector(vx_set, vy_set, wz_set, chassis_move_rc_to_vector);
+#else
     chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
     *wz_set = -CHASSIS_WZ_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL];
+#endif
 }
 
 /**

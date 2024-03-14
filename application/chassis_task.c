@@ -208,6 +208,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     
     const static fp32 chassis_x_order_filter[1] = {CHASSIS_ACCEL_X_NUM};
     const static fp32 chassis_y_order_filter[1] = {CHASSIS_ACCEL_Y_NUM};
+    const static fp32 chassis_wz_order_filter[1] = {CHASSIS_ACCEL_WZ_NUM};
     uint8_t i;
 
     //in beginning， chassis mode is raw 
@@ -239,6 +240,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     //用一阶滤波代替斜波函数生成
     first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_vx, CHASSIS_CONTROL_TIME, chassis_x_order_filter);
     first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_vy, CHASSIS_CONTROL_TIME, chassis_y_order_filter);
+    first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_wz, CHASSIS_CONTROL_TIME, chassis_wz_order_filter);
 
     //max and min speed
     //最大 最小速度
@@ -427,6 +429,70 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
     *vx_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vx.out;
     *vy_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out;
 }
+
+void chassis_rc_to_swerve_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector)
+{
+    if (chassis_move_rc_to_vector == NULL || vx_set == NULL || vy_set == NULL)
+    {
+        return;
+    }
+    
+    int16_t vx_channel, vy_channel, wz_channel;
+    fp32 vx_set_channel, vy_set_channel, wz_set_channel;
+    //deadline, because some remote control need be calibrated,  the value of rocker is not zero in middle place,
+    //死区限制，因为遥控器可能存在差异 摇杆在中间，其值不为0
+    deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], vx_channel, CHASSIS_RC_DEADLINE);
+    deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], vy_channel, CHASSIS_RC_DEADLINE);
+    deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], wz_channel, CHASSIS_RC_DEADLINE);
+
+    vx_set_channel = vx_channel * CHASSIS_VX_RC_SEN;
+    vy_set_channel = vy_channel * -CHASSIS_VY_RC_SEN;
+    wz_set_channel = wz_channel * -CHASSIS_WZ_RC_SEN;
+
+    //keyboard set speed set-point
+    //键盘控制
+    if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_FRONT_KEY)
+    {
+        vx_set_channel = chassis_move_rc_to_vector->vx_max_speed;
+    }
+    else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_BACK_KEY)
+    {
+        vx_set_channel = chassis_move_rc_to_vector->vx_min_speed;
+    }
+
+    if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEFT_KEY)
+    {
+        vy_set_channel = chassis_move_rc_to_vector->vy_max_speed;
+    }
+    else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_RIGHT_KEY)
+    {
+        vy_set_channel = chassis_move_rc_to_vector->vy_min_speed;
+    }
+
+    //first order low-pass replace ramp function, calculate chassis speed set-point to improve control performance
+    //一阶低通滤波代替斜波作为底盘速度输入
+    first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_vx, vx_set_channel);
+    first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_vy, vy_set_channel);
+    first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz, wz_set_channel);
+    //stop command, need not slow change, set zero derectly
+    //停止信号，不需要缓慢加速，直接减速到零
+    // if (vx_set_channel < CHASSIS_RC_DEADLINE * CHASSIS_VX_RC_SEN && vx_set_channel > -CHASSIS_RC_DEADLINE * CHASSIS_VX_RC_SEN)
+    // {
+    //     chassis_move_rc_to_vector->chassis_cmd_slow_set_vx.out = 0.0f;
+    // }
+
+    // if (vy_set_channel < CHASSIS_RC_DEADLINE * CHASSIS_VY_RC_SEN && vy_set_channel > -CHASSIS_RC_DEADLINE * CHASSIS_VY_RC_SEN)
+    // {
+    //     chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out = 0.0f;
+    // }
+
+    // wz doesn't need sudden brake
+
+    *vx_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vx.out;
+    *vy_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out;
+    *wz_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out;
+}
+
 /**
   * @brief          set chassis control set-point, three movement control value is set by "chassis_behaviour_control_set".
   * @param[out]     chassis_move_update: "chassis_move" valiable point
@@ -506,6 +572,7 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
         chassis_move_control->wz_set = angle_set;
         chassis_move_control->chassis_cmd_slow_set_vx.out = 0.0f;
         chassis_move_control->chassis_cmd_slow_set_vy.out = 0.0f;
+        chassis_move_control->chassis_cmd_slow_set_wz.out = 0.0f;
     }
 }
 

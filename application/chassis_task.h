@@ -42,8 +42,14 @@
 //不跟随云台的时候 遥控器的yaw遥杆（max 660）转化成车体旋转速度的比例
 #define CHASSIS_WZ_RC_SEN 0.01f
 
+#define CHASSIS_ACCEL_WZ_NUM 0.06f
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#define CHASSIS_ACCEL_X_NUM 0.06f
+#define CHASSIS_ACCEL_Y_NUM 0.06f
+#else
 #define CHASSIS_ACCEL_X_NUM 0.1666666667f
 #define CHASSIS_ACCEL_Y_NUM 0.3333333333f
+#endif
 
 //rocker value deadline
 //摇杆死区
@@ -199,6 +205,7 @@ typedef struct
 
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
   first_order_filter_type_t chassis_cmd_slow_set_vy;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
+  first_order_filter_type_t chassis_cmd_slow_set_wz;  //use first order filter to slow set-point.使用一阶低通滤波减缓设定值
 
 #if !(ROBOT_TYPE == INFANTRY_2023_SWERVE)
   fp32 vx;                          //chassis vertical speed, positive means forward,unit m/s. 底盘速度 前进方向 前为正，单位 m/s
@@ -251,6 +258,7 @@ extern void chassis_task(void const *pvParameters);
   * @retval         none
   */
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
+void chassis_rc_to_swerve_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
 
 fp32 abs_err_handler(fp32 set, fp32 ref);
 

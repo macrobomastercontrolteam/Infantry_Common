@@ -1,6 +1,16 @@
 #include "user_lib.h"
 #include "arm_math.h"
 
+fp32 first_order_filter(fp32 input, fp32 output_prev, fp32 coeff)
+{
+    if (coeff > 1)
+    {
+        return NAN;
+    }
+    fp32 output = (1-coeff)*output_prev + coeff*input;
+    return output;
+}
+
 //快速开方
 fp32 invSqrt(fp32 num)
 {
