@@ -1,5 +1,6 @@
 #include "user_lib.h"
 #include "arm_math.h"
+#include "cmsis_os.h" // For xTaskGetTickCount()
 
 //快速开方
 fp32 invSqrt(fp32 num)
@@ -225,7 +226,7 @@ void fill_buffer(fp32 input_angle, circular_buffer_t *circular_buffer)
 fp32 access_angle(uint16_t target_timestamp, circular_buffer_t *circular_buffer)
 {
     uint16_t signal_interval = 50;
-    uint16_t current_time = 1000;
+    uint16_t current_time = xTaskGetTickCount();
     float time_delta = current_time - target_timestamp;
     int n = (int)(fabs(time_delta) / (float)signal_interval);
     int time_before = current_time - signal_interval * (n + 1);
