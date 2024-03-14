@@ -87,8 +87,10 @@
 
 #include "gimbal_behaviour.h"
 #include "cv_usart_task.h"
+#include "detect_task.h"
 
 #define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN*0.10471975511965977f)
+#define SPINNING_CHASSIS_ULTRA_LOW_OMEGA (RPM_TO_RADS(8.0f))
 #define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(25.0f))
 #define SPINNING_CHASSIS_MED_OMEGA (RPM_TO_RADS(30.0f))
 #define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(35.0f))
@@ -165,9 +167,7 @@ static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_se
 
 static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
-#if CV_INTERFACE
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
-#endif
 
 /**
   * @brief          when chassis behaviour mode is CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, chassis control mode is speed control mode.
@@ -258,83 +258,82 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
         return;
     }
 
-#if CV_INTERFACE
-    if (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT))
-    {
-        chassis_behaviour_mode = CHASSIS_CV_CONTROL_SPINNING;
-    }
-    else
-#endif
-    {
-#if !((ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST))
-        // remote control  set chassis behaviour mode
-        // 遥控器设置模式
-        if (switch_is_mid(chassis_move_mode->chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL]))
-        {
-            // can change to CHASSIS_ZERO_FORCE,CHASSIS_NO_MOVE,CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,
-            // CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW,CHASSIS_NO_FOLLOW_YAW,CHASSIS_OPEN
-            // Remember to change gimbal_behaviour logic correspondingly
-            chassis_behaviour_mode = CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW;
-        }
-        else if (switch_is_down(chassis_move_mode->chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL]))
-        {
-            chassis_behaviour_mode = CHASSIS_NO_MOVE;
-        }
-        else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL]))
-        {
+	if (gimbal_emergency_stop())
+	{
+		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+	}
+	// when gimbal in some mode, such as init mode, chassis must's move
+	// 当云台在某些模式下，像初始化， 底盘不动
+	else if (gimbal_cmd_to_chassis_stop())
+	{
+		chassis_behaviour_mode = CHASSIS_NO_MOVE;
+	}
+	else
+	{
+		switch (chassis_move_mode->chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL])
+		{
+			case RC_SW_UP:
+			{
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-            chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+				chassis_behaviour_mode = CHASSIS_CV_CONTROL_SPINNING;
 #else
-            chassis_behaviour_mode = CHASSIS_SPINNING;
+				chassis_behaviour_mode = CHASSIS_SPINNING;
 #endif
-        }
+				break;
+			}
+			case RC_SW_MID:
+			{
+				// can change to CHASSIS_ZERO_FORCE,CHASSIS_NO_MOVE,CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,
+				// CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW,CHASSIS_NO_FOLLOW_YAW,CHASSIS_OPEN
+				// Remember to change gimbal_behaviour logic correspondingly
+				chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+				break;
+			}
+			case RC_SW_DOWN:
+			default:
+			{
+				chassis_behaviour_mode = CHASSIS_NO_MOVE;
+				break;
+			}
+		}
+	}
+
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+  	CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING) ? 1 : 0);
 #endif
-    }
 
-    //when gimbal in some mode, such as init mode, chassis must's move
-    //当云台在某些模式下，像初始化， 底盘不动
-    if (gimbal_cmd_to_chassis_stop())
-    {
-        chassis_behaviour_mode = CHASSIS_NO_MOVE;
-    }
-
-
-    //accord to beheviour mode, choose chassis control mode
-    //根据行为模式选择一个底盘控制模式
-    if (chassis_behaviour_mode == CHASSIS_ZERO_FORCE)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW; 
-    }
-    else if (chassis_behaviour_mode == CHASSIS_NO_MOVE)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW; 
-    }
-    else if (chassis_behaviour_mode == CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW; 
-    }
-    else if (chassis_behaviour_mode == CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW;
-    }
-    else if (chassis_behaviour_mode == CHASSIS_NO_FOLLOW_YAW)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
-    }
-    else if (chassis_behaviour_mode == CHASSIS_OPEN)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
-    }
-    else if (chassis_behaviour_mode == CHASSIS_SPINNING)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
-    }
-#if CV_INTERFACE
-    else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
-    {
-        chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
-    }
-#endif
+	switch (chassis_behaviour_mode)
+	{
+		case CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW:
+		{
+			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW;
+			break;
+		}
+		case CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW:
+		{
+			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW;
+			break;
+		}
+		case CHASSIS_NO_MOVE:
+		case CHASSIS_NO_FOLLOW_YAW:
+		{
+			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
+			break;
+		}
+		case CHASSIS_SPINNING:
+		case CHASSIS_CV_CONTROL_SPINNING:
+		{
+			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
+			break;
+		}
+		case CHASSIS_ZERO_FORCE:
+		case CHASSIS_OPEN:
+		default:
+		{
+			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
+			break;
+		}
+	}
 
 #if CHASSIS_TEST_MODE
     J_scope_chassis_behavior_test();
@@ -368,40 +367,50 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
         return;
     }
 
-    if (chassis_behaviour_mode == CHASSIS_ZERO_FORCE)
-    {
-        chassis_zero_force_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_NO_MOVE)
-    {
-        chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
-    {
-        chassis_infantry_follow_gimbal_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW)
-    {
-        chassis_engineer_follow_chassis_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_NO_FOLLOW_YAW)
-    {
-        chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_OPEN)
-    {
-        chassis_open_set_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-    else if (chassis_behaviour_mode == CHASSIS_SPINNING)
-    {
-        chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-#if CV_INTERFACE
-    else if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
-    {
-        chassis_cv_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-    }
-#endif
+    switch (chassis_behaviour_mode)
+    {        
+		case CHASSIS_NO_MOVE:
+		{
+			chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+		case CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW:
+		{
+			chassis_infantry_follow_gimbal_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+		case CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW:
+		{
+			chassis_engineer_follow_chassis_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+		case CHASSIS_NO_FOLLOW_YAW:
+		{
+			chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+		case CHASSIS_OPEN:
+		{
+			chassis_open_set_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+		case CHASSIS_SPINNING:
+		{
+			chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+		case CHASSIS_CV_CONTROL_SPINNING:
+		{
+			chassis_cv_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+    case CHASSIS_ZERO_FORCE:
+    default:
+		{
+			chassis_zero_force_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+	}
 }
 
 /**
@@ -595,7 +604,6 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
     *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
 }
 
-#if CV_INTERFACE
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
 {
     if (vx_set == NULL || vy_set == NULL || angle_set == NULL)
@@ -603,27 +611,28 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
         return;
     }
 
-    // chassis_task should maintain previous speed if cv is offline for a short time
-    *vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
-    *vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
+#if CV_INTERFACE
+	// chassis_task should maintain previous speed if cv is offline for a short time
+	*vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
+	*vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
 
-    fp32 spinning_speed;
-    // @TODO: add enemy detection (controlled by CV)
-    // if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
-    // {
-    //     spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-    // }
-    // else
-    {
-        // spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-        spinning_speed = 0;
-    }
-    *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
-}
+  fp32 spinning_speed;
+	// @TODO: add enemy detection (controlled by CV)
+	// if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
+	// {
+	// 	spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
+	// }
+	// else
+	{
+		// spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
+		spinning_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
+	}
+	*angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
 #endif
+}
 
 /**
- * @brief          when chassis behaviour mode is CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, chassis control mode is speed control mode.
+  * @brief          when chassis behaviour mode is CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, chassis control mode is speed control mode.
   *                 chassis will follow chassis yaw, chassis rotation speed is calculated from the angle difference between set angle and chassis yaw.
   * @param[out]     vx_set: vx speed value, positive value means forward speed, negative value means backward speed,
   * @param[out]     vy_set: vy speed value, positive value means left speed, negative value means right speed.

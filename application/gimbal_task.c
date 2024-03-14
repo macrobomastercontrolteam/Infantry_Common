@@ -1273,26 +1273,15 @@ bool_t gimbal_emergency_stop(void)
     static uint8_t fFatalError = 0;
     if (fFatalError)
     {
-        return 1;
+        // do nothing
     }
     else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->given_current) >= YAW_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->given_current) >= PITCH_MOTOR_CURRENT_LIMIT))
     {
         fFatalError = 1;
-        return 1;
     }
     else
     {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-        // E-stop if remote controller is connected, and also not in calibration mode
-        // uint8_t fSentryDbusEnable = toe_is_error(DBUS_TOE);
-				uint8_t fSentryDbusEnable = 1;
-        fSentryDbusEnable |= switch_is_down(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL]) && switch_is_down(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL]);
-
-        fEStop = toe_is_error(CV_TOE) && (gimbal_behaviour != GIMBAL_CALI);
-				fEStop |= (fSentryDbusEnable == 0);
-#else
         fEStop = toe_is_error(DBUS_TOE);
-#endif
     }
     return fEStop;
 }

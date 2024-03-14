@@ -112,7 +112,8 @@ void shoot_init(void)
     shoot_control.speed = 0.0f;
     shoot_control.speed_set = 0.0f;
     shoot_control.key_time = 0;
-    }
+    shoot_control.fIsCvControl = 0;
+}
 
 /**
   * @brief          射击循环
@@ -183,12 +184,10 @@ int16_t shoot_control_loop(void)
         {
             shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
         }
-//         else
+//         else if (shoot_control.fIsCvControl == 0)
 //         {
-// #if !((ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST))
 //             // long press mouse to rapid fire
 //             if ((shoot_control.press_l && shoot_control.last_press_l == 0) || (shoot_control.press_r && shoot_control.last_press_r == 0))
-// #endif
 //             {
 //                 shoot_control.shoot_mode = SHOOT_BULLET;
 //             }
@@ -239,11 +238,12 @@ int16_t shoot_control_loop(void)
     // Continue bullet logic: must be used after state machine, since SHOOT_CONTINUE_BULLET switch back to SHOOT_READY_BULLET if not triggered
 	if (shoot_control.shoot_mode > SHOOT_READY_FRIC)
 	{
-		#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
+		if (shoot_control.fIsCvControl)
+		{
 			shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
-		#else
+		}
 		// 鼠标长按一直进入射击状态 保持连发
-		if ((shoot_control.press_l_time == PRESS_LONG_TIME) || (shoot_control.press_r_time == PRESS_LONG_TIME) || (shoot_control.rc_s_time == RC_S_LONG_TIME))
+		else if ((shoot_control.press_l_time == PRESS_LONG_TIME) || (shoot_control.press_r_time == PRESS_LONG_TIME) || (shoot_control.rc_s_time == RC_S_LONG_TIME))
 		{
 			get_shoot_heat0_limit_and_heat0(&shoot_control.heat_limit, &shoot_control.heat);
 			if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
@@ -255,7 +255,6 @@ int16_t shoot_control_loop(void)
 				shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
 			}
 		}
-#endif
 	}
 
 	if(shoot_control.shoot_mode == SHOOT_STOP)
@@ -296,7 +295,15 @@ int16_t shoot_control_loop(void)
   */
 static void shoot_set_mode(void)
 {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+	shoot_control.fIsCvControl = (shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP);
+#else
+    // shoot_control.fIsCvControl = 0; // It is 0 by default
+#endif
+
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+	if (shoot_control.fIsCvControl)
+	{
 		static uint8_t lastCvShootMode = 0;
 		uint8_t CvShootMode = CvCmder_GetMode(CV_MODE_SHOOT_BIT);
 		if (CvShootMode != lastCvShootMode)
@@ -311,8 +318,12 @@ static void shoot_set_mode(void)
 			}
 			lastCvShootMode = CvShootMode;
 		}
-	#else
-			if (gimbal_cmd_to_shoot_stop())
+	}
+	else
+#endif
+	{
+        // normal RC control
+		if (gimbal_cmd_to_shoot_stop())
 		{
 			shoot_control.shoot_mode = SHOOT_STOP;
 		}
@@ -320,7 +331,8 @@ static void shoot_set_mode(void)
 		{
 			// remote controller S1 switch logic
 			static int8_t last_s = RC_SW_UP;
-			switch (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL])
+			int8_t new_s = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL];
+			switch (new_s)
 			{
 				case RC_SW_UP:
 				{
@@ -351,9 +363,9 @@ static void shoot_set_mode(void)
 					break;
 				}
 			}
-			last_s = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL];
+			last_s = new_s;
+		}
 	}
-#endif
 }
 /**
   * @brief          射击数据更新

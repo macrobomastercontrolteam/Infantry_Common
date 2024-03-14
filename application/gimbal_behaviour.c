@@ -484,12 +484,8 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
 
         //超过初始化最大时间，或者已经稳定到中值一段时间，退出初始化状态开关打下档，或者掉线
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-        if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME && !toe_is_error(CV_TOE))
-#else
         if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME &&
             !switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]) && !toe_is_error(DBUS_TOE))
-#endif
         {
             return;
         }
@@ -500,53 +496,42 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
     }
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST)
-    // DBUS act as emergency stop
-    if (toe_is_error(CV_TOE) || gimbal_emergency_stop())
-    {
-        gimbal_behaviour = GIMBAL_ZERO_FORCE;
-    }
-    else
-    {
-        gimbal_behaviour = GIMBAL_AUTO_AIM_PATROL;
-    }
-#else
     // 开关控制 云台状态
-    if( toe_is_error(DBUS_TOE) || gimbal_emergency_stop())
+    if(gimbal_emergency_stop())
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
-    else if (switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]))
-    {
-        gimbal_behaviour = GIMBAL_ZERO_FORCE;
-    }
-    else
-    {
-        static uint16_t last_auto_aim_keyboard = 0;
-        if (gimbal_mode_set->gimbal_rc_ctrl->key.v != last_auto_aim_keyboard)
-        {
-            if (gimbal_mode_set->gimbal_rc_ctrl->key.v & AUTO_AIM_TOGGLE_KEYBOARD)
-            {
-                gimbal_behaviour = (last_gimbal_behaviour == GIMBAL_AUTO_AIM) ? GIMBAL_ZERO_FORCE : GIMBAL_AUTO_AIM;
-            }
-            last_auto_aim_keyboard = gimbal_mode_set->gimbal_rc_ctrl->key.v;
-        }
-
-        if (switch_is_mid(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]))
-        {
-            // corresponds to the mode CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW
-            gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
-        }
-        else if (switch_is_up(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]))
-        {
+	else
+	{
+		switch (gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL])
+		{
+			case RC_SW_UP:
+			{
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-            gimbal_behaviour = GIMBAL_AUTO_AIM;
-#else
-            gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
+                if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT))
+                {
+                    gimbal_behaviour = GIMBAL_AUTO_AIM;
+                }
+                else
 #endif
-        }
-    }
-#endif
+                {
+                    gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
+                }
+				break;
+			}
+			case RC_SW_MID:
+			{
+				gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
+				break;
+			}
+			case RC_SW_DOWN:
+			default:
+			{
+				gimbal_behaviour = GIMBAL_ZERO_FORCE;
+				break;
+			}
+		}
+	}
 
     //enter init mode
     //判断进入init状态机

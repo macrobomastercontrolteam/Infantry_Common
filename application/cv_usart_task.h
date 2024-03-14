@@ -47,6 +47,8 @@ typedef struct
 
 void cv_usart_task(void const *argument);
 uint8_t CvCmder_GetMode(uint8_t bCvModeBit);
+void CvCmder_ToggleMode(uint8_t bCvModeBit);
+void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
 tCvCmdHandler* CvCmder_GetHandler(void);
 void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd);
 #if DEBUG_CV_WITH_USB

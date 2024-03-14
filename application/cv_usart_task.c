@@ -96,7 +96,6 @@ void CvCmder_EchoTxMsgToUsb(void);
 void CvCmder_SendSetModeRequest(void);
 void CvCmder_SendInfoData(eInfoBits InfoBit);
 void CvCmder_UpdateTranDelta(void);
-void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_MockModeChange(void);
 #endif
@@ -147,12 +146,6 @@ void CvCmder_Init(void)
     CvCmdHandler.cv_rc_ctrl = get_remote_control_point(); // reserved, not used yet
 
     CvCmdHandler.fCvMode = 0;
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-    CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT, 1);
-#if !SENTRY_HW_TEST
-    CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 1);
-#endif
-#endif
 
     // Get a callback when DMA completes or IDLE
     HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
@@ -224,7 +217,7 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
         if (fIsKeyPressed)
         {
             // keyboard "G" button toggles auto-aim mode
-            CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT, CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT) ? 0 : 1);
+            CvCmder_ToggleMode(CV_MODE_AUTO_AIM_BIT);
         }
         fLastKeySignal = fIsKeyPressed;
     }
@@ -409,6 +402,12 @@ void CvCmder_UpdateTranDelta(void)
 uint8_t CvCmder_GetMode(uint8_t bCvModeBit)
 {
     return (CvCmdHandler.fCvMode & bCvModeBit);
+}
+
+void CvCmder_ToggleMode(uint8_t bCvModeBit)
+{
+    CvCmdHandler.fCvMode = (CvCmdHandler.fCvMode & ~bCvModeBit) | (!CvCmder_GetMode(bCvModeBit) ? bCvModeBit : 0);
+    CvCmdHandler.fIsModeChanged = 1;
 }
 
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag)
