@@ -488,7 +488,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME && !toe_is_error(CV_TOE))
 #else
         if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME &&
-            !switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]) && !toe_is_error(DBUS_TOE))
+            !switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]) && !toe_is_error(DBUS_TOE))
 #endif
         {
             return;
@@ -516,7 +516,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
-    else if (switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
+    else if (switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]))
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
@@ -532,12 +532,12 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
             last_auto_aim_keyboard = gimbal_mode_set->gimbal_rc_ctrl->key.v;
         }
 
-        if (switch_is_mid(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
+        if (switch_is_mid(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]))
         {
             // corresponds to the mode CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW
             gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
         }
-        else if (switch_is_up(gimbal_mode_set->gimbal_rc_ctrl->rc.s[GIMBAL_MODE_CHANNEL]))
+        else if (switch_is_up(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]))
         {
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
             gimbal_behaviour = GIMBAL_AUTO_AIM;
@@ -717,8 +717,8 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 
     static int16_t yaw_channel = 0, pitch_channel = 0;
 
-    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[YAW_CHANNEL], yaw_channel, RC_DEADBAND);
-    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[PITCH_CHANNEL], pitch_channel, RC_DEADBAND);
+    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
+    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
 
     *yaw = yaw_channel * YAW_RC_SEN + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_MOUSE_SEN;
     *pitch = pitch_channel * PITCH_RC_SEN + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_MOUSE_SEN;
@@ -831,8 +831,8 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
     }
     static int16_t yaw_channel = 0, pitch_channel = 0;
 
-    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[YAW_CHANNEL], yaw_channel, RC_DEADBAND);
-    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[PITCH_CHANNEL], pitch_channel, RC_DEADBAND);
+    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
+    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
 
     *yaw = yaw_channel * YAW_RC_SEN + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_MOUSE_SEN;
     *pitch = pitch_channel * PITCH_RC_SEN + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_MOUSE_SEN;

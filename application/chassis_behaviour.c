@@ -269,18 +269,18 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 #if !((ROBOT_TYPE == SENTRY_2023_MECANUM) && (!SENTRY_HW_TEST))
         // remote control  set chassis behaviour mode
         // Ò£¿ØÆ÷ÉèÖÃÄ£Ê½
-        if (switch_is_mid(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+        if (switch_is_mid(chassis_move_mode->chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL]))
         {
             // can change to CHASSIS_ZERO_FORCE,CHASSIS_NO_MOVE,CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,
             // CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW,CHASSIS_NO_FOLLOW_YAW,CHASSIS_OPEN
             // Remember to change gimbal_behaviour logic correspondingly
             chassis_behaviour_mode = CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW;
         }
-        else if (switch_is_down(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+        else if (switch_is_down(chassis_move_mode->chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL]))
         {
             chassis_behaviour_mode = CHASSIS_NO_MOVE;
         }
-        else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[CHASSIS_MODE_CHANNEL]))
+        else if (switch_is_up(chassis_move_mode->chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL]))
         {
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
             chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
@@ -649,7 +649,7 @@ static void chassis_engineer_follow_chassis_yaw_control(fp32 *vx_set, fp32 *vy_s
 
     chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
 
-    *angle_set = rad_format(chassis_move_rc_to_vector->chassis_yaw_set - CHASSIS_ANGLE_Z_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_WZ_CHANNEL]);
+    *angle_set = rad_format(chassis_move_rc_to_vector->chassis_yaw_set - CHASSIS_ANGLE_Z_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL]);
 }
 
 /**
@@ -679,7 +679,7 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
     }
 
     chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-    *wz_set = -CHASSIS_WZ_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_WZ_CHANNEL];
+    *wz_set = -CHASSIS_WZ_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL];
 }
 
 /**
@@ -707,8 +707,8 @@ static void chassis_open_set_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, c
         return;
     }
 
-    *vx_set = chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_X_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
-    *vy_set = -chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_Y_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
-    *wz_set = -chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_WZ_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
+    *vx_set = chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
+    *vy_set = -chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
+    *wz_set = -chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
     return;
 }

@@ -24,10 +24,6 @@
 #include "remote_control.h"
 #include "user_lib.h"
 
-
-
-//射击发射开关通道数据
-#define SHOOT_RC_MODE_CHANNEL       1
 //云台模式使用的开关通道
 
 #define SHOOT_CONTROL_TIME          GIMBAL_CONTROL_TIME

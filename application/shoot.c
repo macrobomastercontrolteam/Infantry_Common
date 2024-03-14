@@ -314,7 +314,7 @@ static void shoot_set_mode(void)
     {
         // remote controller S1 switch logic
         static int8_t last_s = RC_SW_UP;
-        switch (shoot_control.shoot_rc->rc.s[SHOOT_RC_MODE_CHANNEL])
+        switch (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL])
         {
         case RC_SW_UP:
         {
@@ -345,7 +345,7 @@ static void shoot_set_mode(void)
             break;
         }
         }
-        last_s = shoot_control.shoot_rc->rc.s[SHOOT_RC_MODE_CHANNEL];
+        last_s = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL];
     }
 #endif
 }
@@ -424,7 +424,7 @@ static void shoot_feedback_update(void)
     }
 
     //射击开关下档时间计时
-    if (shoot_control.shoot_mode != SHOOT_STOP && switch_is_down(shoot_control.shoot_rc->rc.s[SHOOT_RC_MODE_CHANNEL]))
+    if (shoot_control.shoot_mode != SHOOT_STOP && switch_is_down(shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL]))
     {
 
         if (shoot_control.rc_s_time < RC_S_LONG_TIME)

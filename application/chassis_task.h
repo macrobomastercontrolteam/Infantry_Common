@@ -29,20 +29,6 @@
 //任务开始空闲一段时间
 #define CHASSIS_TASK_INIT_TIME 357
 
-//the channel num of controlling vertial speed 
-//前后的遥控器通道号码
-#define CHASSIS_X_CHANNEL 1
-//the channel num of controlling horizontal speed
-//左右的遥控器通道号码
-#define CHASSIS_Y_CHANNEL 0
-
-//in some mode, can use remote control to control rotation speed
-//在特殊模式下，可以通过遥控器控制旋转
-#define CHASSIS_WZ_CHANNEL 2
-
-//the channel of choosing chassis mode,
-//选择底盘状态 开关通道号
-#define CHASSIS_MODE_CHANNEL 0
 //rocker value (max 660) change to vertial speed (m/s) 
 //遥控器前进摇杆（max 660）转化成车体前进速度（m/s）的比例
 #define CHASSIS_VX_RC_SEN 0.006f
