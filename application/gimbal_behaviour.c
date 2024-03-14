@@ -87,6 +87,8 @@
 #include "user_lib.h"
 #include "cv_usart_task.h"
 
+#define CV_ABS_ANGLE_INPUT 1 // 1 means abs angle input from cv, 0 means delta angle input from cv
+
 //when gimbal is in calibrating, set buzzer frequency and strenght
 //当云台在校准, 设置蜂鸣器频率和强度
 #define gimbal_warn_buzzer_on() buzzer_on(31, 20000)
@@ -257,6 +259,7 @@ static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *
 gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
 
 #if GIMBAL_TEST_MODE
+fp32 yaw_ins_delta_1000;
 uint8_t gimbal_behaviour_global;
 static void J_scope_gimbal_behavior_test(void)
 {
@@ -774,17 +777,22 @@ static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_c
     }
 
     // Positive Directions
-    // CvCmdHandler.CvCmdMsg.xDeltaAngle: right
-    // CvCmdHandler.CvCmdMsg.yDeltaAngle: up
+    // CvCmdHandler.CvCmdMsg.xAngle: right
+    // CvCmdHandler.CvCmdMsg.yAngle: up
     // yaw_target_adjustment : left (same direction as IMU)
     // pitch_target_adjustment: down (same direction as IMU)
     fp32 yaw_target_adjustment = 0;
     fp32 pitch_target_adjustment = 0;
     if (checkAndResetFlag(&CvCmdHandler.fCvCmdValid))
     {
-        yaw_target_adjustment = -CvCmdHandler.CvCmdMsg.xDeltaAngle - rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle_set - gimbal_control_set->gimbal_yaw_motor.absolute_angle);
-        pitch_target_adjustment = -CvCmdHandler.CvCmdMsg.yDeltaAngle - rad_format(gimbal_control_set->gimbal_pitch_motor.absolute_angle_set - gimbal_control_set->gimbal_pitch_motor.absolute_angle);
-    }
+#if CV_ABS_ANGLE_INPUT
+		yaw_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.xAngle - gimbal_control_set->gimbal_yaw_motor.absolute_angle_set);
+		pitch_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.yAngle - gimbal_control_set->gimbal_pitch_motor.absolute_angle_set);
+#else
+		yaw_target_adjustment = -CvCmdHandler.CvCmdMsg.xAngle - rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle_set - gimbal_control_set->gimbal_yaw_motor.absolute_angle);
+		pitch_target_adjustment = -CvCmdHandler.CvCmdMsg.yAngle - rad_format(gimbal_control_set->gimbal_pitch_motor.absolute_angle_set - gimbal_control_set->gimbal_pitch_motor.absolute_angle);
+#endif
+	}
     // brakeband_limit(yaw_target_adjustment, yaw_target_adjustment, CV_CAMERA_YAW_BRAKEBAND);
     // brakeband_limit(pitch_target_adjustment, pitch_target_adjustment, CV_CAMERA_PITCH_BRAKEBAND);
     // *yaw = moving_average_calc(yaw_target_adjustment, &(gimbal_control_set->gimbal_yaw_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
