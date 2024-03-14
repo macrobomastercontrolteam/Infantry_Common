@@ -118,10 +118,16 @@ chassis_move_t chassis_move;
 #if CHASSIS_TEST_MODE
 int32_t chassis_relative_angle_int_1000;
 int32_t chassis_relative_angle_set_int_1000;
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+uint16_t target_ecd2;
+#endif
 static void J_scope_chassis_test(void)
 {
     chassis_relative_angle_int_1000 = (int32_t)(chassis_move.chassis_yaw_motor->relative_angle * 1000);
     chassis_relative_angle_set_int_1000 = (int32_t)(chassis_move.chassis_relative_angle_set * 1000);
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+    target_ecd2 = chassis_move.steer_motor_chassis[2].target_ecd;
+#endif
 }
 #endif
 
