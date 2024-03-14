@@ -170,6 +170,7 @@
 #define PITCH_MOUSE_SEN 0.00005f
 
 #define GIMBAL_CONTROL_TIME 1
+#define MS_TO_SEC 1000.0f
 
 //test mode, 0 close, 1 open
 //云台测试模式 宏定义 0 为不使用测试模式

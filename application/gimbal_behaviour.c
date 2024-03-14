@@ -256,6 +256,14 @@ static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *
 //云台行为状态机
 gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
 
+#if GIMBAL_TEST_MODE
+uint8_t gimbal_behaviour_global;
+static void J_scope_gimbal_behavior_test(void)
+{
+    gimbal_behaviour_global = gimbal_behaviour;
+}
+#endif
+
 /**
   * @brief          the function is called by gimbal_set_mode function in gimbal_task.c
   *                 the function set gimbal_behaviour variable, and set motor mode.
@@ -315,6 +323,10 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
         gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCONDE;
         gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCONDE;
     }
+
+#if GIMBAL_TEST_MODE
+    J_scope_gimbal_behavior_test();
+#endif
 }
 
 /**
@@ -761,15 +773,27 @@ static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_c
         return;
     }
 
-    fp32 cv_yaw_channel = 0;
-    fp32 cv_pitch_channel = 0;
+    // Positive Directions
+    // CvCmdHandler.CvCmdMsg.xDeltaAngle: right
+    // CvCmdHandler.CvCmdMsg.yDeltaAngle: up
+    // yaw_target_adjustment : left (same direction as IMU)
+    // pitch_target_adjustment: down (same direction as IMU)
+    fp32 yaw_target_adjustment = 0;
+    fp32 pitch_target_adjustment = 0;
     if (checkAndResetFlag(&CvCmdHandler.fCvCmdValid))
     {
-        deadband_limit(CvCmdHandler.CvCmdMsg.xDeltaAngle, cv_yaw_channel, CV_CAMERA_YAW_DEADBAND);
-        deadband_limit(CvCmdHandler.CvCmdMsg.yDeltaAngle, cv_pitch_channel, CV_CAMERA_PITCH_DEADBAND);
+        yaw_target_adjustment = -CvCmdHandler.CvCmdMsg.xDeltaAngle - rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle_set - gimbal_control_set->gimbal_yaw_motor.absolute_angle);
+        pitch_target_adjustment = -CvCmdHandler.CvCmdMsg.yDeltaAngle - rad_format(gimbal_control_set->gimbal_pitch_motor.absolute_angle_set - gimbal_control_set->gimbal_pitch_motor.absolute_angle);
     }
-    *yaw = moving_average_calc(cv_yaw_channel, &(gimbal_control_set->gimbal_yaw_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
-    *pitch = moving_average_calc(cv_pitch_channel, &(gimbal_control_set->gimbal_pitch_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
+    // brakeband_limit(yaw_target_adjustment, yaw_target_adjustment, CV_CAMERA_YAW_BRAKEBAND);
+    // brakeband_limit(pitch_target_adjustment, pitch_target_adjustment, CV_CAMERA_PITCH_BRAKEBAND);
+    // *yaw = moving_average_calc(yaw_target_adjustment, &(gimbal_control_set->gimbal_yaw_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
+    // *pitch = moving_average_calc(pitch_target_adjustment, &(gimbal_control_set->gimbal_pitch_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
+    *yaw = yaw_target_adjustment;
+    *pitch = pitch_target_adjustment;
+#if GIMBAL_TEST_MODE
+    yaw_ins_delta_1000 = yaw_target_adjustment * 1000;
+#endif
 }
 
 /**
