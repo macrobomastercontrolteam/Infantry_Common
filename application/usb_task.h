@@ -16,11 +16,11 @@
   */
 #ifndef USB_TASK_H
 #define USB_TASK_H
-#include "global_inc.h"
+#include "C:\Users\MB\OneDrive - McMaster University\Desktop\RoboMaster\Infantry_Common\Inc\global_inc.h"
 
 
 
 extern void usb_printf(const char *fmt,...);
-extern void usb_task(void const * argument);
+extern void usb_task(void const * argument,...);
 
 #endif

@@ -1,3 +1,10 @@
 {
-	"files.encoding": "gb2312"
+	"files.encoding": "gb2312",
+	"files.associations": {
+		"usb_task.h": "c",
+		"global_inc.h": "c",
+		"stdint.h": "c",
+		"user_lib.h": "c",
+		"gimbal_task.h": "c"
+	}
 }

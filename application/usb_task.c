@@ -1,7 +1,7 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       usb_task.c/h
-  * @brief      usb outputs the error message.usb?????ик?ио????
+  * @brief      usb outputs the error message.usb??????????????
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -14,51 +14,42 @@
   @endverbatim
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
-#include "usb_task.h"
+// #include "user_lib.h"
+// #include "usb_task.h"
 
-#include "cmsis_os.h"
+// #include "cmsis_os.h"
 
-#include "usb_device.h"
-#include "usbd_cdc_if.h"
+// #include "usb_device.h"
+// #include "usbd_cdc_if.h"
 #include <stdio.h>
 #include <stdarg.h>
-#include "string.h"
+// #include "string.h"
 
-#include "detect_task.h"
-#include "voltage_task.h"
+// #include "detect_task.h"
+// #include "voltage_task.h"
 
 #include "gimbal_task.h"
 
-gimbal_control_t gimbal_control_1;
-fp32 buffer_yaw[10];
-fp32 buffer_pitch[10];
+extern gimbal_control_t gimbal_control;
+
+extern uint16_t time;
 
 void usb_printf(const char *fmt,...);
 
-static uint8_t usb_buf[400];
+// static uint8_t usb_buf[400];
 // static const char status[2][7] = {"OK", "ERROR!"}; // Unused variable
-const error_t *error_list_usb_local;
+// const error_t *error_list_usb_local;
 
 
 
 void usb_task(void const * argument)
 {
-    MX_USB_DEVICE_Init();
-    error_list_usb_local = get_error_list_point();
+    // MX_USB_DEVICE_Init();
+    // error_list_usb_local = get_error_list_point();
 
-    gimbal_control_1.yaw_angle.angle_buffer = buffer_yaw;
-    gimbal_control_1.pitch_angle.angle_buffer = buffer_pitch;
 
-    gimbal_control_1.pitch_angle.buffer_size = 10;
-    gimbal_control_1.pitch_angle.current_buffer_index = 0;
-    gimbal_control_1.pitch_angle.buffer_full_flag = 0;
-
-    gimbal_control_1.yaw_angle.buffer_size = 10;
-    gimbal_control_1.yaw_angle.current_buffer_index = 0;
-    gimbal_control_1.yaw_angle.buffer_full_flag = 0;
-
-    while(1)
-    {
+    //while(1)
+    //{
     /* #if DEBUG_CV_WITH_USB
     UNUSED(status);
     #else
@@ -114,36 +105,35 @@ void usb_task(void const * argument)
                 status[error_list_usb_local[REFEREE_TOE].error_exist],
                 status[error_list_usb_local[CV_TOE].error_exist]);
     #endif // DEBUG_CV_WITH_USB */
-    #if DEBUG_CV_WITH_USB
-        fp32 yaw_angle_to_print = access_angle(10,&(gimbal_control_1.yaw_angle));
-        fp32 pitch_angle_to_print = access_angle(10,&(gimbal_control_1.pitch_angle));
-        fill_buffer(1000.0f,&(gimbal_control_1.yaw_angle));
-        fill_buffer(500.0f,&(gimbal_control_1.pitch_angle));
+    //#if DEBUG_CV_WITH_USB
+        fp32 yaw_angle_to_print = access_angle(time,&(gimbal_control.yaw_angle));
+        fp32 pitch_angle_to_print = access_angle(time,&(gimbal_control.pitch_angle));
 
-        usb_printf("yaw: %f, pitch: %f\n",yaw_angle_to_print,pitch_angle_to_print);
-    #endif
-    }
+
+        printf("yaw: %f, pitch: %f\n",yaw_angle_to_print,pitch_angle_to_print);
+    //#endif
+    //}
 
 }
 
-void usb_printf(const char *fmt,...)
-{
-    static va_list ap;
-    uint16_t len = 0;
+// void usb_printf(const char *fmt,...)
+// {
+//     static va_list ap;
+//     uint16_t len = 0;
 
-    va_start(ap, fmt);
+//     va_start(ap, fmt);
 
-    // Warning: len is the length of the string without null terminator if it were to be fully copied to buffer
-    len = vsnprintf((char *)usb_buf, sizeof(usb_buf), fmt, ap);
+//     // Warning: len is the length of the string without null terminator if it were to be fully copied to buffer
+//     len = vsnprintf((char *)usb_buf, sizeof(usb_buf), fmt, ap);
 
-    va_end(ap);
+//     va_end(ap);
 
-    if (len > 0)
-    {
-        CDC_Transmit_FS(usb_buf, MIN(len, sizeof(usb_buf) - 1));
-    }
-    else
-    {
-        Error_Handler();
-    }
-}
+//     if (len > 0)
+//     {
+//         CDC_Transmit_FS(usb_buf, MIN(len, sizeof(usb_buf) - 1));
+//     }
+//     else
+//     {
+//         Error_Handler();
+//     }
+// }
