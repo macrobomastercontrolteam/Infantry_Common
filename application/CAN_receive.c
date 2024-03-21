@@ -486,10 +486,9 @@ HAL_StatusTypeDef soft_disable_Ktech_motor(uint32_t id, CAN_HandleTypeDef *hcan_
 HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
 {
 #if DISABLE_ARM_MOTOR_POWER
+	return encode_4010_motor_torque_control(id, 0, blocking_call, hcan_ptr);
+#else
 	// Warning: do not set maxSpeed_dps = 0, the motor will behave abnormally!
-	angleControl_rad = ARM_JOINT_2_ANGLE_HOME;
-#endif
-
 	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, 0.1f, 20.0f) * 360.0f / 60.0f * MOTOR_4010_GEAR_RATIO;
 	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f * MOTOR_4010_GEAR_RATIO;
 	can_tx_message.StdId = id;
@@ -508,14 +507,14 @@ HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_
 	can_send_data[7] = *((uint8_t *)&angle_deg + 3);
 
 	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
+#endif
 }
 
 HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
 {
 #if DISABLE_ARM_MOTOR_POWER
-	angleControl_rad = ARM_JOINT_1_ANGLE_HOME;
-#endif
-
+	return encode_6012_motor_torque_control(id, 0, blocking_call, hcan_ptr);
+#else
 	// Warning: do not set maxSpeed_dps = 0, the motor will behave abnormally!
 	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, 0.1f, 20.0f) * 360.0f / 60.0f * MOTOR_6012_GEAR_RATIO;
 	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f * MOTOR_6012_GEAR_RATIO;
@@ -535,6 +534,7 @@ HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_
 	can_send_data[7] = *((uint8_t *)&angle_deg + 3);
 
 	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
+#endif
 }
 
 HAL_StatusTypeDef encode_6012_motor_torque_control(uint32_t id, float torque_cmd, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
