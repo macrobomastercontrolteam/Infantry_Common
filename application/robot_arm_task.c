@@ -153,7 +153,7 @@ void robot_arm_control(void)
 			{
 				arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S);
 
-				if (fIsStateHoldTimePassed && is_joint_target_reached(robot_arm.joint_angle_target, 0.1f))
+				if (fIsStateHoldTimePassed && is_joint_target_reached(0.05f))
 				{
 					if (robot_arm.fHoming)
 					{
@@ -180,7 +180,7 @@ void robot_arm_control(void)
 
 				if (fIsStateHoldTimePassed)
 				{
-					if (is_joint_target_reached(robot_arm.joint_angle_target, 0.1f))
+					if (is_joint_target_reached(0.05f))
 					{
 						if (robot_arm.fHoming)
 						{
@@ -207,7 +207,7 @@ void robot_arm_control(void)
 
 			if (fIsStateHoldTimePassed)
 			{
-				if (is_joint_target_reached(robot_arm.joint_angle_target, 0.1f))
+				if (is_joint_target_reached(0.05f))
 				{
 					robot_arm.fHoming = 0;
 					// state unchanged
