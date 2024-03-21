@@ -260,14 +260,14 @@ static void detect_init(uint32_t time)
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
-            {50, 10, 10},   // chassis controller
-            {50, 10, 11},   // joint motor 0
-            {50, 10, 12},   // joint motor 1
-            {50, 10, 13},   // joint motor 2
-            {50, 10, 14},   // joint motor 3
-            {50, 10, 15},   // joint motor 4
-            {50, 10, 16},   // joint motor 5
-            {50, 10, 17},   // joint motor 6
+            {50, 0, 10},   // chassis controller
+            {50, 0, 11},   // joint motor 0
+            {50, 0, 12},   // joint motor 1
+            {50, 0, 13},   // joint motor 2
+            {50, 0, 14},   // joint motor 3
+            {50, 0, 15},   // joint motor 4
+            {50, 0, 16},   // joint motor 5
+            {50, 0, 17},   // joint motor 6
             {2, 3, 7},      //board gyro
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag
