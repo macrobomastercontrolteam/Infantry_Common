@@ -3,9 +3,9 @@
 #include "cmsis_os.h"
 #include "detect_task.h"
 
-#define ARM_STATE_MOVING_HOLD_TIME_MS 100
-#define ARM_STATE_FIXED_HOLD_TIME_MS 100
-#define ARM_STATE_ZERO_FORCE_HOLD_TIME_MS 100
+#define ARM_STATE_MOVING_HOLD_TIME_MS 500
+#define ARM_STATE_FIXED_HOLD_TIME_MS 500
+#define ARM_STATE_ZERO_FORCE_HOLD_TIME_MS 500
 
 void robot_arm_init(void);
 void robot_arm_status_update(void);
