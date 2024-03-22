@@ -11,6 +11,8 @@ void robot_arm_init(void);
 void robot_arm_status_update(void);
 void robot_arm_control(void);
 void robot_arm_state_transition(void);
+uint8_t is_joint_target_reached(fp32 tol);
+void robot_arm_assign_current_as_target(void);
 
 const fp32 joint_angle_min[7] = {ARM_JOINT_0_ANGLE_MIN, ARM_JOINT_1_ANGLE_MIN, ARM_JOINT_2_ANGLE_MIN, ARM_JOINT_3_ANGLE_MIN, ARM_JOINT_4_ANGLE_MIN, ARM_JOINT_5_ANGLE_MIN, ARM_JOINT_6_ANGLE_MIN};
 const fp32 joint_angle_max[7] = {ARM_JOINT_0_ANGLE_MAX, ARM_JOINT_1_ANGLE_MAX, ARM_JOINT_2_ANGLE_MAX, ARM_JOINT_3_ANGLE_MAX, ARM_JOINT_4_ANGLE_MAX, ARM_JOINT_5_ANGLE_MAX, ARM_JOINT_6_ANGLE_MAX};
@@ -207,12 +209,14 @@ void robot_arm_control(void)
 
 			if (fIsStateHoldTimePassed)
 			{
-				if (is_joint_target_reached(0.05f))
+				if (robot_arm.fHoming)
 				{
 					robot_arm.fHoming = 0;
-					// state unchanged
+					// assign sleeping position as target (Note that sleep != home)
+					robot_arm_assign_current_as_target();
 				}
-				else if (robot_arm.fMasterSwitch)
+
+				if (robot_arm.fMasterSwitch && (is_joint_target_reached(0.05f) == 0))
 				{
 					robot_arm.arm_state = ARM_STATE_MOVING;
 				}
@@ -254,7 +258,7 @@ void robot_arm_init(void)
 	robot_arm.arm_INS_speed = get_gyro_data_point();
 	// robot_arm.arm_INS_accel = get_accel_data_point();
 	robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
-	robot_arm.fHoming = 0;
+	robot_arm.fHoming = 1;
 	robot_arm.fMasterSwitch = 0;
 	robot_arm.prevStateSwitchTime = xTaskGetTickCount();
 
@@ -293,6 +297,15 @@ void robot_arm_motors_return_home(uint8_t _start, uint8_t _end)
 	}
 }
 
+void robot_arm_assign_current_as_target(void)
+{
+	uint8_t i;
+	for (i = 0; i < sizeof(robot_arm.joint_angle_target) / sizeof(robot_arm.joint_angle_target[0]); i++)
+	{
+		robot_arm.joint_angle_target[i] = motor_measure[i].output_angle;
+	}
+}
+
 void robot_arm_switch_on_power(void)
 {
 	if (robot_arm.fMasterSwitch == 0)
@@ -302,4 +315,21 @@ void robot_arm_switch_on_power(void)
 			robot_arm.fMasterSwitch = 1;
 		}
 	}
+}
+
+uint8_t is_joint_target_reached(fp32 tol)
+{
+	uint8_t fTargetReached = 1;
+	for (uint8_t i = 0; i < sizeof(robot_arm.joint_angle_target) / sizeof(robot_arm.joint_angle_target[0]); i++)
+	{
+		if (fabs(robot_arm.joint_angle_target[i] - motor_measure[i].output_angle) > tol)
+		{
+			fTargetReached = 0;
+#if ROBOT_ARM_JSCOPE_DEBUG
+			notReachedJoint = i;
+#endif
+			break;
+		}
+	}
+	return fTargetReached;
 }

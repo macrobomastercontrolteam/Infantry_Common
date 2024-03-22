@@ -684,17 +684,3 @@ void update_joint_6_6020_angle(void)
 {
 	motor_measure[JOINT_ID_6_6020].output_angle = motor_ecd_to_angle_change(motor_measure[JOINT_ID_6_6020].ecd, joint_6_6020_offset_ecd);
 }
-
-uint8_t is_joint_target_reached(fp32 tol)
-{
-	uint8_t fTargetReached = 1;
-	for (uint8_t i = 0; i < sizeof(robot_arm.joint_angle_target) / sizeof(robot_arm.joint_angle_target[0]); i++)
-	{
-		if (fabs(robot_arm.joint_angle_target[i] - motor_measure[i].output_angle) > tol)
-		{
-			fTargetReached = 0;
-			break;
-		}
-	}
-	return fTargetReached;
-}
