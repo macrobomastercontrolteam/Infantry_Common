@@ -45,6 +45,7 @@
 #define DRIVE_WHEEL_RADIUS 0.0675f
 
 #define RAD_TO_INT16_SCALE (32767.0f/PI) // (2^15-1)/PI
+#define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN * 0.10471975511965977f)
 
 /******************************* Robot control enables *******************************/
 // switches between original, RM, capstone models

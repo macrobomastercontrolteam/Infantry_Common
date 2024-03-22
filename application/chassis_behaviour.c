@@ -2,12 +2,12 @@
 #include "chassis_behaviour.h"
 #include "chassis_task.h"
 #include "cmsis_os.h"
+#include "user_lib.h"
 
 #include "biped.h"
 #include "cv_usart_task.h"
 #include "gimbal_behaviour.h"
 
-#define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN * 0.10471975511965977f)
 #define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(25.0f))
 #define SPINNING_CHASSIS_MED_OMEGA (RPM_TO_RADS(30.0f))
 #define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(35.0f))

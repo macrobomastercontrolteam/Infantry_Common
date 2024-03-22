@@ -354,16 +354,23 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
 
 	uint8_t blocking_call = 0;
 	// According to test, CAN_JOINT_MOTOR_0_4310_TX_ID starts diverging with kd>1.5
+	// fp32 joint_0_angle_tune = PID_calc(&robot_arm.joint_0_4310_angle_pid, motor_measure[JOINT_ID_0_4310].output_angle, joint_angle_target_ptr[0], dt);
 	encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, joint_angle_target_ptr[0], 0, 10, 1.5f, 0, blocking_call, DM_4310, &LOWER_MOTORS_CAN);
 	osDelay(2);
+
 	encode_6012_motor_position_control(CAN_JOINT_MOTOR_1_6012_TX_ID, 5.0f, joint_angle_target_ptr[1], blocking_call, &LOWER_MOTORS_CAN);
 	osDelay(2);
 
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4310_TX_ID, joint_angle_target_ptr[3], 0, 10, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
+	fp32 joint_3_angle_tune = PID_calc(&robot_arm.joint_3_4310_angle_pid, motor_measure[JOINT_ID_3_4310].output_angle, joint_angle_target_ptr[3], dt);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4310_TX_ID, joint_3_angle_tune + joint_angle_target_ptr[3], 0, 15, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
 	osDelay(2);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_4_4310_TX_ID, joint_angle_target_ptr[4], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
+
+	fp32 joint_4_angle_tune = PID_calc(&robot_arm.joint_4_4310_angle_pid, motor_measure[JOINT_ID_4_4310].output_angle, joint_angle_target_ptr[4], dt);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_4_4310_TX_ID, joint_4_angle_tune + joint_angle_target_ptr[4], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
 	osDelay(2);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, joint_angle_target_ptr[5], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
+
+	fp32 joint_5_angle_tune = PID_calc(&robot_arm.joint_5_4310_angle_pid, motor_measure[JOINT_ID_5_4310].output_angle, joint_angle_target_ptr[5], dt);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, joint_5_angle_tune + joint_angle_target_ptr[5], 0, 10, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
 	osDelay(2);
 
 	encode_4010_motor_position_control(CAN_JOINT_MOTOR_2_4010_TX_ID, 10.0f, joint_angle_target_ptr[2], blocking_call, &LOWER_MOTORS_CAN);
@@ -458,6 +465,11 @@ void CAN_cmd_switch_motor_power(uint8_t _enable)
 		osDelay(2);
 
 		encode_6020_motor_current_control(0, 0, 0, &LOWER_MOTORS_CAN, blocking_call);
+		PID_clear(&robot_arm.joint_0_4310_angle_pid);
+		PID_clear(&robot_arm.joint_3_4310_angle_pid);
+		PID_clear(&robot_arm.joint_4_4310_angle_pid);
+		PID_clear(&robot_arm.joint_5_4310_angle_pid);
+
 		PID_clear(&robot_arm.joint_6_6020_angle_pid);
 		PID_clear(&robot_arm.joint_6_6020_speed_pid);
 	}

@@ -77,13 +77,43 @@
 #define ARM_END_EFFECTOR_Z_MAX (0.5f)
 #define ARM_END_EFFECTOR_Z_HOME 0.0f
 
-#define JOINT_6_6020_ANGLE_PID_KP 15.0f
-#define JOINT_6_6020_ANGLE_PID_KI 0.00f
-#define JOINT_6_6020_ANGLE_PID_KD 0.0f
-#define JOINT_6_6020_ANGLE_PID_MAX_OUT 10.0f
-#define JOINT_6_6020_ANGLE_PID_MAX_IOUT 0.0f
+// controls motor angle cmd
+#define JOINT_0_4310_ANGLE_PID_KP 1.0f
+#define JOINT_0_4310_ANGLE_PID_KI 0.5f
+#define JOINT_0_4310_ANGLE_PID_KD 0.0f
+#define JOINT_0_4310_ANGLE_PID_MAX_OUT 0.25f
+#define JOINT_0_4310_ANGLE_PID_MAX_IOUT 0.25f
 
-#define JOINT_6_6020_SPEED_PID_KP 1000.0f // pitch starts shaking at 1200
+// controls motor angle cmd
+#define JOINT_3_4310_ANGLE_PID_KP 1.0f
+#define JOINT_3_4310_ANGLE_PID_KI 1.0f
+#define JOINT_3_4310_ANGLE_PID_KD 0.0f
+#define JOINT_3_4310_ANGLE_PID_MAX_OUT 0.25f
+#define JOINT_3_4310_ANGLE_PID_MAX_IOUT 0.25f
+
+// controls motor angle cmd
+#define JOINT_4_4310_ANGLE_PID_KP 1.0f
+#define JOINT_4_4310_ANGLE_PID_KI 1.0f
+#define JOINT_4_4310_ANGLE_PID_KD 0.0f
+#define JOINT_4_4310_ANGLE_PID_MAX_OUT 0.25f
+#define JOINT_4_4310_ANGLE_PID_MAX_IOUT 0.25f
+
+// controls motor angle cmd
+#define JOINT_5_4310_ANGLE_PID_KP 1.0f
+#define JOINT_5_4310_ANGLE_PID_KI 1.0f
+#define JOINT_5_4310_ANGLE_PID_KD 0.0f
+#define JOINT_5_4310_ANGLE_PID_MAX_OUT 0.25f
+#define JOINT_5_4310_ANGLE_PID_MAX_IOUT 0.25f
+
+// controls motor speed cmd
+#define JOINT_6_6020_ANGLE_PID_KP 20.0f
+#define JOINT_6_6020_ANGLE_PID_KI 0.5f
+#define JOINT_6_6020_ANGLE_PID_KD 0.0f
+#define JOINT_6_6020_ANGLE_PID_MAX_OUT RPM_TO_RADS(90.0f)
+#define JOINT_6_6020_ANGLE_PID_MAX_IOUT RPM_TO_RADS(10.0f)
+
+// controls motor acceleration cmd
+#define JOINT_6_6020_SPEED_PID_KP 850.0f // pitch starts shaking at 1200
 #define JOINT_6_6020_SPEED_PID_KI 0.0f
 #define JOINT_6_6020_SPEED_PID_KD 0.0f
 #define JOINT_6_6020_SPEED_PID_MAX_OUT 30000.0f
@@ -100,6 +130,13 @@ typedef struct
 {
 	fp32 time_step_s; // second
 	uint32_t time_ms; // millisecond
+	pid_type_def joint_0_4310_angle_pid;
+	pid_type_def joint_1_6012_angle_pid;
+	pid_type_def joint_2_4010_angle_pid;
+	pid_type_def joint_3_4310_angle_pid;
+	pid_type_def joint_4_4310_angle_pid;
+	pid_type_def joint_5_4310_angle_pid;
+
 	pid_type_def joint_6_6020_angle_pid;
 	pid_type_def joint_6_6020_speed_pid;
 
