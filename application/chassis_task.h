@@ -40,19 +40,6 @@
 //在特殊模式下，可以通过遥控器控制旋转
 #define CHASSIS_WZ_CHANNEL 2
 
-//rocker value (max 660) change to vertial speed (m/s) 
-//遥控器前进摇杆（max 660）转化成车体前进速度（m/s）的比例
-#define CHASSIS_VX_RC_SEN 0.006f
-//rocker value (max 660) change to horizontal speed (m/s)
-//遥控器左右摇杆（max 660）转化成车体左右速度（m/s）的比例
-#define CHASSIS_VY_RC_SEN 0.005f
-//in following yaw angle mode, rocker value add to angle 
-//跟随底盘yaw模式下，遥控器的yaw遥杆（max 660）增加到车体角度的比例
-#define CHASSIS_ANGLE_Z_RC_SEN 0.000002f
-//in not following yaw angle mode, rocker value change to rotation speed
-//不跟随云台的时候 遥控器的yaw遥杆（max 660）转化成车体旋转速度的比例
-#define CHASSIS_WZ_RC_SEN 0.01f
-
 #define JOINT_0_RC_DIRECTION_GAIN (1.0f)
 #define JOINT_1_RC_DIRECTION_GAIN (-1.0f)
 #define JOINT_2_RC_DIRECTION_GAIN (1.0f)
@@ -240,10 +227,23 @@
 #define MAX_WHEEL_SPEED 4.0f
 //chassis forward or back max speed
 //底盘运动过程最大前进速度
-#define NORMAL_MAX_CHASSIS_SPEED_X 3.0f
+#define NORMAL_MAX_CHASSIS_SPEED_X 2.0f
 //chassis left or right max speed
 //底盘运动过程最大平移速度
-#define NORMAL_MAX_CHASSIS_SPEED_Y 3.0f
+#define NORMAL_MAX_CHASSIS_SPEED_Y 2.0f
+
+//rocker value (max 660) change to vertial speed (m/s) 
+//遥控器前进摇杆（max 660）转化成车体前进速度（m/s）的比例
+#define CHASSIS_VX_RC_SEN (NORMAL_MAX_CHASSIS_SPEED_X/JOYSTICK_HALF_RANGE)
+//rocker value (max 660) change to horizontal speed (m/s)
+//遥控器左右摇杆（max 660）转化成车体左右速度（m/s）的比例
+#define CHASSIS_VY_RC_SEN (NORMAL_MAX_CHASSIS_SPEED_Y/JOYSTICK_HALF_RANGE)
+//in following yaw angle mode, rocker value add to angle 
+//跟随底盘yaw模式下，遥控器的yaw遥杆（max 660）增加到车体角度的比例
+#define CHASSIS_ANGLE_Z_RC_SEN 0.000002f
+//in not following yaw angle mode, rocker value change to rotation speed
+//不跟随云台的时候 遥控器的yaw遥杆（max 660）转化成车体旋转速度的比例
+#define CHASSIS_WZ_RC_SEN 0.01f
 
 // Arbitrary offsets between chassis rotational center and centroid
 #define CHASSIS_WZ_SET_SCALE 0.0f
