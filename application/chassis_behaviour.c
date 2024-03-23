@@ -84,16 +84,16 @@
 #include "cmsis_os.h"
 #include "chassis_task.h"
 #include "arm_math.h"
+#include "user_lib.h"
 
 #include "gimbal_behaviour.h"
 #include "cv_usart_task.h"
 #include "detect_task.h"
 
-#define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN*0.10471975511965977f)
-#define SPINNING_CHASSIS_ULTRA_LOW_OMEGA (RPM_TO_RADS(8.0f))
-#define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(25.0f))
-#define SPINNING_CHASSIS_MED_OMEGA (RPM_TO_RADS(30.0f))
-#define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(35.0f))
+#define SPINNING_CHASSIS_ULTRA_LOW_OMEGA RPM_TO_RADS(8.0f)
+#define SPINNING_CHASSIS_LOW_OMEGA RPM_TO_RADS(25.0f)
+#define SPINNING_CHASSIS_MED_OMEGA RPM_TO_RADS(30.0f)
+#define SPINNING_CHASSIS_HIGH_OMEGA RPM_TO_RADS(35.0f)
 
 #if CHASSIS_TEST_MODE
 int32_t chassis_behaviour_mode_int;
@@ -668,7 +668,7 @@ static void chassis_engineer_follow_chassis_yaw_control(fp32 *vx_set, fp32 *vy_s
 
     chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
 
-    *angle_set = rad_format(chassis_move_rc_to_vector->chassis_yaw_set - CHASSIS_ANGLE_Z_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL]);
+    *angle_set = rad_format(chassis_move_rc_to_vector->chassis_yaw_set - CHASSIS_ANGLE_Z_RC_SEN_INC * chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL]);
 }
 
 /**

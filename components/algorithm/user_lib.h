@@ -74,6 +74,8 @@
         }                                                                                                                       \
     }
 
+#define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN * 2.0f * PI / 60.0f)
+
 typedef __packed struct
 {
     fp32 input;        // ‰»Î ˝æ›

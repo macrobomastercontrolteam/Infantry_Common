@@ -29,19 +29,6 @@
 //任务开始空闲一段时间
 #define CHASSIS_TASK_INIT_TIME 357
 
-//rocker value (max 660) change to vertial speed (m/s) 
-//遥控器前进摇杆（max 660）转化成车体前进速度（m/s）的比例
-#define CHASSIS_VX_RC_SEN 0.006f
-//rocker value (max 660) change to horizontal speed (m/s)
-//遥控器左右摇杆（max 660）转化成车体左右速度（m/s）的比例
-#define CHASSIS_VY_RC_SEN 0.005f
-//in following yaw angle mode, rocker value add to angle 
-//跟随底盘yaw模式下，遥控器的yaw遥杆（max 660）增加到车体角度的比例
-#define CHASSIS_ANGLE_Z_RC_SEN 0.000002f
-//in not following yaw angle mode, rocker value change to rotation speed
-//不跟随云台的时候 遥控器的yaw遥杆（max 660）转化成车体旋转速度的比例
-#define CHASSIS_WZ_RC_SEN 0.01f
-
 #define CHASSIS_ACCEL_WZ_NUM 0.06f
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define CHASSIS_ACCEL_X_NUM 0.06f
@@ -84,10 +71,10 @@
 
 //chassis task control time  2ms
 //底盘任务控制间隔 2ms
-#define CHASSIS_CONTROL_TIME_MS 2
+#define CHASSIS_CONTROL_TIME_MS 2.0f
 //chassis task control time 0.002s
 //底盘任务控制间隔 0.002s
-#define CHASSIS_CONTROL_TIME 0.002f
+#define CHASSIS_CONTROL_TIME_S (CHASSIS_CONTROL_TIME_MS / 1000.0f)
 //chassis control frequence, no use now.
 //底盘任务控制频率，尚未使用这个宏
 #define CHASSIS_CONTROL_FREQUENCE 500.0f
@@ -124,10 +111,21 @@
 #define MAX_WHEEL_SPEED 4.0f
 //chassis forward or back max speed
 //底盘运动过程最大前进速度
-#define NORMAL_MAX_CHASSIS_SPEED_X 1.0f
+#define NORMAL_MAX_CHASSIS_SPEED_X 1.5f
 //chassis left or right max speed
 //底盘运动过程最大平移速度
-#define NORMAL_MAX_CHASSIS_SPEED_Y 1.0f
+#define NORMAL_MAX_CHASSIS_SPEED_Y 1.5f
+#define NORMAL_MAX_CHASSIS_SPEED_WZ RPM_TO_RADS(60.0f)
+
+// map joystick value (max 660) to vertial speed (m/s)
+#define CHASSIS_VX_RC_SEN (NORMAL_MAX_CHASSIS_SPEED_X / JOYSTICK_HALF_RANGE)
+// map joystick value (max 660) to horizontal speed (m/s)
+#define CHASSIS_VY_RC_SEN (NORMAL_MAX_CHASSIS_SPEED_Y / JOYSTICK_HALF_RANGE)
+// In follow-yaw mode, map joystick value to increment in target yaw angle
+#define CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S 2.0f
+#define CHASSIS_ANGLE_Z_RC_SEN_INC (PI / 2.0f / CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
+// In not-follow-yaw mode, map joystick value to target yaw speed
+#define CHASSIS_WZ_RC_SEN (NORMAL_MAX_CHASSIS_SPEED_WZ / JOYSTICK_HALF_RANGE)
 
 // Arbitrary offsets between chassis rotational center and centroid
 #if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
