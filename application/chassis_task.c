@@ -211,7 +211,7 @@ void robot_arm_control(void)
 			robot_arm_set_home();
 			break;
 		}
-		case ROBOT_ARM_ENABLED:
+		case ROBOT_ARM_CHANGEABLE:
 		{
 			fp32 right_horiz_channel, right_vert_channel, left_horiz_channel, left_vert_channel;
 			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], right_horiz_channel, CHASSIS_RC_DEADLINE);
@@ -277,7 +277,7 @@ void robot_arm_control(void)
 			robot_arm_set_home();
 			break;
 		}
-		case ROBOT_ARM_ENABLED:
+		case ROBOT_ARM_CHANGEABLE:
 		{
 			// @TODO: end effector mode
 			for (uint8_t i = 0; i < 6; i++)

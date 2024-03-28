@@ -131,7 +131,7 @@ void CAN_cmd_robot_arm_by_end_effector(end_effector_cmd_t _end_effector_cmd, rob
     switch (arm_cmd_type)
     {
 #if (DISABLE_ARM_MOTOR_POWER == 0)
-      case ROBOT_ARM_ENABLED:
+      case ROBOT_ARM_CHANGEABLE:
       case ROBOT_ARM_FIXED:
       {
         cmd_int16[0] = _end_effector_cmd.setpoints.roll_set * RAD_TO_INT16_SCALE;
@@ -183,7 +183,7 @@ void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_typ
     switch (arm_cmd_type)
     {
 #if (DISABLE_ARM_MOTOR_POWER == 0)
-      case ROBOT_ARM_ENABLED:
+      case ROBOT_ARM_CHANGEABLE:
       case ROBOT_ARM_FIXED:
       {
         uint8_t cmd_index;

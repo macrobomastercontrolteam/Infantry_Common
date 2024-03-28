@@ -231,7 +231,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			{
 				case RC_SW_UP:
 				{
-					chassis_move_mode->robot_arm_mode = ROBOT_ARM_ENABLED;
+					chassis_move_mode->robot_arm_mode = ROBOT_ARM_CHANGEABLE;
 					break;
 				}
 				case RC_SW_MID:
