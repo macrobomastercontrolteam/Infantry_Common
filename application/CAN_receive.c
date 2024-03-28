@@ -120,7 +120,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     }
 }
 
-void CAN_cmd_robot_arm_by_end_effector(end_effector_cmd_t _end_effector_cmd, robot_arm_behaviour_e arm_cmd_type)
+void CAN_cmd_robot_arm_by_end_effector(end_effector_cmd_t _end_effector_cmd, robot_arm_behaviour_e arm_cmd_type, uint8_t fHoming)
 {
     uint32_t send_mail_box;
     gimbal_tx_message.IDE = CAN_ID_STD;
@@ -133,19 +133,22 @@ void CAN_cmd_robot_arm_by_end_effector(end_effector_cmd_t _end_effector_cmd, rob
 #if (DISABLE_ARM_MOTOR_POWER == 0)
       case ROBOT_ARM_CHANGEABLE:
       case ROBOT_ARM_FIXED:
-      {
-        cmd_int16[0] = _end_effector_cmd.setpoints.roll_set * RAD_TO_INT16_SCALE;
-        cmd_int16[1] = _end_effector_cmd.setpoints.pitch_set * RAD_TO_INT16_SCALE;
-        cmd_int16[2] = _end_effector_cmd.setpoints.yaw_set * RAD_TO_INT16_SCALE;
-        cmd_int16[3] = _end_effector_cmd.setpoints.x_set * ONE_METER_TO_INT16_SCALE;
-        cmd_int16[4] = _end_effector_cmd.setpoints.y_set * ONE_METER_TO_INT16_SCALE;
-        cmd_int16[5] = _end_effector_cmd.setpoints.z_set * ONE_METER_TO_INT16_SCALE;
-        break;
-      }
       case ROBOT_ARM_HOME:
       {
-        memset(cmd_int16, 0xFF, sizeof(cmd_int16));
-        break;
+        if (fHoming)
+        {
+          memset(cmd_int16, 0xFF, sizeof(cmd_int16));
+        }
+        else
+        {
+          cmd_int16[0] = _end_effector_cmd.setpoints.roll_set * RAD_TO_INT16_SCALE;
+          cmd_int16[1] = _end_effector_cmd.setpoints.pitch_set * RAD_TO_INT16_SCALE;
+          cmd_int16[2] = _end_effector_cmd.setpoints.yaw_set * RAD_TO_INT16_SCALE;
+          cmd_int16[3] = _end_effector_cmd.setpoints.x_set * ONE_METER_TO_INT16_SCALE;
+          cmd_int16[4] = _end_effector_cmd.setpoints.y_set * ONE_METER_TO_INT16_SCALE;
+          cmd_int16[5] = _end_effector_cmd.setpoints.z_set * ONE_METER_TO_INT16_SCALE;
+        }
+		    break;
       }
       case ROBOT_ARM_ZERO_FORCE:
 #endif
@@ -172,7 +175,7 @@ void CAN_cmd_robot_arm_by_end_effector(end_effector_cmd_t _end_effector_cmd, rob
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
-void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_type)
+void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_type, uint8_t fHoming)
 {
     uint32_t send_mail_box;
     gimbal_tx_message.IDE = CAN_ID_STD;
@@ -185,18 +188,21 @@ void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_typ
 #if (DISABLE_ARM_MOTOR_POWER == 0)
       case ROBOT_ARM_CHANGEABLE:
       case ROBOT_ARM_FIXED:
-      {
-        uint8_t cmd_index;
-        for (cmd_index = 0; cmd_index < sizeof(cmd_int16) / sizeof(cmd_int16[0]); cmd_index++)
-        {
-          cmd_int16[cmd_index] = motor_pos[cmd_index] * RAD_TO_INT16_SCALE;
-        }
-        break;
-      }
       case ROBOT_ARM_HOME:
       {
-        memset(cmd_int16, 0xFF, sizeof(cmd_int16));
-        break;
+        if (fHoming)
+        {
+          memset(cmd_int16, 0xFF, sizeof(cmd_int16));
+        }
+        else
+        {
+          uint8_t cmd_index;
+          for (cmd_index = 0; cmd_index < sizeof(cmd_int16) / sizeof(cmd_int16[0]); cmd_index++)
+          {
+            cmd_int16[cmd_index] = motor_pos[cmd_index] * RAD_TO_INT16_SCALE;
+          }
+        }
+		    break;
       }
       case ROBOT_ARM_ZERO_FORCE:
 #endif

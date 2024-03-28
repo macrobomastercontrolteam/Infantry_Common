@@ -314,7 +314,8 @@ typedef struct
   fp32 chassis_yaw;   //the yaw angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的yaw角度
   fp32 chassis_pitch; //the pitch angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的pitch角度
   fp32 chassis_roll;  //the roll angle calculated by gyro sensor and gimbal motor.陀螺仪和云台电机叠加的roll角度
-
+  
+  uint8_t fHoming;
   robot_arm_behaviour_e robot_arm_mode;
   end_effector_cmd_t end_effector_cmd;
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)

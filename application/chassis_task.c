@@ -199,6 +199,7 @@ void robot_arm_set_home(void)
 		chassis_move.end_effector_cmd.setpoints[i] = arm_end_home[i];
 	}
 #endif
+	chassis_move.fHoming = 1;
 }
 
 void robot_arm_control(void)
@@ -218,6 +219,11 @@ void robot_arm_control(void)
 			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], right_vert_channel, CHASSIS_RC_DEADLINE);
 			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], left_horiz_channel, CHASSIS_RC_DEADLINE);
 			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], left_vert_channel, CHASSIS_RC_DEADLINE);
+
+			if (chassis_move.fHoming && (right_horiz_channel || right_vert_channel || left_horiz_channel || left_vert_channel))
+			{
+				chassis_move.fHoming = 0;
+			}
 
 			switch (chassis_move.chassis_RC->rc.s[RIGHT_LEVER_CHANNEL])
 			{
@@ -371,6 +377,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	chassis_move_init->vy_min_speed = -NORMAL_MAX_CHASSIS_SPEED_Y;
 
 	chassis_move_init->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
+	chassis_move_init->fHoming = 0;
 	robot_arm_set_home();
 
 	//update data
@@ -680,8 +687,8 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 void CAN_cmd_robot_arm(void)
 {
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
-	CAN_cmd_robot_arm_by_q(chassis_move.robot_arm_motor_pos, chassis_move.robot_arm_mode);
+	CAN_cmd_robot_arm_by_q(chassis_move.robot_arm_motor_pos, chassis_move.robot_arm_mode, chassis_move.fHoming);
 #else  /* INDIVIDUAL_MOTOR_TEST */
-	CAN_cmd_robot_arm_by_end_effector(chassis_move.end_effector_cmd, chassis_move.robot_arm_mode);
+	CAN_cmd_robot_arm_by_end_effector(chassis_move.end_effector_cmd, chassis_move.robot_arm_mode, chassis_move.fHoming);
 #endif /* INDIVIDUAL_MOTOR_TEST */
 }
