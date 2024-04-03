@@ -176,7 +176,8 @@ void chassis_task(void const *pvParameters)
       graphic_data_struct_t line;
 
       line_draw(&line, "abc", UI_Graph_ADD, 1, UI_Color_Cyan, 1, 500, 500, 500, 900);
-      UI_ReFresh(1, line);
+      // UI_ReFresh(1, line);
+      update_ui(&line);
 //         //set chassis control mode
 //         //设置底盘控制模式
 //         chassis_set_mode(&chassis_move);
