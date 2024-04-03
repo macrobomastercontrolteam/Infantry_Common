@@ -539,7 +539,6 @@ typedef __packed struct
     uint16_t sender_ID;                         // Sender ID
     uint16_t receiver_ID;                       // Receiver ID
     ext_client_custom_graphic_t graphic_custom; // Custom graphic data
-
 } ext_student_interactive_header_data_t;
 
 void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uint16_t len)
@@ -568,8 +567,10 @@ void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uin
     else
         seq++;
 
-    // I'm just gonna send it all at once, fuck it wii ball
-    HAL_UART_Transmit(&huart6, tx_buff, frame_length, 10000);
+    for (int i = 0; i < frame_length; i++)
+    {
+        HAL_UART_Transmit(&huart6, tx_buff + i, 1, 99);
+    }
 }
 
 ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
