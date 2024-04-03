@@ -4,6 +4,10 @@
 
 #define UI_SOF 0xA5
 
+// Screen resolution is 1920x1080
+#define SCREEN_WIDTH 1080
+#define SCREEN_LENGTH 1920
+
 /****************************CMD_ID Data ********************/
 // CMD_ID in the packet header denotes inter-robot interaction data,
 // triggered by the sender for transmission, with an upper limit of 10Hz.

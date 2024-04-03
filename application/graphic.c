@@ -496,7 +496,7 @@ typedef __packed struct
     // Number of graphics to be drawn, i.e., the length of the graphic data array.
     // However, it is important to carefully check the content ID corresponding to the increase 
     // in the number of graphics provided by the referee system.
-    graphic_data_struct_t grapic_data_struct[7];  
+    graphic_data_struct_t grapic_data_struct;  
 
 } ext_client_custom_graphic_t;
 
@@ -543,17 +543,13 @@ void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uin
 ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
 ext_client_custom_graphic_t custom_graphic;               // 自定义图像
 
-// Screen resolution is 1920x1080
-#define SCREEN_WIDTH 1080
-#define SCREEN_LENGTH 1920
-
 int update_ui(graphic_data_struct_t *image_ptr) {
-    custom_grapic_draw.data_cmd_id = 0x0104; // Draw seven graphics (Content ID, refer to the referee system manual for queries)
+    custom_grapic_draw.data_cmd_id = 0x0101; // Draw one graphics (Content ID, refer to the referee system manual for queries)
 
     custom_grapic_draw.sender_ID = 103;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
     custom_grapic_draw.receiver_ID = 0x0167;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
 
-    memcpy(custom_grapic_draw.graphic_custom.grapic_data_struct, image_ptr, sizeof(graphic_data_struct_t));
+    memcpy(&custom_grapic_draw.graphic_custom.grapic_data_struct, image_ptr, sizeof(graphic_data_struct_t));
 
     referee_data_pack_handle(0xA5, 0x0301, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
 
