@@ -15,6 +15,40 @@ extern uint8_t CRC8_INIT;
 extern uint16_t CRC16_INIT;
 unsigned char UI_Seq; // Packet sequence number
 
+
+uint16_t get_receiver_id(uint16_t sender_ID) {
+    switch (sender_ID)
+    {
+    case UI_Data_RobotID_RHero:
+        return UI_Data_CilentID_RHero; // For hero operator client (red)
+    case UI_Data_RobotID_REngineer:
+        return UI_Data_CilentID_REngineer; // For engineer operator client (red)
+    case UI_Data_RobotID_RStandard1:
+        return UI_Data_CilentID_RStandard1; // For standard 1 operator client (red)
+    case UI_Data_RobotID_RStandard2:
+        return UI_Data_CilentID_RStandard2; // For standard 2 operator client (red)
+    case UI_Data_RobotID_RStandard3:
+        return UI_Data_CilentID_RStandard3; // For standard 3 operator client (red)
+    case UI_Data_RobotID_RAerial:
+        return UI_Data_CilentID_RAerial; // For aerial operator client (red)
+    case UI_Data_RobotID_BHero:
+        return UI_Data_CilentID_BHero; // For hero operator client (blue)
+    case UI_Data_RobotID_BEngineer:
+        return UI_Data_CilentID_BEngineer; // For engineer operator client (blue)
+    case UI_Data_RobotID_BStandard1:
+        return UI_Data_CilentID_BStandard1; // For standard 1 operator client (blue)
+    case UI_Data_RobotID_BStandard2:
+        return UI_Data_CilentID_BStandard2; // For standard 2 operator client (blue)
+    case UI_Data_RobotID_BStandard3:
+        return UI_Data_CilentID_BStandard3; // For standard 3 operator client (blue)
+    case UI_Data_RobotID_BAerial:
+        return UI_Data_CilentID_BAerial; // For aerial operator client (blue)
+    default:
+        return UI_Data_CilentID_BStandard1;
+    }
+}
+
+
 void ui_sendbyte(unsigned char ch)
 {
     HAL_UART_Transmit(&huart6, (uint8_t *)&ch, 1, 999);
@@ -545,12 +579,13 @@ ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
 ext_client_custom_graphic_t custom_graphic;               // 自定义图像
 
 int update_ui(graphic_data_struct_t *image_ptr) {
-    uint8_t id = get_robot_id();
+    uint16_t sender_id = get_robot_id();
+    uint16_t receiver_id = get_receiver_id(sender_id);
 
     custom_grapic_draw.data_cmd_id = 0x0101; // Draw one graphics (Content ID, refer to the referee system manual for queries)
 
-    custom_grapic_draw.sender_ID = 103;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
-    custom_grapic_draw.receiver_ID = 0x0167;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
+    custom_grapic_draw.sender_ID = sender_id;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
+    custom_grapic_draw.receiver_ID = receiver_id;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
 
     memcpy(&custom_grapic_draw.graphic_custom.grapic_data_struct, image_ptr, sizeof(graphic_data_struct_t));
 
