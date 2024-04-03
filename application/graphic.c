@@ -1,4 +1,3 @@
-// TODO: Test to see if UI_ReFresh() works
 // TODO: Test to see if Circle_Draw() works
 // TODO: Test to see if UI_Delete() works
 // TODO: Implement more shapes to draw
@@ -13,7 +12,7 @@
 
 extern uint8_t CRC8_INIT;
 extern uint16_t CRC16_INIT;
-unsigned char UI_Seq; // Packet sequence number
+uint8_t UI_Seq; // Packet sequence number
 
 uint16_t get_receiver_id(uint16_t sender_ID)
 {
@@ -373,199 +372,31 @@ void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, 
     }
 }
 
-/**
- * @brief          UI Push Function (to make changes take effect)
- * @param[in]      cnt: Number of graphics
- * @param[in]      ...: Graphic variable parameters
- *
- * Tips: This function can only push 1, 2, 5, or 7 graphics. Other numbers are not covered by the protocol.
- */
-int UI_ReFresh(int cnt, ...)
-{
-    int i, n;
-    unsigned char *framepoint;   // Read/write pointer
-    uint16_t frametail = 0xFFFF; // CRC16 checksum
-
-    graphic_data_packhead framehead; // Frame header (5-byte) + command ID (2-byte)
-    graphic_data_head datahead;      // Interactive data packet includes a unified data segment header: Content ID, sender, receiver ID, and content data segment
-
-    va_list ap;
-    va_start(ap, cnt);
-
-    framepoint = (unsigned char *)&framehead;
-    framehead.SOF = UI_SOF;
-    framehead.data_length = 6 + cnt * 15;
-    framehead.seq = UI_Seq;
-    framehead.CRC8 = get_CRC8_check_sum(framepoint, 4, 0xFF);
-    framehead.cmd_ID = UI_CMD_Robo_Exchange; // Fill in the package header data
-
-    switch (cnt)
-    {
-    case 1:
-        datahead.data_cmd_ID = UI_Data_ID_Draw1;
-        break;
-    case 2:
-        datahead.data_cmd_ID = UI_Data_ID_Draw2;
-        break;
-    case 5:
-        datahead.data_cmd_ID = UI_Data_ID_Draw5;
-        break;
-    case 7:
-        datahead.data_cmd_ID = UI_Data_ID_Draw7;
-        break;
-    default:
-        return (-1);
-    }
-
-    // Dynamic reception of Referee System ID
-    // datahead.sender_ID = get_robot_id();
-    datahead.sender_ID = UI_Data_RobotID_BStandard3;
-    // switch (get_robot_id())
-    // {
-    // case UI_Data_RobotID_RHero:
-    //     datahead.receiver_ID = UI_Data_CilentID_RHero; // 为英雄操作手客户端(红)
-    //     break;
-    // case UI_Data_RobotID_REngineer:
-    //     datahead.receiver_ID = UI_Data_CilentID_REngineer;
-    //     break;
-    // case UI_Data_RobotID_RStandard1:
-    //     datahead.receiver_ID = UI_Data_CilentID_RStandard1;
-    //     break;
-    // case UI_Data_RobotID_RStandard2:
-    //     datahead.receiver_ID = UI_Data_CilentID_RStandard2;
-    //     break;
-    // case UI_Data_RobotID_RStandard3:
-    //     datahead.receiver_ID = UI_Data_CilentID_RStandard3;
-    //     break;
-    // case UI_Data_RobotID_RAerial:
-    //     datahead.receiver_ID = UI_Data_CilentID_RAerial;
-    //     break;
-
-    // case UI_Data_RobotID_BHero:
-    //     datahead.receiver_ID = UI_Data_CilentID_BHero;
-    //     break;
-    // case UI_Data_RobotID_BEngineer:
-    //     datahead.receiver_ID = UI_Data_CilentID_BEngineer;
-    //     break;
-    // case UI_Data_RobotID_BStandard1:
-    //     datahead.receiver_ID = UI_Data_CilentID_BStandard1;
-    //     break;
-    // case UI_Data_RobotID_BStandard2:
-    //     datahead.receiver_ID = UI_Data_CilentID_BStandard2;
-    //     break;
-    // case UI_Data_RobotID_BStandard3:
-    //     datahead.receiver_ID = UI_Data_CilentID_BStandard3;
-    //     break;
-    // case UI_Data_RobotID_BAerial:
-    //     datahead.receiver_ID = UI_Data_CilentID_BAerial;
-    //     break;
-    // default:
-    //     datahead.receiver_ID = Default_Robot_ID; // Default: send to a client regardless
-    //     datahead.sender_ID = Default_Client_ID;
-    //     break;
-    // }
-    datahead.sender_ID = UI_Data_RobotID_BStandard3;
-    datahead.receiver_ID = UI_Data_CilentID_BStandard3;
-
-    framepoint = (unsigned char *)&framehead;
-    frametail = get_CRC16_check_sum(framepoint, sizeof(framehead), frametail);
-    framepoint = (unsigned char *)&datahead;
-    frametail = get_CRC16_check_sum(framepoint, sizeof(datahead), frametail); // Partial calculation of CRC16 checksum
-
-    framepoint = (unsigned char *)&framehead;
-    for (i = 0; i < sizeof(framehead); i++)
-    {
-        ui_sendbyte(*framepoint);
-        framepoint++;
-    }
-    framepoint = (unsigned char *)&datahead;
-    for (i = 0; i < sizeof(datahead); i++)
-    {
-        ui_sendbyte(*framepoint);
-        framepoint++;
-    }
-
-    for (i = 0; i < cnt; i++)
-    {
-        // VSCode is giving an error here, but it's not a problem (hopefully)
-        graphic_data_struct_t imageData = va_arg(ap, graphic_data_struct_t);
-
-        framepoint = (unsigned char *)&imageData;
-        frametail = get_CRC16_check_sum(framepoint, sizeof(imageData), frametail); // CRC16 checksum
-
-        for (n = 0; n < sizeof(imageData); n++)
-        {
-            ui_sendbyte(*framepoint);
-            framepoint++;
-        } // Send image frames
-    }
-    framepoint = (unsigned char *)&frametail;
-    for (i = 0; i < sizeof(frametail); i++)
-    {
-        ui_sendbyte(*framepoint);
-        framepoint++; // Send CRC16 checksum value
-    }
-
-    va_end(ap);
-
-    UI_Seq++; // Increment package sequence number
-    return 0;
-}
-
-// Some code to test:
-// Really lazy, just trying to test to see if the draw functions work
-// The goal is to reuse the code for sending data to the referee system
-// From a previous working version
-#define MAX_SIZE 128      // Maximum length of uploaded data
-#define frameheader_len 5 // Frame header length
-#define cmd_len 2         // Command code length
-#define crc_len 2         // CRC16 checksum
-uint8_t seq = 0;
-
-// Client Drawing Graphics
-typedef __packed struct
-{
-    // Number of graphics to be drawn, i.e., the length of the graphic data array.
-    // However, it is important to carefully check the content ID corresponding to the increase
-    // in the number of graphics provided by the referee system.
-    graphic_data_struct_t grapic_data_struct;
-
-} ext_client_custom_graphic_t;
-
-// Interactive Data Information
-typedef __packed struct
-{
-    uint16_t data_cmd_id;                       // Data segment content ID
-    uint16_t sender_ID;                         // Sender ID
-    uint16_t receiver_ID;                       // Receiver ID
-    ext_client_custom_graphic_t graphic_custom; // Custom graphic data
-} ext_student_interactive_header_data_t;
-
 void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uint16_t len)
 {
     uint8_t tx_buff[MAX_SIZE];
 
-    uint16_t frame_length = frameheader_len + cmd_len + len + crc_len; // Data frame length
+    uint16_t frame_length = FRAMEHEADER_LEN + CMD_LEN + len + CRC_LEN; // Data frame length
 
     memset(tx_buff, 0, frame_length); // Clear the array for storing data
 
     /***** Frame Header Packing *****/
     tx_buff[0] = sof;                                  // Start byte of the data frame
     memcpy(&tx_buff[1], (uint8_t *)&len, sizeof(len)); // Length of the data in the data frame
-    tx_buff[3] = seq;                                  // Packet sequence number
-    append_CRC8_check_sum(tx_buff, frameheader_len);   // Frame header CRC8 checksum
+    tx_buff[3] = UI_Seq;                               // Packet sequence number
+    append_CRC8_check_sum(tx_buff, FRAMEHEADER_LEN);   // Frame header CRC8 checksum
 
     /***** Command Code Packing *****/
-    memcpy(&tx_buff[frameheader_len], (uint8_t *)&cmd_id, cmd_len);
+    memcpy(&tx_buff[FRAMEHEADER_LEN], (uint8_t *)&cmd_id, CMD_LEN);
 
     /***** Data Packing *****/
-    memcpy(&tx_buff[frameheader_len + cmd_len], p_data, len);
+    memcpy(&tx_buff[FRAMEHEADER_LEN + CMD_LEN], p_data, len);
     append_CRC16_check_sum(tx_buff, frame_length); // Data frame CRC16 checksum
 
-    if (seq == 0xff)
-        seq = 0;
+    if (UI_Seq == 0xff)
+        UI_Seq = 0;
     else
-        seq++;
+        UI_Seq++;
 
     for (int i = 0; i < frame_length; i++)
     {
@@ -573,11 +404,11 @@ void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uin
     }
 }
 
-ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
-ext_client_custom_graphic_t custom_graphic;               // 自定义图像
-
+// TODO: Maybe make it so can upload multiple graphics at once as supported by the protocol
 int update_ui(graphic_data_struct_t *image_ptr)
 {
+    ext_student_interactive_header_data_t custom_grapic_draw;
+
     uint16_t sender_id = get_robot_id();
     uint16_t receiver_id = get_receiver_id(sender_id);
 
@@ -588,7 +419,7 @@ int update_ui(graphic_data_struct_t *image_ptr)
 
     memcpy(&custom_grapic_draw.graphic_custom.grapic_data_struct, image_ptr, sizeof(graphic_data_struct_t));
 
-    referee_data_pack_handle(0xA5, 0x0301, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
+    referee_data_pack_handle(UI_SOF, UI_CMD_Robo_Exchange, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
 
     return 0;
 }
