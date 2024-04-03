@@ -15,8 +15,8 @@ extern uint8_t CRC8_INIT;
 extern uint16_t CRC16_INIT;
 unsigned char UI_Seq; // Packet sequence number
 
-
-uint16_t get_receiver_id(uint16_t sender_ID) {
+uint16_t get_receiver_id(uint16_t sender_ID)
+{
     switch (sender_ID)
     {
     case UI_Data_RobotID_RHero:
@@ -47,7 +47,6 @@ uint16_t get_receiver_id(uint16_t sender_ID) {
         return UI_Data_CilentID_BStandard1;
     }
 }
-
 
 void ui_sendbyte(unsigned char ch)
 {
@@ -277,10 +276,10 @@ void circle_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t gra
 void arc_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_startangle, uint32_t graph_endangle, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t x_length, uint32_t y_length)
 {
     int i;
-   
+
     for (i = 0; i < 3 && figure_name[i] != '\0'; i++)
         image->figure_name[i] = figure_name[i];
-	
+
     image->figure_type = UI_Graph_Arc;
     image->operate_type = graph_operate;
     image->layer = graph_layer;
@@ -313,7 +312,7 @@ void arc_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_
 //     int i;
 //     for (i = 0; i < 3 && imagename[i] != '\0'; i++)
 //         image->figure_name[i] = imagename[i];
-	
+
 //     image->figure_type = UI_Graph_Float;
 //     image->operate_type = graph_operate;
 //     image->layer = graph_layer;
@@ -353,10 +352,10 @@ void arc_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_
 void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, char *char_data)
 {
     int i;
-   
+
     for (i = 0; i < 3 && figure_name[i] != '\0'; i++)
         image->graph_control.figure_name[i] = figure_name[i];
-	
+
     image->graph_control.figure_type = UI_Graph_Char;
     image->graph_control.operate_type = graph_operate;
     image->graph_control.layer = graph_layer;
@@ -366,7 +365,7 @@ void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, 
     image->graph_control.start_y = start_y;
     image->graph_control.details_a = graph_size;
     image->graph_control.details_b = graph_digit;
-   
+
     for (i = 0; i < graph_digit; i++)
     {
         image->show_data[i] = *char_data;
@@ -513,7 +512,6 @@ int UI_ReFresh(int cnt, ...)
     return 0;
 }
 
-
 // Some code to test:
 // Really lazy, just trying to test to see if the draw functions work
 // The goal is to reuse the code for sending data to the referee system
@@ -524,24 +522,23 @@ int UI_ReFresh(int cnt, ...)
 #define crc_len 2         // CRC16 checksum
 uint8_t seq = 0;
 
-
 // Client Drawing Graphics
 typedef __packed struct
 {
     // Number of graphics to be drawn, i.e., the length of the graphic data array.
-    // However, it is important to carefully check the content ID corresponding to the increase 
+    // However, it is important to carefully check the content ID corresponding to the increase
     // in the number of graphics provided by the referee system.
-    graphic_data_struct_t grapic_data_struct;  
+    graphic_data_struct_t grapic_data_struct;
 
 } ext_client_custom_graphic_t;
 
 // Interactive Data Information
 typedef __packed struct
 {
-    uint16_t data_cmd_id;                        // Data segment content ID
-    uint16_t sender_ID;                          // Sender ID
-    uint16_t receiver_ID;                        // Receiver ID
-    ext_client_custom_graphic_t graphic_custom;  // Custom graphic data
+    uint16_t data_cmd_id;                       // Data segment content ID
+    uint16_t sender_ID;                         // Sender ID
+    uint16_t receiver_ID;                       // Receiver ID
+    ext_client_custom_graphic_t graphic_custom; // Custom graphic data
 
 } ext_student_interactive_header_data_t;
 
@@ -578,14 +575,15 @@ void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uin
 ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
 ext_client_custom_graphic_t custom_graphic;               // 自定义图像
 
-int update_ui(graphic_data_struct_t *image_ptr) {
+int update_ui(graphic_data_struct_t *image_ptr)
+{
     uint16_t sender_id = get_robot_id();
     uint16_t receiver_id = get_receiver_id(sender_id);
 
     custom_grapic_draw.data_cmd_id = 0x0101; // Draw one graphics (Content ID, refer to the referee system manual for queries)
 
-    custom_grapic_draw.sender_ID = sender_id;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
-    custom_grapic_draw.receiver_ID = receiver_id;  // Receiver ID, operator client ID, in this case, the Blue Standard operator client
+    custom_grapic_draw.sender_ID = sender_id;     // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
+    custom_grapic_draw.receiver_ID = receiver_id; // Receiver ID, operator client ID, in this case, the Blue Standard operator client
 
     memcpy(&custom_grapic_draw.graphic_custom.grapic_data_struct, image_ptr, sizeof(graphic_data_struct_t));
 
