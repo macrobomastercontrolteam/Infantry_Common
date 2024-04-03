@@ -127,20 +127,13 @@ typedef __packed struct //0x0104
 
 typedef __packed struct // 0x0201
 {
-    // uint8_t robot_id;
-    // uint8_t robot_level;
-    // uint16_t remain_HP;
-    // uint16_t max_HP;
-    uint16_t shooter_heat0_cooling_rate;
-    uint16_t shooter_heat0_cooling_limit;
-    uint16_t shooter_heat1_cooling_rate;
-    uint16_t shooter_heat1_cooling_limit;
-    // uint8_t mains_power_gimbal_output : 1;
-    // uint8_t mains_power_chassis_output : 1;
-    // uint8_t mains_power_shooter_output : 1;
     uint8_t robot_id;
-    uint16_t current_exp;
+    uint8_t robot_level;
     uint16_t current_HP;
+    uint16_t maximum_HP;
+    uint16_t shooter_barrel_cooling_value;
+    uint16_t shooter_barrel_heat_limit;
+    uint16_t chassis_power_limit;
     uint8_t power_management_gimbal_output : 1;
     uint8_t power_management_chassis_output : 1;
     uint8_t power_management_shooter_output : 1;
@@ -373,7 +366,7 @@ extern void get_chassis_power_and_buffer(fp32 *power, fp32 *buffer);
 
 extern uint8_t get_robot_id(void);
 
-extern void get_shoot_heat0_limit_and_heat0(uint16_t *heat0_limit, uint16_t *heat0);
+extern void get_shoot_heat_limit_and_heat(uint16_t *heat0_limit, uint16_t *heat0);
 extern void get_shoot_heat1_limit_and_heat1(uint16_t *heat1_limit, uint16_t *heat1);
 extern void init_graphic_data(void);
 

@@ -6,6 +6,7 @@
 #include "graphic.h"
 #include "usart.h"
 #include "protocol.h"
+#include "referee.h"
 #include "CRC8_CRC16.h"
 #include <stdarg.h>
 #include <string.h>
@@ -544,6 +545,8 @@ ext_student_interactive_header_data_t custom_grapic_draw; // 自定义图像绘制
 ext_client_custom_graphic_t custom_graphic;               // 自定义图像
 
 int update_ui(graphic_data_struct_t *image_ptr) {
+    uint8_t id = get_robot_id();
+
     custom_grapic_draw.data_cmd_id = 0x0101; // Draw one graphics (Content ID, refer to the referee system manual for queries)
 
     custom_grapic_draw.sender_ID = 103;       // Sender ID, corresponding to the robot ID, in this case, the Blue Standard

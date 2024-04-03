@@ -195,7 +195,7 @@ int16_t shoot_control_loop(void)
         shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
         shoot_bullet_control();
 
-        get_shoot_heat0_limit_and_heat0(&shoot_control.heat_limit, &shoot_control.heat);
+        get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
         if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
         {
             shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
