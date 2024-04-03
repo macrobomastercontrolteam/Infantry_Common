@@ -8,6 +8,7 @@
 #include "protocol.h"
 #include "CRC8_CRC16.h"
 #include <stdarg.h>
+#include <string.h>
 
 extern uint8_t CRC8_INIT;
 extern uint16_t CRC16_INIT;
@@ -44,9 +45,10 @@ void ui_delete(uint8_t del_operate, uint8_t del_layer)
     datahead.data_cmd_ID = UI_Data_ID_Del;
     /*SZL 6-16-2022 Dynamically receive the referee system ID*/
     // TODO: Make sure this works
-    datahead.sender_ID = get_robot_id(); // Robot_ID;
+    // datahead.sender_ID = get_robot_id(); // Robot_ID;
+    datahead.sender_ID = UI_Data_RobotID_BStandard3; // Robot_ID;
 
-    switch (get_robot_id())
+    switch (datahead.sender_ID)
     {
     case UI_Data_RobotID_RHero:
         datahead.receiver_ID = UI_Data_CilentID_RHero; // For hero operator client (red)
@@ -271,33 +273,33 @@ void arc_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_
  * @param[in]      graph_float: variable to display, the value gets divided by 1000 and then displayed
  *                              ex. if graph_float = 1234, the display will show 1.234
  */
-void float_draw(graphic_data_struct_t *image, char imagename[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t graph_float)
-{
-    int i;
-    for (i = 0; i < 3 && imagename[i] != '\0'; i++)
-        image->figure_name[i] = imagename[i];
+// void float_draw(graphic_data_struct_t *image, char imagename[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t graph_float)
+// {
+//     int i;
+//     for (i = 0; i < 3 && imagename[i] != '\0'; i++)
+//         image->figure_name[i] = imagename[i];
 	
-    image->figure_type = UI_Graph_Float;
-    image->operate_type = graph_operate;
-    image->layer = graph_layer;
-    image->color = graph_color;
-    image->width = graph_width;
-    image->start_x = start_x;
-    image->start_y = start_y;
-    image->details_a = graph_size;
+//     image->figure_type = UI_Graph_Float;
+//     image->operate_type = graph_operate;
+//     image->layer = graph_layer;
+//     image->color = graph_color;
+//     image->width = graph_width;
+//     image->start_x = start_x;
+//     image->start_y = start_y;
+//     image->details_a = graph_size;
 
-    // Get the last 11 bits
-    unsigned mask = (1 << 11) - 1;
-    image -> details_e = graph_float & mask;
+//     // Get the last 11 bits
+//     unsigned mask = (1 << 11) - 1;
+//     image -> details_e = graph_float & mask;
 
-    // Get the next 11 bits
-    mask = mask << 11;
-    image -> details_d = graph_float & mask;
+//     // Get the next 11 bits
+//     mask = mask << 11;
+//     image -> details_d = graph_float & mask;
 
-    // Get the first 10 bits
-    mask = ((1 << 10) - 1) << 22;
-    image->details_c = graph_float & mask;
-}
+//     // Get the first 10 bits
+//     mask = ((1 << 10) - 1) << 22;
+//     image->details_c = graph_float & mask;
+// }
 
 /**
  * @brief          Draw character data
@@ -347,7 +349,6 @@ void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, 
 int UI_ReFresh(int cnt, ...)
 {
     int i, n;
-    graphic_data_struct_t imageData;
     unsigned char *framepoint;   // Read/write pointer
     uint16_t frametail = 0xFFFF; // CRC16 checksum
 
@@ -555,4 +556,6 @@ int update_ui(graphic_data_struct_t *image_ptr) {
     memcpy(custom_grapic_draw.graphic_custom.grapic_data_struct, image_ptr, sizeof(graphic_data_struct_t));
 
     referee_data_pack_handle(0xA5, 0x0301, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
+
+    return 0;
 }
