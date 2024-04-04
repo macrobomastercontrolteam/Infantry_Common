@@ -89,7 +89,7 @@ typedef __packed struct // 0003
 
 typedef __packed struct // 0x0101
 {
-    uint32_t event_type;
+    uint32_t event_data;
 } ext_event_data_t;
 
 typedef __packed struct // 0x0102
@@ -112,12 +112,12 @@ typedef __packed struct // 0x0102
 //     uint8_t dart_remaining_time;
 // } ext_supply_projectile_booking_t //Current: ext_dart_remaining_time_t;
 
-typedef __packed struct //0x0104
+typedef __packed struct // 0x0104
 {
- uint8_t level;
- uint8_t offending_robot_id;
- uint8_t count;
-}ext_referee_warning_t;
+    uint8_t level;
+    uint8_t offending_robot_id;
+    uint8_t count;
+} ext_referee_warning_t;
 
 // typedef __packed struct //0x0105
 // {
@@ -161,6 +161,7 @@ typedef __packed struct // 0x0203
     float x;
     float y;
     float angle;
+    float angle;
 } ext_game_robot_pos_t;
 
 typedef __packed struct // 0x0204
@@ -195,10 +196,10 @@ typedef __packed struct // 0x0207
 
 typedef __packed struct // 0x0208
 {
- uint16_t projectile_allowance_17mm;
- uint16_t projectile_allowance_42mm;
- uint16_t remaining_gold_coin;
-}ext_projectile_allowance_t;
+    uint16_t projectile_allowance_17mm;
+    uint16_t projectile_allowance_42mm;
+    uint16_t remaining_gold_coin;
+} ext_projectile_allowance_t;
 
 typedef __packed struct // 0x0209
 {
@@ -207,13 +208,17 @@ typedef __packed struct // 0x0209
 
 // typedef __packed struct // 0x020A
 // {
+//      uint8_t dart_launch_opening_status;
+//      uint8_t reserved;
+//      uint16_t target_change_time;
+//      uint16_t latest_launch_cmd_time;
 //     uint8_t dart_launch_opening_status;
 //     uint8_t dart_attack_target;
 //     uint16_t target_change_time;
 //     uint16_t latest_launch_cmd_time;
 // } ext_dart_client_cmd_t;
 
-typedef __packed struct //0x020B
+typedef __packed struct // 0x020B
 {
     float hero_x;
     float hero_y;
@@ -225,26 +230,26 @@ typedef __packed struct //0x020B
     float standard_4_y;
     float standard_5_x;
     float standard_5_y;
-}ext_ground_robot_position_t;
+} ext_ground_robot_position_t;
 
-typedef __packed struct //0x020C
+typedef __packed struct // 0x020C
 {
- uint8_t mark_hero_progress;
- uint8_t mark_engineer_progress;
- uint8_t mark_standard_3_progress;
- uint8_t mark_standard_4_progress;
- uint8_t mark_standard_5_progress;
- uint8_t mark_sentry_progress;
-}ext_radar_mark_data_t;
+    uint8_t mark_hero_progress;
+    uint8_t mark_engineer_progress;
+    uint8_t mark_standard_3_progress;
+    uint8_t mark_standard_4_progress;
+    uint8_t mark_standard_5_progress;
+    uint8_t mark_sentry_progress;
+} ext_radar_mark_data_t;
 
-typedef __packed struct //0x020D
+typedef __packed struct // 0x020D
 {
- uint32_t sentry_info;
+    uint32_t sentry_info;
 } ext_sentry_info_t;
 
-typedef __packed struct //0x020E
+typedef __packed struct // 0x020E
 {
- uint8_t radar_info;
+    uint8_t radar_info;
 } ext_radar_info_t;
 
 typedef __packed struct
@@ -262,7 +267,7 @@ typedef __packed struct // 0x0301
     uint16_t data_cmd_id;
     uint16_t sender_id;
     uint16_t receiver_id;
-    //uint8_t user_data[x]; //x <= 113
+    // uint8_t user_data[x]; //x <= 113
 } ext_student_interactive_data_t;
 
 // typedef __packed struct //0x0110
@@ -271,14 +276,14 @@ typedef __packed struct // 0x0301
 //     uint8_t data[30];
 // } ext_client_custom_character_t;
 
-typedef __packed struct //0x0120
+typedef __packed struct // 0x0120
 {
-uint32_t sentry_cmd;
+    uint32_t sentry_cmd;
 } ext_sentry_cmd_t;
 
-typedef __packed struct //0x0121
+typedef __packed struct // 0x0121
 {
-uint8_t radar_cmd;
+    uint8_t radar_cmd;
 } ext_radar_cmd_t;
 
 // @TODO: research about this
@@ -291,6 +296,10 @@ uint8_t radar_cmd;
 // {
 //     float target_position_x;
 //     float target_position_y;
+//     uint8_t cmd_keyboard;
+//     uint8_t target_robot_id;
+//     uint8_t cmd_source;
+// } ext_robot_command_t;
 //     uint8_t cmd_keyboard;
 //     uint8_t target_robot_id;
 //     uint8_t cmd_source;
@@ -314,17 +323,17 @@ uint8_t radar_cmd;
 //     float target_position_y;
 // } ext_map_robot_data_t;
 
-typedef __packed struct //0x0306
+typedef __packed struct // 0x0306
 {
     uint16_t key_value;
-    uint16_t x_position:12;
-    uint16_t mouse_left:4;
-    uint16_t y_position:12;
-    uint16_t mouse_right:4;
+    uint16_t x_position : 12;
+    uint16_t mouse_left : 4;
+    uint16_t y_position : 12;
+    uint16_t mouse_right : 4;
     uint16_t reserved;
-}ext_custom_client_data_t;
+} ext_custom_client_data_t;
 
-typedef __packed struct //0x0307
+typedef __packed struct // 0x0307
 {
     uint8_t intention;
     uint16_t start_position_x;
@@ -332,9 +341,9 @@ typedef __packed struct //0x0307
     int8_t delta_x[49];
     int8_t delta_y[49];
     uint16_t sender_id;
-}ext_map_data_t;
+} ext_map_data_t;
 
-typedef __packed struct //0x0308
+typedef __packed struct // 0x0308
 {
     uint16_t sender_id;
     uint16_t receiver_id;
