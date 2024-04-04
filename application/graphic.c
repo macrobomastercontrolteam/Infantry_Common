@@ -365,6 +365,7 @@ void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, 
     image->graph_control.details_a = graph_size;
     image->graph_control.details_b = graph_digit;
 
+    memset(image->show_data, 0, 30);
     for (i = 0; i < graph_digit; i++)
     {
         image->show_data[i] = *char_data;
@@ -420,6 +421,26 @@ int update_ui(graphic_data_struct_t *image_ptr)
     memcpy(&custom_grapic_draw.graphic_custom.grapic_data_struct, image_ptr, sizeof(graphic_data_struct_t));
 
     referee_data_pack_handle(UI_SOF, UI_CMD_Robo_Exchange, (uint8_t *)&custom_grapic_draw, sizeof(custom_grapic_draw));
+
+    return 0;
+}
+
+int update_char(string_data *string_ptr)
+{
+    string_payload custom_grapic_draw;
+
+    uint16_t sender_id = get_robot_id();
+    uint16_t receiver_id = get_receiver_id(sender_id);
+
+    custom_grapic_draw.data_cmd_id = UI_Data_ID_DrawChar; // Draw one graphics (Content ID, refer to the referee system manual for queries)
+
+    custom_grapic_draw.sender_ID = sender_id;     // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
+    custom_grapic_draw.receiver_ID = receiver_id; // Receiver ID, operator client ID, in this case, the Blue Standard operator client
+
+    // memcpy(&custom_grapic_draw.graphic_custom.grapic_data_struct, string_ptr, sizeof(graphic_data_struct_t));
+    memcpy(&custom_grapic_draw.string_custom, string_ptr, sizeof(string_data));
+
+    referee_data_pack_handle(UI_SOF, UI_CMD_Robo_Exchange, (uint8_t *)&custom_grapic_draw, 45);
 
     return 0;
 }

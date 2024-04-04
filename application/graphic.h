@@ -139,6 +139,20 @@ typedef __packed struct
 
 typedef __packed struct
 {
+   graphic_data_struct_t graph_control;
+   uint8_t show_data[30];
+} string_data;
+
+typedef __packed struct
+{
+   uint16_t data_cmd_id;      // Data segment content ID
+   uint16_t sender_ID;        // Sender ID
+   uint16_t receiver_ID;      // Receiver ID
+   string_data string_custom; // Custom graphic data
+} string_payload;
+
+typedef __packed struct
+{
    uint16_t data_cmd_ID; // Data segment content ID
    uint16_t sender_ID;   // Sender ID
    uint16_t receiver_ID; // Receiver ID
@@ -150,12 +164,8 @@ typedef struct
    uint8_t layer;          // Layer to be deleted
 } graphic_delete;          // Frame for deleting a layer
 
-typedef struct
-{
-   graphic_data_struct_t graph_control;
-   uint8_t show_data[30];
-} string_data;
-
 void line_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t end_x, uint32_t end_y);
+void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, char *char_data);
 int update_ui(graphic_data_struct_t *image_ptr);
+int update_char(string_data *string_ptr);
 #endif
