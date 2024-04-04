@@ -172,14 +172,15 @@ void chassis_task(void const *pvParameters)
   while (1)
   {
     graphic_data_struct_t line;
+    graphic_data_struct_t circle;
     string_data char_graphic;
 
     line_draw(&line, "abc", UI_Graph_ADD, 1, UI_Color_Cyan, 1, 500, 500, 500, 900);
-    // char_draw(&char_graphic, "chr", UI_Graph_ADD, 2, UI_Color_Black, 20, 1, 3, 500, 500, "c");
-    // char_draw(&char_graphic, "009", UI_Graph_ADD, 2, UI_Color_Yellow, 20, 9, 3, 1440, 810, "Cap Volt:");
+    circle_draw(&circle, "bcd", UI_Graph_ADD, 1, UI_Color_Cyan, 500, 500, 500, 100);
     char_draw(&char_graphic, "008", UI_Graph_ADD, 0, UI_Color_Yellow, 80, 4, 8, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2, "Text");
     // UI_ReFresh(1, line);
     update_ui(&line);
+    update_ui(&circle);
     update_char(&char_graphic);
     //         //set chassis control mode
     //         //设置底盘控制模式
