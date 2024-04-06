@@ -12,8 +12,8 @@
 // After simplification, CCR=105/pi*v+1080, or v=pi*(CCR-1080)/105
 // Test result after linear regression: CCR = 20.45452*v + 1167.47328
 // #define FRIC_UP 1470 // test result: fluctuate between 14.0m/s and 14.7m/s
-#define FRIC_UP 1430 // test result: fluctuate between 12.5m/s
-#define FRIC_DOWN 1648
+#define FRIC_UP 0 // test result: fluctuate between 12.5m/s
+#define FRIC_DOWN 0
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // #define FRIC_UP 1310 // test result on INFANTRY_2023_SWERVE (M2305 snail motor): slightly below 15m/s
 #define FRIC_UP 1250 // test result on INFANTRY_2023_SWERVE (M2305 snail motor): 12.8m/s to 13.2m/s

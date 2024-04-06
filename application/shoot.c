@@ -84,6 +84,16 @@ void shoot_init(void)
     shoot_control.shoot_mode = SHOOT_STOP_INIT;
     shoot_control.shoot_rc = get_remote_control_point();
     shoot_control.shoot_motor_measure = get_trigger_motor_measure_point();
+    shoot_control.fric_1_motor_measure = get_friction_motor1_measure_point();
+    shoot_control.fric_2_motor_measure = get_friction_motor2_measure_point();
+
+    // initialize PID
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+    static const fp32 shoot_speed_pid1[3] = {FRICTION_1_SPEED_PID_KP, FRICTION_1_SPEED_PID_KI, FRICTION_1_SPEED_PID_KD};
+    static const fp32 shoot_speed_pid2[3] = {FRICTION_2_SPEED_PID_KP, FRICTION_2_SPEED_PID_KI, FRICTION_2_SPEED_PID_KD};
+    PID_init(&shoot_control.friction_motor1_pid, PID_POSITION, shoot_speed_pid1, FRICTION_1_SPEED_PID_MAX_OUT, FRICTION_1_SPEED_PID_MAX_IOUT, &raw_err_handler);
+    PID_init(&shoot_control.friction_motor2_pid, PID_POSITION, shoot_speed_pid2, FRICTION_2_SPEED_PID_MAX_OUT, FRICTION_2_SPEED_PID_MAX_IOUT, &raw_err_handler);
+#endif
     PID_init(&shoot_control.trigger_motor_pid, PID_POSITION, Trigger_speed_pid, TRIGGER_READY_PID_MAX_OUT, TRIGGER_READY_PID_MAX_IOUT, &raw_err_handler);
     shoot_feedback_update();
     ramp_init(&shoot_control.fric1_ramp, SHOOT_CONTROL_TIME * 0.001f, FRIC_DOWN, FRIC_OFF);
@@ -95,6 +105,8 @@ void shoot_init(void)
     shoot_control.given_current = 0;
     shoot_control.move_flag = 0;
     shoot_control.set_angle = shoot_control.angle;
+    shoot_control.friction_motor1_rpm_set = 0.0f;
+    shoot_control.friction_motor2_rpm_set = 0.0f;
     shoot_control.speed = 0.0f;
     shoot_control.speed_set = 0.0f;
     shoot_control.key_time = 0;
@@ -107,42 +119,99 @@ int16_t shoot_control_loop(void)
     shoot_set_mode();
     shoot_feedback_update();
 
+    // detect case switch edge
+    static shoot_mode_e pre_shoot_mode = SHOOT_STOP;
+    if (pre_shoot_mode != shoot_control.shoot_mode)
+    {
+        switch (shoot_control.shoot_mode)
+        {
+            case SHOOT_READY_FRIC:
+            case SHOOT_READY:
+            case SHOOT_BULLET:
+            case SHOOT_CONTINUE_BULLET:
+            case SHOOT_DONE:
+            {
+                break;
+            }
+            case SHOOT_STOP:
+            {
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+                CAN_cmd_load_servo(0);
+                CAN_cmd_load_servo(0);
+                CAN_cmd_load_servo(0);
+#endif
+                // shoot_control.friction_motor1_pid.max_out = 0;
+                // shoot_control.friction_motor1_pid.max_iout = 0;
+
+                // shoot_control.friction_motor2_pid.max_out = 0;
+                // shoot_control.friction_motor2_pid.max_iout = 0;
+
+                shoot_control.friction_motor1_rpm_set = 0;
+                shoot_control.friction_motor2_rpm_set = 0;
+            }
+            case SHOOT_READY_BULLET:
+            {
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+                CAN_cmd_load_servo(1);
+                CAN_cmd_load_servo(1);
+                CAN_cmd_load_servo(1);
+#endif
+                shoot_control.trigger_motor_pid.max_out = TRIGGER_READY_PID_MAX_OUT;
+                shoot_control.trigger_motor_pid.max_iout = TRIGGER_READY_PID_MAX_IOUT;
+
+                PID_clear(&shoot_control.friction_motor1_pid);
+                PID_clear(&shoot_control.friction_motor2_pid);
+                
+                shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
+                shoot_control.friction_motor1_pid.max_iout = FRICTION_1_SPEED_PID_MAX_IOUT;
+
+                shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
+                shoot_control.friction_motor2_pid.max_iout = FRICTION_2_SPEED_PID_MAX_IOUT;
+
+                shoot_control.friction_motor1_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+                shoot_control.friction_motor2_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+        pre_shoot_mode = shoot_control.shoot_mode;
+    }
+
     shoot_control.speed_set = 0.0f;
     switch (shoot_control.shoot_mode)
     {
-    case SHOOT_STOP_INIT:
-    {
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-        CAN_cmd_load_servo(0);
-        CAN_cmd_load_servo(0);
-        CAN_cmd_load_servo(0);
-#endif
-        shoot_control.shoot_mode = SHOOT_STOP;
-        // no break; directly go to next state
-    }
     case SHOOT_STOP:
     {
+        if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
+        {
+            shoot_control.friction_motor1_pid.max_out = 0;
+            shoot_control.friction_motor2_pid.max_out = 0;
+        }
+        else
+        {
+            shoot_control.friction_motor1_pid.max_out = 1000;
+            shoot_control.friction_motor2_pid.max_out = 1000;
+        }
         break;
     }
     case SHOOT_READY_FRIC:
     {
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+        if ((motor_chassis[MOTOR_INDEX_FRICTION1].speed_rpm == shoot_control.friction_motor1_rpm_set) && (motor_chassis[MOTOR_INDEX_FRICTION2].speed_rpm == shoot_control.friction_motor2_rpm_set))
+#else
         if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
+#endif
         {
-            shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
+            shoot_control.shoot_mode = SHOOT_READY_BULLET;
+        }
+        else if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+        {
+            shoot_control.shoot_mode = SHOOT_STOP;
         }
         break;
-    }
-    case SHOOT_READY_BULLET_INIT:
-    {
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-        CAN_cmd_load_servo(1);
-        CAN_cmd_load_servo(1);
-        CAN_cmd_load_servo(1);
-#endif
-		shoot_control.trigger_motor_pid.max_out = TRIGGER_READY_PID_MAX_OUT;
-        shoot_control.trigger_motor_pid.max_iout = TRIGGER_READY_PID_MAX_IOUT;
-        shoot_control.shoot_mode = SHOOT_READY_BULLET;
-        // no break; directly go to next state
     }
     case SHOOT_READY_BULLET:
     {
@@ -151,6 +220,10 @@ int16_t shoot_control_loop(void)
             // set the speed of the trigger motor, and enable stall reverse processing
             shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
             trigger_motor_turn_back();
+        }
+        else if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+        {
+            shoot_control.shoot_mode = SHOOT_STOP;
         }
         // else
         // {
@@ -163,7 +236,7 @@ int16_t shoot_control_loop(void)
     {
         if (shoot_control.key == SWITCH_TRIGGER_OFF)
         {
-            shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
+            shoot_control.shoot_mode = SHOOT_READY_BULLET;
         }
 //         else if (shoot_control.fIsCvControl == 0)
 //         {
@@ -184,7 +257,7 @@ int16_t shoot_control_loop(void)
         get_shoot_heat0_limit_and_heat0(&shoot_control.heat_limit, &shoot_control.heat);
         if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
         {
-            shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
+            shoot_control.shoot_mode = SHOOT_READY_BULLET;
         }
         break;
     }
@@ -193,7 +266,7 @@ int16_t shoot_control_loop(void)
         // set the speed of the trigger motor, and enable stall reverse processing
         shoot_control.trigger_speed_set = CONTINUE_TRIGGER_SPEED;
         trigger_motor_turn_back();
-        shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
+        shoot_control.shoot_mode = SHOOT_READY_BULLET;
         break;
     }
     case SHOOT_DONE:
@@ -204,7 +277,7 @@ int16_t shoot_control_loop(void)
             if (shoot_control.key_time > SHOOT_DONE_KEY_OFF_TIME)
             {
                 shoot_control.key_time = 0;
-                shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
+                shoot_control.shoot_mode = SHOOT_READY_BULLET;
             }
         }
         // else
@@ -229,7 +302,7 @@ int16_t shoot_control_loop(void)
 			get_shoot_heat0_limit_and_heat0(&shoot_control.heat_limit, &shoot_control.heat);
 			if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
 			{
-				shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
+				shoot_control.shoot_mode = SHOOT_READY_BULLET;
 			}
 			else
 			{
@@ -245,6 +318,8 @@ int16_t shoot_control_loop(void)
         // Friction wheels need to be turned on one by one with a ramp, otherwise the motor may not turn
         ramp_calc(&shoot_control.fric1_ramp, -SHOOT_FRIC_PWM_ADD_VALUE);
         ramp_calc(&shoot_control.fric2_ramp, -SHOOT_FRIC_PWM_ADD_VALUE);
+        shoot_control.friction_motor1_rpm_set = 0.0f;
+        shoot_control.friction_motor2_rpm_set = 0.0f;
     }
     else
     {
@@ -252,15 +327,22 @@ int16_t shoot_control_loop(void)
         // calculate the PID of the trigger motor
         PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set);
         shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
-        if(shoot_control.shoot_mode < SHOOT_READY_BULLET_INIT)
+        if(shoot_control.shoot_mode < SHOOT_READY_BULLET)
         {
             shoot_control.given_current = 0;
         }
+#if (ROBOT_TYPE != INFANTRY_2023_MECANUM)
         // friction wheels need to be turned on individually with ramps, otherwise the motor may not turn
         ramp_calc(&shoot_control.fric1_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
         ramp_calc(&shoot_control.fric2_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
-
+#endif
     }
+
+    PID_calc(&shoot_control.friction_motor1_pid, shoot_control.friction_motor1_rpm, shoot_control.friction_motor1_rpm_set);
+    shoot_control.fric1_given_current = (int16_t)(shoot_control.friction_motor1_pid.out);
+
+    PID_calc(&shoot_control.friction_motor2_pid, shoot_control.friction_motor2_rpm, shoot_control.friction_motor2_rpm_set);
+    shoot_control.fric2_given_current = (int16_t)(shoot_control.friction_motor2_pid.out);
 
     shoot_control.fric_pwm1 = (uint16_t)(shoot_control.fric1_ramp.out);
     shoot_control.fric_pwm2 = (uint16_t)(shoot_control.fric2_ramp.out);
@@ -295,7 +377,7 @@ static void shoot_set_mode(void)
 			}
 			else
 			{
-				shoot_control.shoot_mode = SHOOT_STOP_INIT;
+				shoot_control.shoot_mode = SHOOT_STOP;
 			}
 			lastCvShootMode = CvShootMode;
 		}
@@ -327,7 +409,7 @@ static void shoot_set_mode(void)
 				{
 					if (shoot_control.shoot_mode != SHOOT_STOP)
 					{
-						shoot_control.shoot_mode = SHOOT_STOP_INIT;
+						shoot_control.shoot_mode = SHOOT_STOP;
 					}
 					break;
 				}
@@ -365,7 +447,10 @@ static void shoot_feedback_update(void)
     speed_fliter_3 = speed_fliter_2 * fliter_num[0] + speed_fliter_1 * fliter_num[1] + (RPM_TO_RADS(shoot_control.shoot_motor_measure->speed_rpm) / TRIGGER_MOTOR_GEAR_RATIO) * fliter_num[2];
     shoot_control.speed = speed_fliter_3;
 
-    // reset the motor count, because when the output shaft rotates one turn, the motor shaft rotates 36 turns, process the motor shaft data into output shaft data, used to control the output shaft angle
+    shoot_control.friction_motor1_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION1].speed_rpm, shoot_control.friction_motor1_rpm, 0.8f);
+    shoot_control.friction_motor2_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION2].speed_rpm, shoot_control.friction_motor2_rpm, 0.8f);
+
+// reset the motor count, because when the output shaft rotates one turn, the motor shaft rotates 36 turns, process the motor shaft data into output shaft data, used to control the output shaft angle
     if (shoot_control.shoot_motor_measure->ecd - shoot_control.shoot_motor_measure->last_ecd > HALF_ECD_RANGE)
     {
         shoot_control.ecd_count--;

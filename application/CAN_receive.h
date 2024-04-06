@@ -25,7 +25,7 @@
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
 
-#define DISABLE_SHOOT_MOTOR_POWER 1
+#define DISABLE_SHOOT_MOTOR_POWER 0
 
 /* CAN send and receive ID */
 typedef enum
@@ -45,6 +45,8 @@ typedef enum
     // INFANTRY_2023_SWERVE: On chassis
     // SENTRY_2023_MECANUM: On chassis
     CAN_TRIGGER_MOTOR_ID = 0x207,
+    CAN_FRICTION_MOTOR1_ID = 0x208,
+    CAN_FRICTION_MOTOR2_ID = 0x208,
 
     CAN_LAST_ID = CAN_TRIGGER_MOTOR_ID,
 } can_msg_id_e;
@@ -58,6 +60,8 @@ typedef enum
 	MOTOR_INDEX_YAW,
 	MOTOR_INDEX_PITCH,
 	MOTOR_INDEX_TRIGGER,
+  MOTOR_INDEX_FRICTION1,
+  MOTOR_INDEX_FRICTION2,
 	MOTOR_LIST_LENGTH,
 } can_motor_id_e;
 
@@ -91,7 +95,7 @@ typedef struct
   * @param[in]      rev: (0x208) reserve motor control current
   * @retval         none
   */
-extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev);
+extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t fric1, int16_t fric2);
 
 /**
   * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
@@ -158,5 +162,10 @@ extern const motor_measure_t *get_trigger_motor_measure_point(void);
   */
 extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_index);
 
+extern const motor_measure_t *get_friction_motor1_measure_point(void);
+
+extern const motor_measure_t *get_friction_motor2_measure_point(void);
+
+extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
 #endif
