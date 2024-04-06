@@ -28,10 +28,13 @@
 #include "chassis_task.h"
 #include "string.h"
 
-#define DISABLE_DRIVE_MOTOR_POWER 1
-#define DISABLE_STEER_MOTOR_POWER 1
-#define DISABLE_YAW_MOTOR_POWER 1
-#define DISABLE_PITCH_MOTOR_POWER 1
+#define DISABLE_DRIVE_MOTOR_POWER 0
+#define DISABLE_STEER_MOTOR_POWER 0
+#define DISABLE_YAW_MOTOR_POWER 0
+#define DISABLE_PITCH_MOTOR_POWER 0
+#define DISABLE_FRICTION_1_MOTOR_POWER 0
+#define DISABLE_FRICTION_2_MOTOR_POWER 0
+
 
 #define REVERSE_M3508_1 0
 #define REVERSE_M3508_2 0
@@ -62,7 +65,7 @@ void reverse_motor_feedback(uint8_t bMotorId);
  * Gimbal CAN:
  * 5:pitch gimbal motor 6020;
  */
-static motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
+motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
 static CAN_TxHeaderTypeDef  gimbal_tx_message;
 static uint8_t              gimbal_can_send_data[8];
@@ -100,6 +103,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     CAN_RxHeaderTypeDef rx_header;
     uint8_t rx_data[8];
     uint8_t bMotorValid = 0;
+    uint8_t bMotorId = 0;
+    uint8_t fIdIdentified = 0;
 
     HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
     
@@ -111,6 +116,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 #endif
             {
                 bMotorValid = 1;
+                fIdIdentified = 0;
+                break;
+            }
+            case CAN_FRICTION_MOTOR2_ID:
+            {
+                bMotorValid = 1;
+                bMotorId = MOTOR_INDEX_FRICTION2;
+                fIdIdentified = 1;
                 break;
             }
             default: {
@@ -124,20 +137,30 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             case CAN_3508_M3_ID:
             case CAN_3508_M4_ID:
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
-            case CAN_TRIGGER_MOTOR_ID:
+        case CAN_TRIGGER_MOTOR_ID:
 #endif
-            case CAN_YAW_MOTOR_ID: {
-                bMotorValid = 1;
-                break;
-            }
-            default: {
-                break;
-            }
+        case CAN_YAW_MOTOR_ID:
+        {
+            bMotorValid = 1;
+            fIdIdentified = 0;
+            break;
+        }
+        case CAN_FRICTION_MOTOR1_ID:
+        {
+            bMotorValid = 1;
+            bMotorId = MOTOR_INDEX_FRICTION1;
+            fIdIdentified = 1;
+            break;
+        }
         }
     }
-    
-    if (bMotorValid == 1) {
-        uint8_t bMotorId = convertCanIdToMotorIndex(rx_header.StdId);
+
+    if (bMotorValid == 1)
+    {
+        if (fIdIdentified == 0)
+        {
+            bMotorId = convertCanIdToMotorIndex(rx_header.StdId);
+        }
         get_motor_measure(&motor_chassis[bMotorId], rx_data);
         reverse_motor_feedback(bMotorId);
         detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
@@ -179,10 +202,10 @@ void reverse_motor_feedback(uint8_t bMotorId)
   * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000] 
   * @param[in]      pitch: (0x206) 6020 motor control current, range [-30000,30000]
   * @param[in]      shoot: (0x207) 2006 motor control current, range [-10000,10000]
-  * @param[in]      rev: (0x208) reserved, motor control current
+  * @param[in]      rev: (0x208) reserve motor control current
   * @retval         none
   */
-void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev)
+void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t fric1, int16_t fric2)
 {
     uint32_t send_mail_box;
     gimbal_tx_message.StdId = CAN_GIMBAL_ALL_TX_ID;
@@ -199,6 +222,12 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev)
 #if DISABLE_SHOOT_MOTOR_POWER
     shoot = 0;
 #endif
+#if DISABLE_FRICTION_1_MOTOR_POWER
+    fric1 = 0;
+#endif
+#if DISABLE_FRICTION_2_MOTOR_POWER
+    fric2 = 0;
+#endif
 
     gimbal_can_send_data[0] = (yaw >> 8);
     gimbal_can_send_data[1] = yaw;
@@ -206,16 +235,18 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev)
     gimbal_can_send_data[3] = pitch;
     gimbal_can_send_data[4] = (shoot >> 8);
     gimbal_can_send_data[5] = shoot;
-    gimbal_can_send_data[6] = (rev >> 8);
-    gimbal_can_send_data[7] = rev;
+    gimbal_can_send_data[6] = (fric1 >> 8);
+    gimbal_can_send_data[7] = fric1;
     // control yaw motor and trigger motor
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
     // control pitch motor
+    gimbal_can_send_data[6] = (fric2 >> 8);
+    gimbal_can_send_data[7] = fric2;
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
 /**
-  * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID set mode
+  * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
   * @param[in]      none
   * @retval         none
   */
@@ -367,6 +398,15 @@ const motor_measure_t *get_trigger_motor_measure_point(void)
     return &motor_chassis[MOTOR_INDEX_TRIGGER];
 }
 
+const motor_measure_t *get_friction_motor1_measure_point(void)
+{
+    return &motor_chassis[MOTOR_INDEX_FRICTION1];
+}
+
+const motor_measure_t *get_friction_motor2_measure_point(void)
+{
+    return &motor_chassis[MOTOR_INDEX_FRICTION2];
+}
 
 /**
   * @brief          return the chassis 3508 motor data point
