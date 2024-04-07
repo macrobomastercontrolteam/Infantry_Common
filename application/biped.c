@@ -527,8 +527,8 @@ void biped_jumpManager(void)
 				biped.isJumpInTheAir = 1;
 
 				// Back to PID control
-				biped.leg_L.L0.set = LEG_L0_MID;
-				biped.leg_R.L0.set = LEG_L0_MID;
+				biped.leg_L.L0.set = LEG_L0_MIN;
+				biped.leg_R.L0.set = LEG_L0_MIN;
 				// Avoid integral windup
 				PID_clear(&biped.leg_L.supportFInAir_pid);
 				PID_clear(&biped.leg_R.supportFInAir_pid);
@@ -537,7 +537,7 @@ void biped_jumpManager(void)
 			else
 			{
 				// @TODO: Direct decaying torque control
-				fp32 initSupportF = -300.0f; // arbitrary large value
+				fp32 initSupportF = -350.0f; // arbitrary large value
 				fp32 decaySupportF = initSupportF * (1.0f - exp((MAX(biped.leg_L.L0.now, biped.leg_R.L0.now) - LEG_L0_MAX_THRESHOLD) / JumpTorqueDecayTau));
 				biped.leg_L.F_set = decaySupportF;
 				biped.leg_R.F_set = decaySupportF;
