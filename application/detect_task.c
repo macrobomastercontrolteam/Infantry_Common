@@ -53,6 +53,7 @@
 #include "detect_task.h"
 #include "cmsis_os.h"
 
+#define DETECT_JSCOPE_DEBUG 1
 
 /**
   * @brief          init error_list, assign  offline_time, online_time, priority.
@@ -71,6 +72,9 @@ static void detect_init(uint32_t time);
 
 error_t error_list[ERROR_LIST_LENGTH + 1];
 
+#if DETECT_JSCOPE_DEBUG
+uint32_t offline_time[ERROR_LIST_LENGTH];
+#endif
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t detect_task_stack;
@@ -104,6 +108,13 @@ void detect_task(void const *pvParameters)
         error_num_display = ERROR_LIST_LENGTH;
         error_list[ERROR_LIST_LENGTH].is_lost = 0;
         error_list[ERROR_LIST_LENGTH].error_exist = 0;
+
+#if DETECT_JSCOPE_DEBUG
+        for (int i = 0; i < ERROR_LIST_LENGTH; i++)
+        {
+            offline_time[i] = system_time - error_list[i].new_time;
+        }
+#endif
 
         for (int i = 0; i < ERROR_LIST_LENGTH; i++)
         {
