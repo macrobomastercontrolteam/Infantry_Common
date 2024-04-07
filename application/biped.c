@@ -13,6 +13,7 @@
 #define JUMP_SHRINK_TIMEOUT_MS 1000.0f
 
 #define LQR_ADJUST_COEFF 0.25f
+#define LQR_ADJUST_DIS_COEFF 0.25f
 
 biped_t biped;
 
@@ -104,12 +105,12 @@ void biped_init(void)
 	{
 		for (uint8_t col = 0; col < 4; col++)
 		{
-			// // higher gain for dis
-			// if ((row == 2 * 2 + 0) || (row == 2 * 2 + 1))
-			// {
-			// 	biped.K_coeff[row][col] *= 0.25f; // the best so far
-			// }
-			// else
+			// higher gain for dis
+			if ((row == 2 * 2 + 0) || (row == 2 * 2 + 1))
+			{
+				biped.K_coeff[row][col] *= LQR_ADJUST_DIS_COEFF;
+			}
+			else
 			{
 				biped.K_coeff[row][col] *= LQR_ADJUST_COEFF;
 			}
