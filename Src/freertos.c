@@ -183,12 +183,10 @@ void MX_FREERTOS_Init(void) {
 
     // osThreadDef(SERVO, servo_task, osPriorityNormal, 0, 128);
     // servo_task_handle = osThreadCreate(osThread(SERVO), NULL);
-// #if defined(CV_INTERFACE)
-//     osThreadDef(CVTask, cv_usart_task, osPriorityNormal, 0, 256);
-//     cv_usart_task_handle = osThreadCreate(osThread(CVTask), NULL);
-// #else
-//     UNUSED(cv_usart_task_handle);
-// #endif
+#if defined(CV_INTERFACE)
+    osThreadDef(CVTask, cv_usart_task, osPriorityNormal, 0, 256);
+    cv_usart_task_handle = osThreadCreate(osThread(CVTask), NULL);
+#endif
 
   /* USER CODE END RTOS_THREADS */
 

@@ -137,6 +137,7 @@ extern void chassis_task(void const *pvParameters);
  * @retval         none
  */
 extern void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector);
+extern void chassis_cv_control(chassis_move_t *chassis_move_ptr);
 
 extern chassis_move_t chassis_move;
 

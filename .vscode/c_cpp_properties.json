@@ -26,6 +26,7 @@
 		],
 		  "defines": [
 		  "INFANTRY_4",
+		  "CV_INTERFACE",
 		  "TEST_NO_REF",
 		  "USE_HAL_DRIVER",
 		  "STM32F407xx",

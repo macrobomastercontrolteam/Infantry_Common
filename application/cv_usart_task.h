@@ -19,10 +19,10 @@
 
 typedef struct __attribute__((packed))
 {
-    fp32 xDeltaAngle; ///< unit: rad
-    fp32 yDeltaAngle; ///< unit: rad
-    fp32 xSpeed;
-    fp32 ySpeed;
+    fp32 xAngle; ///< unit: rad
+    fp32 yAngle; ///< unit: rad
+    fp32 disDelta; ///< unit: m
+    fp32 yawSet; ///< unit: rad
 } tCvCmdMsg;
 
 typedef enum
@@ -31,7 +31,9 @@ typedef enum
     CV_MODE_AUTO_MOVE_BIT = 1 << 1,
     CV_MODE_ENEMY_DETECTED_BIT = 1 << 2,
     CV_MODE_SHOOT_BIT = 1 << 3,
-    CV_MODE_LAST_BIT = 1 << 4,
+    // @TODO: shut down by CV
+    CV_MODE_MASTER_POWER_BIT = 1 << 4,
+    CV_MODE_LAST_BIT = 1 << 5,
 } eModeControlBits;
 STATIC_ASSERT(CV_MODE_LAST_BIT <= (1 << 8));
 

@@ -29,6 +29,7 @@
 #include "detect_task.h"
 #include "pid.h"
 #include "remote_control.h"
+#include "cv_usart_task.h"
 
 static void wait_until_motors_online(void);
 static void chassis_init(chassis_move_t *chassis_move_init);
@@ -140,7 +141,6 @@ static void jscope_chassis_test(void)
  */
 void chassis_task(void const *pvParameters)
 {
-	// uint8_t fValidCmd = 1;
 	osDelay(BIPED_CHASSIS_TASK_INIT_TIME);
 
 	chassis_init(&chassis_move);
@@ -413,12 +413,14 @@ void chassis_cv_control(chassis_move_t *chassis_move_ptr)
 	{
 		return;
 	}
-	
+
+#if defined(CV_INTERFACE)
     if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fCvCmdValid))
 	{
-        biped.leg_simplified.dis.set += CvCmdHandler.CvCmdMsg.xDeltaSet;
+        biped.leg_simplified.dis.set += CvCmdHandler.CvCmdMsg.disDelta;
 		biped.yaw.set = rad_format(CvCmdHandler.CvCmdMsg.yawSet);
     }
+#endif
 }
 
 /**

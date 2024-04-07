@@ -234,4 +234,5 @@ static void chassis_no_follow_yaw_control(chassis_move_t *chassis_move_rc_to_vec
 		return;
 	}
 	chassis_rc_to_control_vector(chassis_move_rc_to_vector);
+	chassis_cv_control(chassis_move_rc_to_vector);
 }
