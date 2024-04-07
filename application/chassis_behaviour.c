@@ -82,11 +82,16 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 		return;
 	}
 
-	switch (chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL])
+	static uint8_t last_rc_switch = RC_SW_DOWN;
+	uint8_t now_rc_switch = chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL];
+	switch (now_rc_switch)
 	{
 		case RC_SW_UP:
 		{
-			biped_jumpStart();
+			if (last_rc_switch != RC_SW_UP)
+			{
+				biped_jumpStart();
+			}
 			break;
 		}
 		case RC_SW_MID:
@@ -101,6 +106,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			break;
 		}
 	}
+	last_rc_switch = now_rc_switch;
 
 	// //when gimbal in some mode, such as init mode, chassis must's move
 	// //当云台在某些模式下，像初始化， 底盘不动
