@@ -270,13 +270,13 @@ static void detect_init(uint32_t time)
     //设置离线时间，上线稳定工作时间，优先级 offlineTime onlinetime priority
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
-            {30, 40, 15},   //SBUS
-            {30, 10, 11},   //hip motor1
-            {30, 10, 11},   //hip motor2
-            {30, 10, 11},    //hip motor3
-            {30, 10, 11},    //hip motor4
-            {30, 10, 10},   //drive motor1
-            {30, 10, 10},   //drive motor2
+            {30, 20, 15},   //SBUS
+            {50, 0, 11},   //hip motor1
+            {50, 0, 11},   //hip motor2
+            {50, 0, 11},    //hip motor3
+            {50, 0, 11},    //hip motor4
+            {50, 0, 10},   //drive motor1
+            {50, 0, 10},   //drive motor2
             {2, 3, 14},     //yaw
             {2, 3, 13},     //pitch
             {10, 10, 12},   //trigger
