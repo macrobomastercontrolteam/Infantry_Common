@@ -96,7 +96,7 @@ typedef enum
 {
 	DM_8006 = 0,
 	MA_9015 = 1,
-	LAST_MOTOR_TYPE = MA_9015 + 1,
+	LAST_MOTOR_TYPE,
 } motor_type_e;
 
 // rm motor data
