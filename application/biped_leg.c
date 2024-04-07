@@ -48,7 +48,7 @@ void LegClass_t_Init(LegClass_t *leg)
 	leg->angle1 = PI / 3 * 2;
 	leg->angle4 = PI / 3;
 	LegClass_t_ForwardKinematics(leg, 0);
-	leg->L0.set = LEG_L0_MID; // Initial value
+	leg->L0.set = LEG_L0_MIN; // Initial value
 	leg->L0.last = leg->L0.set;
 
 	memset(leg->X, 0, sizeof(leg->X));
