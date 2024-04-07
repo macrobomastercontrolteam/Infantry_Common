@@ -50,26 +50,26 @@ chassis_move_t chassis_move;
 fp32 chassis_task_loop_delay;
 
 #if CHASSIS_JSCOPE_DEBUG
-fp32 leg_L_dis_now = 0;
-fp32 leg_R_dis_now = 0;
-fp32 leg_L_drive_multiangle = 0;
-fp32 leg_R_drive_multiangle = 0;
-fp32 leg_L_drive_input_angle = 0;
-fp32 leg_R_drive_input_angle = 0;
-fp32 out_LF = 0;
-fp32 out_LB = 0;
-fp32 out_RF = 0;
-fp32 out_RB = 0;
-fp32 angle_L1 = 0;
-fp32 angle_L4 = 0;
-fp32 angle_R1 = 0;
-fp32 angle_R4 = 0;
-fp32 leg_R_TL_set = 0;
-fp32 leg_R_TR_set = 0;
-fp32 leg_L_TL_set = 0;
-fp32 leg_L_TR_set = 0;
-fp32 leg_L_TWheel_set = 0;
-fp32 leg_R_TWheel_set = 0;
+// fp32 leg_L_drive_multiangle = 0;
+// fp32 leg_R_drive_multiangle = 0;
+// fp32 leg_L_drive_input_angle = 0;
+// fp32 leg_R_drive_input_angle = 0;
+// fp32 out_LF = 0;
+// fp32 out_LB = 0;
+// fp32 out_RF = 0;
+// fp32 out_RB = 0;
+// fp32 angle_L1 = 0;
+// fp32 angle_L4 = 0;
+// fp32 angle_R1 = 0;
+// fp32 angle_R4 = 0;
+// fp32 leg_R_TL_set = 0;
+// fp32 leg_R_TR_set = 0;
+// fp32 leg_L_TL_set = 0;
+// fp32 leg_L_TR_set = 0;
+// fp32 leg_L_TWheel_set = 0;
+// fp32 leg_R_TWheel_set = 0;
+fp32 leg_l_l0_set = 0;
+fp32 leg_r_l0_set = 0;
 fp32 leg_sim_angle0_now = 0;
 fp32 leg_sim_angle0_dot = 0;
 fp32 leg_sim_dis_diff = 0;
@@ -81,49 +81,55 @@ fp32 biped_yaw_set = 0;
 fp32 biped_roll_now = 0;
 fp32 biped_roll_set = 0;
 uint32_t loop_delay = 0;
+uint8_t error_Toe = 0;
+uint8_t jump_state;
+uint8_t brake_state;
 static void jscope_chassis_test(void)
 {
-	leg_L_dis_now = biped.leg_L.dis.now;
-	leg_R_dis_now = biped.leg_R.dis.now;
+	// leg_L_drive_input_angle = motor_measure[CHASSIS_ID_DRIVE_LEFT].input_angle;
+	// leg_R_drive_input_angle = motor_measure[CHASSIS_ID_DRIVE_RIGHT].input_angle;
 
-	leg_L_drive_input_angle = motor_measure[CHASSIS_ID_DRIVE_LEFT].input_angle;
-	leg_R_drive_input_angle = motor_measure[CHASSIS_ID_DRIVE_RIGHT].input_angle;
+	// leg_L_drive_multiangle = motor_measure[CHASSIS_ID_DRIVE_LEFT].output_angle;
+	// leg_R_drive_multiangle = motor_measure[CHASSIS_ID_DRIVE_RIGHT].output_angle;
 
-	leg_L_drive_multiangle = motor_measure[CHASSIS_ID_DRIVE_LEFT].output_angle;
-	leg_R_drive_multiangle = motor_measure[CHASSIS_ID_DRIVE_RIGHT].output_angle;
+	// out_LF = motor_measure[CHASSIS_ID_HIP_LF].output_angle;
+	// out_LB = motor_measure[CHASSIS_ID_HIP_LB].output_angle;
+	// out_RF = motor_measure[CHASSIS_ID_HIP_RF].output_angle;
+	// out_RB = motor_measure[CHASSIS_ID_HIP_RB].output_angle;
 
-	out_LF = motor_measure[CHASSIS_ID_HIP_LF].output_angle;
-	out_LB = motor_measure[CHASSIS_ID_HIP_LB].output_angle;
-	out_RF = motor_measure[CHASSIS_ID_HIP_RF].output_angle;
-	out_RB = motor_measure[CHASSIS_ID_HIP_RB].output_angle;
+	// angle_L1 = biped.leg_L.angle1*180.0f/PI;
+	// angle_L4 = biped.leg_L.angle4*180.0f/PI;
+	// angle_R1 = biped.leg_R.angle1*180.0f/PI;
+	// angle_R4 = biped.leg_R.angle4*180.0f/PI;
 
-	angle_L1 = biped.leg_L.angle1*180.0f/PI;
-	angle_L4 = biped.leg_L.angle4*180.0f/PI;
-	angle_R1 = biped.leg_R.angle1*180.0f/PI;
-	angle_R4 = biped.leg_R.angle4*180.0f/PI;
+	// leg_R_TL_set = biped.leg_R.TL_set;
+	// leg_R_TR_set = biped.leg_R.TR_set;
+	// leg_L_TL_set = biped.leg_L.TL_set;
+	// leg_L_TR_set = biped.leg_L.TR_set;
 
-	leg_R_TL_set = biped.leg_R.TL_set;
-	leg_R_TR_set = biped.leg_R.TR_set;
-	leg_L_TL_set = biped.leg_L.TL_set;
-	leg_L_TR_set = biped.leg_L.TR_set;
+	// leg_L_TWheel_set = biped.leg_L.TWheel_set;
+	// leg_R_TWheel_set = biped.leg_R.TWheel_set;
+	leg_l_l0_set = biped.leg_L.L0.now;
+	leg_r_l0_set = biped.leg_R.L0.now;
 
-	leg_L_TWheel_set = biped.leg_L.TWheel_set;
-	leg_R_TWheel_set = biped.leg_R.TWheel_set;
+	leg_sim_angle0_now = biped.leg_simplified.angle0.now * 180.0f / PI;
+	leg_sim_angle0_dot = biped.leg_simplified.angle0.dot * 1000.0f;
+	leg_sim_dis_diff = biped_get_dis_diff() * 1000.0f;
+	leg_sim_dis_dot = biped.leg_simplified.dis.dot * 1000.0f;
 
-	leg_sim_angle0_now = biped.leg_simplified.angle0.now;
-	leg_sim_angle0_dot = biped.leg_simplified.angle0.dot;
-	leg_sim_dis_diff = biped.leg_simplified.dis.now - biped.leg_simplified.dis.set;
-	leg_sim_dis_dot = biped.leg_simplified.dis.dot;
-	biped_pitch_now = biped.pitch.now;
-	biped_pitch_dot = biped.pitch.dot;
+	biped_pitch_now = biped.pitch.now * 180.0f / PI;
+	biped_pitch_dot = biped.pitch.dot * 180.0f / PI;
 
-	biped_yaw_now = biped.yaw.now;
-	biped_yaw_set = biped.yaw.set;
+	biped_yaw_now = biped.yaw.now * 180.0f / PI;
+	biped_yaw_set = biped.yaw.set * 180.0f / PI;
 
-	biped_roll_now = biped.roll.now*180.0f/PI;
-	biped_roll_set = biped.roll.set*180.0f/PI;
+	biped_roll_now = biped.roll.now * 180.0f / PI;
+	biped_roll_set = biped.roll.set * 180.0f / PI;
 
 	loop_delay = HAL_GetTick() - biped.time_ms;
+
+	jump_state = biped.jumpState;
+	brake_state = biped.brakeState;
 }
 #endif
 
@@ -158,16 +164,19 @@ void chassis_task(void const *pvParameters)
 			{
 				if (toe_is_error(bToeIndex))
 				{
+#if CHASSIS_JSCOPE_DEBUG
+					error_Toe = bToeIndex;
+#endif
 					biped.fBipedEnable = 0;
 					break;
 				}
 			}
 
 			// flipped over
-			if (fabs(biped.pitch.now) >= 80.0f / 180.0f * PI)
-			{
-				biped.fBipedEnable = 0;
-			}
+			// if (fabs(biped.pitch.now) >= 80.0f / 180.0f * PI)
+			// {
+			// 	biped.fBipedEnable = 0;
+			// }
 		}
 
 		if (biped.fBipedEnable == 0)
