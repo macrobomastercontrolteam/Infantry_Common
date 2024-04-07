@@ -316,7 +316,7 @@ void decode_9015_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
 	uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
 	uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
 
-	*bMotorIdPtr = data[0] - 1 + CHASSIS_ID_DRIVE_RIGHT;
+	*bMotorIdPtr = data[0] - 1 + CHASSIS_ID_HIP_RF;
 	motor_measure[*bMotorIdPtr].input_angle = uint_to_float_motor(p_int, MOTOR_P_MIN[MA_9015], MOTOR_P_MAX[MA_9015], 16);
 	motor_measure[*bMotorIdPtr].velocity = uint_to_float_motor(v_int, MOTOR_V_MIN[MA_9015], MOTOR_V_MAX[MA_9015], 12);
 	motor_measure[*bMotorIdPtr].torque = uint_to_float_motor(t_int, MOTOR_T_MIN[MA_9015], MOTOR_T_MAX[MA_9015], 12);
@@ -486,15 +486,15 @@ uint8_t drive_motor_set_torque(float R_torq, float L_torq, uint8_t blocking_call
 void request_9015_multiangle_data(uint8_t blocking_call)
 {
 	static uint8_t can_9015_multiangle_data[8] = {CAN_9015_MULTIANGLE_MSG_ID, 0, 0, 0, 0, 0, 0, 0};
-	chassis_tx_message.StdId = CAN_DRIVE_MOTOR_SINGLECMD_TX_ID + 1;
+	chassis_tx_message.StdId = CAN_DRIVE_MOTOR_SINGLECMD_TX_ID + CHASSIS_ID_DRIVE_RIGHT + 1;
 	chassis_tx_message.IDE = CAN_ID_STD;
 	chassis_tx_message.RTR = CAN_RTR_DATA;
 	chassis_tx_message.DLC = 0x08;
 	if (blocking_call)
 	{
 		blocking_can_send(&hcan1, &chassis_tx_message, can_9015_multiangle_data);
-		chassis_tx_message.StdId = CAN_DRIVE_MOTOR_SINGLECMD_TX_ID + 2;
-		HAL_CAN_AddTxMessage(&hcan1, &chassis_tx_message, can_9015_multiangle_data, &send_mail_box);
+		chassis_tx_message.StdId = CAN_DRIVE_MOTOR_SINGLECMD_TX_ID + CHASSIS_ID_DRIVE_LEFT + 1;
+		HAL_CAN_AddTxMessage(&hcan2, &chassis_tx_message, can_9015_multiangle_data, &send_mail_box);
 	}
 	else
 	{
@@ -502,8 +502,8 @@ void request_9015_multiangle_data(uint8_t blocking_call)
 
 		osDelay(2);
 
-		chassis_tx_message.StdId = CAN_DRIVE_MOTOR_SINGLECMD_TX_ID + 2;
-		HAL_CAN_AddTxMessage(&hcan1, &chassis_tx_message, can_9015_multiangle_data, &send_mail_box);
+		chassis_tx_message.StdId = CAN_DRIVE_MOTOR_SINGLECMD_TX_ID + CHASSIS_ID_DRIVE_LEFT + 1;
+		HAL_CAN_AddTxMessage(&hcan2, &chassis_tx_message, can_9015_multiangle_data, &send_mail_box);
 	}
 }
 
