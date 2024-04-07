@@ -62,9 +62,9 @@
 #define MAX_CHASSIS_ROLL (10.0f / 180.0f * PI)
 
 #define MOTOR_TORQUE_CLEARANCE 0.2f
-#define HIP_TORQUE_BURST_MAX (20.0f - MOTOR_TORQUE_CLEARANCE)
+#define HIP_TORQUE_BURST_MAX (35.0f - MOTOR_TORQUE_CLEARANCE)
 // #define HIP_TORQUE_MAX 8.0f
-#define HIP_TORQUE_MAX 4.0f
+#define HIP_TORQUE_MAX 3.0f
 #define DRIVE_TORQUE_MAX 3.0f
 
 #define UNLOADED_ROBOT_MASS 5.0f                                            // unit is kg
