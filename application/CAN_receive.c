@@ -69,7 +69,8 @@ const float MOTOR_KP_MIN[LAST_MOTOR_TYPE] = {0.0f, 0.0f};
 const float MOTOR_KD_MAX[LAST_MOTOR_TYPE] = {5.0f, 5.0f};
 const float MOTOR_KD_MIN[LAST_MOTOR_TYPE] = {0.0f, 0.0f};
 
-HAL_StatusTypeDef encode_6012_motor_torque_control(float torque1, float torque2, float torque3, float torque4, uint8_t blocking_call);
+HAL_StatusTypeDef encode_6012_multi_motor_torque_control(float torque1, float torque2, float torque3, float torque4, uint8_t blocking_call);
+HAL_StatusTypeDef encode_6012_single_motor_torque_control(uint16_t id, float torque, uint8_t blocking_call);
 void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
 // HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
 void decode_9015_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
@@ -432,7 +433,14 @@ uint8_t hip_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float 
 #endif
 
 	// 6012 motor as hip
-	encode_6012_motor_torque_control(RF_torq, LF_torq, LB_torq, RB_torq, blocking_call);
+	// encode_6012_multi_motor_torque_control(RF_torq, LF_torq, LB_torq, RB_torq, blocking_call);
+	encode_6012_single_motor_torque_control(CAN_HIP1_FEEDBACK_ID, RF_torq, blocking_call);
+	osDelay(1);
+	encode_6012_single_motor_torque_control(CAN_HIP2_FEEDBACK_ID, LF_torq, blocking_call);
+	osDelay(1);
+	encode_6012_single_motor_torque_control(CAN_HIP3_FEEDBACK_ID, LB_torq, blocking_call);
+	osDelay(1);
+	encode_6012_single_motor_torque_control(CAN_HIP4_FEEDBACK_ID, RB_torq, blocking_call);
 	// use delay if blocking_call == 0
 	// osDelay(1);
 
@@ -475,11 +483,9 @@ uint8_t drive_motor_set_torque(float R_torq, float L_torq, uint8_t blocking_call
 #endif
 
 	encode_motor_control(CAN_DRIVE1_PVT_TX_ID, 0, 0, 0, 0, R_torq, blocking_call, MA_9015);
-	// use delay if blocking_call == 0
 	osDelay(2);
 	encode_motor_control(CAN_DRIVE2_PVT_TX_ID, 0, 0, 0, 0, L_torq, blocking_call, MA_9015);
 	// request_9015_multiangle_data(blocking_call);
-	// osDelay(2);
 	return fValidInput;
 }
 
@@ -507,7 +513,7 @@ void request_9015_multiangle_data(uint8_t blocking_call)
 	}
 }
 
-HAL_StatusTypeDef encode_6012_motor_torque_control(float torque1, float torque2, float torque3, float torque4, uint8_t blocking_call)
+HAL_StatusTypeDef encode_6012_multi_motor_torque_control(float torque1, float torque2, float torque3, float torque4, uint8_t blocking_call)
 {
 	chassis_tx_message.StdId = CAN_HIP_MOTOR_MULTICMD_TX_ID;
 	chassis_tx_message.IDE = CAN_ID_STD;
@@ -526,6 +532,33 @@ HAL_StatusTypeDef encode_6012_motor_torque_control(float torque1, float torque2,
 	chassis_can_send_data[5] = *((uint8_t *)(&iqControl_3) + 1);
 	chassis_can_send_data[6] = *(uint8_t *)(&iqControl_4);
 	chassis_can_send_data[7] = *((uint8_t *)(&iqControl_4) + 1);
+
+	if (blocking_call)
+	{
+		return blocking_can_send(&hcan2, &chassis_tx_message, chassis_can_send_data);
+	}
+	else
+	{
+		return HAL_CAN_AddTxMessage(&hcan2, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+	}
+}
+
+HAL_StatusTypeDef encode_6012_single_motor_torque_control(uint16_t id, float torque, uint8_t blocking_call)
+{
+	chassis_tx_message.StdId = id;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 8;
+
+	int16_t iqControl = torque * MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO;
+	chassis_can_send_data[0] = CAN_6012_TORQUE_FEEDBACK_ID;
+	chassis_can_send_data[1] = 0;
+	chassis_can_send_data[2] = 0;
+	chassis_can_send_data[3] = 0;
+	chassis_can_send_data[4] = *(uint8_t *)(&iqControl);
+	chassis_can_send_data[5] = *((uint8_t *)(&iqControl) + 1);
+	chassis_can_send_data[6] = 0;
+	chassis_can_send_data[7] = 0;
 
 	if (blocking_call)
 	{

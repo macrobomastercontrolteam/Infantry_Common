@@ -212,7 +212,7 @@ static void wait_until_motors_online(void)
 	uint8_t bToeIndex;
 	hip_motor_set_torque(0, 0, 0, 0, blocking_call);
 	drive_motor_set_torque(0, 0, blocking_call);
-	osDelay(15);
+	osDelay(2);
 	for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_DRIVE_MOTOR2_TOE; bToeIndex++)
 	{
 		while (toe_is_error(bToeIndex))
@@ -240,17 +240,17 @@ static void wait_until_motors_online(void)
 				}
 				case DBUS_TOE:
 				{
-					osDelay(10);
 					break;
 				}
 			}
+			osDelay(10);
 		}
 	}
 
 	// retrigger motor feedback to get them online
 	hip_motor_set_torque(0, 0, 0, 0, blocking_call);
 	drive_motor_set_torque(0, 0, blocking_call);
-	osDelay(15);
+	osDelay(5);
 	// fake online
 	// uint8_t repeat_index;
 	// for (repeat_index = 0; repeat_index < 2; repeat_index++)
