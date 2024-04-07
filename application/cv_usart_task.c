@@ -144,13 +144,9 @@ void CvCmder_Init(void)
     memset(&CvCmdHandler, 0, sizeof(CvCmdHandler));       // clear status
     CvCmdHandler.cv_rc_ctrl = get_remote_control_point(); // reserved, not used yet
 
-#if defined(SENTRY_1)
-    CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT, 1);
-#if !defined(SENTRY_HW_TEST)
+    CvCmdHandler.fCvMode = 0;
     CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 1);
-#endif
     CvCmdHandler.fIsModeChanged = 1;
-#endif
 
     // Get a callback when DMA completes or IDLE
     HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
