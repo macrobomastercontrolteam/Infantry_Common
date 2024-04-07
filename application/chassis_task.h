@@ -36,8 +36,8 @@
 
 #define CHASSIS_JSCOPE_DEBUG 1
 
-// chassis task loop delay time
-#define CHASSIS_CONTROL_TIME_MS 4.0f
+// chassis task loop delay time: small value causes noise in derivative calculation
+#define CHASSIS_CONTROL_TIME_MS 5.0f
 #define CHASSIS_CONTROL_TIME_S (CHASSIS_CONTROL_TIME_MS / 1000.0f)
 
 // rocker value (max 660) change to vertial speed (m/s)
