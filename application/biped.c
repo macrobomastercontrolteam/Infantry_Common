@@ -58,7 +58,7 @@ void biped_init(void)
 	const fp32 split_pid_param[3] = {100, 0, 10}; // for 5ms loop time
 	PID_init(&biped.split_pid, PID_POSITION, split_pid_param, HIP_TORQUE_MAX, HIP_TORQUE_MAX / 2.0f, 0.9f, &rad_err_handler);
 
-	const fp32 roll_pid_param[3] = {1000, 0, 10};
+	const fp32 roll_pid_param[3] = {600, 0, 10};
 	PID_init(&biped.roll_pid, PID_POSITION, roll_pid_param, 25, 0, 0.9f, &rad_err_handler);
 
 	const fp32 invPendulumInAir_pid_param[3] = {200, 10, 10};
