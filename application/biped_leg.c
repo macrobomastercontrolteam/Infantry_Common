@@ -36,7 +36,6 @@ void LegClass_t_Init(LegClass_t *leg)
 	leg->dis.now = 0;
 	leg->dis.last = 0;
 	leg->dis.dot = 0;
-	leg->dis.last = 0;
 
 	leg->xc = 0;
 #if (MODEL_ORIG_RM_CAP == 0)
