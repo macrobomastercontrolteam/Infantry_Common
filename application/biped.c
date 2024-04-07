@@ -168,8 +168,11 @@ void biped_status_update(void)
 
 	biped.leg_L.dis.dot = (biped.leg_L.dis.now - biped.leg_L.dis.last) / biped.time_step_s;
 	biped.leg_R.dis.dot = (biped.leg_R.dis.now - biped.leg_R.dis.last) / biped.time_step_s;
-	biped.leg_simplified.dis.dot = (biped.leg_simplified.dis.now - biped.leg_simplified.dis.last) / biped.time_step_s;
-	// biped.leg_simplified.dis.dot = first_order_filter((biped.leg_simplified.dis.now - biped.leg_simplified.dis.last) / biped.time_step_s, biped.leg_simplified.dis.dot, 1.000f);
+	// third order Taylor series
+	// fp32 dis_dot_now = (biped.leg_simplified.dis.lastlast - 4.0f * biped.leg_simplified.dis.last + 3.0f * biped.leg_simplified.dis.now) / 2.0f / biped.time_step_s;
+	fp32 dis_dot_now = (biped.leg_simplified.dis.now - biped.leg_simplified.dis.last) / biped.time_step_s;
+	biped.leg_simplified.dis.dot = first_order_filter(dis_dot_now, biped.leg_simplified.dis.dot, 0.5f);
+	// biped.leg_simplified.dis.dot = dis_dot_now;
 
 	if (biped.leg_L.fResetMultiAngleOffset || biped.leg_R.fResetMultiAngleOffset)
 	{
