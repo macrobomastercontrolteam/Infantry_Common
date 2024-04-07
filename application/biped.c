@@ -12,8 +12,8 @@
 #define JUMP_SUPPORT_FORCE_IGNORE_TIMEOUT_MS 300.0f
 #define JUMP_SHRINK_TIMEOUT_MS 1000.0f
 
-#define LQR_ADJUST_COEFF 0.25f
-#define LQR_ADJUST_DIS_COEFF 0.25f
+#define LQR_ADJUST_COEFF 0.3f
+#define LQR_ADJUST_DIS_COEFF 0.3f
 
 biped_t biped;
 
@@ -33,7 +33,7 @@ void biped_init(void)
 	// biped.yaw_dot_last = 0;
 	biped.yaw.last = 0;
 	// @TODO
-	// biped.balance_angle = -0.0064f;
+	// biped.balance_angle = -0.02f;
 	biped.balance_angle = 0.0f;
 	biped.dis_offset = 0.0f;
 	biped.jumpState = JUMP_IDLE;
