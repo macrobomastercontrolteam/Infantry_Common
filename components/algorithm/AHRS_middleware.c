@@ -98,7 +98,14 @@ fp32 AHRS_sinf(fp32 angle)
 
 fp32 AHRS_cosf(fp32 angle)
 {
-    return arm_cos_f32(angle);
+    if (fabs(angle) <= 1e-6f)
+    {
+        return 1.0f;
+    }
+    else
+    {
+        return arm_cos_f32(angle);
+    }
 }
 
 /**
