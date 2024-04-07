@@ -75,13 +75,13 @@
 #define LEG_L0_MAX 0.35f
 #elif ((MODEL_ORIG_RM_CAP == 1) || (MODEL_ORIG_RM_CAP == 2))
 #define LEG_L0_MIN 0.15f
-#define LEG_L0_MAX 0.35f
+#define LEG_L0_MAX 0.34f
 #endif
 #define LEG_L0_MID ((LEG_L0_MAX + LEG_L0_MIN) / 2.0f)
 #define LEG_L0_RANGE (LEG_L0_MAX - LEG_L0_MIN)
 
-#define LEG_L0_MIN_THRESHOLD (LEG_L0_MIN + 0.04f)
-#define LEG_L0_MAX_THRESHOLD (LEG_L0_MAX - 0.04f)
+#define LEG_L0_MIN_THRESHOLD (LEG_L0_MIN + LEG_L0_RANGE * 0.2f)
+#define LEG_L0_MAX_THRESHOLD (LEG_L0_MAX - LEG_L0_RANGE * 0.2f)
 
 /**
  * @brief          remote control dealline solve,because the value of rocker is not zero in middle place,
