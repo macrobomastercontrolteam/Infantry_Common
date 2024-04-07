@@ -353,7 +353,8 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				biped.leg_L.dis.now = 0;
 				biped.leg_R.dis.now = 0;
 				biped.leg_simplified.dis.now = 0;
-				biped.leg_simplified.dis.set = biped.leg_simplified.dis.now;
+
+				biped_set_dis(biped.leg_simplified.dis.now, (biped.pitch.now < 0));
 
 				biped.leg_L.dis.last = biped.leg_L.dis.now;
 				biped.leg_R.dis.last = biped.leg_R.dis.now;
@@ -388,7 +389,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				biped.leg_R.fResetMultiAngleOffset = 1;
 
 				biped.leg_simplified.dis.now = 0;
-				biped.leg_simplified.dis.set = biped.leg_simplified.dis.now;
+				biped_set_dis(biped.leg_simplified.dis.now, (biped.pitch.now < 0));
 				break;
 			}
 		}
@@ -473,10 +474,12 @@ void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector)
 	}
 
 	static uint32_t brake_state_entry_time_ms = 0;
+	static uint8_t fBrakingForward = 0; // 1: forward, 0: backward
 	if ((dis_channel_int16_last != 0) && (dis_channel_int16 == 0))
 	{
 		// brake
-		biped.leg_simplified.dis.set = biped.leg_simplified.dis.now;
+		fBrakingForward = (biped_get_dis_diff() > 0);
+		biped_set_dis(biped.leg_simplified.dis.now, fBrakingForward);
 		biped.brakeState = BRAKE_ENABLE;
 		brake_state_entry_time_ms = biped.time_ms;
 	}
@@ -493,14 +496,10 @@ void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector)
 		}
 		case BRAKE_ENABLE:
 		{
-			if (fabs(biped.leg_simplified.dis.dot) < 0.4f)
+			if ((fabs(biped.leg_simplified.dis.dot) < 0.3f) || (biped.time_ms - brake_state_entry_time_ms > 1000.0f))
 			{
 				biped.brakeState = BRAKE_IDLE;
-				biped.leg_simplified.dis.set = biped.leg_simplified.dis.now;
-			}
-			else if (biped.time_ms - brake_state_entry_time_ms > 1000.0f)
-			{
-				biped.brakeState = BRAKE_IDLE;
+				biped_set_dis(biped.leg_simplified.dis.now, fBrakingForward);
 			}
 			break;
 		}

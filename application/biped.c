@@ -35,6 +35,7 @@ void biped_init(void)
 	// @TODO
 	// biped.balance_angle = -0.0064f;
 	biped.balance_angle = 0.0f;
+	biped.dis_offset = 0.0f;
 	biped.jumpState = JUMP_IDLE;
 	biped.brakeState = BRAKE_IDLE;
 	biped.isJumpInTheAir = 0;
@@ -172,7 +173,7 @@ void biped_status_update(void)
 
 	if (biped.leg_L.fResetMultiAngleOffset || biped.leg_R.fResetMultiAngleOffset)
 	{
-		biped.leg_simplified.dis.set = biped.leg_simplified.dis.now;
+		biped_set_dis(biped.leg_simplified.dis.now, (biped.pitch.now < 0));
 	}
 	// else
 	// {
@@ -211,6 +212,29 @@ void biped_status_update(void)
 	biped.leg_L.L0.last = biped.leg_L.L0.now;
 	biped.leg_R.L0.dot = (biped.leg_R.L0.now - biped.leg_R.L0.last) / biped.time_step_s;
 	biped.leg_R.L0.last = biped.leg_R.L0.now;
+}
+
+fp32 biped_get_dis_diff(void)
+{
+	return (biped.leg_simplified.dis.now - (biped.leg_simplified.dis.set + biped.dis_offset));
+}
+
+void biped_set_dis(fp32 dis_set, uint8_t moving_direction)
+{
+	// @TODO: remove this compromise solution after fixing unreachable target position
+	if (moving_direction == 1)
+	{
+		// forward
+		biped.dis_offset = -0.2f;
+		// biped.dis_offset = 0.0f;
+	}
+	else
+	{
+		// backward
+		// biped.dis_offset = -0.5f;
+		biped.dis_offset = 0.0f;
+	}
+	biped.leg_simplified.dis.set = dis_set - biped.dis_offset;
 }
 
 void inv_pendulum_ctrl(void)

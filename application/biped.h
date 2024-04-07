@@ -39,6 +39,7 @@ typedef struct
 
 	// fp32 acc_up_max, acc_down_max, acc_now;
 	fp32 balance_angle;
+	fp32 dis_offset;
 	fp32 HipTorque_MaxLimit;
 	fp32 DriveTorque_MaxLimit;
 	// fp32 yaw_dot_last;
@@ -61,5 +62,7 @@ void biped_status_update(void);
 uint8_t biped_jumpStart(void);
 void biped_jumpManager(void);
 fp32 biped_limitVelocity(fp32 speed_set, fp32 L0);
+fp32 biped_get_dis_diff(void);
+void biped_set_dis(fp32 dis_set, uint8_t moving_direction);
 
 #endif /* _BIPED_H */

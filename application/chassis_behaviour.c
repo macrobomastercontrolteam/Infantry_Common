@@ -215,7 +215,7 @@ static void chassis_zero_force_control(chassis_move_t *chassis_move_rc_to_vector
 
 	// biped.velocity.set = 0;
 
-	biped.leg_simplified.dis.set = biped.leg_simplified.dis.now;
+	biped_set_dis(biped.leg_simplified.dis.now, (biped.pitch.now < 0));
 
 	biped.leg_L.L0.set = LEG_L0_MID;
 	biped.leg_R.L0.set = LEG_L0_MID;
