@@ -59,7 +59,9 @@
 /******************************* Robot control configs *******************************/
 #define NORMAL_MAX_CHASSIS_SPEED_X 2.5f // chassis forward or back max speed
 #define NORMAL_MAX_CHASSIS_SPEED_YAW 2.5f
-#define MAX_CHASSIS_ROLL (10.0f / 180.0f * PI)
+// #define MAX_CHASSIS_ROLL (10.0f / 180.0f * PI)
+// @TODO: temporarily disabled for demo
+#define MAX_CHASSIS_ROLL (0.0f / 180.0f * PI)
 
 #define MOTOR_TORQUE_CLEARANCE 0.2f
 #define HIP_TORQUE_BURST_MAX (35.0f - MOTOR_TORQUE_CLEARANCE)

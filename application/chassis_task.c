@@ -496,8 +496,6 @@ void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector, fp3
 	biped.leg_L.L0.set += l0_channel_fp32;
 	biped.leg_R.L0.set += l0_channel_fp32;
 	
-	// @TODO: remove this patch for demo
-	roll_channel_fp32 = 0;
 	biped.roll.set += roll_channel_fp32;
 }
 
