@@ -10,6 +10,7 @@ typedef enum
 	CHASSIS_NO_FOLLOW_YAW, // chassis does not follow angle, angle is open-loop,but wheels have closed-loop speed
 	                       // 底盘不跟随角度，角度是开环的，但轮子是有速度环
 	CHASSIS_SPINNING, // @TODO: Chassis spinning mode
+	CHASSIS_CV_NO_FOLLOW_YAW,
 } chassis_behaviour_e;
 
 #define CHASSIS_OPEN_RC_SCALE 10.0f // in CHASSIS_OPEN mode, multiply the value. 在chassis_open 模型下，遥控器乘以该比例发送到can上

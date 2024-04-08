@@ -70,6 +70,7 @@
 typedef enum
 {
 	CHASSIS_VECTOR_NO_FOLLOW_YAW, // chassis will have rotation speed control. 底盘有旋转速度控制
+	CHASSIS_VECTOR_CV_NO_FOLLOW_YAW, // chassis will have rotation speed control. 底盘有旋转速度控制
 	CHASSIS_VECTOR_RAW,           // control-current will be sent to CAN bus derectly.
 	CHASSIS_VECTOR_SPINNING,      // spinning chassis
 } chassis_mode_e;
@@ -136,8 +137,8 @@ extern void chassis_task(void const *pvParameters);
  * @param[out]     chassis_move_rc_to_vector: "chassis_move" 变量指针
  * @retval         none
  */
-extern void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector);
-extern void chassis_cv_control(chassis_move_t *chassis_move_ptr);
+extern void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector, fp32* pDistanceDelta);
+extern void chassis_cv_to_control_vector(chassis_move_t *chassis_move_ptr, fp32* pDistanceDelta);
 
 extern chassis_move_t chassis_move;
 

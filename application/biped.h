@@ -60,6 +60,7 @@ void inv_pendulum_ctrl(void);
 void torque_ctrl(void);
 void biped_status_update(void);
 uint8_t biped_jumpStart(void);
+void biped_brakeManager(fp32 distanceDelta);
 void biped_jumpManager(void);
 fp32 biped_limitVelocity(fp32 speed_set, fp32 L0);
 fp32 biped_get_dis_diff(void);

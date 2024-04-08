@@ -74,7 +74,7 @@ fp32 leg_r_l0_set = 0;
 fp32 leg_sim_angle0_now = 0;
 fp32 leg_sim_angle0_dot = 0;
 fp32 leg_sim_dis_diff = 0;
-fp32 leg_sim_dis_dot = 0;
+int32_t leg_sim_dis_dot = 0;
 fp32 biped_pitch_now = 0;
 fp32 biped_pitch_dot = 0;
 fp32 biped_yaw_now = 0;
@@ -343,6 +343,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 		switch (chassis_move_transit->chassis_mode)
 		{
 			case CHASSIS_VECTOR_NO_FOLLOW_YAW:
+			case CHASSIS_VECTOR_CV_NO_FOLLOW_YAW:
 			{
 				// biped_init();
 				biped.fBipedEnable = 1;
@@ -407,7 +408,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 	}
 }
 
-void chassis_cv_control(chassis_move_t *chassis_move_ptr)
+void chassis_cv_to_control_vector(chassis_move_t *chassis_move_ptr, fp32* pDistanceDelta)
 {
 	if (chassis_move_ptr == NULL)
 	{
@@ -415,9 +416,14 @@ void chassis_cv_control(chassis_move_t *chassis_move_ptr)
 	}
 
 #if defined(CV_INTERFACE)
-    if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fCvCmdValid))
+	if (toe_is_error(CV_TOE))
 	{
-        biped.leg_simplified.dis.set += CvCmdHandler.CvCmdMsg.disDelta;
+		// use braking logic
+		*pDistanceDelta = 0;
+	}
+    else if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fCvCmdValid))
+	{
+        *pDistanceDelta = CvCmdHandler.CvCmdMsg.disDelta;
 		biped.yaw.set = rad_format(CvCmdHandler.CvCmdMsg.yawSet);
     }
 #endif
@@ -439,14 +445,13 @@ void chassis_cv_control(chassis_move_t *chassis_move_ptr)
  * @param[out]     chassis_move_rc_to_vector: "chassis_move" ±äÁ¿Ö¸Õë
  * @retval         none
  */
-void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector)
+void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector, fp32* pDistanceDelta)
 {
 	if (chassis_move_rc_to_vector == NULL)
 	{
 		return;
 	}
 
-	static int16_t dis_channel_int16_last = 0;
 	int16_t dis_channel_int16, yaw_channel_int16, l0_channel_int16, roll_channel_int16;
 	fp32 dis_channel_fp32, yaw_channel_fp32, l0_channel_fp32, roll_channel_fp32;
 	// deadline, because some remote control need be calibrated,  the value of rocker is not zero in middle place,
@@ -484,39 +489,7 @@ void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector)
 		biped.roll.set += CHASSIS_ROLL_KEYBOARD_INC;
 	}
 
-	static uint32_t brake_state_entry_time_ms = 0;
-	static uint8_t fBrakingForward = 0; // 1: forward, 0: backward
-	if ((dis_channel_int16_last != 0) && (dis_channel_int16 == 0))
-	{
-		// brake
-		fBrakingForward = (biped_get_dis_diff() > 0);
-		biped_set_dis(biped.leg_simplified.dis.now, fBrakingForward);
-		biped.brakeState = BRAKE_ENABLE;
-		brake_state_entry_time_ms = biped.time_ms;
-	}
-	else
-	{
-		biped.leg_simplified.dis.set += dis_channel_fp32;
-	}
-
-	switch (biped.brakeState)
-	{
-		case BRAKE_IDLE:
-		{
-			break;
-		}
-		case BRAKE_ENABLE:
-		{
-			if ((fabs(biped.leg_simplified.dis.dot) < 0.3f) || (biped.time_ms - brake_state_entry_time_ms > 1000.0f))
-			{
-				biped.brakeState = BRAKE_IDLE;
-				biped_set_dis(biped.leg_simplified.dis.now, fBrakingForward);
-			}
-			break;
-		}
-	}
-	dis_channel_int16_last = dis_channel_int16;
-
+	*pDistanceDelta = dis_channel_fp32;
 	biped.yaw.set += yaw_channel_fp32;
 	biped.yaw.set = rad_format(biped.yaw.set);
 
@@ -537,16 +510,6 @@ static void chassis_rc_parse(chassis_move_t *chassis_move_control)
 	}
 
 	chassis_behaviour_control_set(chassis_move_control);
-
-	if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW)
-	{
-		biped_jumpManager();
-
-		biped.leg_L.L0.set = fp32_constrain(biped.leg_L.L0.set, LEG_L0_MIN, LEG_L0_MAX);
-		biped.leg_R.L0.set = fp32_constrain(biped.leg_R.L0.set, LEG_L0_MIN, LEG_L0_MAX);
-		biped.roll.set = fp32_constrain(biped.roll.set, -MAX_CHASSIS_ROLL, MAX_CHASSIS_ROLL);
-		biped.yaw.set = fp32_constrain(biped.yaw.set, -PI, PI);
-	}
 }
 
 /**
@@ -572,6 +535,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 			break;
 		}
 		case CHASSIS_VECTOR_NO_FOLLOW_YAW:
+		case CHASSIS_VECTOR_CV_NO_FOLLOW_YAW:
 		{
 			// 1ms processing time
 			inv_pendulum_ctrl();

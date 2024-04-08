@@ -2,6 +2,7 @@
 #include "chassis_behaviour.h"
 #include "chassis_task.h"
 #include "cmsis_os.h"
+#include "detect_task.h"
 
 #include "biped.h"
 #include "cv_usart_task.h"
@@ -61,6 +62,8 @@ static void chassis_zero_force_control(chassis_move_t *chassis_move_rc_to_vector
  */
 static void chassis_no_follow_yaw_control(chassis_move_t *chassis_move_rc_to_vector);
 
+static void chassis_cv_no_follow_yaw_control(chassis_move_t *chassis_move_rc_to_vector);
+
 // highlight, the variable chassis behaviour mode
 // 留意，这个底盘行为模式变量
 chassis_behaviour_e chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
@@ -82,13 +85,15 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 		return;
 	}
 
-	static uint8_t last_rc_switch = RC_SW_DOWN;
-	uint8_t now_rc_switch = chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL];
-	switch (now_rc_switch)
+	static uint8_t last_right_rc_switch = RC_SW_DOWN;
+	static uint8_t last_left_rc_switch = RC_SW_DOWN;
+	uint8_t right_rc_switch = chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL];
+	uint8_t left_rc_switch = chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL];
+	switch (right_rc_switch)
 	{
 		case RC_SW_UP:
 		{
-			if (last_rc_switch != RC_SW_UP)
+			if (last_right_rc_switch != right_rc_switch)
 			{
 				biped_jumpStart();
 			}
@@ -96,7 +101,17 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 		}
 		case RC_SW_MID:
 		{
-			chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+			if ((last_right_rc_switch != right_rc_switch) || (last_left_rc_switch != left_rc_switch))
+			{
+				if (left_rc_switch == RC_SW_DOWN)
+				{					
+					chassis_behaviour_mode = CHASSIS_CV_NO_FOLLOW_YAW;
+				}
+				else
+				{
+					chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+				}
+			}
 			break;
 		}
 		case RC_SW_DOWN:
@@ -106,7 +121,8 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			break;
 		}
 	}
-	last_rc_switch = now_rc_switch;
+	last_right_rc_switch = right_rc_switch;
+	last_left_rc_switch = left_rc_switch;
 
 	// //when gimbal in some mode, such as init mode, chassis must's move
 	// //当云台在某些模式下，像初始化， 底盘不动
@@ -123,6 +139,11 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 		case CHASSIS_NO_FOLLOW_YAW:
 		{
 			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
+			break;
+		}
+		case CHASSIS_CV_NO_FOLLOW_YAW:
+		{
+			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_CV_NO_FOLLOW_YAW;
 			break;
 		}
 		case CHASSIS_SPINNING:
@@ -181,6 +202,11 @@ void chassis_behaviour_control_set(chassis_move_t *chassis_move_rc_to_vector)
 			chassis_no_follow_yaw_control(chassis_move_rc_to_vector);
 			break;
 		}
+		case CHASSIS_CV_NO_FOLLOW_YAW:
+		{
+			chassis_cv_no_follow_yaw_control(chassis_move_rc_to_vector);
+			break;
+		}
 		default:
 		{
 			break;
@@ -233,6 +259,33 @@ static void chassis_no_follow_yaw_control(chassis_move_t *chassis_move_rc_to_vec
 	{
 		return;
 	}
-	chassis_rc_to_control_vector(chassis_move_rc_to_vector);
-	chassis_cv_control(chassis_move_rc_to_vector);
+	fp32 distanceDelta = 0;
+	chassis_rc_to_control_vector(chassis_move_rc_to_vector, &distanceDelta);
+
+	biped_brakeManager(distanceDelta);
+	biped_jumpManager();
+
+	biped.leg_L.L0.set = fp32_constrain(biped.leg_L.L0.set, LEG_L0_MIN, LEG_L0_MAX);
+	biped.leg_R.L0.set = fp32_constrain(biped.leg_R.L0.set, LEG_L0_MIN, LEG_L0_MAX);
+	biped.roll.set = fp32_constrain(biped.roll.set, -MAX_CHASSIS_ROLL, MAX_CHASSIS_ROLL);
+	biped.yaw.set = fp32_constrain(biped.yaw.set, -PI, PI);
+}
+
+static void chassis_cv_no_follow_yaw_control(chassis_move_t *chassis_move_rc_to_vector)
+{
+	if (chassis_move_rc_to_vector == NULL)
+	{
+		return;
+	}
+	fp32 distanceDelta = 0;
+	chassis_cv_to_control_vector(chassis_move_rc_to_vector, &distanceDelta);
+	chassis_rc_to_control_vector(chassis_move_rc_to_vector, &distanceDelta);
+
+	biped_brakeManager(distanceDelta);
+	biped_jumpManager();
+
+	biped.leg_L.L0.set = fp32_constrain(biped.leg_L.L0.set, LEG_L0_MIN, LEG_L0_MAX);
+	biped.leg_R.L0.set = fp32_constrain(biped.leg_R.L0.set, LEG_L0_MIN, LEG_L0_MAX);
+	biped.roll.set = fp32_constrain(biped.roll.set, -MAX_CHASSIS_ROLL, MAX_CHASSIS_ROLL);
+	biped.yaw.set = fp32_constrain(biped.yaw.set, -PI, PI);
 }

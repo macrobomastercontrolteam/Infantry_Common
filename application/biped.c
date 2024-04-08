@@ -462,6 +462,49 @@ void torque_ctrl()
 	// }
 }
 
+void biped_brakeManager(fp32 distanceDelta)
+{
+	static uint32_t brake_state_entry_time_ms = 0;
+	static uint8_t fBrakingForward = 0; // 1: forward, 0: backward
+	static uint8_t fBrakeCmdLast = 0;
+	uint8_t fBrakeCmd = (distanceDelta == 0);
+
+	switch (biped.brakeState)
+	{
+		case BRAKE_IDLE:
+		{
+			if ((fBrakeCmdLast == 0) && fBrakeCmd)
+			{
+				// brake
+				fBrakingForward = (biped_get_dis_diff() > 0);
+				biped_set_dis(biped.leg_simplified.dis.now, fBrakingForward);
+				biped.brakeState = BRAKE_ENABLE;
+				brake_state_entry_time_ms = biped.time_ms;
+			}
+			else
+			{
+				biped.leg_simplified.dis.set += distanceDelta;
+			}
+			break;
+		}
+		case BRAKE_ENABLE:
+		{
+			if (fabs(distanceDelta) > 0.1f * CHASSIS_CONTROL_TIME_S)
+			{
+				biped.brakeState = BRAKE_IDLE;
+				biped.leg_simplified.dis.set += distanceDelta;
+			}
+			else if ((fabs(biped.leg_simplified.dis.dot) < 0.1f) || (biped.time_ms - brake_state_entry_time_ms > 2000.0f))
+			{
+				biped.brakeState = BRAKE_IDLE;
+				biped_set_dis(biped.leg_simplified.dis.now, fBrakingForward);
+			}
+			break;
+		}
+	}
+	fBrakeCmdLast = fBrakeCmd;
+}
+
 /**
  * @brief: Manage jump state
  * @author: 2024 Mac Capstone Team
