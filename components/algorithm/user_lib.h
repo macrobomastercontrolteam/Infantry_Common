@@ -57,7 +57,7 @@
 #define REVERSE_RIGHT_DRIVE_MOTOR_DIRECTION 0
 
 /******************************* Robot control configs *******************************/
-#define NORMAL_MAX_CHASSIS_SPEED_X 2.5f // chassis forward or back max speed
+#define NORMAL_MAX_CHASSIS_SPEED_X 3.5f // chassis forward or back max speed
 #define NORMAL_MAX_CHASSIS_SPEED_YAW 2.5f
 // #define MAX_CHASSIS_ROLL (10.0f / 180.0f * PI)
 // @TODO: temporarily disabled for demo
