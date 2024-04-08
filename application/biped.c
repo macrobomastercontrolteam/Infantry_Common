@@ -228,7 +228,7 @@ void biped_set_dis(fp32 dis_set, uint8_t moving_direction)
 	if (moving_direction == 1)
 	{
 		// forward
-		biped.dis_offset = -0.2f;
+		biped.dis_offset = -0.25f;
 		// biped.dis_offset = 0.0f;
 	}
 	else
