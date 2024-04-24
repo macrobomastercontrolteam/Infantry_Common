@@ -427,7 +427,7 @@ void chassis_cv_to_control_vector(chassis_move_t *chassis_move_ptr, fp32* pDista
 	else if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fCvCmdValid))
 	{
 		*pDistanceDelta = CvCmdHandler.CvCmdMsg.disDelta;
-		biped.yaw.set = rad_format(CvCmdHandler.CvCmdMsg.yawSet + CvCmdHandler.yaw_offset);
+		biped.yaw.set = CvCmdHandler.CvCmdMsg.yawSet;
 		biped.fCvBrakeEnable = 1;
 	}
 	else
