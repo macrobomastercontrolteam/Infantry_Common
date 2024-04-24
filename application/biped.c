@@ -51,6 +51,7 @@ void biped_init(void)
 	biped.HipTorque_MaxLimit = 0;
 	biped.DriveTorque_MaxLimit = 0;
 
+	// Tuning guide: https://www.bilibili.com/video/BV12J4m1V7mn/?-Arouter=story&buvid=Z84A0E8367F655B043B7AD02D8AA75B75649&from_spmid=tm.recommend.0.0&is_story_h5=false&mid=ws%2FLa9l%2FvUTg5xfhV4yWog%3D%3D&p=1&plat_id=163&share_from=ugc&share_medium=iphone&share_plat=ios&share_session_id=94F43851-3E94-49A8-B40B-95ADDCAE08CD&share_source=WEIXIN&share_tag=s_i&spmid=main.ugc-video-detail-vertical.0.0&timestamp=1712788363&unique_k=VmTXdvD&up_id=450220669
 	// PID for angular velocity
 	// fragile, must keep Ki = 0
 	const fp32 turn_pid_param[3] = {3, 0.05f, 0.5f}; // for 10ms loop time
@@ -60,6 +61,7 @@ void biped_init(void)
 	const fp32 split_pid_param[3] = {100, 0, 10}; // for 5ms loop time
 	PID_init(&biped.split_pid, PID_POSITION, split_pid_param, HIP_TORQUE_MAX, HIP_TORQUE_MAX / 2.0f, 0.9f, &rad_err_handler);
 
+	// fragile, must keep Ki zero
 	const fp32 roll_pid_param[3] = {600, 0, 10};
 	PID_init(&biped.roll_pid, PID_POSITION, roll_pid_param, 25, 0, 0.9f, &rad_err_handler);
 
