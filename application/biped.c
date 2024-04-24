@@ -48,6 +48,7 @@ void biped_init(void)
 	// biped.acc_down_max = 1.0;
 
 	biped.fBipedEnable = 0;
+	biped.fCvBrakeEnable = 1;
 	biped.HipTorque_MaxLimit = 0;
 	biped.DriveTorque_MaxLimit = 0;
 
@@ -475,7 +476,7 @@ void biped_brakeManager(fp32 distanceDelta)
 	{
 		case BRAKE_IDLE:
 		{
-			if ((fBrakeCmdLast == 0) && fBrakeCmd)
+			if (biped.fCvBrakeEnable && (fBrakeCmdLast == 0) && fBrakeCmd)
 			{
 				// brake
 				fBrakingForward = (biped_get_dis_diff() > 0);
@@ -491,7 +492,7 @@ void biped_brakeManager(fp32 distanceDelta)
 		}
 		case BRAKE_ENABLE:
 		{
-			if (fabs(distanceDelta) > 0.1f * CHASSIS_CONTROL_TIME_S)
+			if ((biped.fCvBrakeEnable == 0) || (fabs(distanceDelta) > 0.1f * CHASSIS_CONTROL_TIME_S))
 			{
 				biped.brakeState = BRAKE_IDLE;
 				biped.leg_simplified.dis.set += distanceDelta;

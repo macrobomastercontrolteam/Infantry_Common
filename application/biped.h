@@ -49,6 +49,7 @@ typedef struct
 	LegClass_t leg_L, leg_R, leg_simplified;
 	uint8_t isJumpInTheAir;
 	uint8_t fBipedEnable;	
+	uint8_t fCvBrakeEnable;
 	jumpState_e jumpState;
 	brakeState_e brakeState;
 } biped_t;

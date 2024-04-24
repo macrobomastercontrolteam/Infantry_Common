@@ -347,6 +347,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 			{
 				// biped_init();
 				biped.fBipedEnable = 1;
+				biped.fCvBrakeEnable = 1;
 				biped.isJumpInTheAir = 0;
 				biped.jumpState = JUMP_IDLE;
 				biped.brakeState = BRAKE_IDLE;
@@ -388,6 +389,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 			default:
 			{
 				biped.fBipedEnable = 0;
+				biped.fCvBrakeEnable = 1;
 
 				biped.isJumpInTheAir = 0;
 				biped.jumpState = JUMP_IDLE;
@@ -420,12 +422,20 @@ void chassis_cv_to_control_vector(chassis_move_t *chassis_move_ptr, fp32* pDista
 	{
 		// use braking logic
 		*pDistanceDelta = 0;
+		biped.fCvBrakeEnable = 1;
 	}
-    else if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fCvCmdValid))
+	else if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fCvCmdValid))
 	{
-        *pDistanceDelta = CvCmdHandler.CvCmdMsg.disDelta;
-		biped.yaw.set = rad_format(CvCmdHandler.CvCmdMsg.yawSet);
-    }
+		*pDistanceDelta = CvCmdHandler.CvCmdMsg.disDelta;
+		biped.yaw.set = rad_format(CvCmdHandler.CvCmdMsg.yawSet + CvCmdHandler.yaw_offset);
+		biped.fCvBrakeEnable = 1;
+	}
+	else
+	{
+		// avoid brake enabled by zero command
+		*pDistanceDelta = 0;
+		biped.fCvBrakeEnable = 0;
+	}
 #endif
 }
 
