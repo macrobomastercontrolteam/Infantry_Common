@@ -103,7 +103,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 		{
 			if ((last_right_rc_switch != right_rc_switch) || (last_left_rc_switch != left_rc_switch))
 			{
-				if (left_rc_switch == RC_SW_DOWN)
+				if ((left_rc_switch == RC_SW_DOWN) && (toe_is_error(CV_TOE) == 0))
 				{					
 					chassis_behaviour_mode = CHASSIS_CV_NO_FOLLOW_YAW;
 				}
