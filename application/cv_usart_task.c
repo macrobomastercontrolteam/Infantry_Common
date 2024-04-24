@@ -21,6 +21,7 @@
 #include "usb_task.h"
 #include <stdio.h>
 #endif
+#include "biped.h"
 
 #define DATA_PACKAGE_SIZE 21
 #define DATA_PACKAGE_HEADER_SIZE 2
@@ -407,7 +408,12 @@ uint8_t CvCmder_GetMode(uint8_t bCvModeBit)
 
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag)
 {
-    CvCmdHandler.fCvMode = (CvCmdHandler.fCvMode & ~bCvModeBit) | (fFlag ? bCvModeBit : 0);
+    uint8_t fLastMode = CvCmder_GetMode(bCvModeBit);
+    if (fLastMode != fFlag)
+    {
+        CvCmdHandler.fCvMode = (CvCmdHandler.fCvMode & ~bCvModeBit) | (fFlag ? bCvModeBit : 0);
+        CvCmdHandler.fIsModeChanged = 1;
+    }
 }
 
 /**
