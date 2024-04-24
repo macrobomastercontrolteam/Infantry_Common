@@ -278,8 +278,8 @@ static void chassis_cv_no_follow_yaw_control(chassis_move_t *chassis_move_rc_to_
 		return;
 	}
 	fp32 distanceDelta = 0;
-	chassis_cv_to_control_vector(chassis_move_rc_to_vector, &distanceDelta);
 	chassis_rc_to_control_vector(chassis_move_rc_to_vector, &distanceDelta);
+	chassis_cv_to_control_vector(chassis_move_rc_to_vector, &distanceDelta);
 
 	biped_brakeManager(distanceDelta);
 	biped_jumpManager();
