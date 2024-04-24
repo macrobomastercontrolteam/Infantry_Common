@@ -492,7 +492,7 @@ void biped_brakeManager(fp32 distanceDelta)
 		}
 		case BRAKE_ENABLE:
 		{
-			if ((biped.fCvBrakeEnable == 0) || (fabs(distanceDelta) > 0.1f * CHASSIS_CONTROL_TIME_S))
+			if ((biped.fCvBrakeEnable == 0) || (fabs(distanceDelta) >= CHASSIS_DISENAGE_BRAKE_THRESHOLD))
 			{
 				biped.brakeState = BRAKE_IDLE;
 				biped.leg_simplified.dis.set += distanceDelta;
