@@ -177,6 +177,12 @@ void chassis_task(void const *pvParameters)
 			// {
 			// 	biped.fBipedEnable = 0;
 			// }
+
+			// switching edge
+			if (biped.fBipedEnable == 0)
+			{
+				enable_all_8006_motors(0);
+			}
 		}
 
 		if (biped.fBipedEnable == 0)
@@ -233,7 +239,7 @@ static void wait_until_motors_online(void)
 				case CHASSIS_HIP_MOTOR3_TOE:
 				case CHASSIS_HIP_MOTOR4_TOE:
 				{
-					// enable_motor_control_8006(bToeIndex - CHASSIS_HIP_MOTOR1_TOE + CAN_HIP1_TX_ID, 1);
+					enable_motor_control_8006(bToeIndex - CHASSIS_HIP_MOTOR1_TOE + CAN_HIP1_TX_ID, 1);
 					hip_motor_set_torque(0, 0, 0, 0, blocking_call);
 					break;
 				}
@@ -345,6 +351,8 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 			case CHASSIS_VECTOR_NO_FOLLOW_YAW:
 			case CHASSIS_VECTOR_CV_NO_FOLLOW_YAW:
 			{
+				enable_all_8006_motors(1);
+				
 				// biped_init();
 				biped.fBipedEnable = 1;
 				biped.fCvBrakeEnable = 1;
@@ -383,7 +391,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				biped.leg_R.fResetMultiAngleOffset = 1;
 
 				biped.HipTorque_MaxLimit = HIP_TORQUE_MAX;
-				biped.DriveTorque_MaxLimit = DRIVE_TORQUE_MAX;
+				biped.DriveTorque_MaxLimit = DRIVE_TORQUE_MAX;				
 				break;
 			}
 			default:

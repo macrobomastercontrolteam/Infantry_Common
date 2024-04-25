@@ -32,6 +32,15 @@
 #define DISABLE_DRIVE_MOTOR_POWER 0
 #define DISABLE_HIP_MOTOR_POWER 0
 
+// reverse hip motor direction
+#define REVERSE_LB_HIP_MOTOR_DIRECTION 1
+#define REVERSE_LF_HIP_MOTOR_DIRECTION 0
+#define REVERSE_RB_HIP_MOTOR_DIRECTION 0
+#define REVERSE_RF_HIP_MOTOR_DIRECTION 1
+
+#define REVERSE_LEFT_DRIVE_MOTOR_DIRECTION 1
+#define REVERSE_RIGHT_DRIVE_MOTOR_DIRECTION 0
+
 #define MOTOR_6012_GEAR_RATIO 36.0f
 #define MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO 0.225146199f
 #define MOTOR_6012_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO 0.212f
@@ -72,7 +81,7 @@ const float MOTOR_KD_MIN[LAST_MOTOR_TYPE] = {0.0f, 0.0f};
 HAL_StatusTypeDef encode_6012_multi_motor_torque_control(float torque1, float torque2, float torque3, float torque4, uint8_t blocking_call);
 HAL_StatusTypeDef encode_6012_single_motor_torque_control(uint16_t id, float torque, uint8_t blocking_call);
 void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
-// HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
+HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
 void decode_9015_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
 float uint_to_float_motor(int x_int, float x_min, float x_max, int bits);
 int float_to_uint_motor(float x, float x_min, float x_max, int bits);
@@ -84,11 +93,16 @@ uint8_t get_motor_array_index(can_msg_id_e _SINGLE_CAN_ID)
 {
 	switch (_SINGLE_CAN_ID)
 	{
-		case CAN_HIP1_FEEDBACK_ID:
-		case CAN_HIP2_FEEDBACK_ID:
-		case CAN_HIP3_FEEDBACK_ID:
-		case CAN_HIP4_FEEDBACK_ID:
-			return (_SINGLE_CAN_ID - CAN_HIP1_FEEDBACK_ID + CHASSIS_ID_HIP_RF);
+		// case CAN_HIP1_FEEDBACK_ID:
+		// case CAN_HIP2_FEEDBACK_ID:
+		// case CAN_HIP3_FEEDBACK_ID:
+		// case CAN_HIP4_FEEDBACK_ID:
+		// 	return (_SINGLE_CAN_ID - CAN_HIP1_FEEDBACK_ID + CHASSIS_ID_HIP_RF);
+		case CAN_HIP1_TX_ID:
+		case CAN_HIP2_TX_ID:
+		case CAN_HIP3_TX_ID:
+		case CAN_HIP4_TX_ID:
+			return (_SINGLE_CAN_ID - CAN_HIP1_TX_ID + CHASSIS_ID_HIP_RF);
 		case CAN_DRIVE1_PVT_TX_ID:
 		case CAN_DRIVE2_PVT_TX_ID:
 			return (_SINGLE_CAN_ID - CAN_DRIVE1_PVT_TX_ID + CHASSIS_ID_DRIVE_RIGHT);
@@ -121,16 +135,21 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 	switch (rx_header.StdId)
 	{
-		case CAN_HIP1_FEEDBACK_ID:
-		case CAN_HIP2_FEEDBACK_ID:
-		case CAN_HIP3_FEEDBACK_ID:
-		case CAN_HIP4_FEEDBACK_ID:
+		// case CAN_HIP1_FEEDBACK_ID:
+		// case CAN_HIP2_FEEDBACK_ID:
+		// case CAN_HIP3_FEEDBACK_ID:
+		// case CAN_HIP4_FEEDBACK_ID:
+		// {
+		// 	if (rx_data[0] == CAN_6012_TORQUE_FEEDBACK_ID)
+		// 	{
+		// 		bMotorId = get_motor_array_index((can_msg_id_e)rx_header.StdId);
+		// 		decode_6012_motor_torque_feedback(rx_data, bMotorId);
+		// 	}
+		// 	break;
+		// }
+		case CAN_HIP_FEEDBACK_ID:
 		{
-			if (rx_data[0] == CAN_6012_TORQUE_FEEDBACK_ID)
-			{
-				bMotorId = get_motor_array_index((can_msg_id_e)rx_header.StdId);
-				decode_6012_motor_torque_feedback(rx_data, bMotorId);
-			}
+			decode_8006_motor_feedback(rx_data, &bMotorId);
 			break;
 		}
 		case CAN_DRIVE_MOTOR_PVT_FEEDBACK_ID1:
@@ -233,6 +252,7 @@ void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
 		}
 	}
 
+	// Capstone mechanical frame settings
 	// zeros of hip motors are calibrated to limiter position for accuracy
 	const fp32 hip_limiter_offset_angle = 7.0f / 180.0f * PI;
 	switch (bMotorId)
@@ -288,28 +308,73 @@ void decode_9015_motor_multiangle_feedback(uint8_t *data, const uint8_t bMotorId
 	}
 }
 
-// HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
-// {
-// 	uint8_t error_id = data[0] >> 4;
-// 	if (error_id != 0)
-// 	{
-// 		biped.fBipedEnable = 0;
-// 		return HAL_ERROR;
-// 	}
-// 	else
-// 	{
-// 		uint16_t p_int = (data[1] << 8) | data[2];         // rad
-// 		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
-// 		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
+HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
+{
+	// uint8_t error_id = data[0] >> 4;
+	// if (error_id != 0)
+	// {
+	// 	biped.fBipedEnable = 0;
+	// 	return HAL_ERROR;
+	// }
+	// else
+	{
+		uint16_t p_int = (data[1] << 8) | data[2];         // rad
+		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
+		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
 
-// 		*bMotorIdPtr = (data[0] & 0xF) - 1 + CHASSIS_ID_HIP_RF;
-// 		motor_measure[*bMotorIdPtr].output_angle = uint_to_float_motor(p_int, MOTOR_P_MIN[DM_8006], MOTOR_P_MAX[DM_8006], 16);
-// 		motor_measure[*bMotorIdPtr].velocity = uint_to_float_motor(v_int, MOTOR_V_MIN[DM_8006], MOTOR_V_MAX[DM_8006], 12);
-// 		motor_measure[*bMotorIdPtr].torque = uint_to_float_motor(t_int, MOTOR_T_MIN[DM_8006], MOTOR_T_MAX[DM_8006], 12);
-// 		motor_measure[*bMotorIdPtr].temperature = data[6];
-// 	}
-// 	return HAL_OK;
-// }
+		*bMotorIdPtr = (data[0] & 0xF) - 1 + CHASSIS_ID_HIP_RF;
+		motor_measure[*bMotorIdPtr].output_angle = uint_to_float_motor(p_int, MOTOR_P_MIN[DM_8006], MOTOR_P_MAX[DM_8006], 16);
+		motor_measure[*bMotorIdPtr].velocity = uint_to_float_motor(v_int, MOTOR_V_MIN[DM_8006], MOTOR_V_MAX[DM_8006], 12);
+		motor_measure[*bMotorIdPtr].torque = uint_to_float_motor(t_int, MOTOR_T_MIN[DM_8006], MOTOR_T_MAX[DM_8006], 12);
+		motor_measure[*bMotorIdPtr].temperature = data[6];
+
+		switch (*bMotorIdPtr)
+		{
+#if REVERSE_LB_HIP_MOTOR_DIRECTION
+			case CHASSIS_ID_HIP_LB:
+#endif
+#if REVERSE_LF_HIP_MOTOR_DIRECTION
+			case CHASSIS_ID_HIP_LF:
+#endif
+#if REVERSE_RB_HIP_MOTOR_DIRECTION
+			case CHASSIS_ID_HIP_RB:
+#endif
+#if REVERSE_RF_HIP_MOTOR_DIRECTION
+			case CHASSIS_ID_HIP_RF:
+#endif
+			{
+				motor_measure[*bMotorIdPtr].torque *= -1.0f;
+				motor_measure[*bMotorIdPtr].velocity *= -1.0f;
+				motor_measure[*bMotorIdPtr].output_angle *= -1.0f;
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+
+		// RM config
+		// zeros of hip motors are calibrated to limiter position for accuracy
+		const fp32 hip_limiter_offset_angle = 15.55f / 180.0f * PI;
+		switch (*bMotorIdPtr)
+		{
+			case CHASSIS_ID_HIP_LB:
+			case CHASSIS_ID_HIP_LF:
+			case CHASSIS_ID_HIP_RF:
+			case CHASSIS_ID_HIP_RB:
+			{
+				motor_measure[*bMotorIdPtr].output_angle -= hip_limiter_offset_angle;
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+	}
+	return HAL_OK;
+}
 
 void decode_9015_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
 {
@@ -434,24 +499,24 @@ uint8_t hip_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float 
 
 	// 6012 motor as hip
 	// encode_6012_multi_motor_torque_control(RF_torq, LF_torq, LB_torq, RB_torq, blocking_call);
-	encode_6012_single_motor_torque_control(CAN_HIP1_FEEDBACK_ID, RF_torq, blocking_call);
-	osDelay(1);
-	encode_6012_single_motor_torque_control(CAN_HIP2_FEEDBACK_ID, LF_torq, blocking_call);
-	osDelay(1);
-	encode_6012_single_motor_torque_control(CAN_HIP3_FEEDBACK_ID, LB_torq, blocking_call);
-	osDelay(1);
-	encode_6012_single_motor_torque_control(CAN_HIP4_FEEDBACK_ID, RB_torq, blocking_call);
+	// encode_6012_single_motor_torque_control(CAN_HIP1_FEEDBACK_ID, RF_torq, blocking_call);
+	// osDelay(1);
+	// encode_6012_single_motor_torque_control(CAN_HIP2_FEEDBACK_ID, LF_torq, blocking_call);
+	// osDelay(1);
+	// encode_6012_single_motor_torque_control(CAN_HIP3_FEEDBACK_ID, LB_torq, blocking_call);
+	// osDelay(1);
+	// encode_6012_single_motor_torque_control(CAN_HIP4_FEEDBACK_ID, RB_torq, blocking_call);
 	// use delay if blocking_call == 0
 	// osDelay(1);
 
 	// 8006 motor as hip
-	// encode_motor_control(CAN_HIP1_TX_ID, 0, 0, 0, 0, RF_torq, blocking_call, DM_8006);
-	// osDelay(1);
-	// encode_motor_control(CAN_HIP2_TX_ID, 0, 0, 0, 0, LF_torq, blocking_call, DM_8006);
-	// osDelay(1);
-	// encode_motor_control(CAN_HIP3_TX_ID, 0, 0, 0, 0, LB_torq, blocking_call, DM_8006);
-	// osDelay(1);
-	// encode_motor_control(CAN_HIP4_TX_ID, 0, 0, 0, 0, RB_torq, blocking_call, DM_8006);
+	encode_motor_control(CAN_HIP1_TX_ID, 0, 0, 0, 0, RF_torq, blocking_call, DM_8006);
+	osDelay(1);
+	encode_motor_control(CAN_HIP2_TX_ID, 0, 0, 0, 0, LF_torq, blocking_call, DM_8006);
+	osDelay(1);
+	encode_motor_control(CAN_HIP3_TX_ID, 0, 0, 0, 0, LB_torq, blocking_call, DM_8006);
+	osDelay(1);
+	encode_motor_control(CAN_HIP4_TX_ID, 0, 0, 0, 0, RB_torq, blocking_call, DM_8006);
 	// osDelay(1);
 	return fValidInput;
 }
@@ -622,14 +687,14 @@ HAL_StatusTypeDef encode_motor_control(uint16_t id, float _pos, float _vel, floa
 	chassis_can_send_data[7] = tor_tmp;
 
 	CAN_HandleTypeDef *hcan_ptr;
-	// if (id == CAN_DRIVE1_PVT_TX_ID)
-	// {
-	hcan_ptr = &hcan1;
-	// }
-	// else if (id == CAN_DRIVE2_PVT_TX_ID)
-	// {
-	// 	hcan_ptr = &hcan2;
-	// }
+	if (motor_type == MA_9015)
+	{
+		hcan_ptr = &hcan1;
+	}
+	else if (motor_type == DM_8006)
+	{
+		hcan_ptr = &hcan2;
+	}
 
 	if (blocking_call)
 	{
@@ -641,29 +706,42 @@ HAL_StatusTypeDef encode_motor_control(uint16_t id, float _pos, float _vel, floa
 	}
 }
 
-// HAL_StatusTypeDef enable_motor_control_8006(uint32_t id, uint8_t _enable)
-// {
-// 	chassis_tx_message.StdId = id;
-// 	chassis_tx_message.IDE = CAN_ID_STD;
-// 	chassis_tx_message.RTR = CAN_RTR_DATA;
-// 	chassis_tx_message.DLC = 0x08;
+HAL_StatusTypeDef enable_motor_control_8006(uint32_t id, uint8_t _enable)
+{
+	chassis_tx_message.StdId = id;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
 
-// 	for (uint8_t i = 0; i < 7; i++)
-// 	{
-// 		chassis_can_send_data[i] = 0xFF;
-// 	}
+	for (uint8_t i = 0; i < 7; i++)
+	{
+		chassis_can_send_data[i] = 0xFF;
+	}
 
-// 	if (_enable)
-// 	{
-// 		chassis_can_send_data[7] = 0xFC;
-// 	}
-// 	else
-// 	{
-// 		// disable
-// 		chassis_can_send_data[7] = 0xFD;
-// 	}
+	if (_enable)
+	{
+		chassis_can_send_data[7] = 0xFC;
+	}
+	else
+	{
+		// disable
+		chassis_can_send_data[7] = 0xFD;
+	}
 
-// 	return blocking_can_send(&hcan2, &chassis_tx_message, chassis_can_send_data);
-// }
+	return blocking_can_send(&hcan2, &chassis_tx_message, chassis_can_send_data);
+}
+HAL_StatusTypeDef enable_all_8006_motors(uint8_t _enable)
+{
+	HAL_StatusTypeDef status = HAL_OK;
+	status |= enable_motor_control_8006(CAN_HIP1_TX_ID, _enable);
+	osDelay(2);
+	status |= enable_motor_control_8006(CAN_HIP2_TX_ID, _enable);
+	osDelay(2);
+	status |= enable_motor_control_8006(CAN_HIP3_TX_ID, _enable);
+	osDelay(2);
+	status |= enable_motor_control_8006(CAN_HIP4_TX_ID, _enable);
+	osDelay(1);
+	return status;
+}
 
 #pragma pop

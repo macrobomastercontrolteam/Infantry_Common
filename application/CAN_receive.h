@@ -31,16 +31,16 @@
 typedef enum
 {
 	// 8006 motor as hip
-	// CAN_HIP1_TX_ID = 0x001,
-	// CAN_HIP2_TX_ID = 0x002,
-	// CAN_HIP3_TX_ID = 0x003,
-	// CAN_HIP4_TX_ID = 0x004,
+	CAN_HIP1_TX_ID = 0x001,
+	CAN_HIP2_TX_ID = 0x002,
+	CAN_HIP3_TX_ID = 0x003,
+	CAN_HIP4_TX_ID = 0x004,
 
 	// 6012 motor as hip
-	CAN_HIP1_FEEDBACK_ID = 0x141,
-	CAN_HIP2_FEEDBACK_ID = 0x142,
-	CAN_HIP3_FEEDBACK_ID = 0x143,
-	CAN_HIP4_FEEDBACK_ID = 0x144,
+	// CAN_HIP1_FEEDBACK_ID = 0x141,
+	// CAN_HIP2_FEEDBACK_ID = 0x142,
+	// CAN_HIP3_FEEDBACK_ID = 0x143,
+	// CAN_HIP4_FEEDBACK_ID = 0x144,
 
 	CAN_DRIVE1_PVT_TX_ID = 0x405,
 	CAN_DRIVE2_PVT_TX_ID = 0x406,
@@ -69,7 +69,7 @@ typedef enum
 	CAN_GIMBAL_ALL_TX_ID = 0x1FF,
 
 	// 8006 motor as hip
-	// CAN_HIP_FEEDBACK_ID = 0x0FF,
+	CAN_HIP_FEEDBACK_ID = 0x0FF,
 
 	// 6012 motor as hip
 	CAN_HIP_MOTOR_SINGLECMD_TX_ID = 0x140,
@@ -148,7 +148,8 @@ uint8_t get_motor_array_index(can_msg_id_e _SINGLE_CAN_ID);
 
 extern void request_9015_multiangle_data(uint8_t blocking_call);
 extern HAL_StatusTypeDef encode_motor_control(uint16_t id, float _pos, float _vel, float _KP, float _KD, float _torq, uint8_t blocking_call, motor_type_e motor_type);
-// extern HAL_StatusTypeDef enable_motor_control_8006(uint32_t id, uint8_t _enable);
+extern HAL_StatusTypeDef enable_motor_control_8006(uint32_t id, uint8_t _enable);
+extern HAL_StatusTypeDef enable_all_8006_motors(uint8_t _enable);
 extern uint8_t hip_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float RB_torq, uint8_t blocking_call);
 // extern uint8_t hip_motor_set_position(float RF_pos, float LF_pos, float LB_pos, float RB_pos, float pos_Kp, float pos_Kd);
 extern uint8_t drive_motor_set_torque(float R_torq, float L_torq, uint8_t blocking_call);

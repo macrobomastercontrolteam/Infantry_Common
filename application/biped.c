@@ -135,6 +135,8 @@ void biped_init(void)
 	// 	{0, 0, 0, 0},
 	// 	{0, 0, 0, 0}};
 	// memcpy(biped.K_coeff_inAir, K_coeff_inAir_init, sizeof(biped.K_coeff_inAir));
+
+	enable_all_8006_motors(1);
 }
 
 void biped_status_update(void)
@@ -190,13 +192,7 @@ void biped_status_update(void)
 	biped.leg_R.dis.last = biped.leg_R.dis.now;
 	biped.leg_simplified.dis.last = biped.leg_simplified.dis.now;
 
-	// 9005 motor as hip
-	// biped.leg_L.angle1 = PI - motor_measure[CHASSIS_ID_HIP_LF].output_angle;
-	// biped.leg_L.angle4 = -motor_measure[CHASSIS_ID_HIP_LB].output_angle;
-	// biped.leg_R.angle1 = PI + motor_measure[CHASSIS_ID_HIP_RF].output_angle;
-	// biped.leg_R.angle4 = motor_measure[CHASSIS_ID_HIP_RB].output_angle;
-
-	// 6012 motor as hip
+	// hip motor
 	biped.leg_L.angle1 = loop_fp32_constrain(PI - motor_measure[CHASSIS_ID_HIP_LF].output_angle, 0, 2 * PI);
 	biped.leg_L.angle4 = rad_format(motor_measure[CHASSIS_ID_HIP_LB].output_angle);
 	biped.leg_R.angle1 = loop_fp32_constrain(PI - motor_measure[CHASSIS_ID_HIP_RF].output_angle, 0, 2 * PI);

@@ -42,7 +42,7 @@
 
 // rocker value (max 660) change to vertial speed (m/s)
 // 遥控器前进摇杆（max 660）转化成车体前进速度（m/s）的比例
-#define CHASSIS_DIS_RC_SPEED -1.0f // 1m/s
+#define CHASSIS_DIS_RC_SPEED 1.0f // 1m/s
 #define CHASSIS_DIS_KEYBOARD_INC (CHASSIS_DIS_RC_SPEED * CHASSIS_CONTROL_TIME_S)
 #define CHASSIS_DIS_RC_SEN_INC (CHASSIS_DIS_RC_SPEED * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
 #define CHASSIS_DISENAGE_BRAKE_THRESHOLD (0.1f * CHASSIS_DIS_KEYBOARD_INC) // speed command of 0.1m/s
