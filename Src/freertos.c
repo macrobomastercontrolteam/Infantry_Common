@@ -53,7 +53,7 @@ osThreadId led_RGB_flow_handle;
 // osThreadId oled_handle;
 osThreadId referee_usart_task_handle;
 osThreadId usb_task_handle;
-osThreadId battery_voltage_handle;
+// osThreadId battery_voltage_handle;
 // osThreadId servo_task_handle;
 osThreadId cv_usart_task_handle;
 
@@ -74,7 +74,7 @@ osThreadId cv_usart_task_handle;
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-osThreadId testHandle;
+// osThreadId testHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -146,8 +146,8 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of test */
-  osThreadDef(test, test_task, osPriorityNormal, 0, 128);
-  testHandle = osThreadCreate(osThread(test), NULL);
+  // osThreadDef(test, test_task, osPriorityNormal, 0, 128);
+  // testHandle = osThreadCreate(osThread(test), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -181,8 +181,8 @@ void MX_FREERTOS_Init(void) {
     osThreadDef(USBTask, usb_task, osPriorityNormal, 0, 128);
     usb_task_handle = osThreadCreate(osThread(USBTask), NULL);
 
-    osThreadDef(BATTERY_VOLTAGE, battery_voltage_task, osPriorityNormal, 0, 128);
-    battery_voltage_handle = osThreadCreate(osThread(BATTERY_VOLTAGE), NULL);
+    // osThreadDef(BATTERY_VOLTAGE, battery_voltage_task, osPriorityNormal, 0, 128);
+    // battery_voltage_handle = osThreadCreate(osThread(BATTERY_VOLTAGE), NULL);
 
     // osThreadDef(SERVO, servo_task, osPriorityNormal, 0, 128);
     // servo_task_handle = osThreadCreate(osThread(SERVO), NULL);
