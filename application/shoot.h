@@ -52,7 +52,7 @@
 //拨弹电机rmp 变化成 旋转速度的比例
 #define TRIGGER_MOTOR_GEAR_RATIO  36.0f
 #define FULL_COUNT                  18
-//拨弹速度
+//拨弹速度 (rad/s)
 #define TRIGGER_SPEED               10.0f
 #define CONTINUE_TRIGGER_SPEED      15.0f
 #define READY_TRIGGER_SPEED         5.0f
@@ -122,8 +122,8 @@ typedef struct
     fp32 trigger_speed_set;
     fp32 speed;
     fp32 speed_set;
-    fp32 angle;
-    fp32 set_angle;
+    fp32 angle; // rad
+    fp32 set_angle; // rad
     int16_t given_current;
     int8_t ecd_count;
 
