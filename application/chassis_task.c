@@ -51,7 +51,7 @@ static void chassis_set_mode(chassis_move_t *chassis_move_mode);
   */
 void chassis_mode_change_control_transit(chassis_move_t *chassis_move_transit);
 /**
-  * @brief          chassis some measure data updata, such as motor speed, euler angle�� robot speed
+  * @brief          chassis some measure data updata, such as motor speed, euler angle?? robot speed
   * @param[out]     chassis_move_update: "chassis_move" valiable point
   * @retval         none
   */
@@ -80,8 +80,7 @@ uint32_t chassis_high_water;
 #endif
 supcap_t can_message[2];
 
-
-//�����˶�����
+//???????????
 chassis_move_t chassis_move;
 
 #if CHASSIS_TEST_MODE
@@ -120,7 +119,7 @@ void chassis_task(void const *pvParameters)
     while (1)
     {
         //set chassis control mode
-        //���õ��̿���ģʽ
+        //????????????
         chassis_set_mode(&chassis_move);
         //when mode changes, save some data
         chassis_mode_change_control_transit(&chassis_move);
@@ -249,7 +248,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 }
 
 /**
-  * @brief          chassis some measure data updata, such as motor speed, euler angle�� robot speed
+  * @brief          chassis some measure data updata, such as motor speed, euler angle?? robot speed
   * @param[out]     chassis_move_update: "chassis_move" valiable point
   * @retval         none
   */
