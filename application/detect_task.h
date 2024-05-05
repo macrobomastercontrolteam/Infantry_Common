@@ -160,6 +160,6 @@ extern void detect_hook(uint8_t toe);
   */
 extern const error_t *get_error_list_point(void);
 
-uint8_t ifToeStatusExist(uint8_t _start, uint8_t _end, toe_status_e _status_to_check);
+uint8_t ifToeStatusExist(uint8_t _start, uint8_t _end, toe_status_e _status_to_find, uint8_t* pbHitIndex);
 
 #endif

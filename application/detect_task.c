@@ -319,7 +319,7 @@ static void detect_init(uint32_t time)
 
 }
 
-uint8_t ifToeStatusExist(uint8_t _start, uint8_t _end, toe_status_e _status_to_find)
+uint8_t ifToeStatusExist(uint8_t _start, uint8_t _end, toe_status_e _status_to_find, uint8_t* pbHitIndex)
 {
     // range is inclusive = [_start, _end]
     // _status_to_find = TOE_STATUS_OFFLINE checks whether offline equipment exist, TOE_STATUS_ONLINE checks whether online equipment exist
@@ -336,6 +336,11 @@ uint8_t ifToeStatusExist(uint8_t _start, uint8_t _end, toe_status_e _status_to_f
 				break;
 			}
 		}
+
+        if (pbHitIndex != NULL)
+        {
+            *pbHitIndex = fStatusExist ? bToeIndex : 0;
+        }
 	}
 	return fStatusExist;
 }

@@ -150,7 +150,7 @@ void chassis_task(void const *pvParameters)
     //µ×ÅÌ³õÊ¼»¯
     chassis_init(&chassis_move);
 
-    while (ifToeStatusExist(DBUS_TOE, CHASSIS_MOTOR4_TOE, TOE_STATUS_OFFLINE))
+    while (ifToeStatusExist(DBUS_TOE, CHASSIS_MOTOR4_TOE, TOE_STATUS_OFFLINE, NULL))
     {
         osDelay(CHASSIS_CONTROL_TIME_MS * 2);
     }
