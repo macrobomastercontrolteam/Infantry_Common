@@ -172,6 +172,20 @@ typedef union
 
 extern supcap_t can_message[2];
 
+typedef union
+{
+  uint8_t can_buf[8];
+  struct
+  {
+    uint8_t cap_state;
+    uint8_t reserve;
+    uint16_t cap_voltage;
+    float cap_power;
+  } cap_message;
+} supcap_t;
+
+extern supcap_t can_message[2];
+
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 typedef struct
 {
