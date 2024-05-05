@@ -16,6 +16,7 @@
   @endverbatim
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
+#include <string.h>
 
 #include "CAN_receive.h"
 
@@ -126,7 +127,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
                 fIdIdentified = 1;
                 break;
             }
-            default: {
+            default:
+            {
                 break;
             }
         }
@@ -150,6 +152,16 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             bMotorValid = 1;
             bMotorId = MOTOR_INDEX_FRICTION1;
             fIdIdentified = 1;
+            break;
+        }
+        case SUPCAP_ID:
+        {
+            memcpy(can_message[1].can_buf, rx_data, sizeof(rx_data));
+            detect_hook(CAP_TOE);
+            break;
+        }
+        default:
+        {
             break;
         }
         }

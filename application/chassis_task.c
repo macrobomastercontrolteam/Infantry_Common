@@ -78,7 +78,7 @@ static uint16_t motor_angle_to_ecd_change(fp32 angle);
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
 #endif
-
+supcap_t can_message[2];
 
 
 //�����˶�����

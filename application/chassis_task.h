@@ -96,9 +96,9 @@
 //single chassis motor max speed
 #define MAX_WHEEL_SPEED 4.0f
 //chassis forward or back max speed
-#define NORMAL_MAX_CHASSIS_SPEED_X 1.5f
+#define NORMAL_MAX_CHASSIS_SPEED_X 3.0f
 //chassis left or right max speed
-#define NORMAL_MAX_CHASSIS_SPEED_Y 1.5f
+#define NORMAL_MAX_CHASSIS_SPEED_Y 3.0f
 #define NORMAL_MAX_CHASSIS_SPEED_WZ RPM_TO_RADS(60.0f)
 
 // map joystick value (max 660) to vertial speed (m/s)
@@ -157,6 +157,20 @@ typedef struct
   fp32 speed_set;
   int16_t give_current;
 } chassis_motor_t;
+
+typedef union
+{
+  uint8_t can_buf[8];
+  struct
+  {
+    uint8_t cap_state;
+    uint8_t reserve;
+    uint16_t cap_voltage;
+    float cap_power;
+  } cap_message;
+} supcap_t;
+
+extern supcap_t can_message[2];
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 typedef struct

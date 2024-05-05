@@ -65,6 +65,7 @@ enum errorList
     BOARD_MAG_TOE,
     REFEREE_TOE,
     CV_TOE,
+    CAP_TOE,
     // OLED_TOE,
     ERROR_LIST_LENGTH,
 };
