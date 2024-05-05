@@ -219,7 +219,9 @@ static void detect_init(uint32_t time)
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag
             {100, 100, 5},  //referee
-            {200, 0, 7},    //cv usart
+            {10, 10, 7},    //rm imu
+            {200, 10, 7},    //cv usart
+            {40, 0, 11},    // super capacitor
             // {100, 100, 1},  //oled
         };
 
