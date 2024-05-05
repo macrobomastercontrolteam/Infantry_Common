@@ -9,7 +9,7 @@
 
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE INFANTRY_2023_MECANUM
-#define CV_INTERFACE 1
+#define CV_INTERFACE 0
 #define DEBUG_CV_WITH_USB 0
 #define TEST_NO_REF 1
 /********************* Only Modify this area (end) *********************/

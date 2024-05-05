@@ -21,6 +21,7 @@
 #include "arm_math.h"
 #include "detect_task.h"
 #include "chassis_task.h"
+#include "chassis_task.h"
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // @TODO: change limit according to chassis_power_limit field of referee serial data
@@ -33,6 +34,7 @@
 #define POWER_LIMIT         80.0f
 #define WARNING_POWER       40.0f   
 #endif
+#define WARNING_POWER_BUFF  8.0f   
 #define WARNING_POWER_BUFF  8.0f   
 
 #define NO_JUDGE_TOTAL_CURRENT_LIMIT    64000.0f    //16000 * 4, 
@@ -59,6 +61,7 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
     {
         total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
     }
+    else if (toe_is_error(CAP_TOE) || (can_message[1].cap_message.cap_voltage <= 10000))
     else if (toe_is_error(CAP_TOE) || (can_message[1].cap_message.cap_voltage <= 10000))
     {
         get_chassis_power_and_buffer(&chassis_power, &chassis_power_buffer);

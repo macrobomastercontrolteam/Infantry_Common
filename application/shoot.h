@@ -23,6 +23,9 @@
 #include "gimbal_task.h"
 #include "remote_control.h"
 #include "user_lib.h"
+#include "chassis_task.h"
+#include "chassis_task.h"
+
 
 #define SHOOT_CONTROL_TIME          GIMBAL_CONTROL_TIME
 
@@ -110,8 +113,24 @@
 #define FRICTION_2_SPEED_PID_MAX_OUT   MAX_MOTOR_CAN_CURRENT
 #define FRICTION_2_SPEED_PID_MAX_IOUT  200.0f
 
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) 
+//Frictional wheel 1 PID
+#define FRICTION_1_SPEED_PID_KP        1000.0f
+#define FRICTION_1_SPEED_PID_KI        10.0f
+#define FRICTION_1_SPEED_PID_KD        0.0f
+#define FRICTION_1_SPEED_PID_MAX_OUT   MAX_MOTOR_CAN_CURRENT
+#define FRICTION_1_SPEED_PID_MAX_IOUT  200.0f
+
+//Frictional wheel 2 PID
+#define FRICTION_2_SPEED_PID_KP        100.0f
+#define FRICTION_2_SPEED_PID_KI        5.0f
+#define FRICTION_2_SPEED_PID_KD        0.0f
+#define FRICTION_2_SPEED_PID_MAX_OUT   MAX_MOTOR_CAN_CURRENT
+#define FRICTION_2_SPEED_PID_MAX_IOUT  200.0f
+
 typedef enum
 {
+    SHOOT_STOP = 0,
     SHOOT_STOP = 0,
     SHOOT_READY_FRIC,
     SHOOT_READY_BULLET,
@@ -130,6 +149,8 @@ typedef struct
     const motor_measure_t *shoot_motor_measure;
     const motor_measure_t *fric_1_motor_measure;
     const motor_measure_t *fric_2_motor_measure;
+    const motor_measure_t *fric_1_motor_measure;
+    const motor_measure_t *fric_2_motor_measure;
     ramp_function_source_t fric1_ramp;
     uint16_t fric_pwm1;
     ramp_function_source_t fric2_ramp;
@@ -142,6 +163,16 @@ typedef struct
     fp32 set_angle; // rad
     int16_t given_current;
     int8_t ecd_count;
+    pid_type_def friction_motor1_pid;
+    fp32 friction_motor1_rpm_set;
+    fp32 friction_motor1_rpm;
+    //fp32 friction_motor1_angle;
+    
+    pid_type_def friction_motor2_pid;
+    fp32 friction_motor2_rpm_set;
+    fp32 friction_motor2_rpm;
+    //fp32 friction_motor2_angle;
+    
     pid_type_def friction_motor1_pid;
     fp32 friction_motor1_rpm_set;
     fp32 friction_motor1_rpm;
@@ -171,12 +202,15 @@ typedef struct
     uint16_t heat;
     int16_t fric1_given_current;
     int16_t fric2_given_current;
+    int16_t fric1_given_current;
+    int16_t fric2_given_current;
 } shoot_control_t;
 
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
 extern void shoot_init(void);
 extern int16_t shoot_control_loop(void);
 
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 extern shoot_control_t shoot_control;
 #endif
