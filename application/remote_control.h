@@ -1,9 +1,11 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       remote_control.c/h
-  * @brief      遥控器处理，遥控器是通过类似SBUS的协议传输，利用DMA传输方式节约CPU
-  *             资源，利用串口空闲中断来拉起处理函数，同时提供一些掉线重启DMA，串口
-  *             的方式保证热插拔的稳定性。
+  * @brief      Remote control processing, the remote control is transmitted through a
+  *            protocol similar to SBUS, using DMA transmission method to save CPU
+  *           resources, using serial port idle interrupt to pull up the processing function,
+  *         and providing some offline restart DMA, serial port
+  *       to ensure the stability of hot swap.
   * @note       
   * @history
   *  Version    Date            Author          Modification

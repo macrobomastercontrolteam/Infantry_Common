@@ -4,9 +4,6 @@
   * @brief      use bmi088 to calculate the euler angle. no use ist8310, so only
   *             enable data ready pin to save cpu time.enalbe bmi088 data ready
   *             enable spi DMA to save the time spi transmit
-  *             主要利用陀螺仪bmi088，磁力计ist8310，完成姿态解算，得出欧拉角，
-  *             提供通过bmi088的data ready 中断完成外部触发，减少数据等待延迟
-  *             通过DMA的SPI传输节约CPU时间.
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -38,7 +35,7 @@
 #include "detect_task.h"
 
 
-#define IMU_temp_PWM(pwm)  imu_pwm_set(pwm)                    //pwm给定
+#define IMU_temp_PWM(pwm)  imu_pwm_set(pwm)
 
 #define BMI088_BOARD_INSTALL_SPIN_MATRIX    \
     {0.0f, 1.0f, 0.0f},                     \
@@ -62,15 +59,6 @@
   * @param[in]      ist8310: mag data
   * @retval         none
   */
-/**
-  * @brief          旋转陀螺仪,加速度计和磁力计,并计算零漂,因为设备有不同安装方式
-  * @param[out]     gyro: 加上零漂和旋转
-  * @param[out]     accel: 加上零漂和旋转
-  * @param[out]     mag: 加上零漂和旋转
-  * @param[in]      bmi088: 陀螺仪和加速度计数据
-  * @param[in]      ist8310: 磁力计数据
-  * @retval         none
-  */
 static void imu_cali_solve(fp32 gyro[3], fp32 accel[3], fp32 mag[3], bmi088_real_data_t *bmi088, ist8310_real_data_t *ist8310);
 
 /**
@@ -78,20 +66,10 @@ static void imu_cali_solve(fp32 gyro[3], fp32 accel[3], fp32 mag[3], bmi088_real
   * @param[in]      temp: the temperature of bmi088
   * @retval         none
   */
-/**
-  * @brief          控制bmi088的温度
-  * @param[in]      temp:bmi088的温度
-  * @retval         none
-  */
 static void imu_temp_control(fp32 temp);
 /**
   * @brief          open the SPI DMA accord to the value of imu_update_flag
   * @param[in]      none
-  * @retval         none
-  */
-/**
-  * @brief          根据imu_update_flag的值开启SPI DMA
-  * @param[in]      temp:bmi088的温度
   * @retval         none
   */
 static void imu_cmd_spi_dma(void);
@@ -140,10 +118,10 @@ static uint8_t first_temperate;
 static const fp32 imu_temp_PID[3] = {TEMPERATURE_PID_KP, TEMPERATURE_PID_KI, TEMPERATURE_PID_KD};
 static pid_type_def imu_temp_pid;
 
-static const float timing_time = 0.001f;   //tast run time , unit s.任务运行的时间 单位 s
+static const float timing_time = 0.001f;   //tast run time , unit s.
 
 
-//加速度计低通滤波
+
 static fp32 accel_fliter_1[3] = {0.0f, 0.0f, 0.0f};
 static fp32 accel_fliter_2[3] = {0.0f, 0.0f, 0.0f};
 static fp32 accel_fliter_3[3] = {0.0f, 0.0f, 0.0f};
@@ -156,7 +134,7 @@ static fp32 INS_gyro[3] = {0.0f, 0.0f, 0.0f};
 static fp32 INS_accel[3] = {0.0f, 0.0f, 0.0f};
 static fp32 INS_mag[3] = {0.0f, 0.0f, 0.0f};
 static fp32 INS_quat[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-fp32 INS_angle[3] = {0.0f, 0.0f, 0.0f};      //euler angle, unit rad.欧拉角 单位 rad
+fp32 INS_angle[3] = {0.0f, 0.0f, 0.0f};      //euler angle, unit rad.
 
 
 
@@ -167,12 +145,6 @@ fp32 INS_angle[3] = {0.0f, 0.0f, 0.0f};      //euler angle, unit rad.欧拉角 单位
   * @param[in]      pvParameters: NULL
   * @retval         none
   */
-/**
-  * @brief          imu任务, 初始化 bmi088, ist8310, 计算欧拉角
-  * @param[in]      pvParameters: NULL
-  * @retval         none
-  */
-
 void INS_task(void const *pvParameters)
 {
     //wait a time
@@ -196,8 +168,7 @@ void INS_task(void const *pvParameters)
     accel_fliter_1[0] = accel_fliter_2[0] = accel_fliter_3[0] = INS_accel[0];
     accel_fliter_1[1] = accel_fliter_2[1] = accel_fliter_3[1] = INS_accel[1];
     accel_fliter_1[2] = accel_fliter_2[2] = accel_fliter_3[2] = INS_accel[2];
-    //get the handle of task
-    //获取当前任务的任务句柄，
+
     INS_task_local_handler = xTaskGetHandle(pcTaskGetName(NULL));
 
     //set spi frequency
@@ -216,7 +187,6 @@ void INS_task(void const *pvParameters)
     while (1)
     {
         //wait spi DMA tansmit done
-        //等待SPI DMA传输
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS)
         {
         }
@@ -245,8 +215,6 @@ void INS_task(void const *pvParameters)
         //rotate and zero drift 
         imu_cali_solve(INS_gyro, INS_accel, INS_mag, &bmi088_real_data, &ist8310_real_data);
 
-
-        //加速度计低通滤波
         //accel low-pass filter
         accel_fliter_1[0] = accel_fliter_2[0];
         accel_fliter_2[0] = accel_fliter_3[0];
@@ -292,15 +260,6 @@ void INS_task(void const *pvParameters)
   * @param[in]      ist8310: mag data
   * @retval         none
   */
-/**
-  * @brief          旋转陀螺仪,加速度计和磁力计,并计算零漂,因为设备有不同安装方式
-  * @param[out]     gyro: 加上零漂和旋转
-  * @param[out]     accel: 加上零漂和旋转
-  * @param[out]     mag: 加上零漂和旋转
-  * @param[in]      bmi088: 陀螺仪和加速度计数据
-  * @param[in]      ist8310: 磁力计数据
-  * @retval         none
-  */
 static void imu_cali_solve(fp32 gyro[3], fp32 accel[3], fp32 mag[3], bmi088_real_data_t *bmi088, ist8310_real_data_t *ist8310)
 {
     for (uint8_t i = 0; i < 3; i++)
@@ -314,11 +273,6 @@ static void imu_cali_solve(fp32 gyro[3], fp32 accel[3], fp32 mag[3], bmi088_real
 /**
   * @brief          control the temperature of bmi088
   * @param[in]      temp: the temperature of bmi088
-  * @retval         none
-  */
-/**
-  * @brief          控制bmi088的温度
-  * @param[in]      temp:bmi088的温度
   * @retval         none
   */
 static void imu_temp_control(fp32 temp)
@@ -337,15 +291,13 @@ static void imu_temp_control(fp32 temp)
     }
     else
     {
-        //在没有达到设置的温度，一直最大功率加热
-        //in beginning, max power
+        // if not reach the setting temperature, always max power
         if (temp > get_control_temperature())
         {
             temp_constant_time++;
             if (temp_constant_time > 200)
             {
-                //达到设置温度，将积分项设置为一半最大功率，加速收敛
-                //
+                // if reach the setting temperature, set the integral term to half of the maximum power to accelerate convergence
                 first_temperate = 1;
                 imu_temp_pid.Iout = MPU6500_TEMP_PWM_MAX / 2.0f;
             }
@@ -360,13 +312,6 @@ static void imu_temp_control(fp32 temp)
   * @param[out]     gyro_offset:zero drift
   * @param[in]      gyro:gyro data
   * @param[out]     offset_time_count: +1 auto
-  * @retval         none
-  */
-/**
-  * @brief          计算陀螺仪零漂
-  * @param[out]     gyro_offset:计算零漂
-  * @param[in]      gyro:角速度数据
-  * @param[out]     offset_time_count: 自动加1
   * @retval         none
   */
 void gyro_offset_calc(fp32 gyro_offset[3], fp32 gyro[3], uint16_t *offset_time_count)
@@ -387,13 +332,6 @@ void gyro_offset_calc(fp32 gyro_offset[3], fp32 gyro[3], uint16_t *offset_time_c
   * @param[out]     cali_scale:scale, default 1.0
   * @param[out]     cali_offset:zero drift, collect the gyro ouput when in still
   * @param[out]     time_count: time, when call gyro_offset_calc 
-  * @retval         none
-  */
-/**
-  * @brief          校准陀螺仪
-  * @param[out]     陀螺仪的比例因子，1.0f为默认值，不修改
-  * @param[out]     陀螺仪的零漂，采集陀螺仪的静止的输出作为offset
-  * @param[out]     陀螺仪的时刻，每次在gyro_offset调用会加1,
   * @retval         none
   */
 void INS_cali_gyro(fp32 cali_scale[3], fp32 cali_offset[3], uint16_t *time_count)
@@ -421,12 +359,6 @@ void INS_cali_gyro(fp32 cali_scale[3], fp32 cali_offset[3], uint16_t *time_count
   * @param[in]      cali_offset:zero drift, 
   * @retval         none
   */
-/**
-  * @brief          校准陀螺仪设置，将从flash或者其他地方传入校准值
-  * @param[in]      陀螺仪的比例因子，1.0f为默认值，不修改
-  * @param[in]      陀螺仪的零漂
-  * @retval         none
-  */
 void INS_set_cali_gyro(fp32 cali_scale[3], fp32 cali_offset[3])
 {
     gyro_cali_offset[0] = cali_offset[0];
@@ -438,14 +370,9 @@ void INS_set_cali_gyro(fp32 cali_scale[3], fp32 cali_offset[3])
 }
 
 /**
-  * @brief          get the quat
+  * @brief          get the quaternion
   * @param[in]      none
   * @retval         the point of INS_quat
-  */
-/**
-  * @brief          获取四元数
-  * @param[in]      none
-  * @retval         INS_quat的指针
   */
 const fp32 *get_INS_quat_point(void)
 {
@@ -455,11 +382,6 @@ const fp32 *get_INS_quat_point(void)
   * @brief          get the euler angle, 0:yaw, 1:pitch, 2:roll unit rad
   * @param[in]      none
   * @retval         the point of INS_angle
-  */
-/**
-  * @brief          获取欧拉角, 0:yaw, 1:pitch, 2:roll 单位 rad
-  * @param[in]      none
-  * @retval         INS_angle的指针
   */
 const fp32 *get_INS_angle_point(void)
 {
@@ -471,11 +393,6 @@ const fp32 *get_INS_angle_point(void)
   * @param[in]      none
   * @retval         the point of INS_gyro
   */
-/**
-  * @brief          获取角速度,0:x轴, 1:y轴, 2:roll轴 单位 rad/s
-  * @param[in]      none
-  * @retval         INS_gyro的指针
-  */
 extern const fp32 *get_gyro_data_point(void)
 {
     return INS_gyro;
@@ -485,11 +402,6 @@ extern const fp32 *get_gyro_data_point(void)
   * @param[in]      none
   * @retval         the point of INS_accel
   */
-/**
-  * @brief          获取加速度,0:x轴, 1:y轴, 2:roll轴 单位 m/s2
-  * @param[in]      none
-  * @retval         INS_accel的指针
-  */
 extern const fp32 *get_accel_data_point(void)
 {
     return INS_accel;
@@ -498,11 +410,6 @@ extern const fp32 *get_accel_data_point(void)
   * @brief          get mag, 0:x-axis, 1:y-axis, 2:roll-axis unit ut
   * @param[in]      none
   * @retval         the point of INS_mag
-  */
-/**
-  * @brief          获取加速度,0:x轴, 1:y轴, 2:roll轴 单位 ut
-  * @param[in]      none
-  * @retval         INS_mag的指针
   */
 extern const fp32 *get_mag_data_point(void)
 {
@@ -538,9 +445,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     }
     else if(GPIO_Pin == GPIO_PIN_0)
     {
-
         //wake up the task
-        //唤醒任务
         if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
         {
             static BaseType_t xHigherPriorityTaskWoken;
@@ -558,15 +463,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   * @param[in]      none
   * @retval         none
   */
-/**
-  * @brief          根据imu_update_flag的值开启SPI DMA
-  * @param[in]      temp:bmi088的温度
-  * @retval         none
-  */
 static void imu_cmd_spi_dma(void)
 {
 
-        //开启陀螺仪的DMA传输
+        // open the gyro DMA transmit
         if( (gyro_update_flag & (1 << IMU_DR_SHFITS) ) && !(hspi1.hdmatx->Instance->CR & DMA_SxCR_EN) && !(hspi1.hdmarx->Instance->CR & DMA_SxCR_EN)
         && !(accel_update_flag & (1 << IMU_SPI_SHFITS)) && !(accel_temp_update_flag & (1 << IMU_SPI_SHFITS)))
         {
@@ -577,7 +477,7 @@ static void imu_cmd_spi_dma(void)
             SPI1_DMA_enable((uint32_t)gyro_dma_tx_buf, (uint32_t)gyro_dma_rx_buf, SPI_DMA_GYRO_LENGTH);
             return;
         }
-        //开启加速度计的DMA传输
+        // open the accel DMA transmit
         if((accel_update_flag & (1 << IMU_DR_SHFITS)) && !(hspi1.hdmatx->Instance->CR & DMA_SxCR_EN) && !(hspi1.hdmarx->Instance->CR & DMA_SxCR_EN)
         && !(gyro_update_flag & (1 << IMU_SPI_SHFITS)) && !(accel_temp_update_flag & (1 << IMU_SPI_SHFITS)))
         {
@@ -612,8 +512,7 @@ void DMA2_Stream2_IRQHandler(void)
     {
         __HAL_DMA_CLEAR_FLAG(hspi1.hdmarx, __HAL_DMA_GET_TC_FLAG_INDEX(hspi1.hdmarx));
 
-        //gyro read over
-        //陀螺仪读取完毕
+        //gyro read done
         if(gyro_update_flag & (1 << IMU_SPI_SHFITS))
         {
             gyro_update_flag &= ~(1 << IMU_SPI_SHFITS);
@@ -623,8 +522,7 @@ void DMA2_Stream2_IRQHandler(void)
             
         }
 
-        //accel read over
-        //加速度计读取完毕
+        //accel read done
         if(accel_update_flag & (1 << IMU_SPI_SHFITS))
         {
             accel_update_flag &= ~(1 << IMU_SPI_SHFITS);
@@ -632,8 +530,7 @@ void DMA2_Stream2_IRQHandler(void)
 
             HAL_GPIO_WritePin(CS1_ACCEL_GPIO_Port, CS1_ACCEL_Pin, GPIO_PIN_SET);
         }
-        //temperature read over
-        //温度读取完毕
+        //temperature read done
         if(accel_temp_update_flag & (1 << IMU_SPI_SHFITS))
         {
             accel_temp_update_flag &= ~(1 << IMU_SPI_SHFITS);

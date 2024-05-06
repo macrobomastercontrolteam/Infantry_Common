@@ -1,11 +1,11 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       shoot.c/h
-  * @brief      射击功能。
+  * @brief      shoot feature
   * @note       
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. 完成
+  *  V1.0.0     Dec-26-2018     RM              1. done
   *
   @verbatim
   ==============================================================================
@@ -24,8 +24,6 @@
 #include "remote_control.h"
 #include "user_lib.h"
 
-//云台模式使用的开关通道
-
 #define SHOOT_CONTROL_TIME          GIMBAL_CONTROL_TIME
 
 // Start friction wheel immediately
@@ -37,22 +35,21 @@
 #define SHOOT_FRIC_PWM_ADD_VALUE    2000.0f
 #endif
 
-//射击摩擦轮激光打开 关闭
 #define SHOOT_ON_KEYBOARD           KEY_PRESSED_OFFSET_Q
 #define SHOOT_OFF_KEYBOARD          KEY_PRESSED_OFFSET_E
 
-//射击完成后 子弹弹出去后，判断时间，以防误触发
+// After the shooting is completed, the bullet is ejected, and the judgment time is to prevent mis-triggering
 #define SHOOT_DONE_KEY_OFF_TIME     15
-//鼠标长按判断
+// Determine the long press of the mouse
 #define PRESS_LONG_TIME             400
-//遥控器射击开关打下档一段时间后 连续发射子弹 用于清单
+// After the remote control shooting switch is pressed down, the bullet is continuously fired for a period of time, used to clear the bullet
 #define RC_S_LONG_TIME              2000
-//摩擦轮高速 加速 时间
+// Friction wheel high speed acceleration time
 #define UP_ADD_TIME                 80
-//拨弹电机rmp 变化成 旋转速度的比例
+
 #define TRIGGER_MOTOR_GEAR_RATIO  36.0f
 #define FULL_COUNT                  18
-//拨弹速度 (rad/s)
+//trigger motor fixed speed (rad/s)
 #define TRIGGER_SPEED               10.0f
 #define CONTINUE_TRIGGER_SPEED      15.0f
 #define READY_TRIGGER_SPEED         5.0f
@@ -61,7 +58,7 @@
 #define SWITCH_TRIGGER_ON           0
 #define SWITCH_TRIGGER_OFF          1
 
-//卡单时间 以及反转时间
+// duration of jamming and reversal
 #define BLOCK_TRIGGER_SPEED         1.0f
 #define BLOCK_TIME                  700
 #define REVERSE_TIME                500
@@ -77,7 +74,6 @@
 #define TRIGGER_ANGLE_INCREMENT     (PI/9.0f)
 #endif
 
-//拨弹轮电机PID
 #define TRIGGER_ANGLE_PID_KP        800.0f
 #define TRIGGER_ANGLE_PID_KI        0.5f
 #define TRIGGER_ANGLE_PID_KD        0.0f
@@ -146,7 +142,7 @@ typedef struct
     uint16_t heat;
 } shoot_control_t;
 
-//由于射击和云台使用同一个can的id故也射击任务在云台任务中执行
+// because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
 extern void shoot_init(void);
 extern int16_t shoot_control_loop(void);
 

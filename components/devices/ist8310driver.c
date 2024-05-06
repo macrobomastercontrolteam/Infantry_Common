@@ -1,11 +1,9 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       IST8310.c/h
-  * @brief      IST8310磁力计驱动函数，包括初始化函数，处理数据函数，通信读取函数
-  *             本工程是将MPU6500 IIC_SLV0设置为自动读取IST8310数据，读取
-  *             MPU_EXT_SENS_DATA_00保存了IST8310的Status，通过判断标志位，来更新
-  *             数据。
-  * @note       IST8310只支持IIC读取
+  * @brief      IST8310 magnetic compass middleware, complete IST8310 IIC communication, because set MPU6500 SPI communication
+  *            so set to read through mpu6500's IIC_SLV0, write through IIC_SLV4.
+  * @note       IST8310 only supports IIC communication
   * @history
   *  Version    Date            Author          Modification
   *  V1.0.0     Dec-26-2018     RM              1. 完成
@@ -21,12 +19,12 @@
 #include "ist8310driver.h"
 #include "ist8310driver_middleware.h"
 
-#define MAG_SEN 0.3f //转换成 uT
+#define MAG_SEN 0.3f //convert to uT
 
-#define IST8310_WHO_AM_I 0x00       //ist8310 who am I 寄存器
-#define IST8310_WHO_AM_I_VALUE 0x10 //设备 ID
+#define IST8310_WHO_AM_I 0x00       //ist8310 who am I register
+#define IST8310_WHO_AM_I_VALUE 0x10 //device ID
 
-#define IST8310_WRITE_REG_NUM 4 //IST8310需要设置的寄存器数目
+#define IST8310_WRITE_REG_NUM 4 // number of registers that ist8310 needs to write
 
 static const uint8_t ist8310_write_reg_data_error[IST8310_WRITE_REG_NUM][3] =
     {

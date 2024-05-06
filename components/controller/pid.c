@@ -1,11 +1,11 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       pid.c/h
-  * @brief      pid实现函数，包括初始化，PID计算函数，
+  * @brief      pid implementation, including init, PID calculation function
   * @note       
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. 完成
+  *  V1.0.0     Dec-26-2018     RM              1. done
   *
   @verbatim
   ==============================================================================
@@ -40,16 +40,6 @@ void LimitMax(fp32 *num, fp32 Limit)
   * @param[in]      max_iout: pid max iout
   * @retval         none
   */
-/**
-  * @brief          pid struct data init
-  * @param[out]     pid: PID结构数据指针
-  * @param[in]      mode: PID_POSITION:普通PID
-  *                 PID_DELTA: 差分PID
-  * @param[in]      PID: 0: kp, 1: ki, 2:kd
-  * @param[in]      max_out: pid最大输出
-  * @param[in]      max_iout: pid最大积分输出
-  * @retval         none
-  */
 void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 max_out, fp32 max_iout, fp32 (*err_handler)(fp32 set, fp32 ref))
 {
     if (pid == NULL || PID == NULL)
@@ -73,13 +63,6 @@ void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 max_out, 
   * @param[in]      ref: feedback data 
   * @param[in]      set: set point
   * @retval         pid out
-  */
-/**
-  * @brief          pid计算
-  * @param[out]     pid: PID结构数据指针
-  * @param[in]      ref: 反馈数据
-  * @param[in]      set: 设定值
-  * @retval         pid输出
   */
 fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set)
 {
@@ -122,11 +105,6 @@ fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set)
 /**
   * @brief          pid out clear
   * @param[out]     pid: PID struct data point
-  * @retval         none
-  */
-/**
-  * @brief          pid 输出清除
-  * @param[out]     pid: PID结构数据指针
   * @retval         none
   */
 void PID_clear(pid_type_def *pid)

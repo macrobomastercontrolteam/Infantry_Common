@@ -3,7 +3,6 @@
   * @file       detect_task.c/h
   * @brief      detect error task, judged by receiving data time. provide detect
                 hook function, error exist function.
-  *             检测错误任务， 通过接收数据时间来判断.提供 检测钩子函数,错误存在函数.
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -29,22 +28,6 @@
     3. if XXX_TOE has data_is_error_fun ,solve_lost_fun,solve_data_error_fun function, 
         please assign to function pointer.
     4. when XXX_TOE sensor data come, add the function detect_hook(XXX_TOE) function.
-    如果要添加一个新设备
-    1.第一步在detect_task.h，添加设备名字在errorList的最后，像
-    enum errorList
-    {
-        ...
-        XXX_TOE,    //新设备
-        ERROR_LIST_LENGTH,
-    };
-    2.在detect_init函数,添加offlineTime, onlinetime, priority参数
-        uint16_t set_item[ERROR_LIST_LENGTH][3] =
-        {
-            ...
-            {n,n,n}, //XX_TOE
-        };
-    3.如果有data_is_error_fun ,solve_lost_fun,solve_data_error_fun函数，赋值到函数指针
-    4.在XXX_TOE设备数据来的时候, 添加函数detect_hook(XXX_TOE).
   ==============================================================================
   @endverbatim
   ****************************(C) COPYRIGHT 2019 DJI****************************
@@ -58,7 +41,7 @@
 #define DETECT_TASK_INIT_TIME 57
 #define DETECT_CONTROL_TIME 10
 
-//错误码以及对应设备顺序
+// TOE: table of equipment
 enum errorList
 {
     // chassis related TOEs (make sure this group is continuous)
@@ -116,22 +99,12 @@ typedef __packed struct
   * @param[in]      pvParameters: NULL
   * @retval         none
   */
-/**
-  * @brief          检测任务
-  * @param[in]      pvParameters: NULL
-  * @retval         none
-  */
 extern void detect_task(void const *pvParameters);
 
 /**
   * @brief          get toe error status
   * @param[in]      toe: table of equipment
   * @retval         true (eror) or false (no error)
-  */
-/**
-  * @brief          获取设备对应的错误状态
-  * @param[in]      toe:设备目录
-  * @retval         true(错误) 或者false(没错误)
   */
 extern bool_t toe_is_error(uint8_t err);
 
@@ -140,22 +113,12 @@ extern bool_t toe_is_error(uint8_t err);
   * @param[in]      toe: table of equipment
   * @retval         none
   */
-/**
-  * @brief          记录时间
-  * @param[in]      toe:设备目录
-  * @retval         none
-  */
 extern void detect_hook(uint8_t toe);
 
 /**
   * @brief          get error list
   * @param[in]      none
   * @retval         the point of error_list
-  */
-/**
-  * @brief          得到错误列表
-  * @param[in]      none
-  * @retval         error_list的指针
   */
 extern const error_t *get_error_list_point(void);
 

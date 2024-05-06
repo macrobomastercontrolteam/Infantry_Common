@@ -1,7 +1,7 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       test_task.c/h
-  * @brief      buzzer warning task.蜂鸣器报警任务
+  * @brief      buzzer warning task
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -32,11 +32,6 @@ const error_t *error_list_test_local;
   * @param[in]      pvParameters: NULL
   * @retval         none
   */
-/**
-  * @brief          test任务
-  * @param[in]      pvParameters: NULL
-  * @retval         none
-  */
 void test_task(void const * argument)
 {
     static uint8_t error, last_error;
@@ -48,7 +43,6 @@ void test_task(void const * argument)
         error = 0;
 
         //find error
-        //发现错误
         for(error_num = 0; error_num < REFEREE_TOE; error_num++)
         {
             if(error_list_test_local[error_num].error_exist)
@@ -59,13 +53,11 @@ void test_task(void const * argument)
         }
 
         //no error, stop buzzer
-        //没有错误, 停止蜂鸣器
         if(error == 0 && last_error != 0)
         {
             buzzer_off();
         }
-        //have error
-        //有错误
+        // error exist
         if(error)
         {
 #if TEST_NO_REF
@@ -84,11 +76,6 @@ void test_task(void const * argument)
 /**
   * @brief          make the buzzer sound
   * @param[in]      num: the number of beeps 
-  * @retval         none
-  */
-/**
-  * @brief          使得蜂鸣器响
-  * @param[in]      num:响声次数
   * @retval         none
   */
 static void buzzer_warn_error(uint8_t num)

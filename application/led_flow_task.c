@@ -1,7 +1,7 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       led_trigger_task.c/h
-  * @brief      led RGB show.led RGBµÆÐ§¡£
+  * @brief      led RGB show
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -23,16 +23,10 @@
 #define RGB_FLOW_COLOR_CHANGE_TIME  1000
 #define RGB_FLOW_COLOR_LENGTH   6
 //blue-> green(dark)-> red -> blue(dark) -> green(dark) -> red(dark) -> blue
-//À¶ -> ÂÌ(Ãð) -> ºì -> À¶(Ãð) -> ÂÌ -> ºì(Ãð) -> À¶ 
 uint32_t RGB_flow_color[RGB_FLOW_COLOR_LENGTH + 1] = {0xFF0000FF, 0x0000FF00, 0xFFFF0000, 0x000000FF, 0xFF00FF00, 0x00FF0000, 0xFF0000FF};
 
 /**
   * @brief          led rgb task
-  * @param[in]      pvParameters: NULL
-  * @retval         none
-  */
-/**
-  * @brief          led RGBÈÎÎñ
   * @param[in]      pvParameters: NULL
   * @retval         none
   */

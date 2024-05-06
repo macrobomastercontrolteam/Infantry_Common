@@ -2,7 +2,7 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       AHRS_MiddleWare.c/h
-  * @brief      姿态解算中间层，为姿态解算提供相关函数
+  * @brief      Attitude calculation middleware, providing related functions for attitude calculation
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -19,13 +19,11 @@
 #ifndef AHRS_MIDDLEWARE_H
 #define AHRS_MIDDLEWARE_H
 
-//重新对应的数据类型
 typedef signed char int8_t;
 typedef signed short int int16_t;
 typedef signed int int32_t;
 typedef signed long long int64_t;
 
-/* exact-width unsigned integer types */
 typedef unsigned char uint8_t;
 typedef unsigned short int uint16_t;
 typedef unsigned int uint32_t;
@@ -34,22 +32,20 @@ typedef unsigned char bool_t;
 typedef float fp32;
 typedef double fp64;
 
-//定义 NULL
 #ifndef NULL
 #define NULL 0
 #endif
 
-//定义PI 值
 #ifndef PI
 #define PI 3.14159265358979f
 #endif
 
-//定义 角度(度)转换到 弧度的比例
+// Convert angle (degree) to radian
 #ifndef ANGLE_TO_RAD
 #define ANGLE_TO_RAD 0.01745329251994329576923690768489f
 #endif
 
-//定义 弧度 转换到 角度的比例
+// Convert radian to angle (degree)
 #ifndef RAD_TO_ANGLE
 #define RAD_TO_ANGLE 57.295779513082320876798154814105f
 #endif

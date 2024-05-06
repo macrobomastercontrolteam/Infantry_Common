@@ -3,7 +3,6 @@
   * @file       detect_task.c/h
   * @brief      detect error task, judged by receiving data time. provide detect
                 hook function, error exist function.
-  *             检测错误任务， 通过接收数据时间来判断.提供 检测钩子函数,错误存在函数.
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -29,22 +28,6 @@
     3. if XXX_TOE has data_is_error_fun ,solve_lost_fun,solve_data_error_fun function, 
         please assign to function pointer.
     4. when XXX_TOE sensor data come, add the function detect_hook(XXX_TOE) function.
-    如果要添加一个新设备
-    1.第一步在detect_task.h，添加设备名字在errorList的最后，像
-    enum errorList
-    {
-        ...
-        XXX_TOE,    //新设备
-        ERROR_LIST_LENGTH,
-    };
-    2.在detect_init函数,添加offlineTime, onlinetime, priority参数
-        uint16_t set_item[ERROR_LIST_LENGTH][3] =
-        {
-            ...
-            {n,n,n}, //XX_TOE
-        };
-    3.如果有data_is_error_fun ,solve_lost_fun,solve_data_error_fun函数，赋值到函数指针
-    4.在XXX_TOE设备数据来的时候, 添加函数detect_hook(XXX_TOE).
   ==============================================================================
   @endverbatim
   ****************************(C) COPYRIGHT 2019 DJI****************************
@@ -57,11 +40,6 @@
 /**
   * @brief          init error_list, assign  offline_time, online_time, priority.
   * @param[in]      time: system time
-  * @retval         none
-  */
-/**
-  * @brief          初始化error_list,赋值 offline_time, online_time, priority
-  * @param[in]      time:系统时间
   * @retval         none
   */
 static void detect_init(uint32_t time);
@@ -82,18 +60,11 @@ uint32_t detect_task_stack;
   * @param[in]      pvParameters: NULL
   * @retval         none
   */
-/**
-  * @brief          检测任务
-  * @param[in]      pvParameters: NULL
-  * @retval         none
-  */
 void detect_task(void const *pvParameters)
 {
     static uint32_t system_time;
     system_time = xTaskGetTickCount();
-    //init,初始化
     detect_init(system_time);
-    //wait a time.空闲一段时间
     vTaskDelay(DETECT_TASK_INIT_TIME);
 
     while (1)
@@ -107,26 +78,22 @@ void detect_task(void const *pvParameters)
 
         for (int i = 0; i < ERROR_LIST_LENGTH; i++)
         {
-            //disable, continue
-            //未使能，跳过
             if (error_list[i].enable == 0)
             {
                 continue;
             }
 
-            //judge offline.判断掉线
+            //judge offline
             if (system_time - error_list[i].new_time > error_list[i].set_offline_time)
             {
                 if (error_list[i].error_exist == 0)
                 {
-                    //record error and time
-                    //记录错误以及掉线时间
+                    //record error and offlined timestamp
                     error_list[i].is_lost = 1;
                     error_list[i].error_exist = 1;
                     error_list[i].lost_time = system_time;
                 }
-                //judge the priority,save the highest priority ,
-                //判断错误优先级， 保存优先级最高的错误码
+                //save the error code of the highest priority
                 if (error_list[i].priority > error_list[error_num_display].priority)
                 {
                     error_num_display = i;
@@ -136,7 +103,6 @@ void detect_task(void const *pvParameters)
                 error_list[ERROR_LIST_LENGTH].is_lost = 1;
                 error_list[ERROR_LIST_LENGTH].error_exist = 1;
                 //if solve_lost_fun != NULL, run it
-                //如果提供解决函数，运行解决函数
                 if (error_list[i].solve_lost_fun != NULL)
                 {
                     error_list[i].solve_lost_fun();
@@ -145,14 +111,12 @@ void detect_task(void const *pvParameters)
             else if (system_time - error_list[i].work_time < error_list[i].set_online_time)
             {
                 //just online, maybe unstable, only record
-                //刚刚上线，可能存在数据不稳定，只记录不丢失，
                 error_list[i].is_lost = 0;
                 error_list[i].error_exist = 1;
             }
             else
             {
                 error_list[i].is_lost = 0;
-                //判断是否存在数据错误
                 //judge if exist data error
                 if (error_list[i].data_is_error != NULL)
                 {
@@ -163,7 +127,6 @@ void detect_task(void const *pvParameters)
                     error_list[i].error_exist = 0;
                 }
                 //calc frequency
-                //计算频率
                 if (error_list[i].new_time > error_list[i].last_time)
                 {
                     error_list[i].frequency = configTICK_RATE_HZ / (fp32)(error_list[i].new_time - error_list[i].last_time);
@@ -184,11 +147,6 @@ void detect_task(void const *pvParameters)
   * @param[in]      toe: table of equipment
   * @retval         true (eror) or false (no error)
   */
-/**
-  * @brief          获取设备对应的错误状态
-  * @param[in]      toe:设备目录
-  * @retval         true(错误) 或者false(没错误)
-  */
 bool_t toe_is_error(uint8_t toe)
 {
     return (error_list[toe].error_exist == 1);
@@ -197,11 +155,6 @@ bool_t toe_is_error(uint8_t toe)
 /**
   * @brief          record the time
   * @param[in]      toe: table of equipment
-  * @retval         none
-  */
-/**
-  * @brief          记录时间
-  * @param[in]      toe:设备目录
   * @retval         none
   */
 void detect_hook(uint8_t toe)
@@ -243,11 +196,6 @@ void detect_hook(uint8_t toe)
   * @param[in]      none
   * @retval         the point of error_list
   */
-/**
-  * @brief          得到错误列表
-  * @param[in]      none
-  * @retval         error_list的指针
-  */
 const error_t *get_error_list_point(void)
 {
     return error_list;
@@ -256,7 +204,7 @@ const error_t *get_error_list_point(void)
 // extern void OLED_com_reset(void);
 static void detect_init(uint32_t time)
 {
-    //设置离线时间，上线稳定工作时间，优先级 offlineTime onlinetime priority
+    // Important: config offlineTime onlinetime priority
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS

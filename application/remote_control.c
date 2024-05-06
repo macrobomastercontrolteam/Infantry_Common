@@ -1,10 +1,12 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       remote_control.c/h
-  * @brief      遥控器处理，遥控器是通过类似SBUS的协议传输，利用DMA传输方式节约CPU
-  *             资源，利用串口空闲中断来拉起处理函数，同时提供一些掉线重启DMA，串口
-  *             的方式保证热插拔的稳定性。
-  * @note       该任务是通过串口中断启动，不是freeRTOS任务
+  * @brief      remote control process, remote control is transmitted through a protocol
+  *            similar to SBUS, using DMA transmission method to save CPU
+  *           resources, using serial port idle interrupt to pull up the processing function,
+  *          and providing some offline restart DMA, serial port
+  *        to ensure the stability of hot swap.
+  * @note    This task is started by serial port interrupt, not freeRTOS task
   * @history
   *  Version    Date            Author          Modification
   *  V1.0.0     Dec-26-2018     RM              1. done
@@ -28,14 +30,13 @@
 #include "detect_task.h"
 #include "cv_usart_task.h"
 
-//遥控器出错数据上限
+//remote control error limit
 #define RC_CHANNAL_ERROR_VALUE 700
 
 extern UART_HandleTypeDef huart3;
 extern DMA_HandleTypeDef hdma_usart3_rx;
 
 
-//取正函数
 static int16_t RC_abs(int16_t value);
 /**
   * @brief          remote control protocol resolution
@@ -43,28 +44,16 @@ static int16_t RC_abs(int16_t value);
   * @param[out]     rc_ctrl: remote control data struct point
   * @retval         none
   */
-/**
-  * @brief          遥控器协议解析
-  * @param[in]      sbus_buf: 原生数据指针
-  * @param[out]     rc_ctrl: 遥控器数据指
-  * @retval         none
-  */
 static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl);
 
 //remote control data 
-//遥控器控制变量
 RC_ctrl_t rc_ctrl;
-//接收原始数据，为18个字节，给了36个字节长度，防止DMA传输越界
+// receive raw data of 18 bytes, 36 bytes length is given to prevent DMA transmission overflow
 static uint8_t sbus_rx_buf[2][SBUS_RX_BUF_NUM];
 
 
 /**
   * @brief          remote control init
-  * @param[in]      none
-  * @retval         none
-  */
-/**
-  * @brief          遥控器初始化
   * @param[in]      none
   * @retval         none
   */
@@ -77,20 +66,15 @@ void remote_control_init(void)
   * @param[in]      none
   * @retval         remote control data point
   */
-/**
-  * @brief          获取遥控器数据指针
-  * @param[in]      none
-  * @retval         遥控器数据指针
-  */
 const RC_ctrl_t *get_remote_control_point(void)
 {
     return &rc_ctrl;
 }
 
-//判断遥控器数据是否出错，
+// determine whether the remote control data is wrong
 uint8_t RC_data_is_error(void)
 {
-    //使用了go to语句 方便出错统一处理遥控器变量数据归零
+    // use go to statement to facilitate error handling and unify the processing of remote control variable data to zero
     if (RC_abs(rc_ctrl.rc.ch[0]) > RC_CHANNAL_ERROR_VALUE)
     {
         goto error;
@@ -143,10 +127,9 @@ void solve_data_error(void)
     RC_restart(SBUS_RX_BUF_NUM);
 }
 
-//串口中断
 void USART3_IRQHandler(void)
 {
-    if(huart3.Instance->SR & UART_FLAG_RXNE)//接收到数据
+    if(huart3.Instance->SR & UART_FLAG_RXNE) // data received
     {
         __HAL_UART_CLEAR_PEFLAG(&huart3);
     }
@@ -161,29 +144,24 @@ void USART3_IRQHandler(void)
             /* Current memory buffer used is Memory 0 */
 
             //disable DMA
-            //失效DMA
             __HAL_DMA_DISABLE(&hdma_usart3_rx);
 
             //get receive data length, length = set_data_length - remain_length
-            //获取接收数据长度,长度 = 设定长度 - 剩余长度
             this_time_rx_len = SBUS_RX_BUF_NUM - hdma_usart3_rx.Instance->NDTR;
 
             //reset set_data_length
-            //重新设定数据长度
             hdma_usart3_rx.Instance->NDTR = SBUS_RX_BUF_NUM;
 
             //set memory buffer 1
-            //设定缓冲区1
             hdma_usart3_rx.Instance->CR |= DMA_SxCR_CT;
             
             //enable DMA
-            //使能DMA
             __HAL_DMA_ENABLE(&hdma_usart3_rx);
 
             if(this_time_rx_len == RC_FRAME_LENGTH)
             {
                 sbus_to_rc(sbus_rx_buf[0], &rc_ctrl);
-                //记录数据接收时间
+                // record time of data arrival
                 detect_hook(DBUS_TOE);
                 // sbus_to_usart1(sbus_rx_buf[0]);
             }
@@ -192,30 +170,25 @@ void USART3_IRQHandler(void)
         {
             /* Current memory buffer used is Memory 1 */
             //disable DMA
-            //失效DMA
             __HAL_DMA_DISABLE(&hdma_usart3_rx);
 
             //get receive data length, length = set_data_length - remain_length
-            //获取接收数据长度,长度 = 设定长度 - 剩余长度
             this_time_rx_len = SBUS_RX_BUF_NUM - hdma_usart3_rx.Instance->NDTR;
 
             //reset set_data_length
-            //重新设定数据长度
             hdma_usart3_rx.Instance->NDTR = SBUS_RX_BUF_NUM;
 
             //set memory buffer 0
-            //设定缓冲区0
             DMA1_Stream1->CR &= ~(DMA_SxCR_CT);
             
             //enable DMA
-            //使能DMA
             __HAL_DMA_ENABLE(&hdma_usart3_rx);
 
             if(this_time_rx_len == RC_FRAME_LENGTH)
             {
-                //处理遥控器数据
+                // process remote control data
                 sbus_to_rc(sbus_rx_buf[1], &rc_ctrl);
-                //记录数据接收时间
+                // record time of data arrival
                 detect_hook(DBUS_TOE);
                 // sbus_to_usart1(sbus_rx_buf[1]);
             }
@@ -224,7 +197,7 @@ void USART3_IRQHandler(void)
 
 }
 
-//取正函数
+// absolute function
 static int16_t RC_abs(int16_t value)
 {
     if (value > 0)
@@ -240,12 +213,6 @@ static int16_t RC_abs(int16_t value)
   * @brief          remote control protocol resolution
   * @param[in]      sbus_buf: raw data point
   * @param[out]     rc_ctrl: remote control data struct point
-  * @retval         none
-  */
-/**
-  * @brief          遥控器协议解析
-  * @param[in]      sbus_buf: 原生数据指针
-  * @param[out]     rc_ctrl: 遥控器数据指
   * @retval         none
   */
 static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
@@ -285,11 +252,6 @@ static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
 // /**
 //   * @brief          send sbus data by usart1, called in usart3_IRQHandle
 //   * @param[in]      sbus: sbus data, 18 bytes
-//   * @retval         none
-//   */
-// /**
-//   * @brief          通过usart1发送sbus数据,在usart3_IRQHandle调用
-//   * @param[in]      sbus: sbus数据, 18字节
 //   * @retval         none
 //   */
 // void sbus_to_usart1(uint8_t *sbus)

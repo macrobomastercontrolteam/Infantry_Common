@@ -1,11 +1,10 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       shoot.c/h
-  * @brief      射击功能.
   * @note       
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. 完成
+  *  V1.0.0     Dec-26-2018     RM              1. done
   *
   @verbatim
   ==============================================================================
@@ -33,72 +32,59 @@
 #include "cv_usart_task.h"
 
 #if DISABLE_SHOOT_MOTOR_POWER
-#define shoot_fric1_on(pwm) fric_off() //摩擦轮1pwm宏定义
-#define shoot_fric2_on(pwm) fric_off() //摩擦轮2pwm宏定义
+#define shoot_fric1_on(pwm) fric_off()
+#define shoot_fric2_on(pwm) fric_off()
 #else
-#define shoot_fric1_on(pwm) fric1_on((pwm)) //摩擦轮1pwm宏定义
-#define shoot_fric2_on(pwm) fric2_on((pwm)) //摩擦轮2pwm宏定义
+#define shoot_fric1_on(pwm) fric1_on((pwm))
+#define shoot_fric2_on(pwm) fric2_on((pwm))
 #endif
 
-#define shoot_fric_off()    fric_off()      //关闭两个摩擦轮
+#define shoot_fric_off() fric_off()
 
-#define shoot_laser_on()    laser_on()      //激光开启宏定义
-#define shoot_laser_off()   laser_off()     //激光关闭宏定义
-//微动开关IO
+#define shoot_laser_on() laser_on()
+#define shoot_laser_off() laser_off()
+//microswitch
 #define BUTTEN_TRIG_PIN HAL_GPIO_ReadPin(BUTTON_TRIG_GPIO_Port, BUTTON_TRIG_Pin)
 
-
-
-
 /**
-  * @brief          射击状态机设置，遥控器上拨一次开启，再上拨关闭，下拨1次发射1颗，一直处在下，则持续发射，用于3min准备时间清理子弹
-  * @param[in]      void
-  * @retval         void
-  */
+ * @brief Set the mode of the shoot control state machine
+*/
 static void shoot_set_mode(void);
 /**
-  * @brief          射击数据更新
+  * @brief          Update shoot data
   * @param[in]      void
   * @retval         void
   */
 static void shoot_feedback_update(void);
 
 /**
-  * @brief          堵转倒转处理
+  * @brief          Handle stall by oscillating the trigger motor
   * @param[in]      void
   * @retval         void
   */
 static void trigger_motor_turn_back(void);
 
 /**
-  * @brief          射击控制，控制拨弹电机角度，完成一次发射
+  * @brief          Shoot control, control the angle of the trigger motor to complete a single burst shot
   * @param[in]      void
   * @retval         void
   */
 static void shoot_bullet_control(void);
 
-
-
-shoot_control_t shoot_control;          //射击数据
-
+shoot_control_t shoot_control;
 
 /**
-  * @brief          射击初始化，初始化PID，遥控器指针，电机指针
+  * @brief          Initialize the shoot control, including PID, remote control pointer, and motor pointer
   * @param[in]      void
-  * @retval         返回空
   */
 void shoot_init(void)
 {
 
     static const fp32 Trigger_speed_pid[3] = {TRIGGER_ANGLE_PID_KP, TRIGGER_ANGLE_PID_KI, TRIGGER_ANGLE_PID_KD};
     shoot_control.shoot_mode = SHOOT_STOP_INIT;
-    //遥控器指针
     shoot_control.shoot_rc = get_remote_control_point();
-    //电机指针
     shoot_control.shoot_motor_measure = get_trigger_motor_measure_point();
-    //初始化PID
     PID_init(&shoot_control.trigger_motor_pid, PID_POSITION, Trigger_speed_pid, TRIGGER_READY_PID_MAX_OUT, TRIGGER_READY_PID_MAX_IOUT, &raw_err_handler);
-    //更新数据
     shoot_feedback_update();
     ramp_init(&shoot_control.fric1_ramp, SHOOT_CONTROL_TIME * 0.001f, FRIC_DOWN, FRIC_OFF);
     ramp_init(&shoot_control.fric2_ramp, SHOOT_CONTROL_TIME * 0.001f, FRIC_DOWN, FRIC_OFF);
@@ -115,16 +101,11 @@ void shoot_init(void)
     shoot_control.fIsCvControl = 0;
 }
 
-/**
-  * @brief          射击循环
-  * @param[in]      void
-  * @retval         返回can控制值
-  */
 int16_t shoot_control_loop(void)
 {
 
-    shoot_set_mode();        //设置状态机
-    shoot_feedback_update(); //更新数据
+    shoot_set_mode();
+    shoot_feedback_update();
 
     shoot_control.speed_set = 0.0f;
     switch (shoot_control.shoot_mode)
@@ -167,7 +148,7 @@ int16_t shoot_control_loop(void)
     {
         if (shoot_control.key == SWITCH_TRIGGER_OFF)
         {
-            // 设置拨弹轮的拨动速度,并开启堵转反转处理
+            // set the speed of the trigger motor, and enable stall reverse processing
             shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
             trigger_motor_turn_back();
         }
@@ -209,7 +190,7 @@ int16_t shoot_control_loop(void)
     }
     case SHOOT_CONTINUE_BULLET:
     {
-        // 设置拨弹轮的拨动速度,并开启堵转反转处理
+        // set the speed of the trigger motor, and enable stall reverse processing
         shoot_control.trigger_speed_set = CONTINUE_TRIGGER_SPEED;
         trigger_motor_turn_back();
         shoot_control.shoot_mode = SHOOT_READY_BULLET_INIT;
@@ -242,7 +223,7 @@ int16_t shoot_control_loop(void)
 		{
 			shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
 		}
-		// 鼠标长按一直进入射击状态 保持连发
+        // Enter shooting state by long pressing the mouse to keep firing
 		else if ((shoot_control.press_l_time == PRESS_LONG_TIME) || (shoot_control.press_r_time == PRESS_LONG_TIME) || (shoot_control.rc_s_time == RC_S_LONG_TIME))
 		{
 			get_shoot_heat0_limit_and_heat0(&shoot_control.heat_limit, &shoot_control.heat);
@@ -261,21 +242,21 @@ int16_t shoot_control_loop(void)
     {
         shoot_laser_off();
         shoot_control.given_current = 0;
-        //摩擦轮需要一个个斜波开启，不能同时直接开启，否则可能电机不转
+        // Friction wheels need to be turned on one by one with a ramp, otherwise the motor may not turn
         ramp_calc(&shoot_control.fric1_ramp, -SHOOT_FRIC_PWM_ADD_VALUE);
         ramp_calc(&shoot_control.fric2_ramp, -SHOOT_FRIC_PWM_ADD_VALUE);
     }
     else
     {
-        shoot_laser_on(); //激光开启
-        //计算拨弹轮电机PID
+        shoot_laser_on();
+        // calculate the PID of the trigger motor
         PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set);
         shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
         if(shoot_control.shoot_mode < SHOOT_READY_BULLET_INIT)
         {
             shoot_control.given_current = 0;
         }
-        //摩擦轮需要一个个斜波开启，不能同时直接开启，否则可能电机不转
+        // friction wheels need to be turned on individually with ramps, otherwise the motor may not turn
         ramp_calc(&shoot_control.fric1_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
         ramp_calc(&shoot_control.fric2_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
 
@@ -289,7 +270,7 @@ int16_t shoot_control_loop(void)
 }
 
 /**
-  * @brief          射击状态机设置，遥控器上拨一次开启，再上拨关闭，下拨1次发射1颗，一直处在下，则持续发射，用于3min准备时间清理子弹
+  * @brief          Set the shoot mode state machine, pull up once on the remote control to turn on, pull up again to turn off, pull down once to shoot one, always down to continue shooting, used to clean up bullets during the 3-minute preparation time
   * @param[in]      void
   * @retval         void
   */
@@ -367,11 +348,7 @@ static void shoot_set_mode(void)
 		}
 	}
 }
-/**
-  * @brief          射击数据更新
-  * @param[in]      void
-  * @retval         void
-  */
+
 static void shoot_feedback_update(void)
 {
 
@@ -379,16 +356,16 @@ static void shoot_feedback_update(void)
     static fp32 speed_fliter_2 = 0.0f;
     static fp32 speed_fliter_3 = 0.0f;
 
-    //拨弹轮电机速度滤波一下
+    // filter coefficient for trigger motor speed
     static const fp32 fliter_num[3] = {1.725709860247969f, -0.75594777109163436f, 0.030237910843665373f};
 
-    //二阶低通滤波
+    // second-order low-pass filter
     speed_fliter_1 = speed_fliter_2;
     speed_fliter_2 = speed_fliter_3;
     speed_fliter_3 = speed_fliter_2 * fliter_num[0] + speed_fliter_1 * fliter_num[1] + (RPM_TO_RADS(shoot_control.shoot_motor_measure->speed_rpm) / TRIGGER_MOTOR_GEAR_RATIO) * fliter_num[2];
     shoot_control.speed = speed_fliter_3;
 
-    //电机圈数重置， 因为输出轴旋转一圈， 电机轴旋转 36圈，将电机轴数据处理成输出轴数据，用于控制输出轴角度
+    // reset the motor count, because when the output shaft rotates one turn, the motor shaft rotates 36 turns, process the motor shaft data into output shaft data, used to control the output shaft angle
     if (shoot_control.shoot_motor_measure->ecd - shoot_control.shoot_motor_measure->last_ecd > HALF_ECD_RANGE)
     {
         shoot_control.ecd_count--;
@@ -407,16 +384,16 @@ static void shoot_feedback_update(void)
         shoot_control.ecd_count = FULL_COUNT - 1;
     }
 
-    //计算输出轴角度
+    // calculate the output shaft angle
     shoot_control.angle = (shoot_control.ecd_count * ECD_RANGE + shoot_control.shoot_motor_measure->ecd) * MOTOR_ECD_TO_RAD / TRIGGER_MOTOR_GEAR_RATIO;
-    //微动开关
+    //microswitch
     shoot_control.key = BUTTEN_TRIG_PIN;
-    //鼠标按键
+    //mouse clicks
     shoot_control.last_press_l = shoot_control.press_l;
     shoot_control.last_press_r = shoot_control.press_r;
     shoot_control.press_l = shoot_control.shoot_rc->mouse.press_l;
     shoot_control.press_r = shoot_control.shoot_rc->mouse.press_r;
-    //长按计时
+    // Count time for long presss
     if (shoot_control.press_l)
     {
         if (shoot_control.press_l_time < PRESS_LONG_TIME)
@@ -441,7 +418,7 @@ static void shoot_feedback_update(void)
         shoot_control.press_r_time = 0;
     }
 
-    //射击开关下档时间计时
+    // Count time of shoot switch being down
     if (shoot_control.shoot_mode != SHOOT_STOP && switch_is_down(shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL]))
     {
 
@@ -455,7 +432,7 @@ static void shoot_feedback_update(void)
         shoot_control.rc_s_time = 0;
     }
 
-    //鼠标右键按下加速摩擦轮，使得左键低速射击， 右键高速射击
+    // Right mouse button pressed to accelerate the friction wheel, so that the left mouse button shoots at low speed and the right mouse button shoots at high speed
     static uint16_t up_time = 0;
     if (shoot_control.press_r)
     {
@@ -508,7 +485,7 @@ static void trigger_motor_turn_back(void)
 }
 
 /**
-  * @brief          射击控制，控制拨弹电机角度，完成一次发射
+  * @brief          Burst fire
   * @param[in]      void
   * @retval         void
   */
@@ -524,10 +501,10 @@ static void shoot_bullet_control(void)
     {
         shoot_control.shoot_mode = SHOOT_DONE;
     }
-    //到达角度判断
+    // determine if the angle is reached
     if (rad_format(shoot_control.set_angle - shoot_control.angle) > 0.05f)
     {
-        //没到达一直设置旋转速度
+        // keep setting the rotation speed until the angle is reached
         shoot_control.trigger_speed_set = TRIGGER_SPEED;
         trigger_motor_turn_back();
     }

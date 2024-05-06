@@ -7,10 +7,6 @@
   *             accel and mag calibration have not been implemented yet, because
   *             accel is not necessary to calibrate, mag is not used. chassis 
   *             calibration is to make motor 3508 enter quick reset ID mode.
-  *             校准设备，包括云台,陀螺仪,加速度计,磁力计,底盘.云台校准是主要计算零点
-  *             和最大最小相对角度.云台校准是主要计算零漂.加速度计和磁力计校准还没有实现
-  *             因为加速度计还没有必要去校准,而磁力计还没有用.底盘校准是使M3508进入快速
-  *             设置ID模式.
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -21,8 +17,8 @@
   ==============================================================================
   *             use the remote control begin calibrate,
   *             first: two switchs of remote control are down
-  *             second:hold for 2 seconds, two rockers set to V, like \../;  \. means the letf rocker go bottom right.
-  *             third:hold for 2 seconds, two rockers set to ./\., begin the gyro calibration
+  *             second:hold for 2 seconds, two joysticks set to V, like \../;  \. means the letf joystick go bottom right.
+  *             third:hold for 2 seconds, two joysticks set to ./\., begin the gyro calibration
   *                     or set to '\/', begin the gimbal calibration
   *                     or set to /''\, begin the chassis calibration
   *
@@ -54,41 +50,6 @@
   *             bool_t cali_xxx_hook(uint32_t *cali, bool_t cmd), and add the name in "cali_name[CALI_LIST_LENGTH][3]"
   *             and declare variable xxx_cali_t xxx_cail, add the data address in cali_sensor_buf[CALI_LIST_LENGTH]
   *             and add the data length in cali_sensor_size, at last, add function in cali_hook_fun[CALI_LIST_LENGTH]
-  *             使用遥控器进行开始校准
-  *             第一步:遥控器的两个开关都打到下
-  *             第二步:两个摇杆打成\../,保存两秒.\.代表左摇杆向右下打.
-  *             第三步:摇杆打成./\. 开始陀螺仪校准
-  *                    或者摇杆打成'\/' 开始云台校准
-  *                    或者摇杆打成/''\ 开始底盘校准
-  *
-  *             数据在flash中，包括校准数据和名字 name[3] 和 校准标志位 cali_flag
-  *             例如head_cali有八个字节,但它需要12字节在flash,如果它从0x080A0000开始
-  *             0x080A0000-0x080A0007: head_cali数据
-  *             0x080A0008: 名字name[0]
-  *             0x080A0009: 名字name[1]
-  *             0x080A000A: 名字name[2]
-  *             0x080A000B: 校准标志位 cali_flag,当校准标志位为0x55,意味着head_cali已经校准了
-  *             添加新设备
-  *             1.添加设备名在calibrate_task.h的cali_id_e, 像
-  *             typedef enum
-  *             {
-  *                 ...
-  *                 //add more...
-  *                 CALI_XXX,
-  *                 CALI_LIST_LENGTH,
-  *             } cali_id_e;
-  *             2. 添加数据结构在 calibrate_task.h, 必须4字节倍数，像
-  *
-  *             typedef struct
-  *             {
-  *                 uint16_t xxx;
-  *                 uint16_t yyy;
-  *                 fp32 zzz;
-  *             } xxx_cali_t; //长度:8字节 8 bytes, 必须是 4, 8, 12, 16...
-  *             3.在 "FLASH_WRITE_BUF_LENGTH",添加"sizeof(xxx_cali_t)", 和实现新函数
-  *             bool_t cali_xxx_hook(uint32_t *cali, bool_t cmd), 添加新名字在 "cali_name[CALI_LIST_LENGTH][3]"
-  *             和申明变量 xxx_cali_t xxx_cail, 添加变量地址在cali_sensor_buf[CALI_LIST_LENGTH]
-  *             在cali_sensor_size[CALI_LIST_LENGTH]添加数据长度, 最后在cali_hook_fun[CALI_LIST_LENGTH]添加函数
   *
   ==============================================================================
   @endverbatim
@@ -120,11 +81,6 @@
   * @param[in]      none
   * @retval         none
   */
-/**
-  * @brief          使用遥控器开始校准，例如陀螺仪，云台，底盘
-  * @param[in]      none
-  * @retval         none
-  */
 static void RC_cmd_to_calibrate(void);
 
 /**
@@ -132,20 +88,10 @@ static void RC_cmd_to_calibrate(void);
   * @param[in]      none
   * @retval         none
   */
-/**
-  * @brief          从flash读取校准数据
-  * @param[in]      none
-  * @retval         none
-  */
 static void cali_data_read(void);
 
 /**
   * @brief          write the data to flash
-  * @param[in]      none
-  * @retval         none
-  */
-/**
-  * @brief          往flash写入校准数据
   * @param[in]      none
   * @retval         none
   */
@@ -161,15 +107,6 @@ static void cali_data_write(void);
   * @retval         0:means cali task has not been done
                     1:means cali task has been done
   */
-/**
-  * @brief          "head"设备校准
-  * @param[in][out] cali:指针指向head数据,当cmd为CALI_FUNC_CMD_INIT, 参数是输入,CALI_FUNC_CMD_ON,参数是输出
-  * @param[in]      cmd: 
-                    CALI_FUNC_CMD_INIT: 代表用校准数据初始化原始数据
-                    CALI_FUNC_CMD_ON: 代表需要校准
-  * @retval         0:校准任务还没有完
-                    1:校准任务已经完成
-  */
 static bool_t cali_head_hook(uint32_t *cali, bool_t cmd);   //header device cali function
 
 /**
@@ -181,15 +118,6 @@ static bool_t cali_head_hook(uint32_t *cali, bool_t cmd);   //header device cali
   * @retval         0:means cali task has not been done
                     1:means cali task has been done
   */
-/**
-  * @brief          陀螺仪设备校准
-  * @param[in][out] cali:指针指向陀螺仪数据,当cmd为CALI_FUNC_CMD_INIT, 参数是输入,CALI_FUNC_CMD_ON,参数是输出
-  * @param[in]      cmd: 
-                    CALI_FUNC_CMD_INIT: 代表用校准数据初始化原始数据
-                    CALI_FUNC_CMD_ON: 代表需要校准
-  * @retval         0:校准任务还没有完
-                    1:校准任务已经完成
-  */
 static bool_t cali_gyro_hook(uint32_t *cali, bool_t cmd);   //gyro device cali function
 
 /**
@@ -200,15 +128,6 @@ static bool_t cali_gyro_hook(uint32_t *cali, bool_t cmd);   //gyro device cali f
                     CALI_FUNC_CMD_ON: means need to calibrate
   * @retval         0:means cali task has not been done
                     1:means cali task has been done
-  */
-/**
-  * @brief          云台设备校准
-  * @param[in][out] cali:指针指向云台数据,当cmd为CALI_FUNC_CMD_INIT, 参数是输入,CALI_FUNC_CMD_ON,参数是输出
-  * @param[in]      cmd: 
-                    CALI_FUNC_CMD_INIT: 代表用校准数据初始化原始数据
-                    CALI_FUNC_CMD_ON: 代表需要校准
-  * @retval         0:校准任务还没有完
-                    1:校准任务已经完成
   */
 static bool_t cali_gimbal_hook(uint32_t *cali, bool_t cmd); //gimbal device cali function
 
@@ -253,11 +172,6 @@ static uint32_t calibrate_systemTick;
 /**
   * @brief          calibrate task, created by main function
   * @param[in]      pvParameters: null
-  * @retval         none
-  */
-/**
-  * @brief          校准任务，由main函数创建
-  * @param[in]      pvParameters: 空
   * @retval         none
   */
 void calibrate_task(void const *pvParameters)
@@ -306,11 +220,6 @@ void calibrate_task(void const *pvParameters)
   * @param[in]      none
   * @retval         imu control temperature
   */
-/**
-  * @brief          获取imu控制温度, 单位℃
-  * @param[in]      none
-  * @retval         imu控制温度
-  */
 int8_t get_control_temperature(void)
 {
 
@@ -320,11 +229,6 @@ int8_t get_control_temperature(void)
 /**
   * @brief          get latitude, default 22.0f
   * @param[out]     latitude: the point to fp32 
-  * @retval         none
-  */
-/**
-  * @brief          获取纬度,默认22.0f
-  * @param[out]     latitude:fp32指针 
   * @retval         none
   */
 void get_flash_latitude(float *latitude)
@@ -351,11 +255,6 @@ void get_flash_latitude(float *latitude)
   * @param[in]      none
   * @retval         none
   */
-/**
-  * @brief          使用遥控器开始校准，例如陀螺仪，云台，底盘
-  * @param[in]      none
-  * @retval         none
-  */
 static void RC_cmd_to_calibrate(void)
 {
     static const uint8_t BEGIN_FLAG   = 1;
@@ -370,7 +269,6 @@ static void RC_cmd_to_calibrate(void)
     static uint8_t  rc_action_flag    = 0;
 
     //if something is calibrating, return
-    //如果已经在校准，就返回
     for (i = 0; i < CALI_LIST_LENGTH; i++)
     {
         if (cali_sensor[i].cali_cmd)
@@ -416,7 +314,6 @@ static void RC_cmd_to_calibrate(void)
         rc_action_flag = 0;
         rc_cmd_time = 0;
         //send CAN reset ID cmd to M3508
-        //发送CAN重设ID命令到3508
         CAN_cmd_chassis_reset_ID();
         CAN_cmd_chassis_reset_ID();
         CAN_cmd_chassis_reset_ID();
@@ -425,28 +322,24 @@ static void RC_cmd_to_calibrate(void)
 
     if (calibrate_RC->rc.ch[0] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[1] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[2] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[3] < -RC_CALI_VALUE_HOLE && switch_is_down(calibrate_RC->rc.s[0]) && switch_is_down(calibrate_RC->rc.s[1]) && rc_action_flag == 0)
     {
-        //two rockers set to  \../, hold for 2 seconds,
-        //两个摇杆打成 \../,保持2s
+        //two joysticks set to  \../, hold for 2 seconds,
         rc_cmd_time++;
     }
     else if (calibrate_RC->rc.ch[0] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[1] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[2] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[3] > RC_CALI_VALUE_HOLE && switch_is_down(calibrate_RC->rc.s[0]) && switch_is_down(calibrate_RC->rc.s[1]) && rc_action_flag != 0)
     {
-        //two rockers set '\/', hold for 2 seconds
-        //两个摇杆打成'\/',保持2s
+        //two joysticks set '\/', hold for 2 seconds
         rc_cmd_time++;
         rc_action_flag = GIMBAL_FLAG;
     }
     else if (calibrate_RC->rc.ch[0] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[1] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[2] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[3] < -RC_CALI_VALUE_HOLE && switch_is_down(calibrate_RC->rc.s[0]) && switch_is_down(calibrate_RC->rc.s[1]) && rc_action_flag != 0)
     {
-        //two rocker set to ./\., hold for 2 seconds
-        //两个摇杆打成./\.,保持2s
+        //two joystick set to ./\., hold for 2 seconds
         rc_cmd_time++;
         rc_action_flag = GYRO_FLAG;
     }
     else if (calibrate_RC->rc.ch[0] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[1] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[2] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[3] > RC_CALI_VALUE_HOLE && switch_is_down(calibrate_RC->rc.s[0]) && switch_is_down(calibrate_RC->rc.s[1]) && rc_action_flag != 0)
     {
-        //two rocker set to /''\, hold for 2 seconds
-        //两个摇杆打成/''\,保持2s
+        //two joystick set to /''\, hold for 2 seconds
         rc_cmd_time++;
         rc_action_flag = CHASSIS_FLAG;
     }
@@ -459,8 +352,7 @@ static void RC_cmd_to_calibrate(void)
 
     if (calibrate_systemTick - rc_cmd_systemTick > CALIBRATE_END_TIME)
     {
-        //over 20 seconds, end
-        //超过20s,停止
+        // 20 seconds timed out
         rc_action_flag = 0;
         return;
     }
@@ -493,11 +385,6 @@ static void RC_cmd_to_calibrate(void)
   * @param[in]      none
   * @retval         none
   */
-/**
-  * @brief          使用遥控器开始校准，例如陀螺仪，云台，底盘
-  * @param[in]      none
-  * @retval         none
-  */
 void cali_param_init(void)
 {
     uint8_t i = 0;
@@ -526,11 +413,6 @@ void cali_param_init(void)
 
 /**
   * @brief          read cali data from flash
-  * @param[in]      none
-  * @retval         none
-  */
-/**
-  * @brief          从flash读取校准数据
   * @param[in]      none
   * @retval         none
   */
@@ -570,11 +452,6 @@ static void cali_data_read(void)
   * @param[in]      none
   * @retval         none
   */
-/**
-  * @brief          往flash写入校准数据
-  * @param[in]      none
-  * @retval         none
-  */
 static void cali_data_write(void)
 {
     uint8_t i = 0;
@@ -607,15 +484,6 @@ static void cali_data_write(void)
                     CALI_FUNC_CMD_ON: means need to calibrate
   * @retval         0:means cali task has not been done
                     1:means cali task has been done
-  */
-/**
-  * @brief          "head"设备校准
-  * @param[in][out] cali:指针指向head数据,当cmd为CALI_FUNC_CMD_INIT, 参数是输入,CALI_FUNC_CMD_ON,参数是输出
-  * @param[in]      cmd: 
-                    CALI_FUNC_CMD_INIT: 代表用校准数据初始化原始数据
-                    CALI_FUNC_CMD_ON: 代表需要校准
-  * @retval         0:校准任务还没有完
-                    1:校准任务已经完成
   */
 static bool_t cali_head_hook(uint32_t *cali, bool_t cmd)
 {
@@ -653,15 +521,6 @@ static bool_t cali_head_hook(uint32_t *cali, bool_t cmd)
                     CALI_FUNC_CMD_ON: means need to calibrate
   * @retval         0:means cali task has not been done
                     1:means cali task has been done
-  */
-/**
-  * @brief          陀螺仪设备校准
-  * @param[in][out] cali:指针指向陀螺仪数据,当cmd为CALI_FUNC_CMD_INIT, 参数是输入,CALI_FUNC_CMD_ON,参数是输出
-  * @param[in]      cmd: 
-                    CALI_FUNC_CMD_INIT: 代表用校准数据初始化原始数据
-                    CALI_FUNC_CMD_ON: 代表需要校准
-  * @retval         0:校准任务还没有完
-                    1:校准任务已经完成
   */
 static bool_t cali_gyro_hook(uint32_t *cali, bool_t cmd)
 {
@@ -703,15 +562,6 @@ static bool_t cali_gyro_hook(uint32_t *cali, bool_t cmd)
                     CALI_FUNC_CMD_ON: means need to calibrate
   * @retval         0:means cali task has not been done
                     1:means cali task has been done
-  */
-/**
-  * @brief          云台设备校准
-  * @param[in][out] cali:指针指向云台数据,当cmd为CALI_FUNC_CMD_INIT, 参数是输入,CALI_FUNC_CMD_ON,参数是输出
-  * @param[in]      cmd: 
-                    CALI_FUNC_CMD_INIT: 代表用校准数据初始化原始数据
-                    CALI_FUNC_CMD_ON: 代表需要校准
-  * @retval         0:校准任务还没有完
-                    1:校准任务已经完成
   */
 static bool_t cali_gimbal_hook(uint32_t *cali, bool_t cmd)
 {

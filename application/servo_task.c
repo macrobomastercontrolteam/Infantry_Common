@@ -41,11 +41,6 @@
 //   * @param[in]      pvParameters: NULL
 //   * @retval         none
 //   */
-// /**
-//   * @brief          舵机任务
-//   * @param[in]      pvParameters: NULL
-//   * @retval         none
-//   */
 // void servo_task(void const * argument)
 // {
     // servo_rc = get_remote_control_point();
@@ -65,7 +60,6 @@
     //         }
 
     //         //limit the pwm
-    //        //限制pwm
     //         if(servo_pwm[i] < SERVO_MIN_PWM)
     //         {
     //             servo_pwm[i] = SERVO_MIN_PWM;
