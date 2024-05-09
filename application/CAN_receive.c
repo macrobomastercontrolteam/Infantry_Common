@@ -106,6 +106,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
                 bMotorValid = 1;
                 break;
             }
+            default: {
+                break;
+            }
         }
     } else if (hcan == &CHASSIS_CAN) {
         switch (rx_header.StdId) {
@@ -118,6 +121,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 #endif
             case CAN_YAW_MOTOR_ID: {
                 bMotorValid = 1;
+                break;
+            }
+            default: {
                 break;
             }
         }
