@@ -26,6 +26,7 @@
 
 #include "detect_task.h"
 #include "chassis_task.h"
+#include "string.h"
 
 #define DISABLE_DRIVE_MOTOR_POWER 1
 #define DISABLE_STEER_MOTOR_POWER 1
@@ -250,16 +251,12 @@ void CAN_cmd_chassis(void)
     chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLER_TX_ID;
 
 #if DISABLE_STEER_MOTOR_POWER
-    uint16_t steer_motor1 = 0;
-    uint16_t steer_motor2 = 0;
-    uint16_t steer_motor3 = 0;
-    uint16_t steer_motor4 = 0;
+    memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
 #else
     uint16_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
     uint16_t steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;
     uint16_t steer_motor3 = chassis_move.steer_motor_chassis[2].target_ecd;
     uint16_t steer_motor4 = chassis_move.steer_motor_chassis[3].target_ecd;
-#endif
 
     chassis_can_send_data[0] = steer_motor1 >> 8;
     chassis_can_send_data[1] = steer_motor1;
@@ -269,6 +266,7 @@ void CAN_cmd_chassis(void)
     chassis_can_send_data[5] = steer_motor3;
     chassis_can_send_data[6] = steer_motor4 >> 8;
     chassis_can_send_data[7] = steer_motor4;
+#endif
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 #endif
 }
