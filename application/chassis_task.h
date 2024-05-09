@@ -82,15 +82,15 @@
 #define CHASSIS_LEFT_KEY KEY_PRESSED_OFFSET_A
 #define CHASSIS_RIGHT_KEY KEY_PRESSED_OFFSET_D
 
-//Ratio of M3508 to chassis speed (m/s)
-// Equals to (2*PI/60)*Radius/Reduction_Ratio, where Reduction_Ratio=3591/187
+// drive wheel parameters
+#define M3508_MOTOR_GEAR_RATIO (3591.0f / 187.0f)
 #if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
-// Radius = 0.07625
-#define M3508_MOTOR_RPM_TO_VECTOR 0.000415809748903494517209f
+#define DRIVE_WHEEL_RADIUS 0.07625f
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-// Radius = 0.04
-#define M3508_MOTOR_RPM_TO_VECTOR 0.00021812970434281678f
+#define DRIVE_WHEEL_RADIUS 0.04f
 #endif
+// Ratio of M3508 speed in rpm to chassis speed in m/s
+#define M3508_MOTOR_RPM_TO_VECTOR ((2.0f * PI / 60.0f) * DRIVE_WHEEL_RADIUS / M3508_MOTOR_GEAR_RATIO)
 #define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
 
 //single chassis motor max speed
