@@ -51,7 +51,7 @@ static void chassis_set_mode(chassis_move_t *chassis_move_mode);
   */
 void chassis_mode_change_control_transit(chassis_move_t *chassis_move_transit);
 /**
-  * @brief          chassis some measure data updata, such as motor speed, euler angle£¬ robot speed
+  * @brief          chassis some measure data updata, such as motor speed, euler angleï¿½ï¿½ robot speed
   * @param[out]     chassis_move_update: "chassis_move" valiable point
   * @retval         none
   */
@@ -81,7 +81,7 @@ uint32_t chassis_high_water;
 
 
 
-//µ×ÅÌÔË¶¯Êý¾Ý
+//ï¿½ï¿½ï¿½ï¿½ï¿½Ë¶ï¿½ï¿½ï¿½ï¿½ï¿½
 chassis_move_t chassis_move;
 
 #if CHASSIS_TEST_MODE
@@ -120,7 +120,7 @@ void chassis_task(void const *pvParameters)
     while (1)
     {
         //set chassis control mode
-        //ÉèÖÃµ×ÅÌ¿ØÖÆÄ£Ê½
+        //ï¿½ï¿½ï¿½Ãµï¿½ï¿½Ì¿ï¿½ï¿½ï¿½Ä£Ê½
         chassis_set_mode(&chassis_move);
         //when mode changes, save some data
         chassis_mode_change_control_transit(&chassis_move);
@@ -168,7 +168,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     const static fp32 chassis_wz_order_filter[1] = {CHASSIS_ACCEL_WZ_NUM};
     uint8_t i;
 
-    //in beginning£¬ chassis mode is raw 
+    //in beginningï¿½ï¿½ chassis mode is raw 
     chassis_move_init->chassis_mode = CHASSIS_VECTOR_RAW;
     chassis_move_init->chassis_RC = get_remote_control_point();
     chassis_move_init->chassis_INS_angle = get_INS_angle_point();
@@ -249,7 +249,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 }
 
 /**
-  * @brief          chassis some measure data updata, such as motor speed, euler angle£¬ robot speed
+  * @brief          chassis some measure data updata, such as motor speed, euler angleï¿½ï¿½ robot speed
   * @param[out]     chassis_move_update: "chassis_move" valiable point
   * @retval         none
   */
@@ -516,6 +516,12 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
       {vx_set - tangential_speed_x_rear_wheels, vy_set + tangential_speed_y_rear_wheels},
       {vx_set + tangential_speed_x_rear_wheels, vy_set + tangential_speed_y_rear_wheels},
     };
+
+    // mirror x axis for as-built robot
+    wheel_velocity[0][1] = -wheel_velocity[0][1];
+    wheel_velocity[1][1] = -wheel_velocity[1][1];
+    wheel_velocity[2][1] = -wheel_velocity[2][1];
+    wheel_velocity[3][1] = -wheel_velocity[3][1];
 
     static fp32 last_steer_wheel_angle_target[4];
     static uint8_t reverse_flag[4];
