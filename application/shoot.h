@@ -51,7 +51,7 @@
 #define RC_S_LONG_TIME              2000
 // Friction wheel high speed acceleration time
 #define UP_ADD_TIME                 80
-//拨弹电机rmp 变化成 旋转速度的比例
+
 #define TRIGGER_MOTOR_RPM_TO_SPEED  0.00290888208665721596153948461415f
 #define TRIGGER_MOTOR_ECD_TO_ANGLE  0.000021305288720633905968306772076277f
 #define FULL_COUNT                  18
