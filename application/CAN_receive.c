@@ -33,6 +33,11 @@
 #define DISABLE_YAW_MOTOR_POWER 1
 #define DISABLE_PITCH_MOTOR_POWER 1
 
+#define REVERSE_M3508_1 0
+#define REVERSE_M3508_2 0
+#define REVERSE_M3508_3 0
+#define REVERSE_M3508_4 0
+
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 //motor data read
@@ -46,6 +51,7 @@ extern CAN_HandleTypeDef hcan2;
     }
 
 uint8_t convertCanIdToMotorIndex(uint32_t canId);
+void reverse_motor_feedback(uint8_t bMotorId);
 
 /**
  * @brief motor feedback data
@@ -133,11 +139,40 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     if (bMotorValid == 1) {
         uint8_t bMotorId = convertCanIdToMotorIndex(rx_header.StdId);
         get_motor_measure(&motor_chassis[bMotorId], rx_data);
+        reverse_motor_feedback(bMotorId);
         detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
     }
 }
 
-
+void reverse_motor_feedback(uint8_t bMotorId)
+{
+#if (REVERSE_M3508_1 || REVERSE_M3508_2 || REVERSE_M3508_3 || REVERSE_M3508_4)
+	switch (bMotorId)
+	{
+#if REVERSE_M3508_1
+		case MOTOR_INDEX_3508_M1:
+#endif
+#if REVERSE_M3508_2
+		case MOTOR_INDEX_3508_M2:
+#endif
+#if REVERSE_M3508_3
+		case MOTOR_INDEX_3508_M3:
+#endif
+#if REVERSE_M3508_4
+		case MOTOR_INDEX_3508_M4:
+#endif
+		{
+	        motor_chassis[bMotorId].ecd = (motor_chassis[bMotorId].ecd + HALF_ECD_RANGE) % ECD_RANGE;
+	        motor_chassis[bMotorId].speed_rpm = -motor_chassis[bMotorId].speed_rpm;
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+#endif
+}
 
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
@@ -234,6 +269,22 @@ void CAN_cmd_chassis(void)
     int16_t motor2 = chassis_move.motor_chassis[1].give_current;
     int16_t motor3 = chassis_move.motor_chassis[2].give_current;
     int16_t motor4 = chassis_move.motor_chassis[3].give_current;
+#endif
+
+#if REVERSE_M3508_1
+    motor1 = -motor1;
+#endif
+
+#if REVERSE_M3508_2
+    motor2 = -motor2;
+#endif
+
+#if REVERSE_M3508_3
+    motor3 = -motor3;
+#endif
+
+#if REVERSE_M3508_4
+    motor4 = -motor4;
 #endif
 
     chassis_can_send_data[0] = motor1 >> 8;
