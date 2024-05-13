@@ -62,7 +62,6 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
         total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
     }
     else if (toe_is_error(CAP_TOE) || (can_message[1].cap_message.cap_voltage <= 10000))
-    else if (toe_is_error(CAP_TOE) || (can_message[1].cap_message.cap_voltage <= 10000))
     {
         get_chassis_power_and_buffer(&chassis_power, &chassis_power_buffer);
         // power > 80w and buffer < 60j, because buffer < 60 means power has been more than 80w
