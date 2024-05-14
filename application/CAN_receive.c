@@ -247,11 +247,12 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric1, 
     gimbal_can_send_data[3] = pitch;
     gimbal_can_send_data[4] = (trigger >> 8);
     gimbal_can_send_data[5] = trigger;
-    gimbal_can_send_data[6] = (fric1 >> 8);
-    gimbal_can_send_data[7] = fric1;
     // control yaw motor and trigger motor
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
-    // control pitch motor
+    // control pitch motor and fric1 and fric2
+    // gimbal_tx_message.StdId = CAN_GIMBAL_FRICTION_ALL_TX_ID;
+    gimbal_can_send_data[0] = (fric1 >> 8);
+    gimbal_can_send_data[1] = fric1;
     gimbal_can_send_data[6] = (fric2 >> 8);
     gimbal_can_send_data[7] = fric2;
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
