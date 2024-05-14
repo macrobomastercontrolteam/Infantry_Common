@@ -120,14 +120,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
                 fIdIdentified = 0;
                 break;
             }
-            case CAN_FRICTION_MOTOR1_ID:
+            case CAN_FRICTION_MOTOR_LEFT_ID:
             {
                 bMotorValid = 1;
                 bMotorId = MOTOR_INDEX_FRICTION1;
                 fIdIdentified = 1;
                 break;
             }
-            case CAN_FRICTION_MOTOR2_ID:
+            case CAN_FRICTION_MOTOR_RIGHT_ID:
             {
                 bMotorValid = 1;
                 bMotorId = MOTOR_INDEX_FRICTION2;
