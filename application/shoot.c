@@ -129,14 +129,6 @@ int16_t shoot_control_loop(void)
     {
         switch (shoot_control.shoot_mode)
         {
-            case SHOOT_READY_FRIC:
-            case SHOOT_READY:
-            case SHOOT_BULLET:
-            case SHOOT_CONTINUE_BULLET:
-            case SHOOT_DONE:
-            {
-                break;
-            }
             case SHOOT_STOP:
             {
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
@@ -153,7 +145,7 @@ int16_t shoot_control_loop(void)
                 shoot_control.friction_motor1_rpm_set = 0;
                 shoot_control.friction_motor2_rpm_set = 0;
             }
-            case SHOOT_READY_BULLET:
+            case SHOOT_READY_FRIC:
             {
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
                 CAN_cmd_load_servo(1);
