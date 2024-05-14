@@ -117,15 +117,15 @@
 
 #if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
 //Frictional wheel 1 PID
-#define FRICTION_1_SPEED_PID_KP        1000.0f
-#define FRICTION_1_SPEED_PID_KI        10.0f
+#define FRICTION_1_SPEED_PID_KP        20.0f
+#define FRICTION_1_SPEED_PID_KI        0.0f
 #define FRICTION_1_SPEED_PID_KD        0.0f
 #define FRICTION_1_SPEED_PID_MAX_OUT   MAX_MOTOR_CAN_CURRENT
 #define FRICTION_1_SPEED_PID_MAX_IOUT  200.0f
 
 //Frictional wheel 2 PID
-#define FRICTION_2_SPEED_PID_KP        100.0f
-#define FRICTION_2_SPEED_PID_KI        5.0f
+#define FRICTION_2_SPEED_PID_KP        20.0f
+#define FRICTION_2_SPEED_PID_KI        0.0f
 #define FRICTION_2_SPEED_PID_KD        0.0f
 #define FRICTION_2_SPEED_PID_MAX_OUT   MAX_MOTOR_CAN_CURRENT
 #define FRICTION_2_SPEED_PID_MAX_IOUT  200.0f
@@ -172,7 +172,7 @@ typedef struct
     uint16_t fric_pwm2;
 #endif
 
-    pid_type_def trigger_motor_pid;
+	pid_type_def trigger_motor_pid;
     fp32 trigger_speed_set;
     fp32 speed;
     fp32 speed_set;
