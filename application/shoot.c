@@ -200,7 +200,7 @@ int16_t shoot_control_loop(void)
         if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
 #endif
         {
-            shoot_control.shoot_mode = SHOOT_READY_BULLET;
+            shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
         }
         else if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
         {
@@ -208,7 +208,8 @@ int16_t shoot_control_loop(void)
         }
         break;
     }
-    case SHOOT_READY_BULLET:
+    // rotate trigger motor until a bullet is loaded and ready to fire, therefore, requires a microswitch to function
+    case SHOOT_READY_TRIGGER:
     {
         if (shoot_control.key == SWITCH_TRIGGER_OFF)
         {
@@ -230,19 +231,19 @@ int16_t shoot_control_loop(void)
     {
         if (shoot_control.key == SWITCH_TRIGGER_OFF)
         {
-            shoot_control.shoot_mode = SHOOT_READY_BULLET;
+            shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
         }
 //         else if (shoot_control.fIsCvControl == 0)
 //         {
 //             // long press mouse to rapid fire
 //             if ((shoot_control.press_l && shoot_control.last_press_l == 0) || (shoot_control.press_r && shoot_control.last_press_r == 0))
 //             {
-//                 shoot_control.shoot_mode = SHOOT_BULLET;
+//                 shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
 //             }
 //         }
         break;
     }
-    case SHOOT_BULLET:
+    case SHOOT_SEMI_AUTO_FIRE:
     {
         shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
         shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
@@ -251,16 +252,16 @@ int16_t shoot_control_loop(void)
         get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
         if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
         {
-            shoot_control.shoot_mode = SHOOT_READY_BULLET;
+            shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
         }
         break;
     }
-    case SHOOT_CONTINUE_BULLET:
+    case SHOOT_AUTO_FIRE:
     {
         // 设置拨弹轮的拨动速度,并开启堵转反转处理
         shoot_control.trigger_speed_set = CONTINUE_TRIGGER_SPEED;
         trigger_motor_turn_back();
-        shoot_control.shoot_mode = SHOOT_READY_BULLET;
+        shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
         break;
     }
     case SHOOT_DONE:
@@ -271,13 +272,13 @@ int16_t shoot_control_loop(void)
             if (shoot_control.key_time > SHOOT_DONE_KEY_OFF_TIME)
             {
                 shoot_control.key_time = 0;
-                shoot_control.shoot_mode = SHOOT_READY_BULLET;
+                shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
             }
         }
         // else
         // {
         //     shoot_control.key_time = 0;
-        //     shoot_control.shoot_mode = SHOOT_BULLET;
+        //     shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
         // }
         break;
     }
@@ -288,7 +289,7 @@ int16_t shoot_control_loop(void)
 	{
 		if (shoot_control.fIsCvControl)
 		{
-			shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
+			shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
 		}
 		// 鼠标长按一直进入射击状态 保持连发
 		else if ((shoot_control.press_l_time == PRESS_LONG_TIME) || (shoot_control.press_r_time == PRESS_LONG_TIME) || (shoot_control.rc_s_time == RC_S_LONG_TIME))
@@ -296,11 +297,11 @@ int16_t shoot_control_loop(void)
 			get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
 			if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
 			{
-				shoot_control.shoot_mode = SHOOT_READY_BULLET;
+				shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
 			}
 			else
 			{
-				shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
+				shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
 			}
 		}
 	}
@@ -321,7 +322,7 @@ int16_t shoot_control_loop(void)
         // calculate the PID of the trigger motor
         PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set);
         shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
-        if(shoot_control.shoot_mode < SHOOT_READY_BULLET)
+        if(shoot_control.shoot_mode < SHOOT_READY_TRIGGER)
         {
             shoot_control.given_current = 0;
         }
@@ -413,7 +414,7 @@ static void shoot_set_mode(void)
 						if (shoot_control.shoot_mode == SHOOT_READY)
 						{
 							// burst fire
-							shoot_control.shoot_mode = SHOOT_BULLET;
+							shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
 						}
 					}
 					break;
