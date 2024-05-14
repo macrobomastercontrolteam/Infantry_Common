@@ -166,9 +166,7 @@ typedef struct
     bool_t press_r;
     bool_t last_press_l;
     bool_t last_press_r;
-    uint16_t press_l_time;
-    uint16_t press_r_time;
-    uint16_t rc_s_time;
+    uint16_t shoot_hold_time;
 
     uint16_t block_time;
     uint16_t reverse_time;
