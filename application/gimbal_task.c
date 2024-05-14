@@ -199,7 +199,7 @@ static void J_scope_gimbal_test(void);
 #endif
 
 gimbal_control_t gimbal_control;
-static int16_t yaw_can_set_current = 0, pitch_can_set_current = 0, shoot_can_set_current = 0;
+static int16_t yaw_can_set_current = 0, pitch_can_set_current = 0, trigger_set_current = 0;
 
 /**
   * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME (1ms) 
@@ -225,7 +225,7 @@ void gimbal_task(void const *pvParameters)
         gimbal_feedback_update(&gimbal_control);
         gimbal_set_control(&gimbal_control);
         gimbal_control_loop(&gimbal_control);
-        shoot_can_set_current = shoot_control_loop();
+        trigger_set_current = shoot_control_loop();
 #if YAW_TURN
         yaw_can_set_current = -gimbal_control.gimbal_yaw_motor.given_current;
 #else
@@ -247,7 +247,7 @@ void gimbal_task(void const *pvParameters)
             }
             else
             {
-                CAN_cmd_gimbal(yaw_can_set_current, pitch_can_set_current, shoot_can_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
+                CAN_cmd_gimbal(yaw_can_set_current, pitch_can_set_current, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
             }
         }
 
