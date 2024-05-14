@@ -115,6 +115,7 @@
 #define FRICTION_2_SPEED_PID_KD        0.0f
 #define FRICTION_2_SPEED_PID_MAX_OUT   MAX_MOTOR_CAN_CURRENT
 #define FRICTION_2_SPEED_PID_MAX_IOUT  200.0f
+#endif
 
 typedef enum
 {
@@ -187,5 +188,4 @@ extern int16_t shoot_control_loop(void);
 extern shoot_control_t shoot_control;
 #endif
 
-#endif
 #endif
