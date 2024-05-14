@@ -86,7 +86,7 @@ void shoot_init(void)
     shoot_control.fric_2_motor_measure = get_friction_motor2_measure_point();
 
     // initialize PID
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
     static const fp32 shoot_speed_pid1[3] = {FRICTION_1_SPEED_PID_KP, FRICTION_1_SPEED_PID_KI, FRICTION_1_SPEED_PID_KD};
     static const fp32 shoot_speed_pid2[3] = {FRICTION_2_SPEED_PID_KP, FRICTION_2_SPEED_PID_KI, FRICTION_2_SPEED_PID_KD};
     PID_init(&shoot_control.friction_motor1_pid, PID_POSITION, shoot_speed_pid1, FRICTION_1_SPEED_PID_MAX_OUT, FRICTION_1_SPEED_PID_MAX_IOUT, &raw_err_handler);
@@ -202,7 +202,7 @@ int16_t shoot_control_loop(void)
     }
     case SHOOT_READY_FRIC:
     {
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
         if ((motor_chassis[MOTOR_INDEX_FRICTION1].speed_rpm == shoot_control.friction_motor1_rpm_set) && (motor_chassis[MOTOR_INDEX_FRICTION2].speed_rpm == shoot_control.friction_motor2_rpm_set))
 #else
         if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
@@ -333,7 +333,7 @@ int16_t shoot_control_loop(void)
         {
             shoot_control.given_current = 0;
         }
-#if (ROBOT_TYPE != INFANTRY_2023_MECANUM)
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
         ramp_calc(&shoot_control.fric1_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
         ramp_calc(&shoot_control.fric2_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
 #endif
