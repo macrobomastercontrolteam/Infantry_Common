@@ -91,21 +91,24 @@ void shoot_init(void)
     static const fp32 shoot_speed_pid2[3] = {FRICTION_2_SPEED_PID_KP, FRICTION_2_SPEED_PID_KI, FRICTION_2_SPEED_PID_KD};
     PID_init(&shoot_control.friction_motor1_pid, PID_POSITION, shoot_speed_pid1, FRICTION_1_SPEED_PID_MAX_OUT, FRICTION_1_SPEED_PID_MAX_IOUT, &raw_err_handler);
     PID_init(&shoot_control.friction_motor2_pid, PID_POSITION, shoot_speed_pid2, FRICTION_2_SPEED_PID_MAX_OUT, FRICTION_2_SPEED_PID_MAX_IOUT, &raw_err_handler);
-#endif
-    PID_init(&shoot_control.trigger_motor_pid, PID_POSITION, Trigger_speed_pid, TRIGGER_READY_PID_MAX_OUT, TRIGGER_READY_PID_MAX_IOUT, &raw_err_handler);
-    //update data
-    shoot_feedback_update();
+    shoot_control.friction_motor1_rpm_set = 0.0f;
+    shoot_control.friction_motor2_rpm_set = 0.0f;
+#elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
     ramp_init(&shoot_control.fric1_ramp, SHOOT_CONTROL_TIME * 0.001f, FRIC_DOWN, FRIC_OFF);
     ramp_init(&shoot_control.fric2_ramp, SHOOT_CONTROL_TIME * 0.001f, FRIC_DOWN, FRIC_OFF);
     shoot_control.fric_pwm1 = FRIC_OFF;
     shoot_control.fric_pwm2 = FRIC_OFF;
+#endif
+
+    PID_init(&shoot_control.trigger_motor_pid, PID_POSITION, Trigger_speed_pid, TRIGGER_READY_PID_MAX_OUT, TRIGGER_READY_PID_MAX_IOUT, &raw_err_handler);
+    //update data
+    shoot_feedback_update();
+
     shoot_control.ecd_count = 0;
     shoot_control.angle = shoot_control.shoot_motor_measure->ecd * TRIGGER_MOTOR_ECD_TO_ANGLE;
     shoot_control.given_current = 0;
     shoot_control.move_flag = 0;
     shoot_control.set_angle = shoot_control.angle;
-    shoot_control.friction_motor1_rpm_set = 0.0f;
-    shoot_control.friction_motor2_rpm_set = 0.0f;
     shoot_control.speed = 0.0f;
     shoot_control.speed_set = 0.0f;
     shoot_control.key_time = 0;
@@ -205,7 +208,7 @@ int16_t shoot_control_loop(void)
 #elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
 		else if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
 #endif
-        {
+		{
 			fStartShoot = 1;
 		}
 
@@ -214,13 +217,13 @@ int16_t shoot_control_loop(void)
 			if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
 			{
 				shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-        }
+			}
 			else
-        {
+			{
 				shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
 			}
-        }
-        break;
+		}
+		break;
     }
     // rotate trigger motor until a bullet is loaded and ready to fire, therefore, requires a microswitch to function
     case SHOOT_READY_TRIGGER:
@@ -267,17 +270,17 @@ int16_t shoot_control_loop(void)
 		if (shoot_control.shoot_hold_time == RC_S_LONG_TIME)
 		{
 #if (TEST_NO_REF == 0)
-        get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
-        if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
-        {
-            shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
+			get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
+			if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
+			{
+				shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
 			}
             else
 #endif
             {
                 shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
             }
-        }
+		}
         break;
     }
     case SHOOT_AUTO_FIRE:
@@ -304,18 +307,21 @@ int16_t shoot_control_loop(void)
         //     shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
         // }
         break;
-		}
-	}
+    }
+    }
 
 	if(shoot_control.shoot_mode == SHOOT_STOP)
     {
         shoot_laser_off();
         shoot_control.given_current = 0;
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
+        shoot_control.friction_motor1_rpm_set = 0.0f;
+        shoot_control.friction_motor2_rpm_set = 0.0f;
+#elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
         // Friction wheels need to be turned on one by one with a ramp, otherwise the motor may not turn
         ramp_calc(&shoot_control.fric1_ramp, -SHOOT_FRIC_PWM_ADD_VALUE);
         ramp_calc(&shoot_control.fric2_ramp, -SHOOT_FRIC_PWM_ADD_VALUE);
-        shoot_control.friction_motor1_rpm_set = 0.0f;
-        shoot_control.friction_motor2_rpm_set = 0.0f;
+#endif
     }
     else
     {
@@ -323,31 +329,34 @@ int16_t shoot_control_loop(void)
 
 		// trigger motor PID
 		if (shoot_control.shoot_mode < SHOOT_READY_TRIGGER)
-        {
-            shoot_control.given_current = 0;
-        }
+		{
+			shoot_control.given_current = 0;
+		}
 		else
 		{
 			PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set);
 			shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
 		}
 
-#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
         ramp_calc(&shoot_control.fric1_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
         ramp_calc(&shoot_control.fric2_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
 #endif
     }
 
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
     PID_calc(&shoot_control.friction_motor1_pid, shoot_control.friction_motor1_rpm, shoot_control.friction_motor1_rpm_set);
     shoot_control.fric1_given_current = (int16_t)(shoot_control.friction_motor1_pid.out);
 
     PID_calc(&shoot_control.friction_motor2_pid, shoot_control.friction_motor2_rpm, shoot_control.friction_motor2_rpm_set);
     shoot_control.fric2_given_current = (int16_t)(shoot_control.friction_motor2_pid.out);
-
+#elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
     shoot_control.fric_pwm1 = (uint16_t)(shoot_control.fric1_ramp.out);
     shoot_control.fric_pwm2 = (uint16_t)(shoot_control.fric2_ramp.out);
     shoot_fric1_on(shoot_control.fric_pwm1);
     shoot_fric2_on(shoot_control.fric_pwm2);
+#endif
+
     return shoot_control.given_current;
 }
 
@@ -499,6 +508,7 @@ static void shoot_feedback_update(void)
         shoot_control.shoot_hold_time = 0;
     }
 
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
     static uint16_t up_time = 0;
     if (shoot_control.press_r)
     {
@@ -519,7 +529,7 @@ static void shoot_feedback_update(void)
         // shoot_control.fric1_ramp.max_value = FRIC_DOWN;
         // shoot_control.fric2_ramp.max_value = FRIC_DOWN;
     }
-
+#endif
 
 }
 
@@ -564,6 +574,7 @@ static void shoot_bullet_control(void)
     {
         shoot_control.shoot_mode = SHOOT_DONE;
     }
+
     if (rad_format(shoot_control.set_angle - shoot_control.angle) > 0.05f)
     {
         shoot_control.trigger_speed_set = SEMI_AUTO_FIRE_TRIGGER_SPEED;
