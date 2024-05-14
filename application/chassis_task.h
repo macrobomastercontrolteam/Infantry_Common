@@ -194,8 +194,6 @@ typedef struct
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
   chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data.
   pid_type_def steer_motor_angle_pid[4];       //steering motor angle PID.
-  chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data.
-  pid_type_def steer_motor_angle_pid[4];       //steering motor angle PID.
 #endif
 
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point.
