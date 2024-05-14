@@ -101,7 +101,7 @@
 
 #define SHOOT_HEAT_REMAIN_VALUE     80
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) 
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
 //Frictional wheel 1 PID
 #define FRICTION_1_SPEED_PID_KP        1000.0f
 #define FRICTION_1_SPEED_PID_KI        10.0f
@@ -183,7 +183,7 @@ typedef struct
 extern void shoot_init(void);
 extern int16_t shoot_control_loop(void);
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
 extern shoot_control_t shoot_control;
 #endif
 
