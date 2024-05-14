@@ -263,10 +263,20 @@ int16_t shoot_control_loop(void)
         shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
         shoot_bullet_control();
 
+        // hold shoot command to enter auto mode
+		if (shoot_control.shoot_hold_time == RC_S_LONG_TIME)
+		{
+#if (TEST_NO_REF == 0)
         get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
         if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
         {
             shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
+			}
+            else
+#endif
+            {
+                shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
+            }
         }
         break;
     }
@@ -275,7 +285,6 @@ int16_t shoot_control_loop(void)
         // 设置拨弹轮的拨动速度,并开启堵转反转处理
         shoot_control.trigger_speed_set = CONTINUE_TRIGGER_SPEED;
         trigger_motor_turn_back();
-        shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
         break;
     }
     case SHOOT_DONE:
@@ -295,28 +304,6 @@ int16_t shoot_control_loop(void)
         //     shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
         // }
         break;
-    }
-    }
-
-    // Continue bullet logic: must be used after state machine, since SHOOT_CONTINUE_BULLET switch back to SHOOT_READY_BULLET if not triggered
-	if (shoot_control.shoot_mode > SHOOT_READY_FRIC)
-	{
-		if (shoot_control.fIsCvControl)
-		{
-			shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-		}
-		// 鼠标长按一直进入射击状态 保持连发
-		else if ((shoot_control.press_l_time == PRESS_LONG_TIME) || (shoot_control.press_r_time == PRESS_LONG_TIME) || (shoot_control.rc_s_time == RC_S_LONG_TIME))
-		{
-			get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
-			if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
-			{
-				shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
-			}
-			else
-			{
-				shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-			}
 		}
 	}
 
@@ -415,7 +402,14 @@ static void shoot_set_mode(void)
 				}
 				case RC_SW_MID:
 				{
-					if (shoot_control.shoot_mode != SHOOT_STOP)
+					if (shoot_control.press_l)
+					{
+						if (shoot_control.last_press_l == 0)
+						{
+							shoot_control.shoot_mode = SHOOT_READY_FRIC;
+						}
+					}
+					else
 					{
 						shoot_control.shoot_mode = SHOOT_STOP;
 					}
@@ -487,41 +481,17 @@ static void shoot_feedback_update(void)
     shoot_control.last_press_r = shoot_control.press_r;
     shoot_control.press_l = shoot_control.shoot_rc->mouse.press_l;
     shoot_control.press_r = shoot_control.shoot_rc->mouse.press_r;
-    if (shoot_control.press_l)
+
+    if ((shoot_control.shoot_mode > SHOOT_READY_TRIGGER) && (shoot_control.shoot_mode < SHOOT_DONE))
     {
-        if (shoot_control.press_l_time < PRESS_LONG_TIME)
+        if (shoot_control.shoot_hold_time < RC_S_LONG_TIME)
         {
-            shoot_control.press_l_time++;
+            shoot_control.shoot_hold_time++;
         }
     }
     else
     {
-        shoot_control.press_l_time = 0;
-    }
-
-    if (shoot_control.press_r)
-    {
-        if (shoot_control.press_r_time < PRESS_LONG_TIME)
-        {
-            shoot_control.press_r_time++;
-        }
-    }
-    else
-    {
-        shoot_control.press_r_time = 0;
-    }
-
-    if (shoot_control.shoot_mode != SHOOT_STOP && switch_is_down(shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL]))
-    {
-
-        if (shoot_control.rc_s_time < RC_S_LONG_TIME)
-        {
-            shoot_control.rc_s_time++;
-        }
-    }
-    else
-    {
-        shoot_control.rc_s_time = 0;
+        shoot_control.shoot_hold_time = 0;
     }
 
     static uint16_t up_time = 0;
@@ -584,7 +554,8 @@ static void shoot_bullet_control(void)
         shoot_control.set_angle = rad_format(shoot_control.angle + TRIGGER_ANGLE_INCREMENT);
         shoot_control.move_flag = 1;
     }
-    if(shoot_control.key == SWITCH_TRIGGER_OFF)
+
+    if ((shoot_control.press_l == 0) && (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] != RC_SW_UP) && (shoot_control.key == SWITCH_TRIGGER_OFF))
     {
         shoot_control.shoot_mode = SHOOT_DONE;
     }
