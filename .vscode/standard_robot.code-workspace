@@ -7,7 +7,7 @@
 	"settings": {
 		"files.encoding": "utf8",
 		"files.associations": {
-			"can_receive.h": "c"
+			"*.h": "c"
 		}
 	}
 }
