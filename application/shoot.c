@@ -184,7 +184,6 @@ int16_t shoot_control_loop(void)
         pre_shoot_mode = shoot_control.shoot_mode;
     }
 
-    shoot_control.speed_set = 0.0f;
     switch (shoot_control.shoot_mode)
     {
     case SHOOT_STOP:
