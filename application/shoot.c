@@ -543,7 +543,7 @@ static void shoot_feedback_update(void)
 
 static void trigger_motor_turn_back(void)
 {
-#if defined(TRIGGER_TURN)
+#if TRIGGER_TURN
     shoot_control.speed_set = -shoot_control.trigger_speed_set;
 #else
     shoot_control.speed_set = shoot_control.trigger_speed_set;
