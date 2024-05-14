@@ -194,17 +194,31 @@ int16_t shoot_control_loop(void)
     }
     case SHOOT_READY_FRIC:
     {
+		uint8_t fStartShoot = 0;
+		if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+		{
+			fStartShoot = 0;
+			shoot_control.shoot_mode = SHOOT_STOP;
+		}
 #if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
-        if ((motor_chassis[MOTOR_INDEX_FRICTION1].speed_rpm == shoot_control.friction_motor1_rpm_set) && (motor_chassis[MOTOR_INDEX_FRICTION2].speed_rpm == shoot_control.friction_motor2_rpm_set))
-#else
-        if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
+		else if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION1].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION2].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+#elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
+		else if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
 #endif
         {
-            shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
+			fStartShoot = 1;
+		}
+
+		if (fStartShoot)
+		{
+			if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
+			{
+				shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
         }
-        else if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+			else
         {
-            shoot_control.shoot_mode = SHOOT_STOP;
+				shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
+			}
         }
         break;
     }
