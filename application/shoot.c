@@ -283,7 +283,7 @@ int16_t shoot_control_loop(void)
     case SHOOT_AUTO_FIRE:
     {
         // 设置拨弹轮的拨动速度,并开启堵转反转处理
-        shoot_control.trigger_speed_set = CONTINUE_TRIGGER_SPEED;
+        shoot_control.trigger_speed_set = AUTO_FIRE_TRIGGER_SPEED;
         trigger_motor_turn_back();
         break;
     }
@@ -561,7 +561,7 @@ static void shoot_bullet_control(void)
     }
     if (rad_format(shoot_control.set_angle - shoot_control.angle) > 0.05f)
     {
-        shoot_control.trigger_speed_set = TRIGGER_SPEED;
+        shoot_control.trigger_speed_set = SEMI_AUTO_FIRE_TRIGGER_SPEED;
         trigger_motor_turn_back();
     }
     else

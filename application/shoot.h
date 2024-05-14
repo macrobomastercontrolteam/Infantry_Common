@@ -62,9 +62,8 @@
 // max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
 #define FRICTION_MOTOR_SPEED  25.0f
 
-
-#define TRIGGER_SPEED               10.0f
-#define CONTINUE_TRIGGER_SPEED      15.0f
+#define SEMI_AUTO_FIRE_TRIGGER_SPEED 10.0f
+#define AUTO_FIRE_TRIGGER_SPEED      15.0f
 #define READY_TRIGGER_SPEED         5.0f
 
 #define KEY_OFF_JUGUE_TIME          500
