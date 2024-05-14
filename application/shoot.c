@@ -320,13 +320,18 @@ int16_t shoot_control_loop(void)
     else
     {
         shoot_laser_on();
-        // calculate the PID of the trigger motor
-        PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set);
-        shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
-        if(shoot_control.shoot_mode < SHOOT_READY_TRIGGER)
+
+		// trigger motor PID
+		if (shoot_control.shoot_mode < SHOOT_READY_TRIGGER)
         {
             shoot_control.given_current = 0;
         }
+		else
+		{
+			PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set);
+			shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
+		}
+
 #if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
         ramp_calc(&shoot_control.fric1_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
         ramp_calc(&shoot_control.fric2_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
