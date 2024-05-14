@@ -120,6 +120,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
                 fIdIdentified = 0;
                 break;
             }
+            case CAN_FRICTION_MOTOR1_ID:
+            {
+                bMotorValid = 1;
+                bMotorId = MOTOR_INDEX_FRICTION1;
+                fIdIdentified = 1;
+                break;
+            }
             case CAN_FRICTION_MOTOR2_ID:
             {
                 bMotorValid = 1;
@@ -138,32 +145,25 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             case CAN_3508_M2_ID:
             case CAN_3508_M3_ID:
             case CAN_3508_M4_ID:
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
-        case CAN_TRIGGER_MOTOR_ID:
-#endif
-        case CAN_YAW_MOTOR_ID:
-        {
-            bMotorValid = 1;
-            fIdIdentified = 0;
-            break;
-        }
-        case CAN_FRICTION_MOTOR1_ID:
-        {
-            bMotorValid = 1;
-            bMotorId = MOTOR_INDEX_FRICTION1;
-            fIdIdentified = 1;
-            break;
-        }
-        case SUPCAP_ID:
-        {
-            memcpy(can_message[1].can_buf, rx_data, sizeof(rx_data));
-            detect_hook(CAP_TOE);
-            break;
-        }
-        default:
-        {
-            break;
-        }
+    #if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+            case CAN_TRIGGER_MOTOR_ID:
+    #endif
+            case CAN_YAW_MOTOR_ID:
+            {
+                bMotorValid = 1;
+                fIdIdentified = 0;
+                break;
+            }
+            case SUPCAP_ID:
+            {
+                memcpy(can_message[1].can_buf, rx_data, sizeof(rx_data));
+                detect_hook(CAP_TOE);
+                break;
+            }
+            default:
+            {
+                break;
+            }
         }
     }
 
