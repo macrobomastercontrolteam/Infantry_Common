@@ -61,6 +61,7 @@
 #define FRICTION_MOTOR_SPEED_TO_RPM (1.0f / FRICTION_MOTOR_RPM_TO_SPEED)
 // max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
 #define FRICTION_MOTOR_SPEED  25.0f
+#define FRICTION_MOTOR_SPEED_THRESHOLD 0.9f // 10% tolerance
 
 #define SEMI_AUTO_FIRE_TRIGGER_SPEED 10.0f
 #define AUTO_FIRE_TRIGGER_SPEED      15.0f
@@ -137,12 +138,29 @@ typedef struct
     uint8_t fIsCvControl;
     const RC_ctrl_t *shoot_rc;
     const motor_measure_t *shoot_motor_measure;
+
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
     const motor_measure_t *fric_1_motor_measure;
     const motor_measure_t *fric_2_motor_measure;
+    pid_type_def friction_motor1_pid;
+    fp32 friction_motor1_rpm_set;
+    fp32 friction_motor1_rpm;
+    // fp32 friction_motor1_angle;
+
+    pid_type_def friction_motor2_pid;
+    fp32 friction_motor2_rpm_set;
+    fp32 friction_motor2_rpm;
+    // fp32 friction_motor2_angle;
+
+    int16_t fric1_given_current;
+    int16_t fric2_given_current;
+#elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
     ramp_function_source_t fric1_ramp;
     uint16_t fric_pwm1;
     ramp_function_source_t fric2_ramp;
     uint16_t fric_pwm2;
+#endif
+
     pid_type_def trigger_motor_pid;
     fp32 trigger_speed_set;
     fp32 speed;
@@ -151,15 +169,6 @@ typedef struct
     fp32 set_angle;
     int16_t given_current;
     int8_t ecd_count;
-    pid_type_def friction_motor1_pid;
-    fp32 friction_motor1_rpm_set;
-    fp32 friction_motor1_rpm;
-    //fp32 friction_motor1_angle;
-    
-    pid_type_def friction_motor2_pid;
-    fp32 friction_motor2_rpm_set;
-    fp32 friction_motor2_rpm;
-    //fp32 friction_motor2_angle;
     
     bool_t press_l;
     bool_t press_r;
@@ -176,16 +185,12 @@ typedef struct
 
     uint16_t heat_limit;
     uint16_t heat;
-    int16_t fric1_given_current;
-    int16_t fric2_given_current;
 } shoot_control_t;
 
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
 extern void shoot_init(void);
 extern int16_t shoot_control_loop(void);
 
-#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
 extern shoot_control_t shoot_control;
-#endif
 
 #endif
