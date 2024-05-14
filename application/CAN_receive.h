@@ -46,8 +46,8 @@ typedef enum
     // SENTRY_2023_MECANUM: On chassis
     CAN_TRIGGER_MOTOR_ID = 0x207,
 
-    CAN_FRICTION_MOTOR_LEFT_ID = 0x208,
-    CAN_FRICTION_MOTOR_RIGHT_ID = 0x201,
+    CAN_FRICTION_MOTOR_LEFT_ID = 0x205, // friction1
+    CAN_FRICTION_MOTOR_RIGHT_ID = 0x208, // friction2
 } can_msg_id_e;
 
 typedef enum
