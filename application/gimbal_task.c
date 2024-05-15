@@ -242,7 +242,7 @@ void gimbal_task(void const *pvParameters)
         {
             if (gimbal_emergency_stop())
             {
-                CAN_cmd_gimbal(0, 0, 0, 0);
+                CAN_cmd_gimbal(0, 0, 0, 0, 0);
             }
             else
             {
