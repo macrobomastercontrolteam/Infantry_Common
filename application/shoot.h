@@ -113,7 +113,7 @@
 #define TRIGGER_TURN 0
 #endif
 
-#define SHOOT_HEAT_REMAIN_VALUE     80
+#define SHOOT_HEAT_REMAIN_VALUE     50
 
 #if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
 //Frictional wheel 1 PID
