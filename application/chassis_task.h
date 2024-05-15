@@ -96,9 +96,9 @@
 //single chassis motor max speed
 #define MAX_WHEEL_SPEED 4.0f
 //chassis forward or back max speed
-#define NORMAL_MAX_CHASSIS_SPEED_X 3.0f
+#define NORMAL_MAX_CHASSIS_SPEED_X 1.5f
 //chassis left or right max speed
-#define NORMAL_MAX_CHASSIS_SPEED_Y 3.0f
+#define NORMAL_MAX_CHASSIS_SPEED_Y 1.5f
 #define NORMAL_MAX_CHASSIS_SPEED_WZ RPM_TO_RADS(60.0f)
 
 // map joystick value (max 660) to vertial speed (m/s)
@@ -141,9 +141,9 @@
 
 typedef enum
 {
-  CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW,   //chassis will follow yaw gimbal motor relative angle.
-  CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW,  //chassis will have yaw angle(chassis_yaw) close-looped control.
-  CHASSIS_VECTOR_NO_FOLLOW_YAW,       //chassis will have rotation speed control.
+  CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW,   //chassis will follow yaw gimbal motor relative angle
+  CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW,  //chassis will have yaw angle(chassis_yaw) close-looped control
+  CHASSIS_VECTOR_NO_FOLLOW_YAW,       //chassis will have rotation speed control
   CHASSIS_VECTOR_RAW,                 //control-current will be sent to CAN bus derectly.
   CHASSIS_VECTOR_SPINNING,            //spinning chassis
 
@@ -158,21 +158,6 @@ typedef struct
   int16_t give_current;
 } chassis_motor_t;
 
-typedef union
-{
-  uint8_t can_buf[8];
-  struct
-  {
-    uint8_t cap_state;
-    uint8_t reserve;
-    uint16_t cap_voltage;
-    float cap_power;
-  } cap_message;
-} supcap_t;
-
-extern supcap_t can_message[2];
-
-
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 typedef struct
 {
@@ -183,33 +168,32 @@ typedef struct
 typedef struct
 {
   const RC_ctrl_t *chassis_RC;               //the point to remote control
-  const gimbal_motor_t *chassis_yaw_motor;   //will use the relative angle of yaw gimbal motor to calculate the euler angle.
-  const gimbal_motor_t *chassis_pitch_motor; //will use the relative angle of pitch gimbal motor to calculate the euler angle.
-  const fp32 *chassis_INS_angle;             //the point to the euler angle of gyro sensor.
-  chassis_mode_e chassis_mode;               //state machine.
-  chassis_mode_e last_chassis_mode;          //last state machine.
-  chassis_motor_t motor_chassis[4];          //chassis motor data.
-  pid_type_def motor_speed_pid[4];             //motor speed PID.
-  pid_type_def chassis_angle_pid;              //follow angle PID.
+  const gimbal_motor_t *chassis_yaw_motor;   //will use the relative angle of yaw gimbal motor to calculate the euler angle
+  const gimbal_motor_t *chassis_pitch_motor; //will use the relative angle of pitch gimbal motor to calculate the euler angle
+  const fp32 *chassis_INS_angle;             //the point to the euler angle of gyro sensor
+  chassis_mode_e chassis_mode;               //state machine
+  chassis_mode_e last_chassis_mode;          //last state machine
+  chassis_motor_t motor_chassis[4];          //chassis motor data
+  pid_type_def motor_speed_pid[4];             //motor speed PID
+  pid_type_def chassis_angle_pid;              //follow angle PID
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-  chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data.
-  pid_type_def steer_motor_angle_pid[4];       //steering motor angle PID.
+  chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data
+  pid_type_def steer_motor_angle_pid[4];       //steering motor angle PID
 #endif
 
-  first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point.
-  first_order_filter_type_t chassis_cmd_slow_set_vy;  //use first order filter to slow set-point.
-  first_order_filter_type_t chassis_cmd_slow_set_wz;  //use first order filter to slow set-point.
+  first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point
+  first_order_filter_type_t chassis_cmd_slow_set_vy;  //use first order filter to slow set-point
+  first_order_filter_type_t chassis_cmd_slow_set_wz;  //use first order filter to slow set-point
 
 #if !(ROBOT_TYPE == INFANTRY_2023_SWERVE)
-  fp32 vx;                          //chassis vertical speed, positive means forward,unit m/s.
-  fp32 vy;                          //chassis horizontal speed, positive means letf,unit m/s.
-  fp32 wz;                          //chassis rotation speed, positive means counterclockwise,unit rad/s.
+  fp32 vx;                          //chassis vertical speed, positive means forward,unit m/s
+  fp32 vy;                          //chassis horizontal speed, positive means letf,unit m/s
+  fp32 wz;                          //chassis rotation speed, positive means counterclockwise,unit rad/s
 #endif
-  fp32 vx_set;                      //chassis set vertical speed,positive means forward,unit m/s.
-  fp32 vy_set;                      //chassis set horizontal speed,positive means left,unit m/s.
-  fp32 wz_set;                      //chassis set rotation speed,positive means counterclockwise,unit rad/s.
-  fp32 chassis_relative_angle;      //the relative angle between chassis and gimbal.
-  fp32 chassis_relative_angle_set;  //the set relative angle.
+  fp32 vx_set;                      //chassis set vertical speed,positive means forward,unit m/s
+  fp32 vy_set;                      //chassis set horizontal speed,positive means left,unit m/s
+  fp32 wz_set;                      //chassis set rotation speed,positive means counterclockwise,unit rad/s
+  fp32 chassis_relative_angle_set;  //the set relative angle
   fp32 chassis_yaw_set;             
 
   fp32 vx_max_speed;  //max forward speed, unit m/s
@@ -245,4 +229,3 @@ fp32 abs_err_handler(fp32 set, fp32 ref);
 extern chassis_move_t chassis_move;
 
 #endif
-

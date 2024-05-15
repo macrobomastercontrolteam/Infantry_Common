@@ -103,7 +103,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     CAN_RxHeaderTypeDef rx_header;
     uint8_t rx_data[8];
-    uint8_t bMotorValid = 0;
+    uint8_t fIsMotor = 0;
     uint8_t bMotorId = 0;
     uint8_t fIdIdentified = 0;
 
@@ -116,21 +116,21 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             case CAN_TRIGGER_MOTOR_ID:
 #endif
             {
-                bMotorValid = 1;
+                fIsMotor = 1;
                 fIdIdentified = 0;
                 break;
             }
             case CAN_FRICTION_MOTOR_LEFT_ID:
             {
-                bMotorValid = 1;
-                bMotorId = MOTOR_INDEX_FRICTION1;
+                fIsMotor = 1;
+                bMotorId = MOTOR_INDEX_FRICTION_LEFT;
                 fIdIdentified = 1;
                 break;
             }
             case CAN_FRICTION_MOTOR_RIGHT_ID:
             {
-                bMotorValid = 1;
-                bMotorId = MOTOR_INDEX_FRICTION2;
+                fIsMotor = 1;
+                bMotorId = MOTOR_INDEX_FRICTION_RIGHT;
                 fIdIdentified = 1;
                 break;
             }
@@ -150,14 +150,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     #endif
             case CAN_YAW_MOTOR_ID:
             {
-                bMotorValid = 1;
+                fIsMotor = 1;
                 fIdIdentified = 0;
-                break;
-            }
-            case SUPCAP_ID:
-            {
-                memcpy(can_message[1].can_buf, rx_data, sizeof(rx_data));
-                detect_hook(CAP_TOE);
                 break;
             }
             default:
@@ -167,7 +161,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
         }
     }
 
-    if (bMotorValid == 1)
+    if (fIsMotor == 1)
     {
         if (fIdIdentified == 0)
         {
@@ -217,7 +211,7 @@ void reverse_motor_feedback(uint8_t bMotorId)
   * @param[in]      rev: (0x208) reserve motor control current
   * @retval         none
   */
-void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric1, int16_t fric2)
+void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_left, int16_t fric_right)
 {
     uint32_t send_mail_box;
     gimbal_tx_message.StdId = CAN_GIMBAL_ALL_TX_ID;
@@ -235,10 +229,10 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric1, 
     trigger = 0;
 #endif
 #if DISABLE_FRICTION_1_MOTOR_POWER
-    fric1 = 0;
+    fric_left = 0;
 #endif
 #if DISABLE_FRICTION_2_MOTOR_POWER
-    fric2 = 0;
+    fric_right = 0;
 #endif
 
     gimbal_can_send_data[0] = (yaw >> 8);
@@ -247,14 +241,16 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric1, 
     gimbal_can_send_data[3] = pitch;
     gimbal_can_send_data[4] = (trigger >> 8);
     gimbal_can_send_data[5] = trigger;
+    // gimbal_can_send_data[6] = (rev >> 8);
+    // gimbal_can_send_data[7] = rev;
     // control yaw motor and trigger motor
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
-    // control pitch motor and fric1 and fric2
+    // control pitch motor and fric_left and fric_right
     // gimbal_tx_message.StdId = CAN_GIMBAL_FRICTION_ALL_TX_ID;
-    gimbal_can_send_data[0] = (fric1 >> 8);
-    gimbal_can_send_data[1] = fric1;
-    gimbal_can_send_data[6] = (fric2 >> 8);
-    gimbal_can_send_data[7] = fric2;
+    gimbal_can_send_data[0] = (fric_left >> 8);
+    gimbal_can_send_data[1] = fric_left;
+    gimbal_can_send_data[6] = (fric_right >> 8);
+    gimbal_can_send_data[7] = fric_right;
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
@@ -413,12 +409,12 @@ const motor_measure_t *get_trigger_motor_measure_point(void)
 
 const motor_measure_t *get_friction_motor1_measure_point(void)
 {
-    return &motor_chassis[MOTOR_INDEX_FRICTION1];
+    return &motor_chassis[MOTOR_INDEX_FRICTION_LEFT];
 }
 
 const motor_measure_t *get_friction_motor2_measure_point(void)
 {
-    return &motor_chassis[MOTOR_INDEX_FRICTION2];
+    return &motor_chassis[MOTOR_INDEX_FRICTION_RIGHT];
 }
 
 /**
