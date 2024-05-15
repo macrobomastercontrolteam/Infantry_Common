@@ -154,6 +154,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
                 fIdIdentified = 0;
                 break;
             }
+            case SUPCAP_RX_ID:
+            {
+                fIsMotor = 0;
+                memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
+                detect_hook(SUPCAP_TOE);
+                break;
+            }
             default:
             {
                 break;
