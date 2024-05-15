@@ -206,22 +206,11 @@ int16_t shoot_control_loop(void)
     }
     case SHOOT_READY_FRIC:
     {
-		uint8_t fStartShoot = 0;
-		if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
-		{
-			fStartShoot = 0;
-			shoot_control.shoot_mode = SHOOT_STOP;
-		}
 #if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
-		else if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+		if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 #elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
-		else if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
+		if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
 #endif
-		{
-			fStartShoot = 1;
-		}
-
-		if (fStartShoot)
 		{
 			if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
 			{
@@ -241,10 +230,6 @@ int16_t shoot_control_loop(void)
         {
             shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
             trigger_motor_turn_back();
-        }
-        else if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
-        {
-            shoot_control.shoot_mode = SHOOT_STOP;
         }
         // else
         // {
@@ -279,9 +264,9 @@ int16_t shoot_control_loop(void)
             shoot_control.trigger_motor_pid.max_iout = 0;
         }
         else
-    {
-        shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
-        shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
+        {
+            shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
+            shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
         }
 #endif
         shoot_bullet_control();
@@ -289,17 +274,7 @@ int16_t shoot_control_loop(void)
         // hold shoot command to enter auto mode
 		if (shoot_control.shoot_hold_time == RC_S_LONG_TIME)
 		{
-#if (TEST_NO_REF == 0)
-			get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
-			if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
-			{
-				shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
-			}
-            else
-#endif
-            {
-                shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-            }
+            shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
 		}
         break;
     }
@@ -428,7 +403,7 @@ static void shoot_set_mode(void)
 #endif
 	{
         // normal RC control
-		if (gimbal_cmd_to_shoot_stop())
+		if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
 		{
 			shoot_control.shoot_mode = SHOOT_STOP;
 		}
