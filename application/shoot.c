@@ -39,10 +39,10 @@
 #define shoot_fric2_on(pwm) fric2_on((pwm)) 
 #endif
 
-#define shoot_fric_off()    fric_off()      
+#define shoot_fric_off() fric_off()
 
-#define shoot_laser_on()    laser_on()      
-#define shoot_laser_off()   laser_off()     
+#define shoot_laser_on() laser_on()
+#define shoot_laser_off() laser_off()
 //microswitch
 #define BUTTEN_TRIG_PIN HAL_GPIO_ReadPin(BUTTON_TRIG_GPIO_Port, BUTTON_TRIG_Pin)
 
@@ -73,14 +73,16 @@ static void shoot_bullet_control(void);
 
 shoot_control_t shoot_control;
 
+/**
+  * @brief          Initialize the shoot control, including PID, remote control pointer, and motor pointer
+  * @param[in]      void
+  */
 void shoot_init(void)
 {
 
     static const fp32 Trigger_speed_pid[3] = {TRIGGER_ANGLE_PID_KP, TRIGGER_ANGLE_PID_KI, TRIGGER_ANGLE_PID_KD};
     shoot_control.shoot_mode = SHOOT_STOP;
-    //遥控器指针
     shoot_control.shoot_rc = get_remote_control_point();
-    //电机指针
     shoot_control.shoot_motor_measure = get_trigger_motor_measure_point();
     shoot_control.fric_1_motor_measure = get_friction_motor1_measure_point();
     shoot_control.fric_2_motor_measure = get_friction_motor2_measure_point();
@@ -204,7 +206,7 @@ int16_t shoot_control_loop(void)
 			shoot_control.shoot_mode = SHOOT_STOP;
 		}
 #if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
-		else if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION1].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION2].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+		else if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 #elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
 		else if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
 #endif
@@ -467,8 +469,8 @@ static void shoot_feedback_update(void)
     speed_fliter_3 = speed_fliter_2 * fliter_num[0] + speed_fliter_1 * fliter_num[1] + (shoot_control.shoot_motor_measure->speed_rpm * TRIGGER_MOTOR_RPM_TO_SPEED) * fliter_num[2];
     shoot_control.speed = speed_fliter_3;
 
-    shoot_control.friction_motor1_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION1].speed_rpm, shoot_control.friction_motor1_rpm, 0.8f);
-    shoot_control.friction_motor2_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION2].speed_rpm, shoot_control.friction_motor2_rpm, 0.8f);
+    shoot_control.friction_motor1_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm, shoot_control.friction_motor1_rpm, 0.8f);
+    shoot_control.friction_motor2_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm, shoot_control.friction_motor2_rpm, 0.8f);
 
     // reset the motor count, because when the output shaft rotates one turn, the motor shaft rotates 36 turns, process the motor shaft data into output shaft data, used to control the output shaft angle
     if (shoot_control.shoot_motor_measure->ecd - shoot_control.shoot_motor_measure->last_ecd > HALF_ECD_RANGE)

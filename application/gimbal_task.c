@@ -242,8 +242,7 @@ void gimbal_task(void const *pvParameters)
         {
             if (gimbal_emergency_stop())
             {
-                CAN_cmd_gimbal(0, 0, 0, 0, 0);
-                CAN_cmd_gimbal(0, 0, 0, 0, 0);
+                CAN_cmd_gimbal(0, 0, 0, 0);
             }
             else
             {
@@ -930,12 +929,6 @@ int32_t yaw_speed_set_int_1000, pitch_speed_set_int_1000;
 fp32 shoot_speed_global;
 fp32 shoot_speed_set_global;
 uint8_t cv_toe_global;
-int32_t fric1_speed;
-int32_t fric2_speed;
-int32_t fric1_speed_target;
-int32_t fric2_speed_target;
-int16_t fric1_pid_out;
-int16_t fric2_pid_out;
 static void J_scope_gimbal_test(void)
 {
 #if CV_INTERFACE
@@ -955,14 +948,6 @@ static void J_scope_gimbal_test(void)
 
     shoot_speed_global = shoot_control.shoot_motor_measure->speed_rpm;
     shoot_speed_set_global = shoot_control.speed_set;
-
-    shoot_speed_global = shoot_control.shoot_motor_measure->speed_rpm;
-    fric1_speed = shoot_control.friction_motor1_rpm * FRICTION_MOTOR_RPM_TO_SPEED * 1000;
-    fric2_speed = shoot_control.friction_motor2_rpm * FRICTION_MOTOR_RPM_TO_SPEED * 1000;
-    fric1_speed_target = shoot_control.friction_motor1_rpm_set * FRICTION_MOTOR_RPM_TO_SPEED * 1000;
-    fric2_speed_target = shoot_control.friction_motor2_rpm_set * FRICTION_MOTOR_RPM_TO_SPEED * 1000;
-    fric1_pid_out = shoot_control.fric1_given_current;
-    fric2_pid_out = shoot_control.fric2_given_current;
 
     cv_toe_global = toe_is_error(CV_TOE);
 }
