@@ -173,6 +173,13 @@ int16_t shoot_control_loop(void)
                 shoot_control.friction_motor2_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
                 break;
             }
+            case SHOOT_AUTO_FIRE:
+            case SHOOT_SEMI_AUTO_FIRE:
+            {
+                shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
+                shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
+                break;
+            }
             default:
             {
                 break;
@@ -264,8 +271,19 @@ int16_t shoot_control_loop(void)
     }
     case SHOOT_SEMI_AUTO_FIRE:
     {
+#if (TEST_SHOOT_WITH_REF)
+        get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
+        if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
+        {
+            shoot_control.trigger_motor_pid.max_out = 0;
+            shoot_control.trigger_motor_pid.max_iout = 0;
+        }
+        else
+    {
         shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
         shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
+        }
+#endif
         shoot_bullet_control();
 
         // hold shoot command to enter auto mode
@@ -288,6 +306,19 @@ int16_t shoot_control_loop(void)
     case SHOOT_AUTO_FIRE:
     {
         // 设置拨弹轮的拨动速度,并开启堵转反转处理
+#if (TEST_SHOOT_WITH_REF)
+        get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
+        if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
+        {
+            shoot_control.trigger_motor_pid.max_out = 0;
+            shoot_control.trigger_motor_pid.max_iout = 0;
+        }
+        else
+        {
+            shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
+            shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
+        }
+#endif
         shoot_control.trigger_speed_set = AUTO_FIRE_TRIGGER_SPEED;
         trigger_motor_turn_back();
         break;
