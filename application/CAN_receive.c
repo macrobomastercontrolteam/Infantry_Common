@@ -29,12 +29,11 @@
 #include "chassis_task.h"
 #include "string.h"
 
-#define DISABLE_DRIVE_MOTOR_POWER 0
-#define DISABLE_STEER_MOTOR_POWER 0
-#define DISABLE_YAW_MOTOR_POWER 0
-#define DISABLE_PITCH_MOTOR_POWER 0
-#define DISABLE_FRICTION_1_MOTOR_POWER 0
-#define DISABLE_FRICTION_2_MOTOR_POWER 0
+#define DISABLE_DRIVE_MOTOR_POWER 1
+#define DISABLE_STEER_MOTOR_POWER 1
+#define DISABLE_YAW_MOTOR_POWER 1
+#define DISABLE_PITCH_MOTOR_POWER 1
+#define DISABLE_TRIGGER_MOTOR_POWER 1
 
 
 #define REVERSE_M3508_1 0
@@ -232,7 +231,7 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
 #if DISABLE_PITCH_MOTOR_POWER
     pitch = 0;
 #endif
-#if DISABLE_SHOOT_MOTOR_POWER
+#if DISABLE_TRIGGER_MOTOR_POWER
     trigger = 0;
 #endif
 #if DISABLE_FRICTION_1_MOTOR_POWER
