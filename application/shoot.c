@@ -31,11 +31,15 @@
 #include "pid.h"
 #include "cv_usart_task.h"
 
-#if DISABLE_SHOOT_MOTOR_POWER
+#if DISABLE_FRICTION_1_MOTOR_POWER
 #define shoot_fric1_on(pwm) fric_off() 
-#define shoot_fric2_on(pwm) fric_off() 
 #else
 #define shoot_fric1_on(pwm) fric1_on((pwm)) 
+#endif
+
+#if DISABLE_FRICTION_2_MOTOR_POWER
+#define shoot_fric2_on(pwm) fric_off() 
+#else
 #define shoot_fric2_on(pwm) fric2_on((pwm)) 
 #endif
 
