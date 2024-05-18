@@ -233,24 +233,35 @@ static void detect_init(uint32_t time)
         error_list[i].solve_lost_fun = NULL;
         error_list[i].solve_data_error_fun = NULL;
 
+		switch (i)
+		{
+#if (TEST_NO_REF || (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL))
 #if TEST_NO_REF
-        if (i == REFEREE_TOE)
-        {
-            // test_no_ref branch setup
-            error_list[i].enable = 0;
-            error_list[i].error_exist = 0;
-            error_list[i].is_lost = 0;
-            error_list[i].data_is_error = 0;
-        }
-        else
+			case REFEREE_TOE:
 #endif
-        {
-            error_list[i].enable = 1;
-            error_list[i].error_exist = 1;
-            error_list[i].is_lost = 1;
-            error_list[i].data_is_error = 1;
-        }
-        error_list[i].frequency = 0.0f;
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
+			case FRIC1_MOTOR_TOE:
+			case FRIC2_MOTOR_TOE:
+#endif
+			{
+				error_list[i].enable = 0;
+				error_list[i].error_exist = 0;
+				error_list[i].is_lost = 0;
+				error_list[i].data_is_error = 0;
+				break;
+			}
+#endif
+			default:
+			{
+				error_list[i].enable = 1;
+				error_list[i].error_exist = 1;
+				error_list[i].is_lost = 1;
+				error_list[i].data_is_error = 1;
+				break;
+			}
+		}
+
+		error_list[i].frequency = 0.0f;
         error_list[i].new_time = time;
         error_list[i].last_time = time;
         error_list[i].lost_time = time;
