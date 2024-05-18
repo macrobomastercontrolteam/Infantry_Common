@@ -404,27 +404,6 @@ const motor_measure_t *get_pitch_gimbal_motor_measure_point(void)
     return &motor_chassis[MOTOR_INDEX_PITCH];
 }
 
-
-/**
-  * @brief          return the trigger 2006 motor data point
-  * @param[in]      none
-  * @retval         motor data point
-  */
-const motor_measure_t *get_trigger_motor_measure_point(void)
-{
-    return &motor_chassis[MOTOR_INDEX_TRIGGER];
-}
-
-const motor_measure_t *get_friction_motor1_measure_point(void)
-{
-    return &motor_chassis[MOTOR_INDEX_FRICTION_LEFT];
-}
-
-const motor_measure_t *get_friction_motor2_measure_point(void)
-{
-    return &motor_chassis[MOTOR_INDEX_FRICTION_RIGHT];
-}
-
 /**
   * @brief          return the chassis 3508 motor data point
   * @param[in]      i: motor number,range [0,3]
