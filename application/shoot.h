@@ -150,6 +150,8 @@ typedef struct
     uint8_t fIsCvControl;
     const RC_ctrl_t *shoot_rc;
 
+    int16_t fric1_given_current;
+    int16_t fric2_given_current;
 
 #if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
     pid_type_def friction_motor1_pid;
@@ -161,9 +163,6 @@ typedef struct
     fp32 friction_motor2_rpm_set;
     fp32 friction_motor2_rpm;
     // fp32 friction_motor2_angle;
-
-    int16_t fric1_given_current;
-    int16_t fric2_given_current;
 #elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
     ramp_function_source_t fric1_ramp;
     uint16_t fric_pwm1;

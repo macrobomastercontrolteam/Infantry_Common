@@ -212,7 +212,8 @@ void reverse_motor_feedback(uint8_t bMotorId)
   * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000] 
   * @param[in]      pitch: (0x206) 6020 motor control current, range [-30000,30000]
   * @param[in]      trigger: (0x207) 2006 motor control current, range [-10000,10000]
-  * @param[in]      rev: (0x208) reserve motor control current
+  * @param[in]      fric_left: 3508 motor control current when used as friction motor
+  * @param[in]      fric_right: 3508 motor control current when used as friction motor
   * @retval         none
   */
 void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_left, int16_t fric_right)
@@ -232,12 +233,6 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
 #if DISABLE_TRIGGER_MOTOR_POWER
     trigger = 0;
 #endif
-#if DISABLE_FRICTION_1_MOTOR_POWER
-    fric_left = 0;
-#endif
-#if DISABLE_FRICTION_2_MOTOR_POWER
-    fric_right = 0;
-#endif
 
     gimbal_can_send_data[0] = (yaw >> 8);
     gimbal_can_send_data[1] = yaw;
@@ -249,12 +244,20 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
     // gimbal_can_send_data[7] = rev;
     // control yaw motor and trigger motor
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+
     // control pitch motor and fric_left and fric_right
-    // gimbal_tx_message.StdId = CAN_GIMBAL_FRICTION_ALL_TX_ID;
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
+#if DISABLE_FRICTION_1_MOTOR_POWER
+    fric_left = 0;
+#endif
+#if DISABLE_FRICTION_2_MOTOR_POWER
+    fric_right = 0;
+#endif
     gimbal_can_send_data[0] = (fric_left >> 8);
     gimbal_can_send_data[1] = fric_left;
     gimbal_can_send_data[6] = (fric_right >> 8);
     gimbal_can_send_data[7] = fric_right;
+#endif
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
@@ -378,7 +381,7 @@ void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes)
     chassis_can_send_data[0] = fServoSwitch;
     for (uint8_t i = 0; i < bTrialTimes; i++)
     {
-    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+        HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
         osDelay(1);
     }
 }
