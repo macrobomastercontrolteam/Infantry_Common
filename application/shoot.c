@@ -89,9 +89,6 @@ void shoot_init(void)
     static const fp32 Trigger_speed_pid[3] = {TRIGGER_ANGLE_PID_KP, TRIGGER_ANGLE_PID_KI, TRIGGER_ANGLE_PID_KD};
     shoot_control.shoot_mode = SHOOT_STOP;
     shoot_control.shoot_rc = get_remote_control_point();
-    shoot_control.shoot_motor_measure = get_trigger_motor_measure_point();
-    shoot_control.fric_1_motor_measure = get_friction_motor1_measure_point();
-    shoot_control.fric_2_motor_measure = get_friction_motor2_measure_point();
 
     // initialize PID
 #if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
@@ -113,7 +110,7 @@ void shoot_init(void)
     shoot_feedback_update();
 
     shoot_control.ecd_count = 0;
-    shoot_control.angle = shoot_control.shoot_motor_measure->ecd * TRIGGER_MOTOR_ECD_TO_ANGLE;
+    shoot_control.angle = motor_chassis[MOTOR_INDEX_TRIGGER].ecd * TRIGGER_MOTOR_ECD_TO_ANGLE;
     shoot_control.given_current = 0;
     shoot_control.move_flag = 0;
     shoot_control.set_angle = shoot_control.angle;
@@ -474,18 +471,18 @@ static void shoot_feedback_update(void)
     // second-order low-pass filter
     speed_fliter_1 = speed_fliter_2;
     speed_fliter_2 = speed_fliter_3;
-    speed_fliter_3 = speed_fliter_2 * fliter_num[0] + speed_fliter_1 * fliter_num[1] + (shoot_control.shoot_motor_measure->speed_rpm * TRIGGER_MOTOR_RPM_TO_SPEED) * fliter_num[2];
+    speed_fliter_3 = speed_fliter_2 * fliter_num[0] + speed_fliter_1 * fliter_num[1] + (motor_chassis[MOTOR_INDEX_TRIGGER].speed_rpm * TRIGGER_MOTOR_RPM_TO_SPEED) * fliter_num[2];
     shoot_control.speed = speed_fliter_3;
 
     shoot_control.friction_motor1_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm, shoot_control.friction_motor1_rpm, 0.8f);
     shoot_control.friction_motor2_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm, shoot_control.friction_motor2_rpm, 0.8f);
 
     // reset the motor count, because when the output shaft rotates one turn, the motor shaft rotates 36 turns, process the motor shaft data into output shaft data, used to control the output shaft angle
-    if (shoot_control.shoot_motor_measure->ecd - shoot_control.shoot_motor_measure->last_ecd > HALF_ECD_RANGE)
+    if (motor_chassis[MOTOR_INDEX_TRIGGER].ecd - motor_chassis[MOTOR_INDEX_TRIGGER].last_ecd > HALF_ECD_RANGE)
     {
         shoot_control.ecd_count--;
     }
-    else if (shoot_control.shoot_motor_measure->ecd - shoot_control.shoot_motor_measure->last_ecd < -HALF_ECD_RANGE)
+    else if (motor_chassis[MOTOR_INDEX_TRIGGER].ecd - motor_chassis[MOTOR_INDEX_TRIGGER].last_ecd < -HALF_ECD_RANGE)
     {
         shoot_control.ecd_count++;
     }
@@ -499,7 +496,7 @@ static void shoot_feedback_update(void)
         shoot_control.ecd_count = FULL_COUNT - 1;
     }
 
-    shoot_control.angle = (shoot_control.ecd_count * ECD_RANGE + shoot_control.shoot_motor_measure->ecd) * TRIGGER_MOTOR_ECD_TO_ANGLE;
+    shoot_control.angle = (shoot_control.ecd_count * ECD_RANGE + motor_chassis[MOTOR_INDEX_TRIGGER].ecd) * TRIGGER_MOTOR_ECD_TO_ANGLE;
     shoot_control.key = BUTTEN_TRIG_PIN;
     shoot_control.last_press_l = shoot_control.press_l;
     shoot_control.last_press_r = shoot_control.press_r;

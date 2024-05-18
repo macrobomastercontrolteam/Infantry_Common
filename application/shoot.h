@@ -149,11 +149,9 @@ typedef struct
     shoot_mode_e shoot_mode;
     uint8_t fIsCvControl;
     const RC_ctrl_t *shoot_rc;
-    const motor_measure_t *shoot_motor_measure;
+
 
 #if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
-    const motor_measure_t *fric_1_motor_measure;
-    const motor_measure_t *fric_2_motor_measure;
     pid_type_def friction_motor1_pid;
     fp32 friction_motor1_rpm_set;
     fp32 friction_motor1_rpm;
