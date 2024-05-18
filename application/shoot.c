@@ -31,6 +31,8 @@
 #include "pid.h"
 #include "cv_usart_task.h"
 
+#define USE_SERVO_TO_STIR_AMMO 0
+
 #if DISABLE_FRICTION_1_MOTOR_POWER
 #define shoot_fric1_on(pwm) fric_off() 
 #else
@@ -140,10 +142,8 @@ int16_t shoot_control_loop(void)
         {
             case SHOOT_STOP:
             {
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-                CAN_cmd_load_servo(0);
-                CAN_cmd_load_servo(0);
-                CAN_cmd_load_servo(0);
+#if USE_SERVO_TO_STIR_AMMO
+                CAN_cmd_load_servo(0, 3);
 #endif
                 // shoot_control.friction_motor1_pid.max_out = 0;
                 // shoot_control.friction_motor1_pid.max_iout = 0;
@@ -156,10 +156,8 @@ int16_t shoot_control_loop(void)
             }
             case SHOOT_READY_FRIC:
             {
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-                CAN_cmd_load_servo(1);
-                CAN_cmd_load_servo(1);
-                CAN_cmd_load_servo(1);
+#if USE_SERVO_TO_STIR_AMMO
+                CAN_cmd_load_servo(1, 3);
 #endif
                 shoot_control.trigger_motor_pid.max_out = TRIGGER_READY_PID_MAX_OUT;
                 shoot_control.trigger_motor_pid.max_iout = TRIGGER_READY_PID_MAX_IOUT;
