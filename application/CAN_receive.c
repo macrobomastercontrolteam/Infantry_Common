@@ -16,8 +16,6 @@
   @endverbatim
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
-#include <string.h>
-
 #include "CAN_receive.h"
 
 #include "cmsis_os.h"
