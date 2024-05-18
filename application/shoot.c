@@ -32,6 +32,7 @@
 #include "cv_usart_task.h"
 
 #define USE_SERVO_TO_STIR_AMMO 0
+#define TEST_SHOOT_WITH_REF 0
 
 #if DISABLE_FRICTION_1_MOTOR_POWER
 #define shoot_fric1_on(pwm) fric_off() 

@@ -15,7 +15,6 @@
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define TEST_NO_REF 1
-#define TEST_SHOOT_WITH_REF 0
 #define FRICTION_MOTOR_MUX FRICTION_MOTOR_M3508
 /********************* Only Modify this area (end) *********************/
 
