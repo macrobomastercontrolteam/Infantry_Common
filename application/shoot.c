@@ -142,14 +142,12 @@ int16_t shoot_control_loop(void)
 #if USE_SERVO_TO_STIR_AMMO
                 CAN_cmd_load_servo(0, 3);
 #endif
-                // shoot_control.friction_motor1_pid.max_out = 0;
-                // shoot_control.friction_motor1_pid.max_iout = 0;
 
-                // shoot_control.friction_motor2_pid.max_out = 0;
-                // shoot_control.friction_motor2_pid.max_iout = 0;
-
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
                 shoot_control.friction_motor1_rpm_set = 0;
                 shoot_control.friction_motor2_rpm_set = 0;
+#endif
+                break;
             }
             case SHOOT_READY_FRIC:
             {
@@ -159,6 +157,7 @@ int16_t shoot_control_loop(void)
                 shoot_control.trigger_motor_pid.max_out = TRIGGER_READY_PID_MAX_OUT;
                 shoot_control.trigger_motor_pid.max_iout = TRIGGER_READY_PID_MAX_IOUT;
 
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
                 PID_clear(&shoot_control.friction_motor1_pid);
                 PID_clear(&shoot_control.friction_motor2_pid);
                 
@@ -170,6 +169,7 @@ int16_t shoot_control_loop(void)
 
                 shoot_control.friction_motor1_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
                 shoot_control.friction_motor2_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+#endif
                 break;
             }
             case SHOOT_AUTO_FIRE:
@@ -191,6 +191,7 @@ int16_t shoot_control_loop(void)
     {
     case SHOOT_STOP:
     {
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
         if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
         {
             shoot_control.friction_motor1_pid.max_out = 0;
@@ -201,14 +202,19 @@ int16_t shoot_control_loop(void)
             shoot_control.friction_motor1_pid.max_out = 1000;
             shoot_control.friction_motor2_pid.max_out = 1000;
         }
+#endif
         break;
     }
     case SHOOT_READY_FRIC:
     {
+		if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+		{
+			shoot_control.shoot_mode = SHOOT_STOP;
+		}
 #if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
-		if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+		else if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 #elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
-		if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
+		else if ((shoot_control.fric1_ramp.out == shoot_control.fric1_ramp.max_value) && (shoot_control.fric2_ramp.out == shoot_control.fric2_ramp.max_value))
 #endif
 		{
 			if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
@@ -402,7 +408,7 @@ static void shoot_set_mode(void)
 #endif
 	{
         // normal RC control
-		if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+        if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
 		{
 			shoot_control.shoot_mode = SHOOT_STOP;
 		}
@@ -474,8 +480,10 @@ static void shoot_feedback_update(void)
     speed_fliter_3 = speed_fliter_2 * fliter_num[0] + speed_fliter_1 * fliter_num[1] + (motor_chassis[MOTOR_INDEX_TRIGGER].speed_rpm * TRIGGER_MOTOR_RPM_TO_SPEED) * fliter_num[2];
     shoot_control.speed = speed_fliter_3;
 
+#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
     shoot_control.friction_motor1_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm, shoot_control.friction_motor1_rpm, 0.8f);
     shoot_control.friction_motor2_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm, shoot_control.friction_motor2_rpm, 0.8f);
+#endif
 
     // reset the motor count, because when the output shaft rotates one turn, the motor shaft rotates 36 turns, process the motor shaft data into output shaft data, used to control the output shaft angle
     if (motor_chassis[MOTOR_INDEX_TRIGGER].ecd - motor_chassis[MOTOR_INDEX_TRIGGER].last_ecd > HALF_ECD_RANGE)
