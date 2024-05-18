@@ -367,7 +367,7 @@ void CAN_cmd_chassis(void)
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-void CAN_cmd_load_servo(uint8_t fServoSwitch)
+void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes)
 {
     // Turn on/off loading servo motor, by commanding Type-A board on chassis
     uint32_t send_mail_box;
@@ -376,7 +376,11 @@ void CAN_cmd_load_servo(uint8_t fServoSwitch)
     chassis_tx_message.RTR = CAN_RTR_DATA;
     chassis_tx_message.DLC = 0x08;
     chassis_can_send_data[0] = fServoSwitch;
+    for (uint8_t i = 0; i < bTrialTimes; i++)
+    {
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+        osDelay(1);
+    }
 }
 #endif
 

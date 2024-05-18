@@ -132,7 +132,7 @@ extern void CAN_cmd_chassis(void);
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-extern void CAN_cmd_load_servo(uint8_t fServoSwitch);
+extern void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes);
 #endif
 
 /**
