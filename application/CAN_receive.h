@@ -25,9 +25,6 @@
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
 
-#define DISABLE_FRICTION_1_MOTOR_POWER 0
-#define DISABLE_FRICTION_2_MOTOR_POWER 0
-
 /* CAN send and receive ID */
 typedef enum
 {

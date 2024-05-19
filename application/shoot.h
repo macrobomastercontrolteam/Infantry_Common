@@ -116,7 +116,6 @@
 
 #define SHOOT_HEAT_REMAIN_VALUE     50
 
-#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
 //Frictional wheel 1 PID
 #define FRICTION_1_SPEED_PID_KP        20.0f
 #define FRICTION_1_SPEED_PID_KI        0.0f
@@ -130,7 +129,6 @@
 #define FRICTION_2_SPEED_PID_KD        0.0f
 #define FRICTION_2_SPEED_PID_MAX_OUT   MAX_MOTOR_CAN_CURRENT
 #define FRICTION_2_SPEED_PID_MAX_IOUT  200.0f
-#endif
 
 typedef enum
 {
@@ -153,7 +151,6 @@ typedef struct
     int16_t fric1_given_current;
     int16_t fric2_given_current;
 
-#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
     pid_type_def friction_motor1_pid;
     fp32 friction_motor1_rpm_set;
     fp32 friction_motor1_rpm;
@@ -163,12 +160,6 @@ typedef struct
     fp32 friction_motor2_rpm_set;
     fp32 friction_motor2_rpm;
     // fp32 friction_motor2_angle;
-#elif (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
-    ramp_function_source_t fric1_ramp;
-    uint16_t fric_pwm1;
-    ramp_function_source_t fric2_ramp;
-    uint16_t fric_pwm2;
-#endif
 
 	pid_type_def trigger_motor_pid;
     fp32 trigger_speed_set;
