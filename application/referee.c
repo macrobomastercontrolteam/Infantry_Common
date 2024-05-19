@@ -183,15 +183,9 @@ uint8_t get_robot_id(void)
     return robot_state.robot_id;
 }
 
-void get_shoot_heat0_limit_and_heat0(uint16_t *heat0_limit, uint16_t *heat0)
+void get_shoot_heat_limit_and_heat(uint16_t *heat0_limit, uint16_t *heat0)
 {
     *heat0_limit = robot_state.shooter_heat0_cooling_limit;
     *heat0 = power_heat_data_t.shooter_heat0;
-}
-
-void get_shoot_heat1_limit_and_heat1(uint16_t *heat1_limit, uint16_t *heat1)
-{
-    *heat1_limit = robot_state.shooter_heat1_cooling_limit;
-    *heat1 = power_heat_data_t.shooter_heat1;
 }
 
