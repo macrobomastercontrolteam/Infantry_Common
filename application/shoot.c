@@ -34,8 +34,6 @@
 #define USE_SERVO_TO_STIR_AMMO 0
 #define TEST_SHOOT_WITH_REF 0
 
-#define shoot_laser_on() laser_on()
-#define shoot_laser_off() laser_off()
 //microswitch
 #define BUTTEN_TRIG_PIN HAL_GPIO_ReadPin(BUTTON_TRIG_GPIO_Port, BUTTON_TRIG_Pin)
 
@@ -114,6 +112,7 @@ int16_t shoot_control_loop(void)
     static shoot_mode_e pre_shoot_mode = SHOOT_STOP;
     if (pre_shoot_mode != shoot_control.shoot_mode)
     {
+        // laser_enable(shoot_control.shoot_mode != SHOOT_STOP);
         switch (shoot_control.shoot_mode)
         {
             case SHOOT_STOP:
