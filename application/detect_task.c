@@ -235,14 +235,8 @@ static void detect_init(uint32_t time)
 
 		switch (i)
 		{
-#if (TEST_NO_REF || (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL))
 #if TEST_NO_REF
 			case REFEREE_TOE:
-#endif
-#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_SNAIL)
-			case FRIC1_MOTOR_TOE:
-			case FRIC2_MOTOR_TOE:
-#endif
 			{
 				error_list[i].enable = 0;
 				error_list[i].error_exist = 0;

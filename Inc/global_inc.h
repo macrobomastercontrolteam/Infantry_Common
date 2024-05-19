@@ -7,15 +7,11 @@
 #define INFANTRY_BIPED 3
 #define SENTRY_2023_MECANUM 4
 
-#define FRICTION_MOTOR_SNAIL 0
-#define FRICTION_MOTOR_M3508 1
-
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE INFANTRY_2023_MECANUM
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define TEST_NO_REF 1
-#define FRICTION_MOTOR_MUX FRICTION_MOTOR_M3508
 /********************* Only Modify this area (end) *********************/
 
 #if DEBUG_CV_WITH_USB && !CV_INTERFACE

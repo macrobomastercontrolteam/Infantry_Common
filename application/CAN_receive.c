@@ -32,6 +32,8 @@
 #define DISABLE_YAW_MOTOR_POWER 1
 #define DISABLE_PITCH_MOTOR_POWER 1
 #define DISABLE_TRIGGER_MOTOR_POWER 1
+#define DISABLE_FRICTION_1_MOTOR_POWER 0
+#define DISABLE_FRICTION_2_MOTOR_POWER 0
 
 
 #define REVERSE_M3508_1 0
@@ -246,7 +248,6 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
     // control pitch motor and fric_left and fric_right
-#if (FRICTION_MOTOR_MUX == FRICTION_MOTOR_M3508)
 #if DISABLE_FRICTION_1_MOTOR_POWER
     fric_left = 0;
 #endif
@@ -257,7 +258,6 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
     gimbal_can_send_data[1] = fric_left;
     gimbal_can_send_data[6] = (fric_right >> 8);
     gimbal_can_send_data[7] = fric_right;
-#endif
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
