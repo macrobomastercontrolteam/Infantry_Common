@@ -534,11 +534,6 @@
               <FilePath>..\bsp\boards\bsp_flash.c</FilePath>
             </File>
             <File>
-              <FileName>bsp_fric.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\bsp\boards\bsp_fric.c</FilePath>
-            </File>
-            <File>
               <FileName>bsp_imu_pwm.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\bsp\boards\bsp_imu_pwm.c</FilePath>
@@ -547,11 +542,6 @@
               <FileName>bsp_i2c.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\bsp\boards\bsp_i2c.c</FilePath>
-            </File>
-            <File>
-              <FileName>bsp_laser.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\bsp\boards\bsp_laser.c</FilePath>
             </File>
             <File>
               <FileName>bsp_led.c</FileName>

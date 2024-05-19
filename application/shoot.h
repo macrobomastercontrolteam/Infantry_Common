@@ -43,12 +43,10 @@
 #define SHOOT_ON_KEYBOARD           KEY_PRESSED_OFFSET_Q
 #define SHOOT_OFF_KEYBOARD          KEY_PRESSED_OFFSET_E
 
-// After the shooting is completed, the bullet is ejected, and the judgment time is to prevent mis-triggering
-#define SHOOT_DONE_KEY_OFF_TIME     15
 // Determine the long press of the mouse
 #define PRESS_LONG_TIME             400
 // After the remote control shooting switch is pressed down, the bullet is continuously fired for a period of time, used to clear the bullet
-#define RC_S_LONG_TIME              2000
+#define RC_S_LONG_TIME              800
 // Friction wheel high speed acceleration time
 #define UP_ADD_TIME                 80
 
@@ -84,6 +82,7 @@
 #define SWITCH_TRIGGER_OFF          1
 
 #define BLOCK_TRIGGER_SPEED         1.0f
+#define IDLE_TRIGGER_SPEED          2.0f
 #define BLOCK_TIME                  700
 #define REVERSE_TIME                500
 #define REVERSE_SPEED_LIMIT         13.0f
@@ -100,18 +99,15 @@
 
 #define TRIGGER_ANGLE_PID_KP        800.0f
 #define TRIGGER_ANGLE_PID_KI        0.5f
-#define TRIGGER_ANGLE_PID_KD        0.0f
+#define TRIGGER_ANGLE_PID_KD        2.0f
 
 #define TRIGGER_BULLET_PID_MAX_OUT  10000.0f
 #define TRIGGER_BULLET_PID_MAX_IOUT 9000.0f
 
-#define TRIGGER_READY_PID_MAX_OUT   10000.0f
-#define TRIGGER_READY_PID_MAX_IOUT  7000.0f
-
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
-#define TRIGGER_TURN 1
+#define REVERSE_TRIGGER_DIRECTION 1
 #else
-#define TRIGGER_TURN 0
+#define REVERSE_TRIGGER_DIRECTION 0
 #endif
 
 #define SHOOT_HEAT_REMAIN_VALUE     50
@@ -138,7 +134,6 @@ typedef enum
     SHOOT_READY,
     SHOOT_SEMI_AUTO_FIRE,
     SHOOT_AUTO_FIRE,
-    SHOOT_DONE,
 } shoot_mode_e;
 
 

@@ -80,7 +80,7 @@ void shoot_init(void)
     static const fp32 trigger_speed_pid[3] = {TRIGGER_ANGLE_PID_KP, TRIGGER_ANGLE_PID_KI, TRIGGER_ANGLE_PID_KD};
     PID_init(&shoot_control.friction_motor1_pid, PID_POSITION, shoot_speed_pid1, FRICTION_1_SPEED_PID_MAX_OUT, FRICTION_1_SPEED_PID_MAX_IOUT, &raw_err_handler);
     PID_init(&shoot_control.friction_motor2_pid, PID_POSITION, shoot_speed_pid2, FRICTION_2_SPEED_PID_MAX_OUT, FRICTION_2_SPEED_PID_MAX_IOUT, &raw_err_handler);
-    PID_init(&shoot_control.trigger_motor_pid, PID_POSITION, trigger_speed_pid, TRIGGER_READY_PID_MAX_OUT, TRIGGER_READY_PID_MAX_IOUT, &raw_err_handler);
+    PID_init(&shoot_control.trigger_motor_pid, PID_POSITION, trigger_speed_pid, TRIGGER_BULLET_PID_MAX_OUT, TRIGGER_BULLET_PID_MAX_IOUT, &raw_err_handler);
 
     //update data
     shoot_feedback_update();
@@ -120,9 +120,6 @@ int16_t shoot_control_loop(void)
 #if USE_SERVO_TO_STIR_AMMO
                 CAN_cmd_load_servo(0, 3);
 #endif
-
-                shoot_control.friction_motor1_rpm_set = 0;
-                shoot_control.friction_motor2_rpm_set = 0;
                 break;
             }
             case SHOOT_READY_FRIC:
@@ -130,27 +127,21 @@ int16_t shoot_control_loop(void)
 #if USE_SERVO_TO_STIR_AMMO
                 CAN_cmd_load_servo(1, 3);
 #endif
-                shoot_control.trigger_motor_pid.max_out = TRIGGER_READY_PID_MAX_OUT;
-                shoot_control.trigger_motor_pid.max_iout = TRIGGER_READY_PID_MAX_IOUT;
+                shoot_control.trigger_speed_set = 0;
 
                 PID_clear(&shoot_control.friction_motor1_pid);
                 PID_clear(&shoot_control.friction_motor2_pid);
                 
                 shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
-                shoot_control.friction_motor1_pid.max_iout = FRICTION_1_SPEED_PID_MAX_IOUT;
-
                 shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
-                shoot_control.friction_motor2_pid.max_iout = FRICTION_2_SPEED_PID_MAX_IOUT;
 
                 shoot_control.friction_motor1_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
                 shoot_control.friction_motor2_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
                 break;
             }
             case SHOOT_AUTO_FIRE:
-            case SHOOT_SEMI_AUTO_FIRE:
             {
-                shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
-                shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
+                shoot_control.trigger_speed_set = AUTO_FIRE_TRIGGER_SPEED;
                 break;
             }
             default:
@@ -165,6 +156,9 @@ int16_t shoot_control_loop(void)
     {
     case SHOOT_STOP:
     {
+        shoot_control.friction_motor1_rpm_set = 0.0f;
+        shoot_control.friction_motor2_rpm_set = 0.0f;
+        shoot_control.trigger_speed_set = 0;
         if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
         {
             shoot_control.friction_motor1_pid.max_out = 0;
@@ -202,7 +196,6 @@ int16_t shoot_control_loop(void)
         if (shoot_control.key == SWITCH_TRIGGER_OFF)
         {
             shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
-            trigger_motor_turn_back();
         }
         // else
         // {
@@ -229,23 +222,10 @@ int16_t shoot_control_loop(void)
     }
     case SHOOT_SEMI_AUTO_FIRE:
     {
-#if (TEST_SHOOT_WITH_REF)
-        get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
-        if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
-        {
-            shoot_control.trigger_motor_pid.max_out = 0;
-            shoot_control.trigger_motor_pid.max_iout = 0;
-        }
-        else
-        {
-            shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
-            shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
-        }
-#endif
         shoot_bullet_control();
 
         // hold shoot command to enter auto mode
-		if (shoot_control.shoot_hold_time == RC_S_LONG_TIME)
+		if (shoot_control.shoot_hold_time >= RC_S_LONG_TIME)
 		{
             shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
 		}
@@ -254,71 +234,31 @@ int16_t shoot_control_loop(void)
     case SHOOT_AUTO_FIRE:
     {
         // 设置拨弹轮的拨动速度,并开启堵转反转处理
-#if (TEST_SHOOT_WITH_REF)
+#if TEST_SHOOT_WITH_REF
         get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
         if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
         {
-            shoot_control.trigger_motor_pid.max_out = 0;
-            shoot_control.trigger_motor_pid.max_iout = 0;
+            shoot_control.trigger_speed_set = 0;
         }
         else
         {
-            shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
-            shoot_control.trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
+            shoot_control.trigger_speed_set = AUTO_FIRE_TRIGGER_SPEED;
         }
 #endif
-        shoot_control.trigger_speed_set = AUTO_FIRE_TRIGGER_SPEED;
-        trigger_motor_turn_back();
-        break;
-    }
-    case SHOOT_DONE:
-    {
-        if (shoot_control.key == SWITCH_TRIGGER_OFF)
-        {
-            shoot_control.key_time++;
-            if (shoot_control.key_time > SHOOT_DONE_KEY_OFF_TIME)
-            {
-                shoot_control.key_time = 0;
-                shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
-            }
-        }
-        // else
-        // {
-        //     shoot_control.key_time = 0;
-        //     shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
-        // }
         break;
     }
     }
 
-	if(shoot_control.shoot_mode == SHOOT_STOP)
-    {
-        shoot_laser_off();
-        shoot_control.given_current = 0;
-        shoot_control.friction_motor1_rpm_set = 0.0f;
-        shoot_control.friction_motor2_rpm_set = 0.0f;
-    }
-    else
-    {
-        shoot_laser_on();
-
-		// trigger motor PID
-		if (shoot_control.shoot_mode < SHOOT_READY_TRIGGER)
-		{
-			shoot_control.given_current = 0;
-		}
-		else
-		{
-			PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set);
-			shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
-		}
-    }
+    trigger_motor_turn_back();
 
     PID_calc(&shoot_control.friction_motor1_pid, shoot_control.friction_motor1_rpm, shoot_control.friction_motor1_rpm_set);
     shoot_control.fric1_given_current = (int16_t)(shoot_control.friction_motor1_pid.out);
 
     PID_calc(&shoot_control.friction_motor2_pid, shoot_control.friction_motor2_rpm, shoot_control.friction_motor2_rpm_set);
     shoot_control.fric2_given_current = (int16_t)(shoot_control.friction_motor2_pid.out);
+
+    PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set);
+    shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
 
     return shoot_control.given_current;
 }
@@ -459,7 +399,7 @@ static void shoot_feedback_update(void)
     shoot_control.press_l = shoot_control.shoot_rc->mouse.press_l;
     shoot_control.press_r = shoot_control.shoot_rc->mouse.press_r;
 
-    if ((shoot_control.shoot_mode > SHOOT_READY_TRIGGER) && (shoot_control.shoot_mode < SHOOT_DONE))
+    if ((shoot_control.shoot_mode == SHOOT_READY) || (shoot_control.shoot_mode == SHOOT_SEMI_AUTO_FIRE) || (shoot_control.shoot_mode == SHOOT_AUTO_FIRE))
     {
         if (shoot_control.shoot_hold_time < RC_S_LONG_TIME)
         {
@@ -474,29 +414,49 @@ static void shoot_feedback_update(void)
 
 static void trigger_motor_turn_back(void)
 {
-#if TRIGGER_TURN
-    shoot_control.speed_set = -shoot_control.trigger_speed_set;
+#if REVERSE_TRIGGER_DIRECTION
+		shoot_control.speed_set = -shoot_control.trigger_speed_set;
 #else
-    shoot_control.speed_set = shoot_control.trigger_speed_set;
+		shoot_control.speed_set = shoot_control.trigger_speed_set;
 #endif
-    if( shoot_control.block_time >= BLOCK_TIME)
-    {
-        shoot_control.speed_set = -shoot_control.trigger_speed_set;
-    }
 
-    if(fabs(shoot_control.speed) < BLOCK_TRIGGER_SPEED && shoot_control.block_time < BLOCK_TIME)
-    {
-        shoot_control.block_time++;
-        shoot_control.reverse_time = 0;
-    }
-    else if (shoot_control.block_time == BLOCK_TIME && shoot_control.reverse_time < REVERSE_TIME)
-    {
-        shoot_control.reverse_time++;
-    }
-    else
+    // jam detection
+    if (fabs(shoot_control.trigger_speed_set) < BLOCK_TRIGGER_SPEED)
     {
         shoot_control.block_time = 0;
+        shoot_control.reverse_time = 0;
+        if (fabs(shoot_control.speed) < IDLE_TRIGGER_SPEED)
+        {
+            shoot_control.trigger_motor_pid.max_out = 0;
+        }
+        else
+        {
+            shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
+        }
     }
+    else
+	{
+        shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
+
+		if (shoot_control.block_time >= BLOCK_TIME)
+		{
+			shoot_control.speed_set = -shoot_control.speed_set;
+		}
+
+		if ((fabs(shoot_control.speed) < BLOCK_TRIGGER_SPEED) && (shoot_control.block_time < BLOCK_TIME))
+		{
+			shoot_control.block_time++;
+			shoot_control.reverse_time = 0;
+		}
+		else if ((shoot_control.block_time >= BLOCK_TIME) && (shoot_control.reverse_time < REVERSE_TIME))
+		{
+			shoot_control.reverse_time++;
+		}
+		else
+		{
+			shoot_control.block_time = 0;
+		}
+	}
 }
 
 
@@ -511,17 +471,27 @@ static void shoot_bullet_control(void)
 
     if ((shoot_control.press_l == 0) && (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] != RC_SW_UP) && (shoot_control.key == SWITCH_TRIGGER_OFF))
     {
-        shoot_control.shoot_mode = SHOOT_DONE;
+        shoot_control.shoot_mode = SHOOT_STOP;
     }
 
-    if (rad_format(shoot_control.set_angle - shoot_control.angle) > 0.05f)
+#if TEST_SHOOT_WITH_REF
+    get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
+    if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
     {
-        shoot_control.trigger_speed_set = SEMI_AUTO_FIRE_TRIGGER_SPEED;
-        trigger_motor_turn_back();
+        shoot_control.trigger_speed_set = 0;
     }
     else
-    {
-        shoot_control.move_flag = 0;
-    }
+#endif
+	{
+		if (rad_format(shoot_control.set_angle - shoot_control.angle) > 0.05f)
+		{
+			shoot_control.trigger_speed_set = SEMI_AUTO_FIRE_TRIGGER_SPEED;
+		}
+		else
+		{
+			shoot_control.trigger_speed_set = 0.0f;
+			shoot_control.move_flag = 0;
+		}
+	}
 }
 
