@@ -216,6 +216,9 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     chassis_move_init->vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
     chassis_move_init->vy_min_speed = -NORMAL_MAX_CHASSIS_SPEED_Y;
 
+    chassis_move_init->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA;
+    chassis_move_init->wz_min_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
+
     chassis_move_init->vx_rc_sen = chassis_move_init->vx_max_speed / JOYSTICK_HALF_RANGE;
     chassis_move_init->vy_rc_sen = chassis_move_init->vy_max_speed / JOYSTICK_HALF_RANGE;
 
@@ -306,6 +309,9 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
           break;
         }
         }
+        chassis_move_transit->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA;
+        chassis_move_transit->wz_min_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
+
         chassis_move_transit->last_chassis_mode = chassis_move_transit->chassis_mode;
     }
 }
