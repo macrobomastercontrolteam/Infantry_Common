@@ -24,6 +24,11 @@
 #include "remote_control.h"
 #include "user_lib.h"
 
+#define SPINNING_CHASSIS_ULTRA_LOW_OMEGA RPM_TO_RADS(8.0f)
+#define SPINNING_CHASSIS_LOW_OMEGA RPM_TO_RADS(25.0f)
+#define SPINNING_CHASSIS_MED_OMEGA RPM_TO_RADS(30.0f)
+#define SPINNING_CHASSIS_HIGH_OMEGA RPM_TO_RADS(35.0f)
+
 //in the beginning of task ,wait a time
 #define CHASSIS_TASK_INIT_TIME 357
 
@@ -281,6 +286,8 @@ typedef struct
   fp32 vy_min_speed;  //max right speed, unit m/s
   fp32 vx_rc_sen;     //map joystick value to vertical speed
   fp32 vy_rc_sen;     //map joystick value to horizontal speed
+  fp32 wz_max_speed;  //max spinning speed, unit rad/s. Only enforced in CHASSIS_DYNAMIC_SPINNING
+  fp32 wz_min_speed;  //min spinning speed, unit rad/s. Only enforced in CHASSIS_DYNAMIC_SPINNING
   fp32 chassis_yaw;   //the yaw angle calculated by gyro sensor and gimbal motor
   fp32 chassis_pitch; //the pitch angle calculated by gyro sensor and gimbal motor
   fp32 chassis_roll;  //the roll angle calculated by gyro sensor and gimbal motor

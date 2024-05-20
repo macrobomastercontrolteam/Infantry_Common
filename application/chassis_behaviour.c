@@ -53,15 +53,15 @@
 #include "chassis_task.h"
 #include "AHRS_middleware.h"
 #include "user_lib.h"
+#include "bsp_rng.h" // for random number generator
 
 #include "gimbal_behaviour.h"
 #include "cv_usart_task.h"
 #include "detect_task.h"
 
-#define SPINNING_CHASSIS_ULTRA_LOW_OMEGA RPM_TO_RADS(8.0f)
-#define SPINNING_CHASSIS_LOW_OMEGA RPM_TO_RADS(25.0f)
-#define SPINNING_CHASSIS_MED_OMEGA RPM_TO_RADS(30.0f)
-#define SPINNING_CHASSIS_HIGH_OMEGA RPM_TO_RADS(35.0f)
+#define CHASSIS_DYNAMIC_SPINNING_WZ_CHANGE_PERIOD_MS 1000 //how often to change wz in dynamic spinning mode, in ms. Must be a multiple of CHASSIS_CONTROL_TIME_MS
+#define CHANGE_PEROID_OF_DYNAMIC_SPINNING_CHANGE_PERIOD_CHANGES 5 //how often to change the changing peroid, in number of changes.
+#define COMBINED_SPEED_LIMIT_INCREASE_FACTOR 1.25f //how much to increase combined speed limit by when shift pressed
 
 /**
   * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
@@ -99,6 +99,8 @@ static void chassis_no_move_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, ch
 static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
 static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
+
+static void chassis_dynamic_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
@@ -242,6 +244,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			break;
 		}
 		case CHASSIS_SPINNING:
+        case CHASSIS_DYNAMIC_SPINNING:
 		case CHASSIS_CV_CONTROL_SPINNING:
 		{
 			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
@@ -322,6 +325,11 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 		case CHASSIS_SPINNING:
 		{
 			chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+        case CHASSIS_DYNAMIC_SPINNING:
+		{
+			chassis_dynamic_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
 			break;
 		}
 		case CHASSIS_CV_CONTROL_SPINNING:
@@ -509,6 +517,62 @@ static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *an
     *angle_set = spinning_speed;
 }
 #endif
+
+static void chassis_dynamic_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
+{
+    if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
+    {
+        return;
+    }
+
+    //channel value and keyboard value change to speed set-point, in general
+    chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
+
+    static uint32_t ulLastUpdateTime = 0;
+    static uint32_t dynamic_spinning_change_peroid = CHASSIS_DYNAMIC_SPINNING_WZ_CHANGE_PERIOD_MS;
+    static uint32_t change_peroid_of_change = CHANGE_PEROID_OF_DYNAMIC_SPINNING_CHANGE_PERIOD_CHANGES;
+    static int speed_change_count = 0;
+    static fp32 spinning_speed = 0;
+
+    // Dial change: Range of possible speed, sign of speed, interval to change speed
+    int16_t dial_channel;
+    deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
+    // positive more rapid, negative less rapid
+    if (dial_channel != 0)
+    {
+        change_peroid_of_change = CHANGE_PEROID_OF_DYNAMIC_SPINNING_CHANGE_PERIOD_CHANGES - (int)((dial_channel)/330);
+        chassis_move_rc_to_vector->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA * ((dial_channel)/(JOYSTICK_HALF_RANGE*2)+1.0f);
+    }
+    else
+    {
+        // reset
+        change_peroid_of_change = CHANGE_PEROID_OF_DYNAMIC_SPINNING_CHANGE_PERIOD_CHANGES;
+        chassis_move_rc_to_vector->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA;
+        chassis_move_rc_to_vector->wz_min_speed = SPINNING_CHASSIS_LOW_OMEGA;
+    }    
+
+	// once per CHASSIS_DYNAMIC_SPINNING_WZ_CHANGE_PERIOD_MS, update spinning speed to a random number in between wz_min_speed and wz_max_speed
+	if (osKernelSysTick() - ulLastUpdateTime >= dynamic_spinning_change_peroid)
+	{
+        spinning_speed = RNG_get_random_range_fp32(chassis_move_rc_to_vector->wz_min_speed, chassis_move_rc_to_vector->wz_max_speed);
+        if (RNG_get_random_range_fp32(0.0F, 1.0F) > 0.65F) //randomly reverse spinning direction
+        {
+            spinning_speed = spinning_speed * -1;
+        }
+        ulLastUpdateTime = osKernelSysTick();
+        speed_change_count++;
+    }
+    
+    // change the speed changing period after certain number of changes 
+    if (speed_change_count >= change_peroid_of_change)
+    {
+        dynamic_spinning_change_peroid = RNG_get_random_range_fp32(250, 1500);
+        //keep as a multiple of CHASSIS_CONTROL_TIME_MS
+        dynamic_spinning_change_peroid -= fmod(dynamic_spinning_change_peroid, 2.0F);
+        speed_change_count = 0;
+    }
+	*angle_set = spinning_speed;
+}
 
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
 {
