@@ -48,7 +48,7 @@
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // avoid changing angle too often near zero speed
 #define STEER_TURN_X_SPEED_DEADZONE 0.01f
-#define STEER_TURN_Y_SPEED_DEADZONE (STEER_TURN_X_SPEED_DEADZONE*CHASSIS_VY_RC_SEN/CHASSIS_VX_RC_SEN)
+#define STEER_TURN_Y_SPEED_DEADZONE (STEER_TURN_X_SPEED_DEADZONE * NORMAL_MAX_CHASSIS_SPEED_Y / NORMAL_MAX_CHASSIS_SPEED_X)
 #define STEER_TURN_W_SPEED_DEADZONE 0.01f
 #endif
 
@@ -97,14 +97,12 @@
 #define MAX_WHEEL_SPEED 4.0f
 //chassis forward or back max speed
 #define NORMAL_MAX_CHASSIS_SPEED_X 3.0f
+#define SPRINT_MAX_CHASSIS_SPEED_X 5.0f
 //chassis left or right max speed
 #define NORMAL_MAX_CHASSIS_SPEED_Y 3.0f
+#define SPRINT_MAX_CHASSIS_SPEED_Y 5.0f
 #define NORMAL_MAX_CHASSIS_SPEED_WZ RPM_TO_RADS(60.0f)
 
-// map joystick value (max 660) to vertial speed (m/s)
-#define CHASSIS_VX_RC_SEN (NORMAL_MAX_CHASSIS_SPEED_X / JOYSTICK_HALF_RANGE)
-// map joystick value (max 660) to horizontal speed (m/s)
-#define CHASSIS_VY_RC_SEN (NORMAL_MAX_CHASSIS_SPEED_Y / JOYSTICK_HALF_RANGE)
 // In follow-yaw mode, map joystick value to increment in target yaw angle
 #define CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S 2.0f
 #define CHASSIS_ANGLE_Z_RC_SEN_INC (PI / 2.0f / CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
@@ -219,6 +217,8 @@ typedef struct
   fp32 vx_min_speed;  //max backward speed, unit m/s
   fp32 vy_max_speed;  //max letf speed, unit m/s
   fp32 vy_min_speed;  //max right speed, unit m/s
+  fp32 vx_rc_sen;     //map joystick value to vertical speed
+  fp32 vy_rc_sen;     //map joystick value to horizontal speed
   fp32 chassis_yaw;   //the yaw angle calculated by gyro sensor and gimbal motor
   fp32 chassis_pitch; //the pitch angle calculated by gyro sensor and gimbal motor
   fp32 chassis_roll;  //the roll angle calculated by gyro sensor and gimbal motor
