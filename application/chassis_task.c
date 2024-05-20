@@ -29,6 +29,8 @@
 #include "chassis_power_control.h"
 #include "cv_usart_task.h"
 
+#define STEER_MOTOR_UPSIDE_DOWN_MOUNTING 0
+
 /**
   * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
   *                 data point initialization, gimbal motor data point initialization, and gyro sensor angle point initialization.
@@ -509,11 +511,12 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
       {vx_set + tangential_speed_x_rear_wheels, vy_set + tangential_speed_y_rear_wheels},
     };
 
-    // mirror x axis for as-built robot
+#if STEER_MOTOR_UPSIDE_DOWN_MOUNTING
     wheel_velocity[0][1] = -wheel_velocity[0][1];
     wheel_velocity[1][1] = -wheel_velocity[1][1];
     wheel_velocity[2][1] = -wheel_velocity[2][1];
     wheel_velocity[3][1] = -wheel_velocity[3][1];
+#endif
 
     static fp32 last_steer_wheel_angle_target[4];
     static uint8_t reverse_flag[4];
