@@ -190,40 +190,37 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
     gimbal_behavour_set(gimbal_mode_set);
 
     //accoring to gimbal_behaviour, set motor control mode
-    if (gimbal_behaviour == GIMBAL_ZERO_FORCE)
+    switch (gimbal_behaviour)
     {
-        gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
-        gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
-    }
-    else if (gimbal_behaviour == GIMBAL_INIT)
-    {
-        gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCODER;
-        gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCODER;
-    }
-    else if (gimbal_behaviour == GIMBAL_CALI)
-    {
-        gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
-        gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
-    }
-    else if (gimbal_behaviour == GIMBAL_ABSOLUTE_ANGLE)
-    {
-        gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
-        gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
-    }
-    else if ((gimbal_behaviour == GIMBAL_AUTO_AIM) || (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL))
-    {
-        gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_CAMERA;
-        gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_CAMERA;
-    }
-    else if (gimbal_behaviour == GIMBAL_RELATIVE_ANGLE)
-    {
-        gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCODER;
-        gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCODER;
-    }
-    else if (gimbal_behaviour == GIMBAL_MOTIONLESS)
-    {
-        gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCODER;
-        gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCODER;
+        case GIMBAL_ZERO_FORCE:
+        case GIMBAL_CALI:
+        {
+            gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
+            gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
+            break;
+        }
+        case GIMBAL_ABSOLUTE_ANGLE:
+        {
+            gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
+            gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
+            break;
+        }
+        case GIMBAL_AUTO_AIM:
+        case GIMBAL_AUTO_AIM_PATROL:
+        {
+            gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_CAMERA;
+            gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_CAMERA;
+            break;
+        }
+        case GIMBAL_INIT:
+        case GIMBAL_RELATIVE_ANGLE:
+        case GIMBAL_MOTIONLESS:
+        default:
+        {
+            gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCODER;
+            gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_ENCODER;
+            break;
+        }
     }
 
 #if GIMBAL_TEST_MODE
@@ -247,42 +244,50 @@ void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, gimbal_control
         return;
     }
 
-
-    if (gimbal_behaviour == GIMBAL_ZERO_FORCE)
+    switch (gimbal_behaviour)
     {
-        gimbal_zero_force_control(add_yaw, add_pitch, gimbal_control_set);
+        case GIMBAL_ZERO_FORCE:
+        {
+            gimbal_zero_force_control(add_yaw, add_pitch, gimbal_control_set);
+            break;
+        }
+        case GIMBAL_INIT:
+        {
+            gimbal_init_control(add_yaw, add_pitch, gimbal_control_set);
+            break;
+        }
+        case GIMBAL_CALI:
+        {
+            gimbal_cali_control(add_yaw, add_pitch, gimbal_control_set);
+            break;
+        }
+        case GIMBAL_ABSOLUTE_ANGLE:
+        {
+            gimbal_absolute_angle_control(add_yaw, add_pitch, gimbal_control_set);
+            break;
+        }
+        case GIMBAL_AUTO_AIM:
+        {
+            gimbal_cv_control(add_yaw, add_pitch, gimbal_control_set);
+            break;
+        }
+        case GIMBAL_AUTO_AIM_PATROL:
+        {
+            gimbal_cv_control_patrol(add_yaw, add_pitch, gimbal_control_set);
+            break;
+        }
+        case GIMBAL_RELATIVE_ANGLE:
+        {
+            gimbal_relative_angle_control(add_yaw, add_pitch, gimbal_control_set);
+            break;
+        }
+        case GIMBAL_MOTIONLESS:
+        default:
+        {
+            gimbal_motionless_control(add_yaw, add_pitch, gimbal_control_set);
+            break;
+        }
     }
-    else if (gimbal_behaviour == GIMBAL_INIT)
-    {
-        gimbal_init_control(add_yaw, add_pitch, gimbal_control_set);
-    }
-    else if (gimbal_behaviour == GIMBAL_CALI)
-    {
-        gimbal_cali_control(add_yaw, add_pitch, gimbal_control_set);
-    }
-    else if (gimbal_behaviour == GIMBAL_ABSOLUTE_ANGLE)
-    {
-        gimbal_absolute_angle_control(add_yaw, add_pitch, gimbal_control_set);
-    }
-#if CV_INTERFACE
-    else if (gimbal_behaviour == GIMBAL_AUTO_AIM)
-    {
-        gimbal_cv_control(add_yaw, add_pitch, gimbal_control_set);
-    }
-    else if (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)
-    {
-        gimbal_cv_control_patrol(add_yaw, add_pitch, gimbal_control_set);
-    }
-#endif
-    else if (gimbal_behaviour == GIMBAL_RELATIVE_ANGLE)
-    {
-        gimbal_relative_angle_control(add_yaw, add_pitch, gimbal_control_set);
-    }
-    else if (gimbal_behaviour == GIMBAL_MOTIONLESS)
-    {
-        gimbal_motionless_control(add_yaw, add_pitch, gimbal_control_set);
-    }
-
 }
 
 /**
@@ -493,50 +498,57 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
         return;
     }
     static uint16_t cali_time = 0;
+	switch (gimbal_control_set->gimbal_cali.step)
+	{
+		case GIMBAL_CALI_PITCH_MAX_STEP:
+		{
+			*pitch = GIMBAL_CALI_MOTOR_SET;
+			*yaw = 0;
+			// judge gyro data, and record max and min angle data
+			gimbal_cali_gyro_judge(gimbal_control_set->gimbal_pitch_motor.motor_gyro, cali_time, gimbal_control_set->gimbal_cali.max_pitch,
+			                       gimbal_control_set->gimbal_pitch_motor.absolute_angle, gimbal_control_set->gimbal_cali.max_pitch_ecd,
+			                       gimbal_control_set->gimbal_pitch_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
+			break;
+		}
+		case GIMBAL_CALI_PITCH_MIN_STEP:
+		{
+			*pitch = -GIMBAL_CALI_MOTOR_SET;
+			*yaw = 0;
 
-    if (gimbal_control_set->gimbal_cali.step == GIMBAL_CALI_PITCH_MAX_STEP)
-    {
+			gimbal_cali_gyro_judge(gimbal_control_set->gimbal_pitch_motor.motor_gyro, cali_time, gimbal_control_set->gimbal_cali.min_pitch,
+			                       gimbal_control_set->gimbal_pitch_motor.absolute_angle, gimbal_control_set->gimbal_cali.min_pitch_ecd,
+			                       gimbal_control_set->gimbal_pitch_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
+		}
+		case GIMBAL_CALI_YAW_MAX_STEP:
+		{
+			*pitch = 0;
+			*yaw = GIMBAL_CALI_MOTOR_SET;
 
-        *pitch = GIMBAL_CALI_MOTOR_SET;
-        *yaw = 0;
+			gimbal_cali_gyro_judge(gimbal_control_set->gimbal_yaw_motor.motor_gyro, cali_time, gimbal_control_set->gimbal_cali.max_yaw,
+			                       gimbal_control_set->gimbal_yaw_motor.absolute_angle, gimbal_control_set->gimbal_cali.max_yaw_ecd,
+			                       gimbal_control_set->gimbal_yaw_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
+			break;
+		}
+		case GIMBAL_CALI_YAW_MIN_STEP:
+		{
+			*pitch = 0;
+			*yaw = -GIMBAL_CALI_MOTOR_SET;
 
-        // judge gyro data, and record max and min angle data
-        gimbal_cali_gyro_judge(gimbal_control_set->gimbal_pitch_motor.motor_gyro, cali_time, gimbal_control_set->gimbal_cali.max_pitch,
-                               gimbal_control_set->gimbal_pitch_motor.absolute_angle, gimbal_control_set->gimbal_cali.max_pitch_ecd,
-                               gimbal_control_set->gimbal_pitch_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
-    }
-    else if (gimbal_control_set->gimbal_cali.step == GIMBAL_CALI_PITCH_MIN_STEP)
-    {
-        *pitch = -GIMBAL_CALI_MOTOR_SET;
-        *yaw = 0;
-
-        gimbal_cali_gyro_judge(gimbal_control_set->gimbal_pitch_motor.motor_gyro, cali_time, gimbal_control_set->gimbal_cali.min_pitch,
-                               gimbal_control_set->gimbal_pitch_motor.absolute_angle, gimbal_control_set->gimbal_cali.min_pitch_ecd,
-                               gimbal_control_set->gimbal_pitch_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
-    }
-    else if (gimbal_control_set->gimbal_cali.step == GIMBAL_CALI_YAW_MAX_STEP)
-    {
-        *pitch = 0;
-        *yaw = GIMBAL_CALI_MOTOR_SET;
-
-        gimbal_cali_gyro_judge(gimbal_control_set->gimbal_yaw_motor.motor_gyro, cali_time, gimbal_control_set->gimbal_cali.max_yaw,
-                               gimbal_control_set->gimbal_yaw_motor.absolute_angle, gimbal_control_set->gimbal_cali.max_yaw_ecd,
-                               gimbal_control_set->gimbal_yaw_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
-    }
-
-    else if (gimbal_control_set->gimbal_cali.step == GIMBAL_CALI_YAW_MIN_STEP)
-    {
-        *pitch = 0;
-        *yaw = -GIMBAL_CALI_MOTOR_SET;
-
-        gimbal_cali_gyro_judge(gimbal_control_set->gimbal_yaw_motor.motor_gyro, cali_time, gimbal_control_set->gimbal_cali.min_yaw,
-                               gimbal_control_set->gimbal_yaw_motor.absolute_angle, gimbal_control_set->gimbal_cali.min_yaw_ecd,
-                               gimbal_control_set->gimbal_yaw_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
-    }
-    else if (gimbal_control_set->gimbal_cali.step == GIMBAL_CALI_END_STEP)
-    {
-        cali_time = 0;
-    }
+			gimbal_cali_gyro_judge(gimbal_control_set->gimbal_yaw_motor.motor_gyro, cali_time, gimbal_control_set->gimbal_cali.min_yaw,
+			                       gimbal_control_set->gimbal_yaw_motor.absolute_angle, gimbal_control_set->gimbal_cali.min_yaw_ecd,
+			                       gimbal_control_set->gimbal_yaw_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
+			break;
+		}
+		case GIMBAL_CALI_END_STEP:
+		{
+			cali_time = 0;
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
 }
 
 
