@@ -420,31 +420,21 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
     // Convert joystick and keyboard input to commands
     chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
 
+    // Convert dial input to spinning speed
+    int16_t dial_channel;
     fp32 spinning_speed;
-    // @TODO: add enemy detection
-    // if (enemy_detected)
-    // {
-    //     spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-    // }
-    // else
+    deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
+    dial_channel *= CHASSIS_SPIN_RC_SIGN;
+    // piecewise linear mapping
+    if (dial_channel > 0)
     {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-        spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-#else
-        if (chassis_move_rc_to_vector->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
-        {
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
-            spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-            spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-#endif
-        }
-        else
-        {
-            spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
-        }
-#endif
+        spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_POSITIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
     }
+    else
+    {
+        spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_NEGATIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
+    }
+
     *angle_set = rad_format(spinning_speed * ((fp32)CHASSIS_CONTROL_TIME_MS / (fp32)configTICK_RATE_HZ) + chassis_move_rc_to_vector->chassis_relative_angle_set);
 }
 
