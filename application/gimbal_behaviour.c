@@ -167,7 +167,6 @@ static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *
 gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
 
 #if GIMBAL_TEST_MODE
-fp32 yaw_ins_delta_1000;
 uint8_t gimbal_behaviour_global;
 static void J_scope_gimbal_behavior_test(void)
 {
@@ -640,9 +639,6 @@ static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_c
     // *pitch = moving_average_calc(pitch_target_adjustment, &(gimbal_control_set->gimbal_pitch_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
     *yaw = yaw_target_adjustment;
     *pitch = pitch_target_adjustment;
-#if GIMBAL_TEST_MODE
-    yaw_ins_delta_1000 = yaw_target_adjustment * 1000;
-#endif
 }
 
 /**

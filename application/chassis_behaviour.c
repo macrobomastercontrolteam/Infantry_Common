@@ -63,14 +63,6 @@
 #define SPINNING_CHASSIS_MED_OMEGA RPM_TO_RADS(30.0f)
 #define SPINNING_CHASSIS_HIGH_OMEGA RPM_TO_RADS(35.0f)
 
-#if CHASSIS_TEST_MODE
-int32_t chassis_behaviour_mode_int;
-static void J_scope_chassis_behavior_test(void)
-{
-    chassis_behaviour_mode_int = (int32_t)(chassis_behaviour_mode);
-}
-#endif
-
 /**
   * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
   *                 and chassis control mode is raw. The raw chassis control mode means set value
@@ -237,10 +229,6 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			break;
 		}
 	}
-
-#if CHASSIS_TEST_MODE
-    J_scope_chassis_behavior_test();
-#endif
 }
 
 

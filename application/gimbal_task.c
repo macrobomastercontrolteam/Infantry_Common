@@ -920,28 +920,28 @@ static void gimbal_motor_raw_angle_control(gimbal_motor_t *gimbal_motor)
 }
 
 #if GIMBAL_TEST_MODE
-int32_t yaw_cv_delta_int_1000;
-int32_t yaw_ins_int_1000, pitch_ins_int_1000;
-int32_t yaw_ins_set_1000, pitch_ins_set_1000;
-int32_t pitch_relative_set_1000, pitch_relative_angle_1000;
-int32_t yaw_speed_int_1000, pitch_speed_int_1000;
-int32_t yaw_speed_set_int_1000, pitch_speed_set_int_1000;
+fp32 yaw_cv_delta_fp32;
+fp32 yaw_ins_fp32, pitch_ins_fp32;
+fp32 yaw_ins_set_fp32, pitch_ins_set_fp32;
+fp32 pitch_relative_set_fp32, pitch_relative_angle_fp32;
+fp32 yaw_speed_fp32, pitch_speed_fp32;
+fp32 yaw_speed_set_fp32, pitch_speed_set_fp32;
 static void J_scope_gimbal_test(void)
 {
 #if CV_INTERFACE
-    yaw_cv_delta_int_1000 = (int32_t)(-CvCmdHandler.CvCmdMsg.xAngle * 1000);
+    yaw_cv_delta_fp32 = -CvCmdHandler.CvCmdMsg.xAngle * 180.0f / PI;
 #endif
-    yaw_ins_int_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.absolute_angle * 1000);
-    yaw_ins_set_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.absolute_angle_set * 1000);
-    yaw_speed_int_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.motor_gyro * 1000);
-    yaw_speed_set_int_1000 = (int32_t)(gimbal_control.gimbal_yaw_motor.motor_gyro_set * 1000);
+    yaw_ins_fp32 = gimbal_control.gimbal_yaw_motor.absolute_angle * 180.0f / PI;
+    yaw_ins_set_fp32 = gimbal_control.gimbal_yaw_motor.absolute_angle_set * 180.0f / PI;
+    yaw_speed_fp32 = gimbal_control.gimbal_yaw_motor.motor_gyro * 180.0f / PI;
+    yaw_speed_set_fp32 = gimbal_control.gimbal_yaw_motor.motor_gyro_set * 180.0f / PI;
 
-    pitch_ins_int_1000 = (int32_t)(gimbal_control.gimbal_pitch_motor.absolute_angle * 1000);
-    pitch_ins_set_1000 = (int32_t)(gimbal_control.gimbal_pitch_motor.absolute_angle_set * 1000);
-    pitch_speed_int_1000 = (int32_t)(gimbal_control.gimbal_pitch_motor.motor_gyro * 1000);
-    pitch_speed_set_int_1000 = (int32_t)(gimbal_control.gimbal_pitch_motor.motor_gyro_set * 1000);
-    pitch_relative_angle_1000 = (int32_t)(gimbal_control.gimbal_pitch_motor.relative_angle * 1000);
-    pitch_relative_set_1000 = (int32_t)(gimbal_control.gimbal_pitch_motor.relative_angle_set * 1000);
+    pitch_ins_fp32 = gimbal_control.gimbal_pitch_motor.absolute_angle * 180.0f / PI;
+    pitch_ins_set_fp32 = gimbal_control.gimbal_pitch_motor.absolute_angle_set * 180.0f / PI;
+    pitch_speed_fp32 = gimbal_control.gimbal_pitch_motor.motor_gyro * 180.0f / PI;
+    pitch_speed_set_fp32 = gimbal_control.gimbal_pitch_motor.motor_gyro_set * 180.0f / PI;
+    pitch_relative_angle_fp32 = gimbal_control.gimbal_pitch_motor.relative_angle * 180.0f / PI;
+    pitch_relative_set_fp32 = gimbal_control.gimbal_pitch_motor.relative_angle_set * 180.0f / PI;
 }
 #endif
 
