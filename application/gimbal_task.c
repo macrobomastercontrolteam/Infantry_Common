@@ -811,7 +811,7 @@ static void gimbal_relative_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
         return;
     }
     gimbal_motor->relative_angle_set += add;
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if ROBOT_YAW_HAS_SLIP_RING
     // Remove yaw motor limit for robots with slip ring
     if (motor_select != GIMBAL_YAW_MOTOR)
 #endif

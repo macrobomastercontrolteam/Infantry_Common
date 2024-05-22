@@ -114,7 +114,7 @@
 #define CHASSIS_SPIN_RC_OFFSET SPINNING_CHASSIS_LOW_OMEGA
 
 // Arbitrary offsets between chassis rotational center and centroid
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if ROBOT_YAW_HAS_SLIP_RING
 // slip ring is at the center of chassis
 #define CHASSIS_WZ_SET_SCALE 0.0f
 #else
