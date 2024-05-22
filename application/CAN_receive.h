@@ -102,13 +102,13 @@ extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t 
   */
 extern void CAN_cmd_chassis_reset_ID(void);
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 /**
   * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
   * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
   * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
+  * Extra for INFANTRY_2023_SWERVE:
   * @param[in]      steer_motor1: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
   * @param[in]      steer_motor2: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
   * @param[in]      steer_motor3: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
@@ -116,17 +116,6 @@ extern void CAN_cmd_chassis_reset_ID(void);
   * @retval         none
   */
 extern void CAN_cmd_chassis(void);
-#else
-/**
-  * @brief          send control current of motor (0x201, 0x202, 0x203, 0x204)
-  * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384] 
-  * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384] 
-  * @retval         none
-  */
-extern void CAN_cmd_chassis(void);
-#endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 extern void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes);
