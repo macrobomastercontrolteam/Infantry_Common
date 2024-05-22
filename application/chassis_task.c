@@ -85,12 +85,9 @@ supcap_t cap_message_rx;
 chassis_move_t chassis_move;
 
 #if CHASSIS_TEST_MODE
-fp32 chassis_relative_angle_fp32;
-fp32 chassis_relative_angle_set_fp32;
 static void J_scope_chassis_test(void)
 {
-    chassis_relative_angle_fp32 = (fp32)(chassis_move.chassis_yaw_motor->relative_angle * 1000);
-    chassis_relative_angle_set_fp32 = (fp32)(chassis_move.chassis_relative_angle_set * 1000);
+    ;
 }
 #endif
 
@@ -231,13 +228,18 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
         }
         case CHASSIS_VECTOR_SPINNING:
         {
-          chassis_move_transit->chassis_relative_angle_set = chassis_move_transit->chassis_yaw_motor->relative_angle;
+		  // Relative angle implementation for chassis spinning mode
+		  // chassis_move_transit->chassis_relative_angle_set = chassis_move_transit->chassis_yaw_motor->relative_angle;
           break;
         }
         case CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW:
         case CHASSIS_VECTOR_NO_FOLLOW_YAW:
         {
           chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
+          break;
+        }
+        default:
+        {
           break;
         }
         }

@@ -793,10 +793,11 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
     }
     gimbal_motor->absolute_angle_set = rad_format(gimbal_motor->absolute_angle_set + add);
 
-    if ((motor_select == GIMBAL_YAW_MOTOR) && (chassis_behaviour_mode == CHASSIS_SPINNING))
-    {
-        chassis_move.chassis_relative_angle_set = rad_format(chassis_move.chassis_relative_angle_set + add);
-    }
+    // Relative angle implementation for chassis spinning mode
+    // if ((motor_select == GIMBAL_YAW_MOTOR) && ((chassis_move.chassis_mode == CHASSIS_VECTOR_SPINNING))
+    // {
+    //     chassis_move.chassis_relative_angle_set = rad_format(chassis_move.chassis_relative_angle_set + add);
+    // }
 }
 /**
   * @brief          gimbal control mode :GIMBAL_MOTOR_ENCODER, use the encode relative angle  to control. 
