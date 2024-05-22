@@ -304,13 +304,16 @@ void decode_9015_motor_multiangle_feedback(uint8_t *data, const uint8_t bMotorId
 
 HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
 {
-	// uint8_t error_id = data[0] >> 4;
-	// if (error_id != 0)
-	// {
-	// 	biped.fBipedEnable = 0;
-	// 	return HAL_ERROR;
-	// }
-	// else
+	uint8_t error_id = data[0] >> 4;
+	if (error_id > 1)
+	{
+		// error_id == 0: motor disabled
+		// error_id == 1: motor enabled
+		// error_id >= 8: motor errors
+		biped.fBipedEnable = 0;
+		return HAL_ERROR;
+	}
+	else
 	{
 		uint16_t p_int = (data[1] << 8) | data[2];         // rad
 		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
