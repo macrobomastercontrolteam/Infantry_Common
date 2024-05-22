@@ -28,6 +28,38 @@
 #include "pid.h"
 #include "remote_control.h"
 #include "user_lib.h"
+
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+//pitch speed close-loop PID params, max out and max iout
+#define PITCH_SPEED_PID_KP        10000.0f // pitch starts shaking at 2600
+#define PITCH_SPEED_PID_KI        100.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   30000.0f
+#define PITCH_SPEED_PID_MAX_IOUT  5000.0f
+
+//yaw speed close-loop PID params, max out and max iout
+#define YAW_SPEED_PID_KP        35000.0f
+#define YAW_SPEED_PID_KI        200.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   30000.0f
+#define YAW_SPEED_PID_MAX_IOUT  5000.0f
+
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_GYRO_ABSOLUTE_PID_KP 30.0f
+#define PITCH_GYRO_ABSOLUTE_PID_KI 0.0f
+#define PITCH_GYRO_ABSOLUTE_PID_KD 0.0f
+#define PITCH_GYRO_ABSOLUTE_PID_MAX_OUT 10.0f
+#define PITCH_GYRO_ABSOLUTE_PID_MAX_IOUT 0.0f
+
+//yaw gyro angle close-loop PID params, max out and max iout
+#define YAW_GYRO_ABSOLUTE_PID_KP        23.0f
+#define YAW_GYRO_ABSOLUTE_PID_KI        0.0f
+#define YAW_GYRO_ABSOLUTE_PID_KD        0.0f
+#define YAW_GYRO_ABSOLUTE_PID_MAX_OUT   10.0f
+#define YAW_GYRO_ABSOLUTE_PID_MAX_IOUT  0.0f
+
+#else
+
 //pitch speed close-loop PID params, max out and max iout
 #define PITCH_SPEED_PID_KP        2250.0f // pitch starts shaking at 2600
 #define PITCH_SPEED_PID_KI        25.0f
@@ -55,6 +87,7 @@
 #define YAW_GYRO_ABSOLUTE_PID_KD        0.3f
 #define YAW_GYRO_ABSOLUTE_PID_MAX_OUT   10.0f
 #define YAW_GYRO_ABSOLUTE_PID_MAX_IOUT  0.0f
+#endif
 
 // PID angle loop
 #define PITCH_CAMERA_ANGLE_PID_KP 16.0f
@@ -148,7 +181,7 @@
  * Camera yaw angle: right
  * Camera pitch angle: up
  */
-#define YAW_RC_SEN    -0.000005f
+#define YAW_RC_SEN    -0.000007f
 #define PITCH_RC_SEN  -0.000006f //0.005
 
 #define YAW_MOUSE_SEN   -0.00005f
