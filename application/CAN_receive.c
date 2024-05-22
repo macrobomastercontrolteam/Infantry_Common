@@ -3,7 +3,6 @@
   * @file       can_receive.c/h
   * @brief      there is CAN interrupt function  to receive motor data,
   *             and CAN send function to send motor current to control motor.
-  *             ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½CANï¿½Ð¶Ï½ï¿½ï¿½Õºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿?,CANï¿½ï¿½ï¿½Íºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½.
   * @note
   * @history
   *  Version    Date            Author          Modification
@@ -118,11 +117,6 @@ uint8_t get_motor_array_index(can_msg_id_e _SINGLE_CAN_ID)
 /**
  * @brief          hal CAN fifo call back, receive motor data
  * @param[in]      hcan, the point to CAN handle
- * @retval         none
- */
-/**
- * @brief          hal¿âCAN»Øµ÷º¯Êý,½ÓÊÕµç»úÊý¾Ý
- * @param[in]      hcan:CAN¾ä±úÖ¸Õë
  * @retval         none
  */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
