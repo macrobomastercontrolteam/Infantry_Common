@@ -474,7 +474,7 @@ static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init)
     }
     PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, angle_pid_ptr, YAW_ANGLE_PID_MAX_OUT, YAW_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
     // yaw speed is fast, so benefit of filtering on noise is insignificant comparing to the delay effect
-    PID_init(&init->gimbal_yaw_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
+    PID_init(&init->gimbal_yaw_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, 0.85f, &filter_err_handler);
 }
 
 /**
@@ -506,7 +506,7 @@ static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init)
     }
     }
     PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, angle_pid_ptr, PITCH_PATROL_ANGLE_PID_MAX_OUT, PITCH_PATROL_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-    PID_init(&init->gimbal_pitch_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, PITCH_PATROL_SPEED_PID_MAX_OUT, PITCH_PATROL_SPEED_PID_MAX_IOUT, 0.6f, &filter_err_handler);
+    PID_init(&init->gimbal_pitch_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, PITCH_PATROL_SPEED_PID_MAX_OUT, PITCH_PATROL_SPEED_PID_MAX_IOUT, 0.85f, &filter_err_handler);
 }
 
 /**
