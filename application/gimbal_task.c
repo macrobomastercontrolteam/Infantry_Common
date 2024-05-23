@@ -51,14 +51,14 @@
 
 #define gimbal_yaw_pid_clear(gimbal_clear)                                                     \
     {                                                                                          \
-        gimbal_PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid);   \
-        gimbal_PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_relative_angle_pid);   \
+        PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid);   \
+        PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_relative_angle_pid);   \
         PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_gyro_pid);                    \
     }
 #define gimbal_pitch_pid_clear(gimbal_clear)                                                   \
     {                                                                                          \
-        gimbal_PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid); \
-        gimbal_PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_relative_angle_pid); \
+        PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid); \
+        PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_relative_angle_pid); \
         PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_gyro_pid);                  \
     }
 
@@ -154,34 +154,6 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
 static void gimbal_relative_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, uint8_t motor_select);
 
 /**
-  * @brief          gimbal angle pid init, because angle is in range(-pi,pi),can't use PID in pid.c
-  * @param[out]     pid: pid data pointer stucture
-  * @param[in]      maxout: pid max out
-  * @param[in]      intergral_limit: pid max iout
-  * @param[in]      kp: pid kp
-  * @param[in]      ki: pid ki
-  * @param[in]      kd: pid kd
-  * @retval         none
-  */
-static void gimbal_PID_init(gimbal_PID_t *pid, fp32 maxout, fp32 intergral_limit, fp32 kp, fp32 ki, fp32 kd);
-
-/**
-  * @brief          gimbal PID clear, clear pid.out, iout.
-  * @param[out]     pid_clear: "gimbal_control" valiable point
-  * @retval         none
-  */
-static void gimbal_PID_clear(gimbal_PID_t *pid_clear);
-/**
-  * @brief          gimbal angle pid calc, because angle is in range(-pi,pi),can't use PID in pid.c
-  * @param[out]     pid: pid data pointer stucture
-  * @param[in]      get: angle feeback
-  * @param[in]      set: angle set-point
-  * @param[in]      error_delta: rotation speed
-  * @retval         pid out
-  */
-static fp32 gimbal_PID_calc(gimbal_PID_t *pid, fp32 get, fp32 set, fp32 error_delta);
-
-/**
   * @brief          gimbal calibration calculate
   * @param[in]      gimbal_cali: cali data
   * @param[out]     yaw_offset:yaw motor middle place encode
@@ -202,7 +174,7 @@ gimbal_control_t gimbal_control;
 static int16_t yaw_can_set_current = 0, pitch_can_set_current = 0, trigger_set_current = 0;
 
 /**
-  * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME (1ms) 
+  * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME_MS (1ms) 
   * @param[in]      pvParameters: null
   * @retval         none
   */
@@ -216,7 +188,7 @@ void gimbal_task(void const *pvParameters)
     //wait until all motors are online
     while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
     {
-        osDelay(GIMBAL_CONTROL_TIME);
+        osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
     }
 
@@ -256,7 +228,7 @@ void gimbal_task(void const *pvParameters)
         J_scope_gimbal_test();
 #endif
 
-        osDelayUntil(&ulSystemTime, GIMBAL_CONTROL_TIME);
+        osDelayUntil(&ulSystemTime, GIMBAL_CONTROL_TIME_MS);
         ulSystemTime = osKernelSysTick();
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
@@ -478,20 +450,22 @@ const gimbal_motor_t *get_pitch_motor_point(void)
 static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init)
 {
     static const fp32 yaw_speed_pid[3] = {YAW_SPEED_PID_KP, YAW_SPEED_PID_KI, YAW_SPEED_PID_KD};
+    static const fp32 yaw_angle_pid[3] = {YAW_ANGLE_PID_KP, YAW_ANGLE_PID_KI, YAW_ANGLE_PID_KD};
     static const fp32 yaw_camera_speed_pid[3] = {YAW_CAMERA_SPEED_PID_KP, YAW_CAMERA_SPEED_PID_KI, YAW_CAMERA_SPEED_PID_KD};
+    static const fp32 yaw_camera_angle_pid[3] = {YAW_CAMERA_ANGLE_PID_KP, YAW_CAMERA_ANGLE_PID_KI, YAW_CAMERA_ANGLE_PID_KD};
     switch (init->gimbal_yaw_motor.gimbal_motor_mode)
     {
     case GIMBAL_MOTOR_CAMERA:
     {
-        gimbal_PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, YAW_CAMERA_ANGLE_PID_MAX_OUT, YAW_CAMERA_ANGLE_PID_MAX_IOUT, YAW_CAMERA_ANGLE_PID_KP, YAW_CAMERA_ANGLE_PID_KI, YAW_CAMERA_ANGLE_PID_KD);
-        PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, yaw_camera_speed_pid, YAW_CAMERA_SPEED_PID_MAX_OUT, YAW_CAMERA_SPEED_PID_MAX_IOUT, &raw_err_handler);
+        PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, yaw_camera_angle_pid, YAW_CAMERA_ANGLE_PID_MAX_OUT, YAW_CAMERA_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+        PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, yaw_camera_speed_pid, YAW_CAMERA_SPEED_PID_MAX_OUT, YAW_CAMERA_SPEED_PID_MAX_IOUT, 0.9f, &filter_err_handler);
         break;
     }
     case GIMBAL_MOTOR_GYRO:
     default:
     {
-        gimbal_PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, YAW_ANGLE_PID_MAX_OUT, YAW_ANGLE_PID_MAX_IOUT, YAW_ANGLE_PID_KP, YAW_ANGLE_PID_KI, YAW_ANGLE_PID_KD);
-        PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, yaw_speed_pid, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, &raw_err_handler);
+        PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, yaw_angle_pid, YAW_ANGLE_PID_MAX_OUT, YAW_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+        PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, yaw_speed_pid, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, 0.9f, &filter_err_handler);
         break;
     }
     }
@@ -503,20 +477,22 @@ static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init)
 static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init)
 {
     static const fp32 pitch_speed_pid[3] = {PITCH_SPEED_PID_KP, PITCH_SPEED_PID_KI, PITCH_SPEED_PID_KD};
+    static const fp32 pitch_angle_pid[3] = {PITCH_ANGLE_PID_KP, PITCH_ANGLE_PID_KI, PITCH_ANGLE_PID_KD};
     static const fp32 pitch_camera_speed_pid[3] = {PITCH_CAMERA_SPEED_PID_KP, PITCH_CAMERA_SPEED_PID_KI, PITCH_CAMERA_SPEED_PID_KD};
+    static const fp32 pitch_camera_angle_pid[3] = {PITCH_CAMERA_ANGLE_PID_KP, PITCH_CAMERA_ANGLE_PID_KI, PITCH_CAMERA_ANGLE_PID_KD};
     switch (init->gimbal_pitch_motor.gimbal_motor_mode)
     {
     case GIMBAL_MOTOR_CAMERA:
     {
-        gimbal_PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PITCH_CAMERA_ANGLE_PID_MAX_OUT, PITCH_CAMERA_ANGLE_PID_MAX_IOUT, PITCH_CAMERA_ANGLE_PID_KP, PITCH_CAMERA_ANGLE_PID_KI, PITCH_CAMERA_ANGLE_PID_KD);
-        PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, pitch_camera_speed_pid, PITCH_CAMERA_SPEED_PID_MAX_OUT, PITCH_CAMERA_SPEED_PID_MAX_IOUT, &raw_err_handler);
+        PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, pitch_camera_angle_pid, PITCH_CAMERA_ANGLE_PID_MAX_OUT, PITCH_CAMERA_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+        PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, pitch_camera_speed_pid, PITCH_CAMERA_SPEED_PID_MAX_OUT, PITCH_CAMERA_SPEED_PID_MAX_IOUT, 0.9f, &filter_err_handler);
         break;
     }
     case GIMBAL_MOTOR_GYRO:
     default:
     {
-        gimbal_PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PITCH_ANGLE_PID_MAX_OUT, PITCH_ANGLE_PID_MAX_IOUT, PITCH_ANGLE_PID_KP, PITCH_ANGLE_PID_KI, PITCH_ANGLE_PID_KD);
-        PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, pitch_speed_pid, PITCH_SPEED_PID_MAX_OUT, PITCH_SPEED_PID_MAX_IOUT, &raw_err_handler);
+        PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, pitch_angle_pid, PITCH_ANGLE_PID_MAX_OUT, PITCH_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+        PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, pitch_speed_pid, PITCH_SPEED_PID_MAX_OUT, PITCH_SPEED_PID_MAX_IOUT, 0.9f, &filter_err_handler);
         break;
     }
     }
@@ -537,9 +513,12 @@ static void gimbal_init(gimbal_control_t *init)
     init->gimbal_rc_ctrl = get_remote_control_point();
     init->gimbal_yaw_motor.gimbal_motor_mode = init->gimbal_yaw_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_RAW;
     init->gimbal_pitch_motor.gimbal_motor_mode = init->gimbal_pitch_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_RAW;
-    gimbal_PID_init(&init->gimbal_yaw_motor.gimbal_motor_relative_angle_pid, YAW_ENCODE_RELATIVE_PID_MAX_OUT, YAW_ENCODE_RELATIVE_PID_MAX_IOUT, YAW_ENCODE_RELATIVE_PID_KP, YAW_ENCODE_RELATIVE_PID_KI, YAW_ENCODE_RELATIVE_PID_KD);
+
+    static const fp32 yaw_encode_relative_angle_pid[3] = {YAW_ENCODE_RELATIVE_PID_KP, YAW_ENCODE_RELATIVE_PID_KI, YAW_ENCODE_RELATIVE_PID_KD};
+    static const fp32 pitch_encode_relative_angle_pid[3] = {PITCH_ENCODE_RELATIVE_PID_KP, PITCH_ENCODE_RELATIVE_PID_KI, PITCH_ENCODE_RELATIVE_PID_KD};
+    PID_init(&init->gimbal_yaw_motor.gimbal_motor_relative_angle_pid, PID_POSITION, yaw_encode_relative_angle_pid, YAW_ENCODE_RELATIVE_PID_MAX_OUT, YAW_ENCODE_RELATIVE_PID_MAX_IOUT, 0, &rad_err_handler);
     gimbal_yaw_abs_angle_PID_init(init);
-    gimbal_PID_init(&init->gimbal_pitch_motor.gimbal_motor_relative_angle_pid, PITCH_ENCODE_RELATIVE_PID_MAX_OUT, PITCH_ENCODE_RELATIVE_PID_MAX_IOUT, PITCH_ENCODE_RELATIVE_PID_KP, PITCH_ENCODE_RELATIVE_PID_KI, PITCH_ENCODE_RELATIVE_PID_KD);
+    PID_init(&init->gimbal_pitch_motor.gimbal_motor_relative_angle_pid, PID_POSITION, pitch_encode_relative_angle_pid, PITCH_ENCODE_RELATIVE_PID_MAX_OUT, PITCH_ENCODE_RELATIVE_PID_MAX_IOUT, 0, &rad_err_handler);
     gimbal_pitch_abs_angle_PID_init(init);
 
   #if CV_INTERFACE
@@ -884,8 +863,8 @@ static void gimbal_motor_absolute_angle_control(gimbal_motor_t *gimbal_motor)
         return;
     }
     // cascade pid: angle loop & speed loop
-    gimbal_motor->motor_gyro_set = gimbal_PID_calc(&gimbal_motor->gimbal_motor_absolute_angle_pid, gimbal_motor->absolute_angle, gimbal_motor->absolute_angle_set, gimbal_motor->motor_gyro);
-    gimbal_motor->current_set = PID_calc(&gimbal_motor->gimbal_motor_gyro_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set);
+    gimbal_motor->motor_gyro_set = PID_calc_with_dot(&gimbal_motor->gimbal_motor_absolute_angle_pid, gimbal_motor->absolute_angle, gimbal_motor->absolute_angle_set, GIMBAL_CONTROL_TIME_S, gimbal_motor->motor_gyro);
+    gimbal_motor->current_set = PID_calc(&gimbal_motor->gimbal_motor_gyro_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set, GIMBAL_CONTROL_TIME_S);
 
     gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
 }
@@ -902,8 +881,8 @@ static void gimbal_motor_relative_angle_control(gimbal_motor_t *gimbal_motor)
     }
 
     // cascade pid: angle loop & speed loop
-    gimbal_motor->motor_gyro_set = gimbal_PID_calc(&gimbal_motor->gimbal_motor_relative_angle_pid, gimbal_motor->relative_angle, gimbal_motor->relative_angle_set, gimbal_motor->motor_gyro);
-    gimbal_motor->current_set = PID_calc(&gimbal_motor->gimbal_motor_gyro_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set);
+    gimbal_motor->motor_gyro_set = PID_calc_with_dot(&gimbal_motor->gimbal_motor_relative_angle_pid, gimbal_motor->relative_angle, gimbal_motor->relative_angle_set, GIMBAL_CONTROL_TIME_S, gimbal_motor->motor_gyro);
+    gimbal_motor->current_set = PID_calc(&gimbal_motor->gimbal_motor_gyro_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set, GIMBAL_CONTROL_TIME_S);
 
     gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
 }
@@ -948,65 +927,6 @@ static void J_scope_gimbal_test(void)
     pitch_relative_set_fp32 = gimbal_control.gimbal_pitch_motor.relative_angle_set * 180.0f / PI;
 }
 #endif
-
-/**
-  * @brief          "gimbal_control" valiable initialization, include pid initialization, remote control data point initialization, gimbal motors
-  *                 data point initialization, and gyro sensor angle point initialization.
-  * @param[out]     gimbal_init: "gimbal_control" valiable point
-  * @retval         none
-  */
-static void gimbal_PID_init(gimbal_PID_t *pid, fp32 maxout, fp32 max_iout, fp32 kp, fp32 ki, fp32 kd)
-{
-    if (pid == NULL)
-    {
-        return;
-    }
-    pid->kp = kp;
-    pid->ki = ki;
-    pid->kd = kd;
-
-    pid->err = 0.0f;
-    pid->get = 0.0f;
-
-    pid->max_iout = max_iout;
-    pid->max_out = maxout;
-}
-
-static fp32 gimbal_PID_calc(gimbal_PID_t *pid, fp32 get, fp32 set, fp32 error_delta)
-{
-    fp32 err;
-    if (pid == NULL)
-    {
-        return 0.0f;
-    }
-    pid->get = get;
-    pid->set = set;
-
-    err = set - get;
-    pid->err = rad_format(err);
-    pid->Pout = pid->kp * pid->err;
-    pid->Iout += pid->ki * pid->err;
-    pid->Dout = pid->kd * error_delta;
-    LimitMax(&pid->Iout, pid->max_iout);
-    pid->out = pid->Pout + pid->Iout + pid->Dout;
-    LimitMax(&pid->out, pid->max_out);
-    return pid->out;
-}
-
-/**
-  * @brief          gimbal PID clear, clear pid.out, iout.
-  * @param[out]     gimbal_pid_clear: "gimbal_control" valiable point
-  * @retval         none
-  */
-static void gimbal_PID_clear(gimbal_PID_t *gimbal_pid_clear)
-{
-    if (gimbal_pid_clear == NULL)
-    {
-        return;
-    }
-    gimbal_pid_clear->err = gimbal_pid_clear->set = gimbal_pid_clear->get = 0.0f;
-    gimbal_pid_clear->out = gimbal_pid_clear->Pout = gimbal_pid_clear->Iout = gimbal_pid_clear->Dout = 0.0f;
-}
 
 /**
  * @brief Emergency stop condition for sentry

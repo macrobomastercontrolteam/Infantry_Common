@@ -70,7 +70,7 @@ void detect_task(void const *pvParameters)
     while (1)
     {
         static uint8_t error_num_display = 0;
-        osDelayUntil(&ulSystemTime, DETECT_CONTROL_TIME);
+        osDelayUntil(&ulSystemTime, DETECT_CONTROL_TIME_MS);
         ulSystemTime = osKernelSysTick();
 
         error_num_display = ERROR_LIST_LENGTH;

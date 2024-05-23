@@ -22,7 +22,7 @@
 // #include "detect_task.h"
 // #include "voltage_task.h"
 
-// #define OLED_CONTROL_TIME 10
+// #define OLED_CONTROL_TIME_MS 10.0f
 // #define REFRESH_RATE    10
 
 // const error_t *error_list_local;
@@ -75,7 +75,7 @@
 //         {
 //             refresh_tick++;
 //             //10Hz refresh
-//             if(refresh_tick > configTICK_RATE_HZ / (OLED_CONTROL_TIME * REFRESH_RATE))
+//             if(refresh_tick > configTICK_RATE_HZ / (OLED_CONTROL_TIME_MS * REFRESH_RATE))
 //             {
 //                 refresh_tick = 0;
 //                 OLED_operate_gram(PEN_CLEAR);
@@ -121,6 +121,6 @@
 
 
 //         last_oled_error = now_oled_errror;
-//         osDelay(OLED_CONTROL_TIME);
+//         osDelay(OLED_CONTROL_TIME_MS);
 //     }
 // }

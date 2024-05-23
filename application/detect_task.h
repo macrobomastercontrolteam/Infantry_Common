@@ -39,7 +39,7 @@
 
 
 #define DETECT_TASK_INIT_TIME 57
-#define DETECT_CONTROL_TIME 10
+#define DETECT_CONTROL_TIME_MS 10
 
 // TOE: table of equipment
 enum errorList

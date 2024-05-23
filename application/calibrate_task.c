@@ -1,7 +1,7 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       calibrate_task.c/h
-  * @brief      calibrate these device£¬include gimbal, gyro, accel, magnetometer,
+  * @brief      calibrate these deviceï¿½ï¿½include gimbal, gyro, accel, magnetometer,
   *             chassis. gimbal calibration is to calc the midpoint, max/min 
   *             relative angle. gyro calibration is to calc the zero drift.
   *             accel and mag calibration have not been implemented yet, because
@@ -208,7 +208,7 @@ void calibrate_task(void const *pvParameters)
                 }
             }
         }
-        osDelay(CALIBRATE_CONTROL_TIME);
+        osDelay(CALIBRATE_CONTROL_TIME_MS);
 #if INCLUDE_uxTaskGetStackHighWaterMark
         calibrate_task_stack = uxTaskGetStackHighWaterMark(NULL);
 #endif
@@ -216,7 +216,7 @@ void calibrate_task(void const *pvParameters)
 }
 
 /**
-  * @brief          get imu control temperature, unit ¡æ
+  * @brief          get imu control temperature, unit ï¿½ï¿½
   * @param[in]      none
   * @retval         imu control temperature
   */
