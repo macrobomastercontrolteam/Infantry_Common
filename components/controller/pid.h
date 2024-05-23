@@ -82,5 +82,6 @@ fp32 raw_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
 fp32 rad_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
 fp32 filter_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
 fp32 filter_rad_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
+fp32 PID_calc_with_dot(pid_type_def *pid, fp32 ref, fp32 set, fp32 dt, fp32 ref_dot);
 
 #endif
