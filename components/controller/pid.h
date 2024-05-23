@@ -33,6 +33,7 @@ typedef struct
 
     fp32 max_out;
     fp32 max_iout;
+    fp32 filter_coeff;
 
     fp32 set;
     fp32 fdb;
@@ -44,7 +45,7 @@ typedef struct
     fp32 Dbuf[3];  // Differential term 0: latest, 1: previous, 2: previous previous
     fp32 error[3]; // Error term 0: latest, 1: previous, 2: previous previous
 
-    fp32 (*err_handler)(fp32 set, fp32 ref);
+    fp32 (*err_handler)(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
 
 } pid_type_def;
 /**
@@ -57,7 +58,7 @@ typedef struct
   * @param[in]      max_iout: pid max iout
   * @retval         none
   */
-extern void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 max_out, fp32 max_iout, fp32 (*err_handler)(fp32 set, fp32 ref));
+extern void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 max_out, fp32 max_iout, fp32 filter_coeff, fp32 (*err_handler)(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff));
 
 /**
   * @brief          pid calculate 
@@ -66,7 +67,7 @@ extern void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 ma
   * @param[in]      set: set point
   * @retval         pid out
   */
-extern fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set);
+extern fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set, fp32 dt);
 
 /**
   * @brief          pid out clear
@@ -77,6 +78,9 @@ extern void PID_clear(pid_type_def *pid);
 
 extern void LimitMax(fp32 *num, fp32 Limit);
 
-fp32 raw_err_handler(fp32 set, fp32 ref);
+fp32 raw_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
+fp32 rad_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
+fp32 filter_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
+fp32 filter_rad_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff);
 
 #endif
