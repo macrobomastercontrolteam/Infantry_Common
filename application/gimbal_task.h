@@ -187,8 +187,8 @@
 #define YAW_MOUSE_SEN   -0.00005f
 #define PITCH_MOUSE_SEN 0.00005f
 
-#define GIMBAL_CONTROL_TIME 1
-#define MS_TO_SEC 1000.0f
+#define GIMBAL_CONTROL_TIME_MS 5.0f
+#define GIMBAL_CONTROL_TIME_S (GIMBAL_CONTROL_TIME_MS / 1000.0f)
 
 //test mode, 0 close, 1 open
 #define GIMBAL_TEST_MODE 0
@@ -237,29 +237,9 @@ typedef enum
 
 typedef struct
 {
-    fp32 kp;
-    fp32 ki;
-    fp32 kd;
-
-    fp32 set;
-    fp32 get;
-    fp32 err;
-
-    fp32 max_out;
-    fp32 max_iout;
-
-    fp32 Pout;
-    fp32 Iout;
-    fp32 Dout;
-
-    fp32 out;
-} gimbal_PID_t;
-
-typedef struct
-{
     const motor_measure_t *gimbal_motor_measure;
-    gimbal_PID_t gimbal_motor_absolute_angle_pid;
-    gimbal_PID_t gimbal_motor_relative_angle_pid;
+    pid_type_def gimbal_motor_absolute_angle_pid;
+    pid_type_def gimbal_motor_relative_angle_pid;
     pid_type_def gimbal_motor_gyro_pid;
     gimbal_motor_mode_e gimbal_motor_mode;
     gimbal_motor_mode_e last_gimbal_motor_mode;
@@ -323,7 +303,7 @@ extern const gimbal_motor_t *get_yaw_motor_point(void);
 extern const gimbal_motor_t *get_pitch_motor_point(void);
 
 /**
-  * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME (1ms) 
+  * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME_MS (1ms) 
   * @param[in]      pvParameters: null
   * @retval         none
   */

@@ -129,7 +129,7 @@
 
 //chassis motor speed PID
 #define M3508_MOTOR_SPEED_PID_KP 15000.0f
-#define M3508_MOTOR_SPEED_PID_KI 10.0f
+#define M3508_MOTOR_SPEED_PID_KI 5000.0f
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
 #define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
@@ -137,7 +137,7 @@
 //chassis follow angle PID
 #define CHASSIS_FOLLOW_GIMBAL_PID_KP 12.0f
 #define CHASSIS_FOLLOW_GIMBAL_PID_KI 0.0f
-#define CHASSIS_FOLLOW_GIMBAL_PID_KD 0.1f
+#define CHASSIS_FOLLOW_GIMBAL_PID_KD 0.0002f
 #define CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT 10.0f
 #define CHASSIS_FOLLOW_GIMBAL_PID_MAX_IOUT 0.2f
 
@@ -241,8 +241,6 @@ extern void chassis_task(void const *pvParameters);
   */
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
 void chassis_rc_to_swerve_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
-
-fp32 abs_err_handler(fp32 set, fp32 ref);
 
 extern chassis_move_t chassis_move;
 

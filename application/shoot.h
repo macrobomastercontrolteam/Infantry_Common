@@ -24,9 +24,8 @@
 #include "user_lib.h"
 #include "chassis_task.h"
 
-
-
-#define SHOOT_CONTROL_TIME          GIMBAL_CONTROL_TIME
+#define SHOOT_CONTROL_TIME_MS GIMBAL_CONTROL_TIME_MS
+#define SHOOT_CONTROL_TIME_S GIMBAL_CONTROL_TIME_S
 
 // Start friction wheel immediately
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
@@ -98,8 +97,8 @@
 #endif
 
 #define TRIGGER_ANGLE_PID_KP        800.0f
-#define TRIGGER_ANGLE_PID_KI        0.5f
-#define TRIGGER_ANGLE_PID_KD        2.0f
+#define TRIGGER_ANGLE_PID_KI        500.0f
+#define TRIGGER_ANGLE_PID_KD        0.002f
 
 #define TRIGGER_BULLET_PID_MAX_OUT  10000.0f
 #define TRIGGER_BULLET_PID_MAX_IOUT 9000.0f
