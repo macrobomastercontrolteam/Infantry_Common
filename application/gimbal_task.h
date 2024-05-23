@@ -32,14 +32,14 @@
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 //pitch speed close-loop PID params, max out and max iout
 #define PITCH_SPEED_PID_KP        10000.0f // pitch starts shaking at 2600
-#define PITCH_SPEED_PID_KI        100.0f
+#define PITCH_SPEED_PID_KI        100000.0f
 #define PITCH_SPEED_PID_KD        0.0f
 #define PITCH_SPEED_PID_MAX_OUT   30000.0f
 #define PITCH_SPEED_PID_MAX_IOUT  5000.0f
 
 //yaw speed close-loop PID params, max out and max iout
 #define YAW_SPEED_PID_KP        35000.0f
-#define YAW_SPEED_PID_KI        200.0f
+#define YAW_SPEED_PID_KI        200000.0f
 #define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   30000.0f
 #define YAW_SPEED_PID_MAX_IOUT  5000.0f
@@ -58,18 +58,48 @@
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  0.0f
 
+#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
+
+//pitch speed close-loop PID params, max out and max iout
+#define PITCH_SPEED_PID_KP        2500.0f // pitch starts shaking at 2600
+#define PITCH_SPEED_PID_KI        7500.0f
+#define PITCH_SPEED_PID_KD        25.0f
+#define PITCH_SPEED_PID_MAX_OUT   30000.0f
+#define PITCH_SPEED_PID_MAX_IOUT  10000.0f
+
+//yaw speed close-loop PID params, max out and max iout
+#define YAW_SPEED_PID_KP        10000.0f
+#define YAW_SPEED_PID_KI        10000.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   30000.0f
+#define YAW_SPEED_PID_MAX_IOUT  10000.0f
+
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_ANGLE_PID_KP 23.0f
+#define PITCH_ANGLE_PID_KI 50.0f
+#define PITCH_ANGLE_PID_KD 0.0f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
+
+//yaw gyro angle close-loop PID params, max out and max iout
+#define YAW_ANGLE_PID_KP        28.0f
+#define YAW_ANGLE_PID_KI        0.0f
+#define YAW_ANGLE_PID_KD        0.0f
+#define YAW_ANGLE_PID_MAX_OUT   10.0f
+#define YAW_ANGLE_PID_MAX_IOUT  10.0f
+
 #else
 
 //pitch speed close-loop PID params, max out and max iout
 #define PITCH_SPEED_PID_KP        2250.0f // pitch starts shaking at 2600
-#define PITCH_SPEED_PID_KI        25.0f
+#define PITCH_SPEED_PID_KI        25000.0f
 #define PITCH_SPEED_PID_KD        0.0f
 #define PITCH_SPEED_PID_MAX_OUT   30000.0f
 #define PITCH_SPEED_PID_MAX_IOUT  10000.0f
 
 //yaw speed close-loop PID params, max out and max iout
 #define YAW_SPEED_PID_KP        3600.0f
-#define YAW_SPEED_PID_KI        20.0f
+#define YAW_SPEED_PID_KI        20000.0f
 #define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   30000.0f
 #define YAW_SPEED_PID_MAX_IOUT  5000.0f
@@ -115,7 +145,7 @@
 
 //pitch encode angle close-loop PID params, max out and max iout
 #define PITCH_ENCODE_RELATIVE_PID_KP 15.0f
-#define PITCH_ENCODE_RELATIVE_PID_KI 0.00f
+#define PITCH_ENCODE_RELATIVE_PID_KI 0.0f
 #define PITCH_ENCODE_RELATIVE_PID_KD 0.0f
 
 #define PITCH_ENCODE_RELATIVE_PID_MAX_OUT 10.0f
