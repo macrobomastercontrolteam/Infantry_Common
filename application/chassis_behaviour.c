@@ -445,31 +445,35 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
     }
 
 #if CV_INTERFACE
-  fp32 spinning_speed;
-  if (toe_is_error(CV_TOE))
-  {
-    *vx_set = 0;
-	  *vy_set = 0;
-    spinning_speed = 0;
-  }
-  else
-  {
-	  // chassis_task should maintain previous speed if cv is offline for a short time
-	  *vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
-	  *vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
+	fp32 spinning_speed;
+	if (toe_is_error(CV_TOE))
+	{
+		*vx_set = 0;
+		*vy_set = 0;
+	}
+	else
+	{
+		// chassis_task should maintain previous speed if cv is offline for a short time
+		*vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
+		*vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
 
-	  // @TODO: add enemy detection (controlled by CV)
-	  // if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
-	  // {
-	  // 	spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-	  // }
-	  // else
-	  {
-		  // spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-		  spinning_speed = 0;
-	  }
-  }
-    *angle_set = spinning_speed;
+		// @TODO: add enemy detection (controlled by CV)
+		// if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
+		// {
+		// 	spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
+		// }
+		// else
+		// {
+		// 	spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
+		// }
+	}
+
+	// Auto-aim test with varying spinning speeds
+    // Convert dial input to spinning speed
+	int16_t dial_channel;
+	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
+    spinning_speed = dial_channel * (NORMAL_MAX_CHASSIS_SPEED_WZ / JOYSTICK_HALF_RANGE);
+	*angle_set = spinning_speed;
 #endif
 }
 
