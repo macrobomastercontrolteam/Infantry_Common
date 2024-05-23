@@ -53,13 +53,13 @@
     {                                                                                          \
         PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid);   \
         PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_relative_angle_pid);   \
-        PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_gyro_pid);                    \
+        PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_speed_pid);                    \
     }
 #define gimbal_pitch_pid_clear(gimbal_clear)                                                   \
     {                                                                                          \
         PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid); \
         PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_relative_angle_pid); \
-        PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_gyro_pid);                  \
+        PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_speed_pid);                  \
     }
 
 #define GIMBAL_YAW_MOTOR 0
@@ -474,7 +474,7 @@ static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init)
     }
     PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, angle_pid_ptr, YAW_ANGLE_PID_MAX_OUT, YAW_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
     // yaw speed is fast, so benefit of filtering on noise is insignificant comparing to the delay effect
-    PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, speed_pid_ptr, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
+    PID_init(&init->gimbal_yaw_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 }
 
 /**
@@ -506,7 +506,7 @@ static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init)
     }
     }
     PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, angle_pid_ptr, PITCH_PATROL_ANGLE_PID_MAX_OUT, PITCH_PATROL_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-    PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, speed_pid_ptr, PITCH_PATROL_SPEED_PID_MAX_OUT, PITCH_PATROL_SPEED_PID_MAX_IOUT, 0.6f, &filter_err_handler);
+    PID_init(&init->gimbal_pitch_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, PITCH_PATROL_SPEED_PID_MAX_OUT, PITCH_PATROL_SPEED_PID_MAX_IOUT, 0.6f, &filter_err_handler);
 }
 
 /**
@@ -875,7 +875,7 @@ static void gimbal_motor_absolute_angle_control(gimbal_motor_t *gimbal_motor)
     }
     // cascade pid: angle loop & speed loop
     gimbal_motor->motor_gyro_set = PID_calc_with_dot(&gimbal_motor->gimbal_motor_absolute_angle_pid, gimbal_motor->absolute_angle, gimbal_motor->absolute_angle_set, GIMBAL_CONTROL_TIME_S, gimbal_motor->motor_gyro);
-    gimbal_motor->current_set = PID_calc(&gimbal_motor->gimbal_motor_gyro_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set, GIMBAL_CONTROL_TIME_S);
+    gimbal_motor->current_set = PID_calc(&gimbal_motor->gimbal_motor_speed_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set, GIMBAL_CONTROL_TIME_S);
 
     gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
 }
@@ -893,7 +893,7 @@ static void gimbal_motor_relative_angle_control(gimbal_motor_t *gimbal_motor)
 
     // cascade pid: angle loop & speed loop
     gimbal_motor->motor_gyro_set = PID_calc_with_dot(&gimbal_motor->gimbal_motor_relative_angle_pid, gimbal_motor->relative_angle, gimbal_motor->relative_angle_set, GIMBAL_CONTROL_TIME_S, gimbal_motor->motor_gyro);
-    gimbal_motor->current_set = PID_calc(&gimbal_motor->gimbal_motor_gyro_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set, GIMBAL_CONTROL_TIME_S);
+    gimbal_motor->current_set = PID_calc(&gimbal_motor->gimbal_motor_speed_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set, GIMBAL_CONTROL_TIME_S);
 
     gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
 }

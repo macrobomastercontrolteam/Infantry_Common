@@ -240,7 +240,7 @@ typedef struct
     const motor_measure_t *gimbal_motor_measure;
     pid_type_def gimbal_motor_absolute_angle_pid;
     pid_type_def gimbal_motor_relative_angle_pid;
-    pid_type_def gimbal_motor_gyro_pid;
+    pid_type_def gimbal_motor_speed_pid;
     gimbal_motor_mode_e gimbal_motor_mode;
     gimbal_motor_mode_e last_gimbal_motor_mode;
     uint16_t offset_ecd;
