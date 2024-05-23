@@ -68,6 +68,18 @@
 #define JOYSTICK_HALF_RANGE 660.0f
 #define JOYSTICK_FULL_RANGE (JOYSTICK_HALF_RANGE*2.0f)
 
+// Measured max value that my mouse can reach by my "average-human" hand (depends on mouse but not too much)
+#define MOUSE_X_MAX_SPEED 7700.0f // positive direction is to the right
+#define MOUSE_Y_MAX_SPEED 1400.0f // positive direction is downwards
+#define MOUSE_Z_MAX_SPEED 60.0f // positive direction is scrolling forward
+// Measured speed value corresponding to move across hand available workspace (abbrev. handspace) for one second
+#define MOUSE_X_HANDSPACE_PER_S 1000.0f
+#define MOUSE_Y_HANDSPACE_PER_S 700.0f
+#define MOUSE_Z_HANDSPACE_PER_S 40.0f
+// since mouse speed appears as an arch, calculate about the "effective" speed
+#define MOUSE_X_EFFECTIVE_SPEED (MOUSE_X_HANDSPACE_PER_S / 5.0f)
+#define MOUSE_Y_EFFECTIVE_SPEED (MOUSE_Y_HANDSPACE_PER_S / 5.0f)
+
 // toggle auto-aim mode
 #define AUTO_AIM_TOGGLE_KEYBOARD KEY_PRESSED_OFFSET_G
 /* ----------------------- Data Struct ------------------------------------- */
