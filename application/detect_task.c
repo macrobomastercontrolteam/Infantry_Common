@@ -62,15 +62,16 @@ uint32_t detect_task_stack;
   */
 void detect_task(void const *pvParameters)
 {
-    static uint32_t system_time;
-    system_time = xTaskGetTickCount();
-    detect_init(system_time);
-    vTaskDelay(DETECT_TASK_INIT_TIME);
+    static uint32_t ulSystemTime;
+    ulSystemTime = osKernelSysTick();
+    detect_init(ulSystemTime);
+    osDelay(DETECT_TASK_INIT_TIME);
 
     while (1)
     {
         static uint8_t error_num_display = 0;
-        system_time = xTaskGetTickCount();
+        osDelayUntil(&ulSystemTime, DETECT_CONTROL_TIME);
+        ulSystemTime = osKernelSysTick();
 
         error_num_display = ERROR_LIST_LENGTH;
         error_list[ERROR_LIST_LENGTH].is_lost = 0;
@@ -84,14 +85,14 @@ void detect_task(void const *pvParameters)
             }
 
             //judge offline
-            if (system_time - error_list[i].new_time > error_list[i].set_offline_time)
+            if (ulSystemTime - error_list[i].new_time > error_list[i].set_offline_time)
             {
                 if (error_list[i].error_exist == 0)
                 {
                     //record error and offlined timestamp
                     error_list[i].is_lost = 1;
                     error_list[i].error_exist = 1;
-                    error_list[i].lost_time = system_time;
+                    error_list[i].lost_time = ulSystemTime;
                 }
                 //save the error code of the highest priority
                 if (error_list[i].priority > error_list[error_num_display].priority)
@@ -108,7 +109,7 @@ void detect_task(void const *pvParameters)
                     error_list[i].solve_lost_fun();
                 }
             }
-            else if (system_time - error_list[i].work_time < error_list[i].set_online_time)
+            else if (ulSystemTime - error_list[i].work_time < error_list[i].set_online_time)
             {
                 //just online, maybe unstable, only record
                 error_list[i].is_lost = 0;
@@ -133,8 +134,6 @@ void detect_task(void const *pvParameters)
                 }
             }
         }
-
-        vTaskDelay(DETECT_CONTROL_TIME);
 #if INCLUDE_uxTaskGetStackHighWaterMark
         detect_task_stack = uxTaskGetStackHighWaterMark(NULL);
 #endif

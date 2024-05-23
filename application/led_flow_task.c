@@ -20,6 +20,7 @@
 #include "main.h"
 #include "cv_usart_task.h" // CvCmder_CheckAndResetUserKeyEdge
 
+#define LED_FLOW_CONTROL_TIME 2
 #define RGB_FLOW_COLOR_CHANGE_TIME  1000
 #define RGB_FLOW_COLOR_LENGTH   6
 //blue-> green(dark)-> red -> blue(dark) -> green(dark) -> red(dark) -> blue
@@ -32,6 +33,9 @@ uint32_t RGB_flow_color[RGB_FLOW_COLOR_LENGTH + 1] = {0xFF0000FF, 0x0000FF00, 0x
   */
 void led_RGB_flow_task(void const * argument)
 {
+    static uint32_t ulSystemTime;
+    ulSystemTime = osKernelSysTick();
+
     uint16_t i, j;
     fp32 delta_alpha, delta_red, delta_green, delta_blue;
     fp32 alpha,red,green,blue;
@@ -81,7 +85,9 @@ void led_RGB_flow_task(void const * argument)
 
                 aRGB = ((uint32_t)(alpha)) << 24 | ((uint32_t)(red)) << 16 | ((uint32_t)(green)) << 8 | ((uint32_t)(blue)) << 0;
                 aRGB_led_show(aRGB);
-                osDelay(1);
+
+                osDelayUntil(&ulSystemTime, LED_FLOW_CONTROL_TIME);
+                ulSystemTime = osKernelSysTick();
             }
         }
     }

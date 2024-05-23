@@ -361,7 +361,7 @@ static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_se
     //max_angle is the max angle that chassis will rotate
     static fp32 max_angle = SWING_NO_MOVE_ANGLE;
     //swing_time increment by add_time per control cycle
-    static fp32 const add_time = PI * 0.5f * configTICK_RATE_HZ / CHASSIS_CONTROL_TIME_MS;
+    static fp32 const add_time = PI * 0.5f / CHASSIS_CONTROL_TIME_S;
     
     static uint8_t swing_flag = 0;
 

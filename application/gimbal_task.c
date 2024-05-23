@@ -208,13 +208,15 @@ static int16_t yaw_can_set_current = 0, pitch_can_set_current = 0, trigger_set_c
   */
 void gimbal_task(void const *pvParameters)
 {
-    vTaskDelay(GIMBAL_TASK_INIT_TIME);
+    static uint32_t ulSystemTime;
+    ulSystemTime = osKernelSysTick();
+    osDelay(GIMBAL_TASK_INIT_TIME);
     gimbal_init(&gimbal_control);
     shoot_init();
     //wait until all motors are online
     while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
     {
-        vTaskDelay(GIMBAL_CONTROL_TIME);
+        osDelay(GIMBAL_CONTROL_TIME);
         gimbal_feedback_update(&gimbal_control);
     }
 
@@ -254,7 +256,8 @@ void gimbal_task(void const *pvParameters)
         J_scope_gimbal_test();
 #endif
 
-        vTaskDelay(GIMBAL_CONTROL_TIME);
+        osDelayUntil(&ulSystemTime, GIMBAL_CONTROL_TIME);
+        ulSystemTime = osKernelSysTick();
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
         gimbal_high_water = uxTaskGetStackHighWaterMark(NULL);

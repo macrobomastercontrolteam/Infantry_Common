@@ -98,8 +98,10 @@ static void J_scope_chassis_test(void)
   */
 void chassis_task(void const *pvParameters)
 {
+    static uint32_t ulSystemTime;
+    ulSystemTime = osKernelSysTick();
     //wait a time 
-    vTaskDelay(CHASSIS_TASK_INIT_TIME);
+    osDelay(CHASSIS_TASK_INIT_TIME);
     //chassis init
     chassis_init(&chassis_move);
 
@@ -123,7 +125,9 @@ void chassis_task(void const *pvParameters)
         chassis_control_loop(&chassis_move);
 
         CAN_cmd_chassis();
-        osDelay(CHASSIS_CONTROL_TIME_MS);
+
+		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
+		ulSystemTime = osKernelSysTick();
 
 #if CHASSIS_TEST_MODE
         J_scope_chassis_test();
