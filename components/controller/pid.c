@@ -109,6 +109,47 @@ fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set, fp32 dt)
     return pid->out;
 }
 
+fp32 PID_calc_with_dot(pid_type_def *pid, fp32 ref, fp32 set, fp32 dt, fp32 ref_dot)
+{
+    if (pid == NULL)
+    {
+        return 0.0f;
+    }
+
+    pid->set = set;
+    pid->fdb = ref;
+    pid->error[0] = pid->err_handler(set, ref, pid->error, pid->filter_coeff);
+    if (pid->mode == PID_POSITION)
+    {
+        pid->Pout = pid->Kp * pid->error[0];
+        pid->Iout += pid->Ki * pid->error[0] * dt;
+        // pid->Iout = Deadzone(pid->Iout, 0.1f);
+        LimitMax(&pid->Iout, pid->max_iout);
+
+        pid->Dbuf[2] = pid->Dbuf[1];
+        pid->Dbuf[1] = pid->Dbuf[0];
+        pid->Dbuf[0] = ref_dot;
+        pid->Dout = pid->Kd * pid->Dbuf[0];        
+        pid->out = pid->Pout + pid->Iout + pid->Dout;
+        LimitMax(&pid->out, pid->max_out);
+    }
+    else if (pid->mode == PID_DELTA)
+    {
+        pid->Pout = pid->Kp * (pid->error[0] - pid->error[1]);
+        pid->Iout = pid->Ki * pid->error[0] * dt;
+        // pid->Iout = Deadzone(pid->Iout, 0.1f);
+        LimitMax(&pid->Iout, pid->max_iout);
+
+        pid->Dbuf[2] = pid->Dbuf[1];
+        pid->Dbuf[1] = pid->Dbuf[0];
+        pid->Dbuf[0] = ref_dot;
+        pid->Dout = pid->Kd * pid->Dbuf[0];
+        pid->out += pid->Pout + pid->Iout + pid->Dout;
+        LimitMax(&pid->out, pid->max_out);
+    }
+    return pid->out;
+}
+
 /**
   * @brief          pid out clear
   * @param[out]     pid: PID struct data point
