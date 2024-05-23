@@ -458,14 +458,16 @@ static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init)
     case GIMBAL_MOTOR_CAMERA:
     {
         PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, yaw_camera_angle_pid, YAW_CAMERA_ANGLE_PID_MAX_OUT, YAW_CAMERA_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-        PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, yaw_camera_speed_pid, YAW_CAMERA_SPEED_PID_MAX_OUT, YAW_CAMERA_SPEED_PID_MAX_IOUT, 0.9f, &filter_err_handler);
+        // yaw speed is fast, so benefit of filtering on noise is insignificant comparing to the delay effect
+        PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, yaw_camera_speed_pid, YAW_CAMERA_SPEED_PID_MAX_OUT, YAW_CAMERA_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
         break;
     }
     case GIMBAL_MOTOR_GYRO:
     default:
     {
         PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, yaw_angle_pid, YAW_ANGLE_PID_MAX_OUT, YAW_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-        PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, yaw_speed_pid, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, 0.9f, &filter_err_handler);
+        // yaw speed is fast, so benefit of filtering on noise is insignificant comparing to the delay effect
+        PID_init(&init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, yaw_speed_pid, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
         break;
     }
     }
@@ -485,14 +487,14 @@ static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init)
     case GIMBAL_MOTOR_CAMERA:
     {
         PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, pitch_camera_angle_pid, PITCH_CAMERA_ANGLE_PID_MAX_OUT, PITCH_CAMERA_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-        PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, pitch_camera_speed_pid, PITCH_CAMERA_SPEED_PID_MAX_OUT, PITCH_CAMERA_SPEED_PID_MAX_IOUT, 0.9f, &filter_err_handler);
+        PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, pitch_camera_speed_pid, PITCH_CAMERA_SPEED_PID_MAX_OUT, PITCH_CAMERA_SPEED_PID_MAX_IOUT, 0.6f, &filter_err_handler);
         break;
     }
     case GIMBAL_MOTOR_GYRO:
     default:
     {
         PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, pitch_angle_pid, PITCH_ANGLE_PID_MAX_OUT, PITCH_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-        PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, pitch_speed_pid, PITCH_SPEED_PID_MAX_OUT, PITCH_SPEED_PID_MAX_IOUT, 0.9f, &filter_err_handler);
+        PID_init(&init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, pitch_speed_pid, PITCH_SPEED_PID_MAX_OUT, PITCH_SPEED_PID_MAX_IOUT, 0.6f, &filter_err_handler);
         break;
     }
     }
