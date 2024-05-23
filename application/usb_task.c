@@ -34,8 +34,6 @@ static uint8_t usb_buf[400];
 // static const char status[2][7] = {"OK", "ERROR!"};
 // const error_t *error_list_usb_local;
 
-uint8_t abToeStatus[ERROR_LIST_LENGTH];
-
 void usb_task(void const * argument)
 {
     static uint32_t ulSystemTime;
@@ -83,10 +81,6 @@ void usb_task(void const * argument)
         //     status[error_list_usb_local[CV_TOE].error_exist]
         // );
 
-        for (uint8_t bCursor = 0; bCursor < ERROR_LIST_LENGTH; bCursor++)
-        {
-            abToeStatus[bCursor] = toe_is_error(bCursor);
-        }
         osDelayUntil(&ulSystemTime, 3);
         ulSystemTime = osKernelSysTick();
 	}
