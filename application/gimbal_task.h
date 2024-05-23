@@ -89,31 +89,29 @@
 #define YAW_ANGLE_PID_MAX_IOUT  0.0f
 #endif
 
-// PID angle loop
-#define PITCH_CAMERA_ANGLE_PID_KP 16.0f
-#define PITCH_CAMERA_ANGLE_PID_KI 0.0f
-#define PITCH_CAMERA_ANGLE_PID_KD 0.0f
-#define PITCH_CAMERA_ANGLE_PID_MAX_OUT 10.0f // max speed (rad/s)
-#define PITCH_CAMERA_ANGLE_PID_MAX_IOUT 0.0f
+#define PITCH_PATROL_SPEED_PID_KP 5000.0f
+#define PITCH_PATROL_SPEED_PID_KI 50000.0f
+#define PITCH_PATROL_SPEED_PID_KD 0.0f
+#define PITCH_PATROL_SPEED_PID_MAX_OUT 30000.0f
+#define PITCH_PATROL_SPEED_PID_MAX_IOUT 10000.0f
 
-#define YAW_CAMERA_ANGLE_PID_KP 26.0f
-#define YAW_CAMERA_ANGLE_PID_KI 0.0f
-#define YAW_CAMERA_ANGLE_PID_KD 0.3f
-#define YAW_CAMERA_ANGLE_PID_MAX_OUT 10.0f // max speed (rad/s)
-#define YAW_CAMERA_ANGLE_PID_MAX_IOUT 0.0f
+#define YAW_PATROL_SPEED_PID_KP 10000.0f
+#define YAW_PATROL_SPEED_PID_KI 20000.0f
+#define YAW_PATROL_SPEED_PID_KD 0.0f
+#define YAW_PATROL_SPEED_PID_MAX_OUT 30000.0f
+#define YAW_PATROL_SPEED_PID_MAX_IOUT 5000.0f
 
-// PID speed loop
-#define PITCH_CAMERA_SPEED_PID_KP 3600.0f
-#define PITCH_CAMERA_SPEED_PID_KI 20.0f
-#define PITCH_CAMERA_SPEED_PID_KD 0.0f
-#define PITCH_CAMERA_SPEED_PID_MAX_OUT 30000.0f
-#define PITCH_CAMERA_SPEED_PID_MAX_IOUT 5000.0f
+#define PITCH_PATROL_ANGLE_PID_KP 25.0f
+#define PITCH_PATROL_ANGLE_PID_KI 0.0f
+#define PITCH_PATROL_ANGLE_PID_KD 0.0f
+#define PITCH_PATROL_ANGLE_PID_MAX_OUT 10.0f // max speed (rad/s)
+#define PITCH_PATROL_ANGLE_PID_MAX_IOUT 0.0f
 
-#define YAW_CAMERA_SPEED_PID_KP 3600.0f
-#define YAW_CAMERA_SPEED_PID_KI 20.0f
-#define YAW_CAMERA_SPEED_PID_KD 0.0f
-#define YAW_CAMERA_SPEED_PID_MAX_OUT 30000.0f
-#define YAW_CAMERA_SPEED_PID_MAX_IOUT 5000.0f
+#define YAW_PATROL_ANGLE_PID_KP 23.0f
+#define YAW_PATROL_ANGLE_PID_KI 0.0f
+#define YAW_PATROL_ANGLE_PID_KD 0.0f
+#define YAW_PATROL_ANGLE_PID_MAX_OUT 10.0f // max speed (rad/s)
+#define YAW_PATROL_ANGLE_PID_MAX_IOUT 0.0f
 
 //pitch encode angle close-loop PID params, max out and max iout
 #define PITCH_ENCODE_RELATIVE_PID_KP 15.0f
@@ -232,7 +230,7 @@ typedef enum
     GIMBAL_MOTOR_RAW = 0,
     GIMBAL_MOTOR_GYRO,
     GIMBAL_MOTOR_ENCODER,
-    GIMBAL_MOTOR_CAMERA,  //GIMBAL_MOTOR_GYRO but with target angle adjusted by computer vision input (enemy angle within camera frame)
+    GIMBAL_MOTOR_PATROL,  //GIMBAL_MOTOR_GYRO but with special pid params for patrol
 } gimbal_motor_mode_e;
 
 typedef struct
