@@ -27,6 +27,7 @@
 #include "chassis_task.h"
 #include "string.h"
 
+// Warning: for safety, PLEASE ALWAYS keep those default values as 1 when you commit
 #define DISABLE_DRIVE_MOTOR_POWER 1
 #define DISABLE_STEER_MOTOR_POWER 1
 #define DISABLE_YAW_MOTOR_POWER 1
@@ -248,10 +249,10 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
     // control pitch motor and fric_left and fric_right
-#if DISABLE_FRICTION_1_MOTOR_POWER
+#if (DISABLE_FRICTION_1_MOTOR_POWER || FRICTION_MOTOR_SAFETY_GUARD)
     fric_left = 0;
 #endif
-#if DISABLE_FRICTION_2_MOTOR_POWER
+#if (DISABLE_FRICTION_2_MOTOR_POWER || FRICTION_MOTOR_SAFETY_GUARD)
     fric_right = 0;
 #endif
     gimbal_can_send_data[0] = (fric_left >> 8);

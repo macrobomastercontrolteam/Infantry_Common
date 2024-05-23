@@ -68,9 +68,14 @@
 #define SPEED_COMPENSATION_RATIO 0.87f
 #define FRICTION_MOTOR_RPM_TO_SPEED (2.0f * PI / 60.0f * (FRICTION_MOTOR_RADIUS * SPEED_COMPENSATION_RATIO))
 #define FRICTION_MOTOR_SPEED_TO_RPM (1.0f / FRICTION_MOTOR_RPM_TO_SPEED)
-// max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
-#define FRICTION_MOTOR_SPEED  25.0f
 #define FRICTION_MOTOR_SPEED_THRESHOLD 0.9f // 10% tolerance
+
+// max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
+#if FRICTION_MOTOR_SAFETY_GUARD
+#define FRICTION_MOTOR_SPEED  1.0f
+#else
+#define FRICTION_MOTOR_SPEED  25.0f
+#endif
 
 #define SEMI_AUTO_FIRE_TRIGGER_SPEED 10.0f
 #define AUTO_FIRE_TRIGGER_SPEED      15.0f

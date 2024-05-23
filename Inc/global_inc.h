@@ -12,6 +12,8 @@
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define TEST_NO_REF 1
+// Warning: disable friction wheel safety guard only if you are prepared to test it
+#define FRICTION_MOTOR_SAFETY_GUARD 1
 
 #if ((ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM))
 #define ROBOT_YAW_HAS_SLIP_RING 1
