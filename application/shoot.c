@@ -94,7 +94,7 @@ void shoot_init(void)
     shoot_control.set_angle = shoot_control.angle;
     shoot_control.speed = 0.0f;
     shoot_control.speed_set = 0.0f;
-    shoot_control.key_time = 0;
+    // shoot_control.key_time = 0;
     shoot_control.fIsCvControl = 0;
 }
 

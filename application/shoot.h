@@ -27,27 +27,11 @@
 #define SHOOT_CONTROL_TIME_MS GIMBAL_CONTROL_TIME_MS
 #define SHOOT_CONTROL_TIME_S GIMBAL_CONTROL_TIME_S
 
-// Start friction wheel immediately
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
-#define SHOOT_FRIC_PWM_ADD_VALUE    2000.0f
-#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define SHOOT_FRIC_PWM_ADD_VALUE    2000.0f
-#else
-#define SHOOT_FRIC_PWM_ADD_VALUE    2000.0f
-#endif
-
-//Start friction wheel PID
-
-
 #define SHOOT_ON_KEYBOARD           KEY_PRESSED_OFFSET_Q
 #define SHOOT_OFF_KEYBOARD          KEY_PRESSED_OFFSET_E
 
-// Determine the long press of the mouse
-#define PRESS_LONG_TIME             400
-// After the remote control shooting switch is pressed down, the bullet is continuously fired for a period of time, used to clear the bullet
+// After the shooting is enabled, the bullet is continuously fired for a period of time, used to clear the bullet
 #define RC_S_LONG_TIME              800
-// Friction wheel high speed acceleration time
-#define UP_ADD_TIME                 80
 
 #if (ROBOT_TYPE == INFANTRY_2018_MECANUM) 
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  1.0f
@@ -180,7 +164,7 @@ typedef struct
     bool_t move_flag;
 
     bool_t key;
-    uint8_t key_time;
+    // uint8_t key_time;
 
     uint16_t heat_limit;
     uint16_t heat;
