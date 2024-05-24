@@ -32,7 +32,7 @@
 #include "cv_usart_task.h"
 
 #define USE_SERVO_TO_STIR_AMMO 0
-#define TEST_SHOOT_WITH_REF 0
+#define SHOOT_WITH_REF_DATA 0
 
 //microswitch
 #define BUTTEN_TRIG_PIN HAL_GPIO_ReadPin(BUTTON_TRIG_GPIO_Port, BUTTON_TRIG_Pin)
@@ -234,7 +234,7 @@ int16_t shoot_control_loop(void)
     case SHOOT_AUTO_FIRE:
     {
         // 设置拨弹轮的拨动速度,并开启堵转反转处理
-#if TEST_SHOOT_WITH_REF
+#if SHOOT_WITH_REF_DATA
         get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
         if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
         {
@@ -474,7 +474,7 @@ static void shoot_bullet_control(void)
         shoot_control.shoot_mode = SHOOT_STOP;
     }
 
-#if TEST_SHOOT_WITH_REF
+#if SHOOT_WITH_REF_DATA
     get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
     if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
     {
