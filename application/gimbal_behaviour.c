@@ -199,17 +199,17 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
             gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
             break;
         }
-        case GIMBAL_AUTO_AIM:
         case GIMBAL_ABSOLUTE_ANGLE:
         {
             gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
             gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
             break;
         }
+        case GIMBAL_AUTO_AIM:
         case GIMBAL_AUTO_AIM_PATROL:
         {
-            gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_PATROL;
-            gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_PATROL;
+            gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_CAMERA;
+            gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_CAMERA;
             break;
         }
         case GIMBAL_INIT:

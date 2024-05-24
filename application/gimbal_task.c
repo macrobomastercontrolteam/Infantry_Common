@@ -448,17 +448,17 @@ static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init)
 {
     fp32 yaw_speed_pid[3] = {YAW_SPEED_PID_KP, YAW_SPEED_PID_KI, YAW_SPEED_PID_KD};
     fp32 yaw_angle_pid[3] = {YAW_ANGLE_PID_KP, YAW_ANGLE_PID_KI, YAW_ANGLE_PID_KD};
-    fp32 yaw_patrol_speed_pid[3] = {YAW_PATROL_SPEED_PID_KP, YAW_PATROL_SPEED_PID_KI, YAW_PATROL_SPEED_PID_KD};
-    fp32 yaw_patrol_angle_pid[3] = {YAW_PATROL_ANGLE_PID_KP, YAW_PATROL_ANGLE_PID_KI, YAW_PATROL_ANGLE_PID_KD};
+    fp32 yaw_camera_speed_pid[3] = {YAW_CAMERA_SPEED_PID_KP, YAW_CAMERA_SPEED_PID_KI, YAW_CAMERA_SPEED_PID_KD};
+    fp32 yaw_camera_angle_pid[3] = {YAW_CAMERA_ANGLE_PID_KP, YAW_CAMERA_ANGLE_PID_KI, YAW_CAMERA_ANGLE_PID_KD};
     
     fp32* speed_pid_ptr;
     fp32* angle_pid_ptr;
     switch (init->gimbal_yaw_motor.gimbal_motor_mode)
     {
-    case GIMBAL_MOTOR_PATROL:
+    case GIMBAL_MOTOR_CAMERA:
     {
-        speed_pid_ptr = yaw_patrol_speed_pid;
-        angle_pid_ptr = yaw_patrol_angle_pid;
+        speed_pid_ptr = yaw_camera_speed_pid;
+        angle_pid_ptr = yaw_camera_angle_pid;
         break;
     }
     case GIMBAL_MOTOR_GYRO:
@@ -481,17 +481,17 @@ static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init)
 {
     fp32 pitch_speed_pid[3] = {PITCH_SPEED_PID_KP, PITCH_SPEED_PID_KI, PITCH_SPEED_PID_KD};
     fp32 pitch_angle_pid[3] = {PITCH_ANGLE_PID_KP, PITCH_ANGLE_PID_KI, PITCH_ANGLE_PID_KD};
-    fp32 pitch_patrol_speed_pid[3] = {PITCH_PATROL_SPEED_PID_KP, PITCH_PATROL_SPEED_PID_KI, PITCH_PATROL_SPEED_PID_KD};
-    fp32 pitch_patrol_angle_pid[3] = {PITCH_PATROL_ANGLE_PID_KP, PITCH_PATROL_ANGLE_PID_KI, PITCH_PATROL_ANGLE_PID_KD};
+    fp32 pitch_camera_speed_pid[3] = {PITCH_CAMERA_SPEED_PID_KP, PITCH_CAMERA_SPEED_PID_KI, PITCH_CAMERA_SPEED_PID_KD};
+    fp32 pitch_camera_angle_pid[3] = {PITCH_CAMERA_ANGLE_PID_KP, PITCH_CAMERA_ANGLE_PID_KI, PITCH_CAMERA_ANGLE_PID_KD};
 
     fp32* speed_pid_ptr;
     fp32* angle_pid_ptr;
     switch (init->gimbal_pitch_motor.gimbal_motor_mode)
     {
-    case GIMBAL_MOTOR_PATROL:
+    case GIMBAL_MOTOR_CAMERA:
     {
-        speed_pid_ptr = pitch_patrol_speed_pid;
-        angle_pid_ptr = pitch_patrol_angle_pid;
+        speed_pid_ptr = pitch_camera_speed_pid;
+        angle_pid_ptr = pitch_camera_angle_pid;
         break;
     }
     case GIMBAL_MOTOR_GYRO:
@@ -502,8 +502,8 @@ static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init)
         break;
     }
     }
-    PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, angle_pid_ptr, PITCH_PATROL_ANGLE_PID_MAX_OUT, PITCH_PATROL_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-    PID_init(&init->gimbal_pitch_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, PITCH_PATROL_SPEED_PID_MAX_OUT, PITCH_PATROL_SPEED_PID_MAX_IOUT, 0.85f, &filter_err_handler);
+    PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, angle_pid_ptr, PITCH_CAMERA_ANGLE_PID_MAX_OUT, PITCH_CAMERA_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+    PID_init(&init->gimbal_pitch_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, PITCH_CAMERA_SPEED_PID_MAX_OUT, PITCH_CAMERA_SPEED_PID_MAX_IOUT, 0.85f, &filter_err_handler);
 }
 
 /**
@@ -653,7 +653,7 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             break;
         }
         case GIMBAL_MOTOR_GYRO:
-        case GIMBAL_MOTOR_PATROL:
+        case GIMBAL_MOTOR_CAMERA:
         {
             // change pid parameters, which depends on motor control mode
             gimbal_yaw_abs_angle_PID_init(gimbal_mode_change);
@@ -681,7 +681,7 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             break;
         }
         case GIMBAL_MOTOR_GYRO:
-        case GIMBAL_MOTOR_PATROL:
+        case GIMBAL_MOTOR_CAMERA:
         {
             // change pid parameters, which depends on motor control mode
             gimbal_pitch_abs_angle_PID_init(gimbal_mode_change);
@@ -720,7 +720,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         // send control value directly in raw mode
         set_control->gimbal_yaw_motor.raw_cmd_current = add_yaw_angle;
     }
-    else if ((set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_PATROL))
+    else if ((set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         // gyro mode control
         gimbal_absolute_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
@@ -735,7 +735,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     {
         set_control->gimbal_pitch_motor.raw_cmd_current = add_pitch_angle;
     }
-    else if ((set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_PATROL))
+    else if ((set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         gimbal_absolute_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
     }
@@ -836,7 +836,7 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
     {
         gimbal_motor_raw_angle_control(&control_loop->gimbal_yaw_motor);
     }
-    else if ((control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_PATROL))
+    else if ((control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         gimbal_motor_absolute_angle_control(&control_loop->gimbal_yaw_motor);
     }
@@ -849,7 +849,7 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
     {
         gimbal_motor_raw_angle_control(&control_loop->gimbal_pitch_motor);
     }
-    else if ((control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_PATROL))
+    else if ((control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         gimbal_motor_absolute_angle_control(&control_loop->gimbal_pitch_motor);
     }
