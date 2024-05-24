@@ -76,7 +76,7 @@
     {                                                                                \
         if ((gyro) < GIMBAL_CALI_GYRO_LIMIT)                                         \
         {                                                                            \
-            (cmd_time)++;                                                            \
+            (cmd_time) += GIMBAL_CONTROL_TIME_MS;                                    \
             if ((cmd_time) > GIMBAL_CALI_STEP_TIME)                                  \
             {                                                                        \
                 (cmd_time) = 0;                                                      \

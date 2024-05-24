@@ -403,7 +403,7 @@ static void shoot_feedback_update(void)
     {
         if (shoot_control.shoot_hold_time < RC_S_LONG_TIME)
         {
-            shoot_control.shoot_hold_time++;
+            shoot_control.shoot_hold_time += SHOOT_CONTROL_TIME_MS;
         }
     }
     else
@@ -445,12 +445,12 @@ static void trigger_motor_turn_back(void)
 
 		if ((fabs(shoot_control.speed) < BLOCK_TRIGGER_SPEED) && (shoot_control.block_time < BLOCK_TIME))
 		{
-			shoot_control.block_time++;
+			shoot_control.block_time += SHOOT_CONTROL_TIME_MS;
 			shoot_control.reverse_time = 0;
 		}
 		else if ((shoot_control.block_time >= BLOCK_TIME) && (shoot_control.reverse_time < REVERSE_TIME))
 		{
-			shoot_control.reverse_time++;
+			shoot_control.reverse_time += SHOOT_CONTROL_TIME_MS;
 		}
 		else
 		{
