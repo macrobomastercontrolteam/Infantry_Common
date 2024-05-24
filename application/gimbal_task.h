@@ -281,6 +281,7 @@ typedef struct
     fp32 relative_angle_set; //rad
     fp32 absolute_angle;     //rad
     fp32 absolute_angle_set; //rad
+    fp32 absolute_angle_offset; //rad
     fp32 motor_gyro;         //rad/s
     fp32 motor_gyro_set;
     // fp32 motor_speed;

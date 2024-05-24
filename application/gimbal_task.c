@@ -547,11 +547,13 @@ static void gimbal_init(gimbal_control_t *init)
     gimbal_feedback_update(init);
 
     init->gimbal_yaw_motor.absolute_angle_set = init->gimbal_yaw_motor.absolute_angle;
+    init->gimbal_yaw_motor.absolute_angle_offset = 0;
     init->gimbal_yaw_motor.relative_angle_set = init->gimbal_yaw_motor.relative_angle;
     init->gimbal_yaw_motor.motor_gyro_set = init->gimbal_yaw_motor.motor_gyro;
 
 
     init->gimbal_pitch_motor.absolute_angle_set = init->gimbal_pitch_motor.absolute_angle;
+    init->gimbal_pitch_motor.absolute_angle_offset = 0;
     init->gimbal_pitch_motor.relative_angle_set = init->gimbal_pitch_motor.relative_angle;
     init->gimbal_pitch_motor.motor_gyro_set = init->gimbal_pitch_motor.motor_gyro;
 
@@ -653,11 +655,19 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             break;
         }
         case GIMBAL_MOTOR_GYRO:
+        {
+            // change pid parameters, which depends on motor control mode
+            gimbal_yaw_abs_angle_PID_init(gimbal_mode_change);
+            gimbal_yaw_pid_clear(gimbal_mode_change);
+            gimbal_mode_change->gimbal_yaw_motor.absolute_angle_set = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
+            break;
+        }
         case GIMBAL_MOTOR_CAMERA:
         {
             // change pid parameters, which depends on motor control mode
             gimbal_yaw_abs_angle_PID_init(gimbal_mode_change);
             gimbal_yaw_pid_clear(gimbal_mode_change);
+            gimbal_mode_change->gimbal_yaw_motor.absolute_angle_offset = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
             gimbal_mode_change->gimbal_yaw_motor.absolute_angle_set = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
             break;
         }
@@ -681,11 +691,19 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             break;
         }
         case GIMBAL_MOTOR_GYRO:
+        {
+            // change pid parameters, which depends on motor control mode
+            gimbal_pitch_abs_angle_PID_init(gimbal_mode_change);
+            gimbal_pitch_pid_clear(gimbal_mode_change);
+            gimbal_mode_change->gimbal_pitch_motor.absolute_angle_set = gimbal_mode_change->gimbal_pitch_motor.absolute_angle;
+            break;
+        }
         case GIMBAL_MOTOR_CAMERA:
         {
             // change pid parameters, which depends on motor control mode
             gimbal_pitch_abs_angle_PID_init(gimbal_mode_change);
             gimbal_pitch_pid_clear(gimbal_mode_change);
+            gimbal_mode_change->gimbal_pitch_motor.absolute_angle_offset = gimbal_mode_change->gimbal_pitch_motor.absolute_angle;
             gimbal_mode_change->gimbal_pitch_motor.absolute_angle_set = gimbal_mode_change->gimbal_pitch_motor.absolute_angle;
             break;
         }
