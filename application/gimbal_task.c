@@ -212,16 +212,13 @@ void gimbal_task(void const *pvParameters)
         pitch_can_set_current = gimbal_control.gimbal_pitch_motor.given_current;
 #endif
 
-        if (!(toe_is_error(YAW_GIMBAL_MOTOR_TOE) && toe_is_error(PITCH_GIMBAL_MOTOR_TOE) && toe_is_error(TRIGGER_MOTOR_TOE)))
+        if (gimbal_emergency_stop() || toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
         {
-            if (gimbal_emergency_stop())
-            {
-                CAN_cmd_gimbal(0, 0, 0, 0, 0);
-            }
-            else
-            {
-                CAN_cmd_gimbal(yaw_can_set_current, pitch_can_set_current, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
-            }
+            CAN_cmd_gimbal(0, 0, 0, 0, 0);
+        }
+        else
+        {
+            CAN_cmd_gimbal(yaw_can_set_current, pitch_can_set_current, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
         }
 
 #if GIMBAL_TEST_MODE
