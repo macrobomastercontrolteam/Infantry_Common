@@ -286,8 +286,10 @@ bool_t cmd_cali_gimbal_hook(uint16_t *yaw_offset, uint16_t *pitch_offset, fp32 *
     else if (gimbal_control.gimbal_cali.step == GIMBAL_CALI_END_STEP)
     {
         calc_gimbal_cali(&gimbal_control.gimbal_cali, yaw_offset, pitch_offset, max_yaw, min_yaw, max_pitch, min_pitch);
+#if !ROBOT_YAW_HAS_SLIP_RING
         (*max_yaw) -= GIMBAL_CALI_REDUNDANT_ANGLE;
         (*min_yaw) += GIMBAL_CALI_REDUNDANT_ANGLE;
+#endif
         (*max_pitch) -= GIMBAL_CALI_REDUNDANT_ANGLE;
         (*min_pitch) += GIMBAL_CALI_REDUNDANT_ANGLE;
         gimbal_control.gimbal_yaw_motor.offset_ecd              = *yaw_offset;
@@ -324,6 +326,12 @@ static void calc_gimbal_cali(const gimbal_step_cali_t *gimbal_cali, uint16_t *ya
 
     int16_t temp_max_ecd = 0, temp_min_ecd = 0, temp_ecd = 0;
 
+#if ROBOT_YAW_HAS_SLIP_RING
+	*yaw_offset = gimbal_cali->min_yaw_ecd;
+    *max_yaw = motor_ecd_to_angle_change(gimbal_cali->max_yaw_ecd, *yaw_offset);
+    *min_yaw = motor_ecd_to_angle_change(gimbal_cali->min_yaw_ecd, *yaw_offset);
+#else
+
 #if YAW_TURN
     temp_ecd = gimbal_cali->min_yaw_ecd - gimbal_cali->max_yaw_ecd;
 
@@ -352,6 +360,7 @@ static void calc_gimbal_cali(const gimbal_step_cali_t *gimbal_cali, uint16_t *ya
     *yaw_offset = temp_ecd;
     *max_yaw = motor_ecd_to_angle_change(gimbal_cali->max_yaw_ecd, *yaw_offset);
     *min_yaw = motor_ecd_to_angle_change(gimbal_cali->min_yaw_ecd, *yaw_offset);
+#endif
 
 #endif
 
