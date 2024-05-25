@@ -49,8 +49,8 @@ extern CAN_HandleTypeDef hcan2;
     {                                                                   \
         (ptr)->last_ecd = (ptr)->ecd;                                   \
         (ptr)->ecd = (uint16_t)((data)[0] << 8 | (data)[1]);            \
-        (ptr)->speed_rpm = (uint16_t)((data)[2] << 8 | (data)[3]);      \
-        (ptr)->given_current = (uint16_t)((data)[4] << 8 | (data)[5]);  \
+        (ptr)->speed_rpm = (int16_t)((data)[2] << 8 | (data)[3]);      \
+        (ptr)->given_current = (int16_t)((data)[4] << 8 | (data)[5]);  \
         (ptr)->temperate = (data)[6];                                   \
     }
 
