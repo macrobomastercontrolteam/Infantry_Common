@@ -380,8 +380,9 @@ void CAN_cmd_chassis(void)
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+    osDelay(1);
     // Send target encoder value of steering motors (GM6020) to chassis controller
-    chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLER_TX_ID;
+    chassis_tx_message.StdId = CAN_STEER_CONTROLLER_TX_ID;
 
 #if ENABLE_STEER_MOTOR_POWER
     uint16_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
@@ -400,6 +401,30 @@ void CAN_cmd_chassis(void)
 #else
     memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
 #endif
+    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+
+    osDelay(1);
+
+#if DISABLE_STEER_MOTOR_POWER
+    uint16_t hip_motor1 = 0;
+    uint16_t hip_motor2 = 0;
+    uint16_t hip_motor3 = 0;
+    uint16_t hip_motor4 = 0;
+#else 
+    uint16_t hip_motor1 = chassis_move.hip_motor_chassis[0].target_ecd;
+    uint16_t hip_motor2 = chassis_move.hip_motor_chassis[1].target_ecd;
+    uint16_t hip_motor3 = chassis_move.hip_motor_chassis[2].target_ecd;
+    uint16_t hip_motor4 = chassis_move.hip_motor_chassis[3].target_ecd;
+#endif
+
+    chassis_can_send_data[0] = hip_motor1 >> 8;
+    chassis_can_send_data[1] = hip_motor1;
+    chassis_can_send_data[2] = hip_motor2 >> 8;
+    chassis_can_send_data[3] = hip_motor2;
+    chassis_can_send_data[4] = hip_motor3 >> 8;
+    chassis_can_send_data[5] = hip_motor3;
+    chassis_can_send_data[6] = hip_motor4 >> 8;
+    chassis_can_send_data[7] = hip_motor4;
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 #endif
 }
