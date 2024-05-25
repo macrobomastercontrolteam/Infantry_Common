@@ -70,8 +70,12 @@ typedef enum
 	CAN_GIMBAL_ALL_TX_ID = 0x1FF,
   SUPCAP_RX_ID = 0x301,
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-	CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
+	CAN_STEER_CONTROLLER_TX_ID = 0x112,
 	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
+  // sends target speed for hip motors
+	CAN_HIP_CONTROLLER_TX_ID = 0x114,
+  // receives current position of hip motors
+  CAN_HIP_CONTROLLER_RX_ID = 0x115,
 #endif
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)

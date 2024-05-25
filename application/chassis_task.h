@@ -188,6 +188,11 @@ typedef struct
 {
   uint16_t target_ecd; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
 } chassis_steer_motor_t;
+
+typedef struct
+{
+  uint16_t target_speed; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
+} chassis_hip_motor_t;
 #endif
 
 typedef struct
@@ -204,6 +209,8 @@ typedef struct
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
   chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data
   pid_type_def steer_motor_angle_pid[4];       //steering motor angle PID
+  chassis_hip_motor_t hip_motor_chassis[4];
+  pid_type_def hip_motor_speed_pid[4];
 #endif
 
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point
