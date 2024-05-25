@@ -776,7 +776,7 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
     }
     //present angle error
     bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if ROBOT_YAW_HAS_SLIP_RING
     // Remove yaw motor limit for robots with slip ring
     if (motor_select != GIMBAL_YAW_MOTOR)
 #endif
