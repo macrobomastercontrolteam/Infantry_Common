@@ -520,6 +520,7 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
 			                       gimbal_control_set->gimbal_pitch_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
             break;
 		}
+    #if(!ROBOT_YAW_HAS_SLIP_RING)
 		case GIMBAL_CALI_YAW_MAX_STEP:
 		{
 			*pitch = 0;
@@ -540,6 +541,7 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
 			                       gimbal_control_set->gimbal_yaw_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
 			break;
 		}
+    #endif
 		case GIMBAL_CALI_END_STEP:
 		{
 			cali_time = 0;
