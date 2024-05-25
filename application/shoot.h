@@ -76,13 +76,13 @@
 #define REVERSE_SPEED_LIMIT         13.0f
 
 #if (ROBOT_TYPE == INFANTRY_2018_MECANUM) 
-#define TRIGGER_ANGLE_INCREMENT     (PI/7.0f)
+#define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / 7.0f)
 #elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
-#define TRIGGER_ANGLE_INCREMENT     (PI/8.0f)
+#define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / 8.0f)
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-#define TRIGGER_ANGLE_INCREMENT     (PI/12.0f)
+#define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / 12.0f)
 #elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define TRIGGER_ANGLE_INCREMENT     (PI/9.0f)
+#define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / 9.0f)
 #endif
 
 #define TRIGGER_ANGLE_PID_KP        800.0f
@@ -145,9 +145,9 @@ typedef struct
     // fp32 friction_motor2_angle;
 
 	pid_type_def trigger_motor_pid;
-    fp32 trigger_speed_set;
-    fp32 speed;
-    fp32 speed_set;
+    fp32 trigger_raw_freq_set;
+    fp32 trigger_freq_set;
+    fp32 trigger_freq;
     fp32 angle;
     fp32 set_angle;
     int16_t given_current;

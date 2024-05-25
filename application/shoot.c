@@ -92,8 +92,8 @@ void shoot_init(void)
     shoot_control.given_current = 0;
     shoot_control.move_flag = 0;
     shoot_control.set_angle = shoot_control.angle;
-    shoot_control.speed = 0.0f;
-    shoot_control.speed_set = 0.0f;
+    shoot_control.trigger_freq = 0.0f;
+    shoot_control.trigger_freq_set = 0.0f;
     // shoot_control.key_time = 0;
     shoot_control.fIsCvControl = 0;
 }
@@ -127,7 +127,7 @@ int16_t shoot_control_loop(void)
 #if USE_SERVO_TO_STIR_AMMO
                 CAN_cmd_load_servo(1, 3);
 #endif
-                shoot_control.trigger_speed_set = 0;
+                shoot_control.trigger_raw_freq_set = 0;
 
                 PID_clear(&shoot_control.friction_motor1_pid);
                 PID_clear(&shoot_control.friction_motor2_pid);
@@ -158,7 +158,7 @@ int16_t shoot_control_loop(void)
     {
         shoot_control.friction_motor1_rpm_set = 0.0f;
         shoot_control.friction_motor2_rpm_set = 0.0f;
-        shoot_control.trigger_speed_set = 0;
+        shoot_control.trigger_raw_freq_set = 0;
         if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
         {
             shoot_control.friction_motor1_pid.max_out = 0;
@@ -195,11 +195,11 @@ int16_t shoot_control_loop(void)
     {
         if (shoot_control.key == SWITCH_TRIGGER_OFF)
         {
-            shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
+            shoot_control.trigger_raw_freq_set = READY_TRIGGER_FREQ;
         }
         // else
         // {
-        //     shoot_control.trigger_speed_set = 0.0f;
+        //     shoot_control.trigger_raw_freq_set = 0.0f;
         //     shoot_control.shoot_mode = SHOOT_READY;
         // }
         break;
@@ -257,7 +257,7 @@ int16_t shoot_control_loop(void)
     PID_calc(&shoot_control.friction_motor2_pid, shoot_control.friction_motor2_rpm, shoot_control.friction_motor2_rpm_set, SHOOT_CONTROL_TIME_S);
     shoot_control.fric2_given_current = (int16_t)(shoot_control.friction_motor2_pid.out);
 
-    PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set, SHOOT_CONTROL_TIME_S);
+    PID_calc(&shoot_control.trigger_motor_pid, shoot_control.trigger_freq, shoot_control.trigger_freq_set, SHOOT_CONTROL_TIME_S);
     shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
 
     return shoot_control.given_current;
@@ -368,7 +368,7 @@ static void shoot_feedback_update(void)
     speed_fliter_1 = speed_fliter_2;
     speed_fliter_2 = speed_fliter_3;
     speed_fliter_3 = speed_fliter_2 * fliter_num[0] + speed_fliter_1 * fliter_num[1] + (motor_chassis[MOTOR_INDEX_TRIGGER].speed_rpm * TRIGGER_MOTOR_RPM_TO_SPEED) * fliter_num[2];
-    shoot_control.speed = speed_fliter_3;
+    shoot_control.trigger_freq = speed_fliter_3;
 
     shoot_control.friction_motor1_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm, shoot_control.friction_motor1_rpm, 0.8f);
     shoot_control.friction_motor2_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm, shoot_control.friction_motor2_rpm, 0.8f);
@@ -415,17 +415,17 @@ static void shoot_feedback_update(void)
 static void trigger_motor_turn_back(void)
 {
 #if REVERSE_TRIGGER_DIRECTION
-		shoot_control.speed_set = -shoot_control.trigger_speed_set;
+		shoot_control.trigger_freq_set = -shoot_control.trigger_raw_freq_set;
 #else
-		shoot_control.speed_set = shoot_control.trigger_speed_set;
+		shoot_control.trigger_freq_set = shoot_control.trigger_raw_freq_set;
 #endif
 
     // jam detection
-    if (fabs(shoot_control.trigger_speed_set) < BLOCK_TRIGGER_SPEED)
+    if (fabs(shoot_control.trigger_raw_freq_set) < BLOCK_TRIGGER_SPEED)
     {
         shoot_control.block_time = 0;
         shoot_control.reverse_time = 0;
-        if (fabs(shoot_control.speed) < IDLE_TRIGGER_SPEED)
+        if (fabs(shoot_control.trigger_freq) < IDLE_TRIGGER_SPEED)
         {
             shoot_control.trigger_motor_pid.max_out = 0;
         }
@@ -440,10 +440,10 @@ static void trigger_motor_turn_back(void)
 
 		if (shoot_control.block_time >= BLOCK_TIME)
 		{
-			shoot_control.speed_set = -shoot_control.speed_set;
+			shoot_control.trigger_freq_set = -shoot_control.trigger_freq_set;
 		}
 
-		if ((fabs(shoot_control.speed) < BLOCK_TRIGGER_SPEED) && (shoot_control.block_time < BLOCK_TIME))
+		if ((fabs(shoot_control.trigger_freq) < BLOCK_TRIGGER_SPEED) && (shoot_control.block_time < BLOCK_TIME))
 		{
 			shoot_control.block_time += SHOOT_CONTROL_TIME_MS;
 			shoot_control.reverse_time = 0;
@@ -478,18 +478,18 @@ static void shoot_bullet_control(void)
     get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
     if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
     {
-        shoot_control.trigger_speed_set = 0;
+        shoot_control.trigger_raw_freq_set = 0;
     }
     else
 #endif
 	{
 		if (rad_format(shoot_control.set_angle - shoot_control.angle) > 0.05f)
 		{
-			shoot_control.trigger_speed_set = SEMI_AUTO_FIRE_TRIGGER_SPEED;
+			shoot_control.trigger_raw_freq_set = SEMI_AUTO_FIRE_TRIGGER_FREQ;
 		}
 		else
 		{
-			shoot_control.trigger_speed_set = 0.0f;
+			shoot_control.trigger_raw_freq_set = 0.0f;
 			shoot_control.move_flag = 0;
 		}
 	}
