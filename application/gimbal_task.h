@@ -223,7 +223,7 @@
 //test mode, 0 close, 1 open
 #define GIMBAL_TEST_MODE 0
 
-#if ((ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE))
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define PITCH_TURN  0
 #else
 #define PITCH_TURN  1
