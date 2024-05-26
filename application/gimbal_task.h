@@ -39,7 +39,7 @@
 
 //yaw speed close-loop PID params, max out and max iout
 #define YAW_SPEED_PID_KP        27000.0f
-#define YAW_SPEED_PID_KI        35000.0f
+#define YAW_SPEED_PID_KI        11000.0f
 #define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   30000.0f
 #define YAW_SPEED_PID_MAX_IOUT  5000.0f
