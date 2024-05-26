@@ -98,8 +98,7 @@ static void J_scope_chassis_test(void)
   */
 void chassis_task(void const *pvParameters)
 {
-    static uint32_t ulSystemTime;
-    ulSystemTime = osKernelSysTick();
+    uint32_t ulSystemTime = ulSystemTime = osKernelSysTick();
     //wait a time 
     osDelay(CHASSIS_TASK_INIT_TIME);
     //chassis init
@@ -127,7 +126,6 @@ void chassis_task(void const *pvParameters)
         CAN_cmd_chassis();
 
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
-		ulSystemTime = osKernelSysTick();
 
 #if CHASSIS_TEST_MODE
         J_scope_chassis_test();

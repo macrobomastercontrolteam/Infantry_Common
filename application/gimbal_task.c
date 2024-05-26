@@ -180,8 +180,7 @@ static int16_t yaw_can_set_current = 0, pitch_can_set_current = 0, trigger_set_c
   */
 void gimbal_task(void const *pvParameters)
 {
-    static uint32_t ulSystemTime;
-    ulSystemTime = osKernelSysTick();
+    uint32_t ulSystemTime = osKernelSysTick();
     osDelay(GIMBAL_TASK_INIT_TIME);
     gimbal_init(&gimbal_control);
     shoot_init();
@@ -226,7 +225,6 @@ void gimbal_task(void const *pvParameters)
 #endif
 
         osDelayUntil(&ulSystemTime, GIMBAL_CONTROL_TIME_MS);
-        ulSystemTime = osKernelSysTick();
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
         gimbal_high_water = uxTaskGetStackHighWaterMark(NULL);

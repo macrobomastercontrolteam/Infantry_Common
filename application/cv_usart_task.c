@@ -117,8 +117,7 @@ volatile uint16_t uiUsbMsgSize;
 
 void cv_usart_task(void const *argument)
 {
-    static uint32_t ulSystemTime;
-    ulSystemTime = osKernelSysTick();
+    uint32_t ulSystemTime = osKernelSysTick();
     CvCmder_Init();
     while (1)
     {
@@ -129,7 +128,6 @@ void cv_usart_task(void const *argument)
             CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
         }
         osDelayUntil(&ulSystemTime, 1500);
-        ulSystemTime = osKernelSysTick();
     }
 }
 

@@ -62,17 +62,13 @@ uint32_t detect_task_stack;
   */
 void detect_task(void const *pvParameters)
 {
-    static uint32_t ulSystemTime;
-    ulSystemTime = osKernelSysTick();
+    uint32_t ulSystemTime = osKernelSysTick();
     detect_init(ulSystemTime);
     osDelay(DETECT_TASK_INIT_TIME);
 
     while (1)
     {
         static uint8_t error_num_display = 0;
-        osDelayUntil(&ulSystemTime, DETECT_CONTROL_TIME_MS);
-        ulSystemTime = osKernelSysTick();
-
         error_num_display = ERROR_LIST_LENGTH;
         error_list[ERROR_LIST_LENGTH].is_lost = 0;
         error_list[ERROR_LIST_LENGTH].error_exist = 0;
@@ -134,6 +130,7 @@ void detect_task(void const *pvParameters)
                 }
             }
         }
+        osDelayUntil(&ulSystemTime, DETECT_CONTROL_TIME_MS);
 #if INCLUDE_uxTaskGetStackHighWaterMark
         detect_task_stack = uxTaskGetStackHighWaterMark(NULL);
 #endif

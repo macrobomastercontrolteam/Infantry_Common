@@ -33,8 +33,7 @@ uint32_t RGB_flow_color[RGB_FLOW_COLOR_LENGTH + 1] = {0xFF0000FF, 0x0000FF00, 0x
   */
 void led_RGB_flow_task(void const * argument)
 {
-    static uint32_t ulSystemTime;
-    ulSystemTime = osKernelSysTick();
+    uint32_t ulSystemTime = osKernelSysTick();
 
     uint16_t i, j;
     fp32 delta_alpha, delta_red, delta_green, delta_blue;
@@ -87,7 +86,6 @@ void led_RGB_flow_task(void const * argument)
                 aRGB_led_show(aRGB);
 
                 osDelayUntil(&ulSystemTime, LED_FLOW_CONTROL_TIME_MS);
-                ulSystemTime = osKernelSysTick();
             }
         }
     }

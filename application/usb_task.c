@@ -36,8 +36,7 @@ static uint8_t usb_buf[400];
 
 void usb_task(void const * argument)
 {
-    static uint32_t ulSystemTime;
-    ulSystemTime = osKernelSysTick();
+    uint32_t ulSystemTime = osKernelSysTick();
     MX_USB_DEVICE_Init();
     // error_list_usb_local = get_error_list_point();
 
@@ -82,7 +81,6 @@ void usb_task(void const * argument)
         // );
 
         osDelayUntil(&ulSystemTime, 3);
-        ulSystemTime = osKernelSysTick();
 	}
 
 }
