@@ -613,7 +613,7 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
                 *yaw -= TURN_SPEED;
             }
         }
-        // stop after reaching pi (180��)
+        // stop after reaching pi
         if (gimbal_turn_flag && fabs(rad_format(gimbal_end_angle - gimbal_control_set->gimbal_yaw_motor.absolute_angle)) < 0.01f)
         {
             gimbal_turn_flag = 0;

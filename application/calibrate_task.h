@@ -1,7 +1,7 @@
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       calibrate_task.c/h
-  * @brief      calibrate these device��include gimbal, gyro, accel, magnetometer,
+  * @brief      calibrate these device include gimbal, gyro, accel, magnetometer,
   *             chassis. gimbal calibration is to calc the midpoint, max/min 
   *             relative angle. gyro calibration is to calc the zero drift.
   *             accel and mag calibration have not been implemented yet, because
@@ -177,7 +177,7 @@ typedef struct
   */
 extern void cali_param_init(void);
 /**
-  * @brief          get imu control temperature, unit ��
+  * @brief          get imu control temperature, unit celsius
   * @param[in]      none
   * @retval         imu control temperature
   */

@@ -53,7 +53,7 @@ static void chassis_set_mode(chassis_move_t *chassis_move_mode);
   */
 void chassis_mode_change_control_transit(chassis_move_t *chassis_move_transit);
 /**
-  * @brief          chassis some measure data updata, such as motor speed, euler angle�� robot speed
+  * @brief          chassis some measure data updata, such as motor speed, euler angle, and robot speed
   * @param[out]     chassis_move_update: "chassis_move" valiable point
   * @retval         none
   */
@@ -112,7 +112,6 @@ void chassis_task(void const *pvParameters)
     while (1)
     {
         //set chassis control mode
-        //���õ��̿���ģʽ
         chassis_set_mode(&chassis_move);
         //when mode changes, save some data
         chassis_mode_change_control_transit(&chassis_move);
@@ -161,7 +160,6 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     const static fp32 chassis_wz_order_filter[1] = {CHASSIS_ACCEL_WZ_NUM};
     uint8_t i;
 
-    //in beginning�� chassis mode is raw 
     chassis_move_init->chassis_mode = CHASSIS_VECTOR_RAW;
     chassis_move_init->chassis_RC = get_remote_control_point();
     chassis_move_init->chassis_INS_angle = get_INS_angle_point();
@@ -250,7 +248,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 }
 
 /**
-  * @brief          chassis some measure data updata, such as motor speed, euler angle�� robot speed
+  * @brief          chassis some measure data updata, such as motor speed, euler angle, and robot speed
   * @param[out]     chassis_move_update: "chassis_move" valiable point
   * @retval         none
   */
