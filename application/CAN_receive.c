@@ -406,16 +406,12 @@ void CAN_cmd_chassis(void)
     osDelay(1);
 
 #if DISABLE_STEER_MOTOR_POWER
-    uint16_t hip_motor1 = 0;
-    uint16_t hip_motor2 = 0;
-    uint16_t hip_motor3 = 0;
-    uint16_t hip_motor4 = 0;
+    memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
 #else 
     uint16_t hip_motor1 = chassis_move.hip_motor_chassis[0].target_ecd;
     uint16_t hip_motor2 = chassis_move.hip_motor_chassis[1].target_ecd;
     uint16_t hip_motor3 = chassis_move.hip_motor_chassis[2].target_ecd;
     uint16_t hip_motor4 = chassis_move.hip_motor_chassis[3].target_ecd;
-#endif
 
     chassis_can_send_data[0] = hip_motor1 >> 8;
     chassis_can_send_data[1] = hip_motor1;
@@ -425,6 +421,7 @@ void CAN_cmd_chassis(void)
     chassis_can_send_data[5] = hip_motor3;
     chassis_can_send_data[6] = hip_motor4 >> 8;
     chassis_can_send_data[7] = hip_motor4;
+#endif
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 #endif
 }
