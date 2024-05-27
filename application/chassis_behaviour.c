@@ -51,7 +51,7 @@
 #include "chassis_behaviour.h"
 #include "cmsis_os.h"
 #include "chassis_task.h"
-#include "arm_math.h"
+#include "AHRS_middleware.h"
 #include "user_lib.h"
 
 #include "gimbal_behaviour.h"
@@ -392,7 +392,7 @@ static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_se
     
     if (swing_flag)
     {
-        swing_angle = max_angle * arm_sin_f32(swing_time);
+        swing_angle = max_angle * AHRS_sinf(swing_time);
         swing_time += add_time;
     }
     else

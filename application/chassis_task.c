@@ -20,7 +20,7 @@
 
 #include "cmsis_os.h"
 
-#include "arm_math.h"
+#include "AHRS_middleware.h"
 #include "pid.h"
 #include "remote_control.h"
 #include "CAN_receive.h"
@@ -451,8 +451,8 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
     {
         fp32 sin_yaw = 0.0f, cos_yaw = 0.0f;
         //rotate chassis direction, make sure vertial direction follow gimbal 
-        sin_yaw = arm_sin_f32(-chassis_move_control->chassis_yaw_motor->relative_angle);
-        cos_yaw = arm_cos_f32(-chassis_move_control->chassis_yaw_motor->relative_angle);
+        sin_yaw = AHRS_sinf(-chassis_move_control->chassis_yaw_motor->relative_angle);
+        cos_yaw = AHRS_cosf(-chassis_move_control->chassis_yaw_motor->relative_angle);
         chassis_move_control->vx_set = cos_yaw * vx_set + sin_yaw * vy_set;
         chassis_move_control->vy_set = -sin_yaw * vx_set + cos_yaw * vy_set;
         //set control relative angle  set-point
@@ -467,8 +467,8 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
     else if ((chassis_move_control->chassis_mode == CHASSIS_VECTOR_SPINNING) || (chassis_move_control->chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW))
     {
         //rotate chassis direction, make sure vertial direction follow gimbal 
-        fp32 sin_yaw = arm_sin_f32(-chassis_move_control->chassis_yaw_motor->relative_angle);
-        fp32 cos_yaw = arm_cos_f32(-chassis_move_control->chassis_yaw_motor->relative_angle);
+        fp32 sin_yaw = AHRS_sinf(-chassis_move_control->chassis_yaw_motor->relative_angle);
+        fp32 cos_yaw = AHRS_cosf(-chassis_move_control->chassis_yaw_motor->relative_angle);
         chassis_move_control->vx_set = cos_yaw * vx_set + sin_yaw * vy_set;
         chassis_move_control->vy_set = -sin_yaw * vx_set + cos_yaw * vy_set;
         //calculate ratation speed
