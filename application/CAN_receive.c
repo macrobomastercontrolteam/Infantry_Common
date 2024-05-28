@@ -31,13 +31,15 @@
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 #define ENABLE_DRIVE_MOTOR_POWER 0
-#define ENABLE_STEER_MOTOR_POWER 0
 #define ENABLE_YAW_MOTOR_POWER 0
 #define ENABLE_PITCH_MOTOR_POWER 0
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
 #define ENABLE_FRICTION_2_MOTOR_POWER 0
 #define ENABLE_UPPER_HEAD_POWER 0
+// swerve robot specific
+#define ENABLE_STEER_MOTOR_POWER 0
+#define ENABLE_HIP_MOTOR_POWER 0
 
 
 #define REVERSE_M3508_1 0
@@ -59,6 +61,11 @@ extern CAN_HandleTypeDef hcan2;
 
 uint8_t convertCanIdToMotorIndex(uint32_t canId);
 void reverse_motor_feedback(uint8_t bMotorId);
+// void decode_swerve_ctrl_chassis_params(uint8_t *data);
+// void decode_swerve_ctrl_chassis_radii(uint8_t *data);
+void decode_swerve_params_shrinked(uint8_t *data);
+// void CAN_cmd_swerve(void);
+void CAN_cmd_swerve_shrinked(void);
 
 /**
  * @brief motor feedback data
@@ -75,6 +82,13 @@ static CAN_TxHeaderTypeDef  gimbal_tx_message;
 static uint8_t              gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef  chassis_tx_message;
 static uint8_t              chassis_can_send_data[8];
+const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#define SWERVE_METER_PARAM_MAX_LIMIT 0.5f
+const fp32 swerve_meter_encoding_ratio = (1 << 8) / SWERVE_METER_PARAM_MAX_LIMIT;
+const fp32 swerve_angle_encoding_ratio = (1 << 7) / (PI / 4.0f);
+#endif
 
 uint8_t convertCanIdToMotorIndex(uint32_t canId)
 {
@@ -148,9 +162,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             case CAN_3508_M2_ID:
             case CAN_3508_M3_ID:
             case CAN_3508_M4_ID:
-    #if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
             case CAN_TRIGGER_MOTOR_ID:
-    #endif
+#endif
             case CAN_YAW_MOTOR_ID:
             {
                 fIsMotor = 1;
@@ -164,6 +178,29 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
                 detect_hook(SUPCAP_TOE);
                 break;
             }
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+            // case CAN_CHASSIS_PARAMS_CONTROLLER_RX_ID:
+            // {
+            //     fIsMotor = 0;
+            //     decode_swerve_ctrl_chassis_params(rx_data);
+            //     detect_hook(SWERVE_CTRL_TOE);
+            //     break;
+            // }
+            // case CAN_CHASSIS_ROT_RADII_CONTROLLER_RX_ID:
+            // {
+            //     fIsMotor = 0;
+            //     decode_swerve_ctrl_chassis_radii(rx_data);
+            //     detect_hook(SWERVE_CTRL_TOE);
+            //     break;
+            // }
+            case CAN_SHRINKED_CONTROLLER_RX_ID:
+            {
+                fIsMotor = 0;
+                decode_swerve_params_shrinked(rx_data);
+                detect_hook(SWERVE_CTRL_TOE);
+                break;
+            }
+#endif
             default:
             {
                 break;
@@ -181,6 +218,41 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
         reverse_motor_feedback(bMotorId);
         detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
     }
+}
+
+void decode_swerve_ctrl_chassis_params(uint8_t *data)
+{    
+    chassis_move.fHipDataIsValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
+	if (chassis_move.fHipDataIsValid)
+	{
+        chassis_move.chassis_platform.feedback_alpha1 = (int8_t)((data[0] << 8) | data[1]) / swerve_angle_encoding_ratio;
+		chassis_move.chassis_platform.feedback_alpha2 = (int8_t)((data[2] << 8) | data[3]) / swerve_angle_encoding_ratio;
+		chassis_move.chassis_platform.feedback_height = (uint8_t)((data[4] << 8) | data[5]) / swerve_meter_encoding_ratio;
+	}
+}
+
+void decode_swerve_ctrl_chassis_radii(uint8_t *data)
+{
+    chassis_move.fRadiiDataIsValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
+	if (chassis_move.fRadiiDataIsValid)
+	{
+        chassis_move.wheel_rot_radii[0] = (uint8_t)((data[0] << 8) | data[1]) / swerve_meter_encoding_ratio;
+		chassis_move.wheel_rot_radii[1] = (uint8_t)((data[2] << 8) | data[3]) / swerve_meter_encoding_ratio;
+		chassis_move.wheel_rot_radii[2] = (uint8_t)((data[4] << 8) | data[5]) / swerve_meter_encoding_ratio;
+        chassis_move.wheel_rot_radii[3] = (uint8_t)((data[6] << 8) | data[7]) / swerve_meter_encoding_ratio;
+	}
+}
+
+void decode_swerve_params_shrinked(uint8_t *data)
+{
+    chassis_move.fRadiiDataIsValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
+	if (chassis_move.fRadiiDataIsValid)
+	{
+        chassis_move.wheel_rot_radii[0] = (uint8_t)((data[0] << 8) | data[1]) / swerve_meter_encoding_ratio;
+		chassis_move.wheel_rot_radii[1] = (uint8_t)((data[2] << 8) | data[3]) / swerve_meter_encoding_ratio;
+		chassis_move.wheel_rot_radii[2] = (uint8_t)((data[4] << 8) | data[5]) / swerve_meter_encoding_ratio;
+        chassis_move.wheel_rot_radii[3] = (uint8_t)((data[6] << 8) | data[7]) / swerve_meter_encoding_ratio;
+	}
 }
 
 void reverse_motor_feedback(uint8_t bMotorId)
@@ -381,50 +453,99 @@ void CAN_cmd_chassis(void)
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
     osDelay(1);
-    // Send target encoder value of steering motors (GM6020) to chassis controller
-    chassis_tx_message.StdId = CAN_STEER_CONTROLLER_TX_ID;
-
-#if ENABLE_STEER_MOTOR_POWER
-    uint16_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
-    uint16_t steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;
-    uint16_t steer_motor3 = chassis_move.steer_motor_chassis[2].target_ecd;
-    uint16_t steer_motor4 = chassis_move.steer_motor_chassis[3].target_ecd;
-
-    chassis_can_send_data[0] = steer_motor1 >> 8;
-    chassis_can_send_data[1] = steer_motor1;
-    chassis_can_send_data[2] = steer_motor2 >> 8;
-    chassis_can_send_data[3] = steer_motor2;
-    chassis_can_send_data[4] = steer_motor3 >> 8;
-    chassis_can_send_data[5] = steer_motor3;
-    chassis_can_send_data[6] = steer_motor4 >> 8;
-    chassis_can_send_data[7] = steer_motor4;
-#else
-    memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
-#endif
-    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
-
-    osDelay(1);
-
-#if DISABLE_STEER_MOTOR_POWER
-    memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
-#else 
-    uint16_t hip_motor1 = chassis_move.hip_motor_chassis[0].target_ecd;
-    uint16_t hip_motor2 = chassis_move.hip_motor_chassis[1].target_ecd;
-    uint16_t hip_motor3 = chassis_move.hip_motor_chassis[2].target_ecd;
-    uint16_t hip_motor4 = chassis_move.hip_motor_chassis[3].target_ecd;
-
-    chassis_can_send_data[0] = hip_motor1 >> 8;
-    chassis_can_send_data[1] = hip_motor1;
-    chassis_can_send_data[2] = hip_motor2 >> 8;
-    chassis_can_send_data[3] = hip_motor2;
-    chassis_can_send_data[4] = hip_motor3 >> 8;
-    chassis_can_send_data[5] = hip_motor3;
-    chassis_can_send_data[6] = hip_motor4 >> 8;
-    chassis_can_send_data[7] = hip_motor4;
-#endif
-    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+    CAN_cmd_swerve_shrinked();
 #endif
 }
+
+void CAN_cmd_swerve_shrinked(void)
+{
+    uint32_t send_mail_box;
+    // Send target encoder value of steering motors (GM6020) to chassis controller
+    chassis_tx_message.StdId = CAN_SHRINKED_CONTROLLER_TX_ID;
+
+#if ENABLE_STEER_MOTOR_POWER
+    uint8_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
+    uint8_t steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;
+    uint8_t steer_motor3 = chassis_move.steer_motor_chassis[2].target_ecd;
+    uint8_t steer_motor4 = chassis_move.steer_motor_chassis[3].target_ecd;
+#else
+    uint8_t steer_motor1 = 0xFF;
+    uint8_t steer_motor2 = 0xFF;
+    uint8_t steer_motor3 = 0xFF;
+    uint8_t steer_motor4 = 0xFF;
+#endif
+
+#if ENABLE_HIP_MOTOR_POWER
+    uint8_t target_alpha1_cmd = (int8_t)chassis_move.chassis_platform.target_alpha1 * swerve_angle_encoding_ratio;
+    uint8_t target_alpha2_cmd = (int8_t)chassis_move.chassis_platform.target_alpha2 * swerve_angle_encoding_ratio;
+    uint8_t target_height_cmd = (uint8_t)chassis_move.chassis_platform.target_height * swerve_meter_encoding_ratio;
+#else
+    uint8_t target_alpha1_cmd = 0xFF;
+    uint8_t target_alpha2_cmd = 0xFF;
+    uint8_t target_height_cmd = 0xFF;
+#endif
+
+    // command steer motors
+    chassis_can_send_data[0] = steer_motor1;
+    chassis_can_send_data[1] = steer_motor2;
+    chassis_can_send_data[2] = steer_motor3;
+    chassis_can_send_data[3] = steer_motor4;
+    // command chassis platform
+    chassis_can_send_data[4] = target_alpha1_cmd;
+    chassis_can_send_data[5] = target_alpha2_cmd;
+    chassis_can_send_data[6] = target_height_cmd;
+    // reserved
+    // chassis_can_send_data[7] = rev;
+    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+// void CAN_cmd_swerve(void)
+// {
+//     uint32_t send_mail_box;
+//     // Send target encoder value of steering motors (GM6020) to chassis controller
+//     chassis_tx_message.StdId = CAN_STEER_CONTROLLER_TX_ID;
+
+// #if DISABLE_STEER_MOTOR_POWER
+//     memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
+// #else
+//     uint16_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
+//     uint16_t steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;
+//     uint16_t steer_motor3 = chassis_move.steer_motor_chassis[2].target_ecd;
+//     uint16_t steer_motor4 = chassis_move.steer_motor_chassis[3].target_ecd;
+
+//     chassis_can_send_data[0] = steer_motor1 >> 8;
+//     chassis_can_send_data[1] = steer_motor1;
+//     chassis_can_send_data[2] = steer_motor2 >> 8;
+//     chassis_can_send_data[3] = steer_motor2;
+//     chassis_can_send_data[4] = steer_motor3 >> 8;
+//     chassis_can_send_data[5] = steer_motor3;
+//     chassis_can_send_data[6] = steer_motor4 >> 8;
+//     chassis_can_send_data[7] = steer_motor4;
+// #endif
+//     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+
+//     osDelay(2);
+
+//     chassis_tx_message.StdId = CAN_CHASSIS_PARAMS_CONTROLLER_TX_ID;
+// #if DISABLE_HIP_MOTOR_POWER
+//     memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
+// #else
+//     uint16_t target_alpha1_cmd = (int16_t)chassis_move.chassis_platform.target_alpha1 * swerve_angle_encoding_ratio;
+//     uint16_t target_alpha2_cmd = (int16_t)chassis_move.chassis_platform.target_alpha2 * swerve_angle_encoding_ratio;
+//     uint16_t target_height_cmd = (uint16_t)chassis_move.chassis_platform.target_height * swerve_meter_encoding_ratio;
+
+//     chassis_can_send_data[0] = target_alpha1_cmd >> 8;
+//     chassis_can_send_data[1] = target_alpha1_cmd;
+//     chassis_can_send_data[2] = target_alpha2_cmd >> 8;
+//     chassis_can_send_data[3] = target_alpha2_cmd;
+//     chassis_can_send_data[4] = target_height_cmd >> 8;
+//     chassis_can_send_data[5] = target_height_cmd;
+//     // reserved
+//     // chassis_can_send_data[6] = rev >> 8;
+//     // chassis_can_send_data[7] = rev;
+// #endif
+//     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+// }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes)

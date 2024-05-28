@@ -66,6 +66,7 @@ enum errorList
     REFEREE_TOE,
     CV_TOE,
     SUPCAP_TOE,
+    SWERVE_CTRL_TOE,
     // OLED_TOE,
     ERROR_LIST_LENGTH,
 };

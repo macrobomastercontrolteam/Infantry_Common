@@ -36,6 +36,11 @@
 #define MOTOR_RAD_TO_ECD ((fp32)(HALF_ECD_RANGE) / PI)
 #define MOTOR_ECD_TO_RAD (PI / (fp32)(HALF_ECD_RANGE))
 
+#define HALF_ECD_RANGE_SHRINKED 128
+#define ECD_RANGE_SHRINKED 256
+#define MOTOR_RAD_TO_ECD_SHRINKED ((fp32)(HALF_ECD_RANGE_SHRINKED) / PI)
+#define MOTOR_ECD_TO_RAD_SHRINKED (PI / (fp32)(HALF_ECD_RANGE_SHRINKED))
+
 #define MOVING_AVERAGE_RESET 1
 #define MOVING_AVERAGE_CALC 0
 
@@ -114,5 +119,7 @@ extern fp32 loop_fp32_constrain(fp32 Input, fp32 minValue, fp32 maxValue);
 extern fp32 theta_format(fp32 Ang);
 
 #define rad_format(Ang) loop_fp32_constrain((Ang), -PI, PI)
+
+#define DEG_TO_RAD(_deg) (_deg * PI / 180.0f)
 
 #endif
