@@ -22,7 +22,7 @@
 #include "detect_task.h"
 #include "chassis_task.h"
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // @TODO: change limit according to chassis_power_limit field of referee serial data
 #define POWER_LIMIT         40.0f
 #define WARNING_POWER       35.0f

@@ -29,7 +29,7 @@
 #include "remote_control.h"
 #include "user_lib.h"
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 //pitch speed close-loop PID params, max out and max iout
 #define PITCH_SPEED_PID_KP        10000.0f // pitch starts shaking at 2600
 #define PITCH_SPEED_PID_KI        100000.0f
