@@ -205,6 +205,7 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
             gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
             break;
         }
+#if CV_INTERFACE
         case GIMBAL_AUTO_AIM:
         case GIMBAL_AUTO_AIM_PATROL:
         {
@@ -212,6 +213,7 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
             gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_CAMERA;
             break;
         }
+#endif
         case GIMBAL_INIT:
         case GIMBAL_RELATIVE_ANGLE:
         case GIMBAL_MOTIONLESS:
@@ -266,6 +268,7 @@ void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, gimbal_control
             gimbal_absolute_angle_control(add_yaw, add_pitch, gimbal_control_set);
             break;
         }
+#if CV_INTERFACE
         case GIMBAL_AUTO_AIM:
         {
             gimbal_cv_control(add_yaw, add_pitch, gimbal_control_set);
@@ -276,6 +279,7 @@ void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, gimbal_control
             gimbal_cv_control_patrol(add_yaw, add_pitch, gimbal_control_set);
             break;
         }
+#endif
         case GIMBAL_RELATIVE_ANGLE:
         {
             gimbal_relative_angle_control(add_yaw, add_pitch, gimbal_control_set);
