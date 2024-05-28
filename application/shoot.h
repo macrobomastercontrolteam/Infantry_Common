@@ -33,9 +33,7 @@
 // After the shooting is enabled, the bullet is continuously fired for a period of time, used to clear the bullet
 #define RC_S_LONG_TIME              800
 
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) 
-#define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  1.0f
-#elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  1.0f
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  (58.0f / 24.0f)
@@ -75,9 +73,7 @@
 #define REVERSE_TIME                500
 #define REVERSE_SPEED_LIMIT         13.0f
 
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) 
-#define TRIGGER_ANGLE_INCREMENT     (PI/7.0f)
-#elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define TRIGGER_ANGLE_INCREMENT     (PI/8.0f)
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define TRIGGER_ANGLE_INCREMENT     (PI/12.0f)
