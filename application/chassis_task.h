@@ -41,32 +41,42 @@
 
 #define CHASSIS_TEST_MODE 0
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
-#define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
-#define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-// avoid changing angle too often near zero speed
-#define STEER_TURN_X_SPEED_DEADZONE 0.01f
-#define STEER_TURN_Y_SPEED_DEADZONE (STEER_TURN_X_SPEED_DEADZONE * NORMAL_MAX_CHASSIS_SPEED_Y / NORMAL_MAX_CHASSIS_SPEED_X)
-#define STEER_TURN_W_SPEED_DEADZONE 0.01f
+// swerve chassis platform parameters
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#define CHASSIS_A_LENGTH 0.322815f
+#define CHASSIS_HALF_A_LENGTH (CHASSIS_A_LENGTH / 2.0f)
+#define CHASSIS_L1_LENGTH 0.12f
+#define CHASSIS_L2_LENGTH 0.177353f
+#define CHASSIS_THETA_LOWER_LIMIT DEG_TO_RAD(16.1f)
+#define CHASSIS_THETA_UPPER_LIMIT DEG_TO_RAD(68.28f)
+#define CHASSIS_THETA_LOWER_LIMIT_ECD (CHASSIS_THETA_LOWER_LIMIT * MG6012_MOTOR_RAD_TO_ECD)
+#define CHASSIS_THETA_UPPER_LIMIT_ECD (CHASSIS_THETA_UPPER_LIMIT * MG6012_MOTOR_RAD_TO_ECD)
+
+// calculated by Matlab offline
+#define CHASSIS_H_LOWER_LIMIT 0.213246f
+#define CHASSIS_H_UPPER_LIMIT 0.28699f
+#define CHASSIS_H_WORKSPACE_PEAK 0.2518985f
+#define CHASSIS_ALPHA_WORKSPACE_PEAK 0.156f
+#define CHASSIS_H_WORKSPACE_SLOPE1 0.247767f
+#define CHASSIS_H_WORKSPACE_SLOPE2 (-0.224946f)
+// @TODO: calculate for roll and pitch limits
+#define CHASSIS_ROLL_UPPER_LIMIT (PI / 4.0f)
+#define CHASSIS_PITCH_UPPER_LIMIT (PI / 4.0f)
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
-#define MOTOR_DISTANCE_TO_CENTER 0.2788f
+#define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.2788f
 #elif (ROBOT_TYPE == INFANTRY_2024_MECANUM)
-#define MOTOR_DISTANCE_TO_CENTER 0.25010678f
+#define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.25010678f
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-#define MOTOR_DISTANCE_TO_CENTER 0.28284271247461906f // sqrt(pow(CHASSIS_Y_DIRECTION_HALF_LENGTH,2)+pow(CHASSIS_X_DIRECTION_HALF_LENGTH,2))
-#define CHASSIS_Y_DIRECTION_HALF_LENGTH 0.2f
-#define CHASSIS_X_DIRECTION_HALF_LENGTH 0.2f
-#define CHASSIS_ANGLE_COS 0.7071067811865475f // (CHASSIS_X_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
-#define CHASSIS_ANGLE_SIN 0.7071067811865475f // (CHASSIS_Y_DIRECTION_HALF_LENGTH/MOTOR_DISTANCE_TO_CENTER)
+// angle going from the right direction to front-right leg
+#define CHASSIS_LEG_TO_HORIZONTAL_ANGLE (PI / 4.0f)
+#define MOTOR_DISTANCE_TO_CENTER_DEFAULT (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(CHASSIS_THETA_LOWER_LIMIT))
 #elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define MOTOR_DISTANCE_TO_CENTER 0.3259247634040715f
+#define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.3259247634040715f
 #endif
 
-#define CHASSIS_CONTROL_TIME_MS 2.0f
+#define CHASSIS_CONTROL_TIME_MS 5.0f
 #define CHASSIS_CONTROL_TIME_S (CHASSIS_CONTROL_TIME_MS / 1000.0f)
 #define CHASSIS_CONTROL_FREQUENCE (1.0f / CHASSIS_CONTROL_TIME_S)
 
@@ -103,6 +113,17 @@
 #define SPRINT_MAX_CHASSIS_SPEED_Y 5.0f
 #define NORMAL_MAX_CHASSIS_SPEED_WZ RPM_TO_RADS(60.0f)
 
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
+#define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
+#define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+// avoid changing angle too often near zero speed
+#define STEER_TURN_X_SPEED_DEADZONE 0.01f
+#define STEER_TURN_Y_SPEED_DEADZONE (STEER_TURN_X_SPEED_DEADZONE * NORMAL_MAX_CHASSIS_SPEED_Y / NORMAL_MAX_CHASSIS_SPEED_X)
+#define STEER_TURN_W_SPEED_DEADZONE 0.01f
+#endif
+
 // In follow-yaw mode, map joystick value to increment in target yaw angle
 #define CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S 2.0f
 #define CHASSIS_ANGLE_Z_RC_SEN_INC (PI / 2.0f / CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
@@ -112,6 +133,16 @@
 #define CHASSIS_SPIN_RC_SEN_POSITIVE_INPUT ((NORMAL_MAX_CHASSIS_SPEED_WZ - SPINNING_CHASSIS_LOW_OMEGA) / JOYSTICK_HALF_RANGE)
 #define CHASSIS_SPIN_RC_SEN_NEGATIVE_INPUT ((NORMAL_MAX_CHASSIS_SPEED_WZ + SPINNING_CHASSIS_LOW_OMEGA) / JOYSTICK_HALF_RANGE)
 #define CHASSIS_SPIN_RC_OFFSET SPINNING_CHASSIS_LOW_OMEGA
+
+#if SWERVE_HIP_RC_TEST
+// configuration for pseudo RPY-to-tilt conversion
+#define SWERVE_HIP_TEST_ROLL_RC_CHANGE_TIME_S 2.0f
+#define SWERVE_HIP_TEST_ROLL_RC_SEN_INC (2.0f * CHASSIS_ALPHA_WORKSPACE_PEAK / SWERVE_HIP_TEST_ROLL_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
+#define SWERVE_HIP_TEST_PITCH_RC_CHANGE_TIME_S 2.0f
+#define SWERVE_HIP_TEST_PITCH_RC_SEN_INC (2.0f * CHASSIS_ALPHA_WORKSPACE_PEAK / SWERVE_HIP_TEST_ROLL_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
+#define SWERVE_HIP_TEST_HEIGHT_RC_CHANGE_TIME_S 2.0f
+#define SWERVE_HIP_TEST_HEIGHT_RC_SEN_INC ((CHASSIS_H_UPPER_LIMIT - CHASSIS_H_LOWER_LIMIT) / SWERVE_HIP_TEST_ROLL_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
+#endif
 
 // Arbitrary offsets between chassis rotational center and centroid
 #if ROBOT_YAW_HAS_SLIP_RING
@@ -169,6 +200,24 @@ typedef struct
   int16_t give_current;
 } chassis_motor_t;
 
+typedef struct
+{
+  fp32 target_roll;
+  fp32 target_pitch;
+  // fp32 target_yaw; // yaw cannot be controlled by hip
+  fp32 target_height;
+
+  fp32 target_alpha1;
+  fp32 target_alpha2;
+
+  fp32 alpha_lower_limit;
+  fp32 alpha_upper_limit;
+
+  fp32 feedback_alpha1;
+  fp32 feedback_alpha2;
+  fp32 feedback_height;
+} chassis_platform_t;
+
 typedef union
 {
   uint8_t can_buf[8];
@@ -186,13 +235,8 @@ extern supcap_t cap_message_rx;
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 typedef struct
 {
-  uint16_t target_ecd; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
+  uint8_t target_ecd; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
 } chassis_steer_motor_t;
-
-typedef struct
-{
-  uint16_t target_speed; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
-} chassis_hip_motor_t;
 #endif
 
 typedef struct
@@ -206,11 +250,18 @@ typedef struct
   chassis_motor_t motor_chassis[4];          //chassis motor data
   pid_type_def motor_speed_pid[4];             //motor speed PID
   pid_type_def chassis_angle_pid;              //follow angle PID
+  fp32 wheel_rot_radii_dot[4];
+  fp32 wheel_rot_radii_last[4];
+  fp32 wheel_rot_radii[4];
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
   chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data
-  pid_type_def steer_motor_angle_pid[4];       //steering motor angle PID
-  chassis_hip_motor_t hip_motor_chassis[4];
-  pid_type_def hip_motor_speed_pid[4];
+  // chassis platform parameters
+  chassis_platform_t chassis_platform;
+  // lower board notify upper board whether to use the feedback of chassis platform from lower board
+  uint8_t fHipDataIsValid;
+  uint8_t fRadiiDataIsValid;
+  uint32_t ulSwerveDataInvalidStartTime;
+  uint32_t ulLastRadiiUpdate_ms;
 #endif
 
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point
@@ -260,6 +311,7 @@ extern void chassis_task(void const *pvParameters);
   */
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
 void chassis_rc_to_swerve_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
+void chassis_swerve_params_reset(void);
 
 extern chassis_move_t chassis_move;
 

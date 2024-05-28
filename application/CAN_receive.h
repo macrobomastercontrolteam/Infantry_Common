@@ -72,10 +72,15 @@ typedef enum
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	CAN_STEER_CONTROLLER_TX_ID = 0x112,
 	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
-  // sends target speed for hip motors
-	CAN_HIP_CONTROLLER_TX_ID = 0x114,
-  // receives current position of hip motors
-  CAN_HIP_CONTROLLER_RX_ID = 0x115,
+  // receives target chassis platform params: alpha1, alpha2, center height
+	CAN_CHASSIS_PARAMS_CONTROLLER_TX_ID = 0x114,
+	// sends current chassis platform params: alpha1, alpha2, center height
+	CAN_CHASSIS_PARAMS_CONTROLLER_RX_ID = 0x115,
+	// sends current rotational radius of each wheels
+	CAN_CHASSIS_ROT_RADII_CONTROLLER_RX_ID = 0x116,
+
+	CAN_SHRINKED_CONTROLLER_TX_ID = 0x117,
+	CAN_SHRINKED_CONTROLLER_RX_ID = 0x118,
 #endif
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
