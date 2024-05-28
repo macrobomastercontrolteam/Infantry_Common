@@ -463,27 +463,44 @@ void CAN_cmd_swerve_shrinked(void)
     // Send target encoder value of steering motors (GM6020) to chassis controller
     chassis_tx_message.StdId = CAN_SHRINKED_CONTROLLER_TX_ID;
 
+    uint8_t steer_motor1;
+    uint8_t steer_motor2;
+    uint8_t steer_motor3;
+    uint8_t steer_motor4;
 #if ENABLE_STEER_MOTOR_POWER
-    uint8_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
-    uint8_t steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;
-    uint8_t steer_motor3 = chassis_move.steer_motor_chassis[2].target_ecd;
-    uint8_t steer_motor4 = chassis_move.steer_motor_chassis[3].target_ecd;
-#else
-    uint8_t steer_motor1 = 0xFF;
-    uint8_t steer_motor2 = 0xFF;
-    uint8_t steer_motor3 = 0xFF;
-    uint8_t steer_motor4 = 0xFF;
+    if (toe_is_error(DBUS_TOE) == 0)
+    {
+        steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
+        steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;
+        steer_motor3 = chassis_move.steer_motor_chassis[2].target_ecd;
+        steer_motor4 = chassis_move.steer_motor_chassis[3].target_ecd;
+    }
+    else
 #endif
+    {
+        steer_motor1 = 0xFF;
+        steer_motor2 = 0xFF;
+        steer_motor3 = 0xFF;
+        steer_motor4 = 0xFF;
+    }
 
+    int8_t target_alpha1_cmd;
+    int8_t target_alpha2_cmd;
+    uint8_t target_height_cmd;
 #if ENABLE_HIP_MOTOR_POWER
-    uint8_t target_alpha1_cmd = (int8_t)chassis_move.chassis_platform.target_alpha1 * swerve_angle_encoding_ratio;
-    uint8_t target_alpha2_cmd = (int8_t)chassis_move.chassis_platform.target_alpha2 * swerve_angle_encoding_ratio;
-    uint8_t target_height_cmd = (uint8_t)chassis_move.chassis_platform.target_height * swerve_meter_encoding_ratio;
-#else
-    uint8_t target_alpha1_cmd = 0xFF;
-    uint8_t target_alpha2_cmd = 0xFF;
-    uint8_t target_height_cmd = 0xFF;
+    if (toe_is_error(DBUS_TOE) == 0)
+    {
+        target_alpha1_cmd = chassis_move.chassis_platform.target_alpha1 * swerve_angle_encoding_ratio;
+        target_alpha2_cmd = chassis_move.chassis_platform.target_alpha2 * swerve_angle_encoding_ratio;
+        target_height_cmd = chassis_move.chassis_platform.target_height * swerve_meter_encoding_ratio;
+    }
+    else
 #endif
+    {
+        target_alpha1_cmd = 0xFF;
+        target_alpha2_cmd = 0xFF;
+        target_height_cmd = 0xFF;
+    }
 
     // command steer motors
     chassis_can_send_data[0] = steer_motor1;
