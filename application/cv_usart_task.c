@@ -127,7 +127,7 @@ void cv_usart_task(void const *argument)
         {
             CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
         }
-        osDelayUntil(&ulSystemTime, 1500);
+        osDelayUntil(&ulSystemTime, CV_CONTROL_TIME_MS);
     }
 }
 
@@ -155,6 +155,12 @@ void CvCmder_Init(void)
 
     // RXNE is not used
     __HAL_UART_DISABLE_IT(&huart1, UART_IT_RXNE);
+}
+
+void CvCmder_toe_solve_lost_fun(void)
+{
+	CvCmdHandler.CvCmdMsg.xSpeed = 0;
+	CvCmdHandler.CvCmdMsg.ySpeed = 0;
 }
 
 /**

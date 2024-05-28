@@ -11,6 +11,8 @@
 #include "user_lib.h" // moving_average_type_t, STATIC_ASSERT
 #include "remote_control.h"
 
+#define CV_CONTROL_TIME_MS 500.0f
+
 #if CV_INTERFACE
 
 typedef struct __attribute__((packed))
@@ -51,6 +53,7 @@ void CvCmder_ToggleMode(uint8_t bCvModeBit);
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
 tCvCmdHandler* CvCmder_GetHandler(void);
 void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd);
+void CvCmder_toe_solve_lost_fun(void);
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void);
 #endif // DEBUG_CV_WITH_USB
