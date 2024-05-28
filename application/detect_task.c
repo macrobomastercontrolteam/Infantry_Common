@@ -232,27 +232,10 @@ static void detect_init(uint32_t time)
         error_list[i].solve_lost_fun = NULL;
         error_list[i].solve_data_error_fun = NULL;
 
-		switch (i)
-		{
-#if TEST_NO_REF
-			case REFEREE_TOE:
-			{
-				error_list[i].enable = 0;
-				error_list[i].error_exist = 0;
-				error_list[i].is_lost = 0;
-				error_list[i].data_is_error = 0;
-				break;
-			}
-#endif
-			default:
-			{
-				error_list[i].enable = 1;
-				error_list[i].error_exist = 1;
-				error_list[i].is_lost = 1;
-				error_list[i].data_is_error = 1;
-				break;
-			}
-		}
+        error_list[i].enable = 1;
+        error_list[i].error_exist = 1;
+        error_list[i].is_lost = 1;
+        error_list[i].data_is_error = 1;
 
 		error_list[i].frequency = 0.0f;
         error_list[i].new_time = time;
@@ -271,7 +254,7 @@ static void detect_init(uint32_t time)
     error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
 #endif
 
-    // error_list[OLED_TOE].data_is_error_fun = NULL;
+	// error_list[OLED_TOE].data_is_error_fun = NULL;
     // error_list[OLED_TOE].solve_lost_fun = OLED_com_reset;
     // error_list[OLED_TOE].solve_data_error_fun = NULL;
 
