@@ -543,7 +543,7 @@ void chassis_rc_to_swerve_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_se
         chassis_move_rc_to_vector->chassis_platform.target_height = fp32_constrain(chassis_move_rc_to_vector->chassis_platform.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
 
         // chassis platform posture conversion
-        swerve_convert_from_rpy_to_alpha(chassis_move_rc_to_vector->chassis_platform.target_roll, chassis_move_rc_to_vector->chassis_platform.target_pitch, &(chassis_move_rc_to_vector->chassis_platform.target_alpha1), &(chassis_move_rc_to_vector->chassis_platform.target_alpha1));
+        swerve_convert_from_rpy_to_alpha(chassis_move_rc_to_vector->chassis_platform.target_roll, chassis_move_rc_to_vector->chassis_platform.target_pitch, &(chassis_move_rc_to_vector->chassis_platform.target_alpha1), &(chassis_move_rc_to_vector->chassis_platform.target_alpha2));
 
         // constrain target alpha1 and alpha2 values
         // calculation for alpha limit: According to the matlab calculation, the available workspace in height-alpha space is triangular, so we assume height target has more priority than alpha target, and calculate alpha limit based on height
