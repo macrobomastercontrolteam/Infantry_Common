@@ -581,10 +581,20 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 
     static int16_t yaw_channel = 0, pitch_channel = 0;
 
-    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
-    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
+#if SWERVE_HIP_RC_TEST
+    if (gimbal_control_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
+	{
+        yaw_channel = 0;
+		pitch_channel = 0;
+	}
+	else
+#endif
+	{
+		deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
+		deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
+	}
 
-    *yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
+	*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
     *pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
 
 
