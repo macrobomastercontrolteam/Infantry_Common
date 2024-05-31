@@ -110,6 +110,8 @@ extern fp32 sign(fp32 value);
 extern fp32 fp32_deadline(fp32 Value, fp32 minValue, fp32 maxValue);
 extern int16_t int16_deadline(int16_t Value, int16_t minValue, int16_t maxValue);
 extern fp32 fp32_constrain(fp32 Value, fp32 minValue, fp32 maxValue);
+fp32 fp32_abs_constrain(fp32 in, fp32 absValue);
+void fp32_deadzone(fp32* in, fp32 deadzone);
 extern int16_t int16_constrain(int16_t Value, int16_t minValue, int16_t maxValue);
 uint8_t checkAndResetFlag(uint8_t *pbFlag);
 fp32 first_order_filter(fp32 input, fp32 prev_output, fp32 coeff);

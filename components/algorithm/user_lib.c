@@ -137,6 +137,14 @@ fp32 fp32_deadline(fp32 Value, fp32 minValue, fp32 maxValue)
     return Value;
 }
 
+void fp32_deadzone(fp32* in, fp32 deadzone)
+{
+    if (fabs(*in) < deadzone)
+    {
+        *in = 0;
+    }
+}
+
 int16_t int16_deadline(int16_t Value, int16_t minValue, int16_t maxValue)
 {
     if (Value < maxValue && Value > minValue)
@@ -154,6 +162,11 @@ fp32 fp32_constrain(fp32 Value, fp32 minValue, fp32 maxValue)
         return maxValue;
     else
         return Value;
+}
+
+fp32 fp32_abs_constrain(fp32 in, fp32 absValue)
+{
+    return fp32_constrain(in, -absValue, absValue);
 }
 
 int16_t int16_constrain(int16_t Value, int16_t minValue, int16_t maxValue)

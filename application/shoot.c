@@ -31,7 +31,6 @@
 #include "pid.h"
 #include "cv_usart_task.h"
 
-#define USE_SERVO_TO_STIR_AMMO 0
 #define SHOOT_WITH_REF_DATA 0
 
 //microswitch

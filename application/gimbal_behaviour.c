@@ -49,6 +49,7 @@
   */
 
 #include "gimbal_behaviour.h"
+#include "chassis_behaviour.h"
 #include "arm_math.h"
 #include "bsp_buzzer.h"
 #include "detect_task.h"
@@ -529,7 +530,7 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
 #endif
             break;
 		}
-    #if(!ROBOT_YAW_HAS_SLIP_RING)
+#if(!ROBOT_YAW_HAS_SLIP_RING)
 		case GIMBAL_CALI_YAW_MAX_STEP:
 		{
 			*pitch = 0;
@@ -550,7 +551,7 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
 			                       gimbal_control_set->gimbal_yaw_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
 			break;
 		}
-    #endif
+#endif
 		case GIMBAL_CALI_END_STEP:
 		{
 			cali_time = 0;
@@ -582,11 +583,11 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
     static int16_t yaw_channel = 0, pitch_channel = 0;
 
 #if SWERVE_HIP_RC_TEST
-    if (gimbal_control_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
-	{
+    if ((chassis_behaviour_mode == SWERVE_CHASSIS_NO_FOLLOW_YAW) || (chassis_behaviour_mode == SWERVE_CHASSIS_SPINNING))
+    {
         yaw_channel = 0;
-		pitch_channel = 0;
-	}
+        pitch_channel = 0;
+    }
 	else
 #endif
 	{

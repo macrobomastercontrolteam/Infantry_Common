@@ -221,7 +221,7 @@ static void detect_init(uint32_t time)
             {100, 100, 5},  //referee
             {200, 0, 7},    //cv usart
             {40, 0, 11},    // super capacitor
-            {500, 0, 8},    // swerve controller
+            {50, 0, 8},    // swerve controller
             // {100, 100, 1},  //oled
         };
 
