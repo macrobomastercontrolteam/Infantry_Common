@@ -72,15 +72,12 @@ typedef enum
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	CAN_STEER_CONTROLLER_TX_ID = 0x112,
 	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
-  // receives target chassis platform params: alpha1, alpha2, center height
-	CAN_CHASSIS_PARAMS_CONTROLLER_TX_ID = 0x114,
-	// sends current chassis platform params: alpha1, alpha2, center height
-	CAN_CHASSIS_PARAMS_CONTROLLER_RX_ID = 0x115,
-	// sends current rotational radius of each wheels
-	CAN_CHASSIS_ROT_RADII_CONTROLLER_RX_ID = 0x116,
-
-	CAN_SHRINKED_CONTROLLER_TX_ID = 0x117,
-	CAN_SHRINKED_CONTROLLER_RX_ID = 0x118,
+  // sends target chassis platform params: alpha1, alpha2, center height
+	CAN_SWERVE_CONTROLLERE_TX_ID = 0x114,
+  // receives target derivative of rotational radius of each wheel
+	CAN_SWERVE_RADII_DOT_RX_ID = 0x115,
+  // receives current chassis platform params: alpha1, alpha2, center height, rotational radius of each wheels
+	CAN_SHRINKED_CONTROLLER_RX_ID = 0x116,
 #endif
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
@@ -136,7 +133,11 @@ extern void CAN_cmd_chassis_reset_ID(void);
 extern void CAN_cmd_chassis(void);
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-extern void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes);
+#if USE_SERVO_TO_STIR_AMMO
+void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes);
+#endif
+void CAN_cmd_swerve_steer(void);
+void CAN_cmd_swerve_hip(void);
 #endif
 
 /**

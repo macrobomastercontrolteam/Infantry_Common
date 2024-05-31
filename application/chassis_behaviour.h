@@ -61,8 +61,10 @@ typedef enum
   CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW,  //chassis will follow chassis yaw angle, usually in engineer,
                                         //because chassis does have gyro sensor, its yaw angle is calculed by gyro in gimbal and gimbal motor angle,
                                         //if you have a gyro sensor in chassis, please updata yaw, pitch, roll angle in "chassis_feedback_update"  function
+  SWERVE_CHASSIS_NO_FOLLOW_YAW,                //chassis does not follow angle, angle is open-loop,but wheels have closed-loop speed
   CHASSIS_NO_FOLLOW_YAW,                //chassis does not follow angle, angle is open-loop,but wheels have closed-loop speed
   CHASSIS_OPEN,                          // Get current value by scaling up remote control, which should be sent to can bus directly
+  SWERVE_CHASSIS_SPINNING,
   CHASSIS_SPINNING,
   CHASSIS_CV_CONTROL_SPINNING,           //Autonomous chassis control by Computer Vision; when enemy detected spin faster
 } chassis_behaviour_e;

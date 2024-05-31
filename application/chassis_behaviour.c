@@ -99,6 +99,7 @@ static void chassis_no_move_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, ch
 static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
 static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
+static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
@@ -123,6 +124,8 @@ static void chassis_engineer_follow_chassis_yaw_control(fp32 *vx_set, fp32 *vy_s
   * @retval         none
   */
 static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
+
+static void swerve_chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
 
 
 
@@ -185,7 +188,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 				// can change to CHASSIS_ZERO_FORCE,CHASSIS_NO_MOVE,CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,
 				// CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW,CHASSIS_NO_FOLLOW_YAW,CHASSIS_OPEN
 				// Remember to change gimbal_behaviour logic correspondingly
-				chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+                chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
 				break;
 			}
 			case RC_SW_DOWN:
@@ -232,10 +235,20 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
 			break;
 		}
+		case SWERVE_CHASSIS_NO_FOLLOW_YAW:
+		{
+			chassis_move_mode->chassis_mode = SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW;
+			break;
+		}
 		case CHASSIS_SPINNING:
 		case CHASSIS_CV_CONTROL_SPINNING:
 		{
 			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
+			break;
+		}
+		case SWERVE_CHASSIS_SPINNING:
+		{
+			chassis_move_mode->chassis_mode = SWERVE_CHASSIS_VECTOR_SPINNING;
 			break;
 		}
 		case CHASSIS_ZERO_FORCE:
@@ -288,6 +301,11 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 			chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
 			break;
 		}
+		case SWERVE_CHASSIS_NO_FOLLOW_YAW:
+		{
+			swerve_chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
 		case CHASSIS_OPEN:
 		{
 			chassis_open_set_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
@@ -298,13 +316,18 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 			chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
 			break;
 		}
+		case SWERVE_CHASSIS_SPINNING:
+		{
+			swerve_chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
 		case CHASSIS_CV_CONTROL_SPINNING:
 		{
 			chassis_cv_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
 			break;
 		}
-    case CHASSIS_ZERO_FORCE:
-    default:
+        case CHASSIS_ZERO_FORCE:
+        default:
 		{
 			chassis_zero_force_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
 			break;
@@ -454,6 +477,34 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
     *angle_set = spinning_speed;
 }
 
+static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
+{
+    if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
+    {
+        return;
+    }
+
+    // Convert joystick and keyboard input to commands
+    fp32 dummy_wz_set;
+    swerve_chassis_rc_to_control_vector(vx_set, vy_set, &dummy_wz_set, chassis_move_rc_to_vector, 0);
+
+    // Convert dial input to spinning speed
+    int16_t dial_channel;
+    fp32 spinning_speed;
+    deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
+    // piecewise linear mapping
+    if (dial_channel > 0)
+    {
+        spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_POSITIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
+    }
+    else
+    {
+        spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_NEGATIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
+    }
+
+    *angle_set = spinning_speed;
+}
+
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
 {
     if (vx_set == NULL || vy_set == NULL || angle_set == NULL)
@@ -534,15 +585,21 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
         return;
     }
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-    chassis_rc_to_swerve_control_vector(vx_set, vy_set, wz_set, chassis_move_rc_to_vector);
-#else
     chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
     
     int16_t dial_channel;
     deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
     *wz_set = CHASSIS_WZ_RC_SEN * dial_channel;
-#endif
+}
+
+static void swerve_chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector)
+{
+    if (vx_set == NULL || vy_set == NULL || wz_set == NULL || chassis_move_rc_to_vector == NULL)
+    {
+        return;
+    }
+
+    swerve_chassis_rc_to_control_vector(vx_set, vy_set, wz_set, chassis_move_rc_to_vector, 1);
 }
 
 /**

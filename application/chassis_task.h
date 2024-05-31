@@ -122,10 +122,12 @@
 #define STEER_TURN_X_SPEED_DEADZONE 0.01f
 #define STEER_TURN_Y_SPEED_DEADZONE (STEER_TURN_X_SPEED_DEADZONE * NORMAL_MAX_CHASSIS_SPEED_Y / NORMAL_MAX_CHASSIS_SPEED_X)
 #define STEER_TURN_W_SPEED_DEADZONE 0.01f
+// Measured approx max in normal mode: 0.159f
+#define STEER_TURN_HIP_RADIUS_SPEED_DEADZONE 0.01f
 #endif
 
 // In follow-yaw mode, map joystick value to increment in target yaw angle
-#define CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S 2.0f
+#define CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S 1.0f
 #define CHASSIS_ANGLE_Z_RC_SEN_INC (PI / 2.0f / CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
 // In not-follow-yaw mode, map joystick value to target yaw speed
 #define CHASSIS_WZ_RC_SEN (NORMAL_MAX_CHASSIS_SPEED_WZ / JOYSTICK_HALF_RANGE)
@@ -136,11 +138,11 @@
 
 #if SWERVE_HIP_RC_TEST
 // configuration for pseudo RPY-to-tilt conversion
-#define SWERVE_HIP_TEST_ROLL_RC_CHANGE_TIME_S 2.0f
+#define SWERVE_HIP_TEST_ROLL_RC_CHANGE_TIME_S 0.4f
 #define SWERVE_HIP_TEST_ROLL_RC_SEN_INC (2.0f * CHASSIS_ALPHA_WORKSPACE_PEAK / SWERVE_HIP_TEST_ROLL_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
-#define SWERVE_HIP_TEST_PITCH_RC_CHANGE_TIME_S 2.0f
+#define SWERVE_HIP_TEST_PITCH_RC_CHANGE_TIME_S 0.4f
 #define SWERVE_HIP_TEST_PITCH_RC_SEN_INC (2.0f * CHASSIS_ALPHA_WORKSPACE_PEAK / SWERVE_HIP_TEST_ROLL_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
-#define SWERVE_HIP_TEST_HEIGHT_RC_CHANGE_TIME_S 2.0f
+#define SWERVE_HIP_TEST_HEIGHT_RC_CHANGE_TIME_S 0.4f
 #define SWERVE_HIP_TEST_HEIGHT_RC_SEN_INC ((CHASSIS_H_UPPER_LIMIT - CHASSIS_H_LOWER_LIMIT) / SWERVE_HIP_TEST_ROLL_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
 #endif
 
@@ -186,8 +188,10 @@ typedef enum
   CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW,   //chassis will follow yaw gimbal motor relative angle (this mode is not stable nor useful, but it may enlighten you on how to make new modes)
   CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW,  //chassis will have yaw angle(chassis_yaw) close-looped control
   CHASSIS_VECTOR_NO_FOLLOW_YAW,       //chassis will have rotation speed control
+  SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW,       //chassis will have rotation speed control
   CHASSIS_VECTOR_RAW,                 //control-current will be sent to CAN bus derectly.
   CHASSIS_VECTOR_SPINNING,            //spinning chassis
+  SWERVE_CHASSIS_VECTOR_SPINNING,
 
 } chassis_mode_e;
 
@@ -204,7 +208,6 @@ typedef struct
 {
   fp32 target_roll;
   fp32 target_pitch;
-  // fp32 target_yaw; // yaw cannot be controlled by hip
   fp32 target_height;
 
   fp32 target_alpha1;
@@ -235,7 +238,7 @@ extern supcap_t cap_message_rx;
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 typedef struct
 {
-  uint8_t target_ecd; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
+  uint16_t target_ecd; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
 } chassis_steer_motor_t;
 #endif
 
@@ -250,18 +253,11 @@ typedef struct
   chassis_motor_t motor_chassis[4];          //chassis motor data
   pid_type_def motor_speed_pid[4];             //motor speed PID
   pid_type_def chassis_angle_pid;              //follow angle PID
-  fp32 wheel_rot_radii_dot[4];
-  fp32 wheel_rot_radii_last[4];
+  fp32 target_wheel_rot_radii_dot[4];
   fp32 wheel_rot_radii[4];
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
   chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data
-  // chassis platform parameters
   chassis_platform_t chassis_platform;
-  // lower board notify upper board whether to use the feedback of chassis platform from lower board
-  uint8_t fHipDataIsValid;
-  uint8_t fRadiiDataIsValid;
-  uint32_t ulSwerveDataInvalidStartTime;
-  uint32_t ulLastRadiiUpdate_ms;
 #endif
 
   first_order_filter_type_t chassis_cmd_slow_set_vx;  //use first order filter to slow set-point
@@ -310,7 +306,7 @@ extern void chassis_task(void const *pvParameters);
   * @retval         none
   */
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
-void chassis_rc_to_swerve_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
+void swerve_chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector, uint8_t fEnableWz);
 void chassis_swerve_params_reset(void);
 
 extern chassis_move_t chassis_move;
