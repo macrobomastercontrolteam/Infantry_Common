@@ -123,7 +123,7 @@ void cv_usart_task(void const *argument)
     {
         CvCmder_PollForModeChange();
         // shoot mode timeout logic
-        if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && (HAL_GetTick() - CvCmdHandler.ulShootStartTime > SHOOT_TIMEOUT_SEC))
+        if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && (osKernelSysTick() - CvCmdHandler.ulShootStartTime > SHOOT_TIMEOUT_SEC))
         {
             CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
         }
@@ -348,7 +348,7 @@ void CvCmder_RxParser(void)
         {
             CvCmder_UpdateTranDelta();
             CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_SHOOT_BIT);
-            CvCmdHandler.ulShootStartTime = HAL_GetTick();
+            CvCmdHandler.ulShootStartTime = osKernelSysTick();
         }
         else
         {

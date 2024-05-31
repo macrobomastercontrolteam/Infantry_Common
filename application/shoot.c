@@ -271,12 +271,7 @@ int16_t shoot_control_loop(void)
 static void shoot_set_mode(void)
 {
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-	shoot_control.fIsCvControl = (shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP);
-#else
-    // shoot_control.fIsCvControl = 0; // It is 0 by default
-#endif
-
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+    shoot_control.fIsCvControl = (shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP);
 	if (shoot_control.fIsCvControl)
 	{
 		static uint8_t lastCvShootMode = 0;

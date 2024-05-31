@@ -227,6 +227,7 @@ static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
     rc_ctrl->rc.ch[2] = ((sbus_buf[2] >> 6) | (sbus_buf[3] << 2) |          //!< Channel 2
                          (sbus_buf[4] << 10)) &0x07ff;
     rc_ctrl->rc.ch[3] = ((sbus_buf[4] >> 1) | (sbus_buf[5] << 7)) & 0x07ff; //!< Channel 3
+    rc_ctrl->rc.ch[4] = (sbus_buf[16] | (sbus_buf[17] << 8)) & 0x07ff;      //!< Channel 4
     rc_ctrl->rc.s[0] = ((sbus_buf[5] >> 4) & 0x0003);                  //!< Switch right
     rc_ctrl->rc.s[1] = ((sbus_buf[5] >> 4) & 0x000C) >> 2;                       //!< Switch left
     rc_ctrl->mouse.x = sbus_buf[6] | (sbus_buf[7] << 8);                    //!< Mouse X axis
@@ -235,7 +236,6 @@ static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
     rc_ctrl->mouse.press_l = sbus_buf[12];                                  //!< Mouse Left Is Press ?
     rc_ctrl->mouse.press_r = sbus_buf[13];                                  //!< Mouse Right Is Press ?
     rc_ctrl->key.v = sbus_buf[14] | (sbus_buf[15] << 8);                    //!< KeyBoard value
-    rc_ctrl->rc.ch[4] = (sbus_buf[16] | (sbus_buf[17] << 8)) & 0x07ff;      //!< Channel 4
 
     rc_ctrl->rc.ch[0] -= RC_CH_VALUE_OFFSET;
     rc_ctrl->rc.ch[1] -= RC_CH_VALUE_OFFSET;
