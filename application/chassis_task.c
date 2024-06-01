@@ -459,9 +459,6 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
         chassis_move_control->chassis_relative_angle_set = rad_format(angle_set);
         //calculate ratation speed
         chassis_move_control->wz_set = -PID_calc(&chassis_move_control->chassis_angle_pid, chassis_move_control->chassis_yaw_motor->relative_angle, chassis_move_control->chassis_relative_angle_set, CHASSIS_CONTROL_TIME_S);
-        //speed limit
-        chassis_move_control->vx_set = fp32_constrain(chassis_move_control->vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
-        chassis_move_control->vy_set = fp32_constrain(chassis_move_control->vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
     }
     // spinning mode is no-follow-gimbal mode with non-zero angular speed
     else if ((chassis_move_control->chassis_mode == CHASSIS_VECTOR_SPINNING) || (chassis_move_control->chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW))
@@ -473,9 +470,6 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
         chassis_move_control->vy_set = -sin_yaw * vx_set + cos_yaw * vy_set;
         //calculate ratation speed
         chassis_move_control->wz_set = angle_set;
-        //speed limit
-        chassis_move_control->vx_set = fp32_constrain(chassis_move_control->vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
-        chassis_move_control->vy_set = fp32_constrain(chassis_move_control->vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
     }
     else if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW)
     {
@@ -485,9 +479,6 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
         delat_angle = rad_format(chassis_move_control->chassis_yaw_set - chassis_move_control->chassis_yaw);
         //calculate rotation speed
         chassis_move_control->wz_set = PID_calc(&chassis_move_control->chassis_angle_pid, 0.0f, delat_angle, CHASSIS_CONTROL_TIME_S);
-        //speed limit
-        chassis_move_control->vx_set = fp32_constrain(vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
-        chassis_move_control->vy_set = fp32_constrain(vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
     }
     else if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_RAW)
     {
@@ -499,6 +490,9 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
         chassis_move_control->chassis_cmd_slow_set_vy.out = 0.0f;
         chassis_move_control->chassis_cmd_slow_set_wz.out = 0.0f;
     }
+    //speed limit
+    chassis_move_control->vx_set = fp32_constrain(vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
+    chassis_move_control->vy_set = fp32_constrain(vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
