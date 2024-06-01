@@ -525,7 +525,10 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
     chassis_rc_to_swerve_control_vector(vx_set, vy_set, wz_set, chassis_move_rc_to_vector);
 #else
     chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-    *wz_set = CHASSIS_WZ_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL];
+    
+    int16_t dial_channel;
+    deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
+    *wz_set = CHASSIS_WZ_RC_SEN * dial_channel;
 #endif
 }
 
@@ -547,6 +550,9 @@ static void chassis_open_set_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, c
 
     *vx_set = chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
     *vy_set = -chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
-    *wz_set = chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL] * CHASSIS_OPEN_RC_SCALE;
+    
+    int16_t dial_channel;
+    deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
+    *wz_set = dial_channel * CHASSIS_OPEN_RC_SCALE;
     return;
 }
