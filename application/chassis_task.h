@@ -37,7 +37,7 @@
 #endif
 
 //joystick value deadline
-#define CHASSIS_RC_DEADLINE 10
+#define CHASSIS_RC_DEADLINE 20
 
 #define CHASSIS_TEST_MODE 0
 
