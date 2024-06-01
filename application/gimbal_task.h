@@ -29,6 +29,21 @@
 #include "remote_control.h"
 #include "user_lib.h"
 
+#define GIMBAL_CONTROL_TIME_MS 3.0f
+#define GIMBAL_CONTROL_TIME_S (GIMBAL_CONTROL_TIME_MS / 1000.0f)
+
+//test mode, 0 close, 1 open
+#define GIMBAL_TEST_MODE 0
+
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#define PITCH_TURN  0
+#else
+#define PITCH_TURN  1
+#endif
+#define YAW_TURN    0
+
+#define int_abs(x) ((x) > 0 ? (x) : (-x))
+
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 //pitch speed close-loop PID params, max out and max iout
 #define PITCH_SPEED_PID_KP        10000.0f // pitch starts shaking at 2600
@@ -217,19 +232,6 @@
 #define PITCH_RC_SEN_INC -(PI / 4.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
 #define PITCH_RC_MOUSE_SEN_INC (PI / 4.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / MOUSE_Y_EFFECTIVE_SPEED)
 
-#define GIMBAL_CONTROL_TIME_MS 3.0f
-#define GIMBAL_CONTROL_TIME_S (GIMBAL_CONTROL_TIME_MS / 1000.0f)
-
-//test mode, 0 close, 1 open
-#define GIMBAL_TEST_MODE 0
-
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define PITCH_TURN  0
-#else
-#define PITCH_TURN  1
-#endif
-#define YAW_TURN    0
-
 #define GIMBAL_INIT_ANGLE_ERROR     0.1f
 #define GIMBAL_INIT_STOP_TIME       100
 #define GIMBAL_INIT_TIME            6000
@@ -258,8 +260,6 @@
 
 #define GIMBAL_MOTIONLESS_RC_DEADLINE 10
 #define GIMBAL_MOTIONLESS_TIME_MAX    3000
-
-#define int_abs(x) ((x) > 0 ? (x) : (-x))
 
 typedef enum
 {
