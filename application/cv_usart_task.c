@@ -159,8 +159,7 @@ void CvCmder_Init(void)
 
 void CvCmder_toe_solve_lost_fun(void)
 {
-	CvCmdHandler.CvCmdMsg.xSpeed = 0;
-	CvCmdHandler.CvCmdMsg.ySpeed = 0;
+    memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
 }
 
 /**
@@ -314,11 +313,6 @@ void CvCmder_RxParser(void)
         else
         {
             CvCmdHandler.fCvCmdValid = 0;
-            // if messages have been invalid for too long (offline timeout value is defined in detect_init() function)
-            if (toe_is_error(CV_TOE))
-            {
-                memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
-            }
         }
         break;
     }
