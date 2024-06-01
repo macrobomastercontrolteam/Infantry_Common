@@ -230,33 +230,37 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
 #if DISABLE_YAW_MOTOR_POWER
     yaw = 0;
 #endif
-#if DISABLE_PITCH_MOTOR_POWER
-    pitch = 0;
-#endif
 #if DISABLE_TRIGGER_MOTOR_POWER
     trigger = 0;
 #endif
-
-    gimbal_can_send_data[0] = (yaw >> 8);
-    gimbal_can_send_data[1] = yaw;
-    gimbal_can_send_data[2] = (pitch >> 8);
-    gimbal_can_send_data[3] = pitch;
-    gimbal_can_send_data[4] = (trigger >> 8);
-    gimbal_can_send_data[5] = trigger;
-    // gimbal_can_send_data[6] = (rev >> 8);
-    // gimbal_can_send_data[7] = rev;
-    // control yaw motor and trigger motor
-    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
-
-    // control pitch motor and fric_left and fric_right
+#if DISABLE_PITCH_MOTOR_POWER
+    pitch = 0;
+#endif
 #if (DISABLE_FRICTION_1_MOTOR_POWER || FRICTION_MOTOR_SAFETY_GUARD)
     fric_left = 0;
 #endif
 #if (DISABLE_FRICTION_2_MOTOR_POWER || FRICTION_MOTOR_SAFETY_GUARD)
     fric_right = 0;
 #endif
+
+    // control yaw motor and trigger motor
+    gimbal_can_send_data[0] = (yaw >> 8);
+    gimbal_can_send_data[1] = yaw;
+    // gimbal_can_send_data[2] = (rev >> 8);
+    // gimbal_can_send_data[3] = rev;
+    gimbal_can_send_data[4] = (trigger >> 8);
+    gimbal_can_send_data[5] = trigger;
+    // gimbal_can_send_data[6] = (rev >> 8);
+    // gimbal_can_send_data[7] = rev;
+    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+
+    // control pitch motor and fric_left and fric_right
     gimbal_can_send_data[0] = (fric_left >> 8);
     gimbal_can_send_data[1] = fric_left;
+    gimbal_can_send_data[2] = (pitch >> 8);
+    gimbal_can_send_data[3] = pitch;
+    // gimbal_can_send_data[4] = (rev >> 8);
+    // gimbal_can_send_data[5] = rev;
     gimbal_can_send_data[6] = (fric_right >> 8);
     gimbal_can_send_data[7] = fric_right;
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
