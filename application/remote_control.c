@@ -50,7 +50,7 @@ static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl);
 RC_ctrl_t rc_ctrl;
 // receive raw data of 18 bytes, 36 bytes length is given to prevent DMA transmission overflow
 static uint8_t sbus_rx_buf[2][SBUS_RX_BUF_NUM];
-
+int16_t raw_rc_ch[5];
 
 /**
   * @brief          remote control init
@@ -222,26 +222,41 @@ static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
         return;
     }
 
-    rc_ctrl->rc.ch[0] = (sbus_buf[0] | (sbus_buf[1] << 8)) & 0x07ff;        //!< Channel 0
-    rc_ctrl->rc.ch[1] = ((sbus_buf[1] >> 3) | (sbus_buf[2] << 5)) & 0x07ff; //!< Channel 1
-    rc_ctrl->rc.ch[2] = ((sbus_buf[2] >> 6) | (sbus_buf[3] << 2) |          //!< Channel 2
-                         (sbus_buf[4] << 10)) &0x07ff;
-    rc_ctrl->rc.ch[3] = ((sbus_buf[4] >> 1) | (sbus_buf[5] << 7)) & 0x07ff; //!< Channel 3
-    rc_ctrl->rc.ch[4] = (sbus_buf[16] | (sbus_buf[17] << 8)) & 0x07ff;      //!< Channel 4
-    rc_ctrl->rc.s[0] = ((sbus_buf[5] >> 4) & 0x0003);                  //!< Switch right
-    rc_ctrl->rc.s[1] = ((sbus_buf[5] >> 4) & 0x000C) >> 2;                       //!< Switch left
-    rc_ctrl->mouse.x = sbus_buf[6] | (sbus_buf[7] << 8);                    //!< Mouse X axis
-    rc_ctrl->mouse.y = sbus_buf[8] | (sbus_buf[9] << 8);                    //!< Mouse Y axis
-    rc_ctrl->mouse.z = sbus_buf[10] | (sbus_buf[11] << 8);                  //!< Mouse Z axis
-    rc_ctrl->mouse.press_l = sbus_buf[12];                                  //!< Mouse Left Is Press ?
-    rc_ctrl->mouse.press_r = sbus_buf[13];                                  //!< Mouse Right Is Press ?
-    rc_ctrl->key.v = sbus_buf[14] | (sbus_buf[15] << 8);                    //!< KeyBoard value
+	raw_rc_ch[0] = (sbus_buf[0] | (sbus_buf[1] << 8)) & 0x07ff;                              //!< Channel 0
+	raw_rc_ch[1] = ((sbus_buf[1] >> 3) | (sbus_buf[2] << 5)) & 0x07ff;                       //!< Channel 1
+	raw_rc_ch[2] = ((sbus_buf[2] >> 6) | (sbus_buf[3] << 2) | (sbus_buf[4] << 10)) & 0x07ff; //!< Channel 2
+	raw_rc_ch[3] = ((sbus_buf[4] >> 1) | (sbus_buf[5] << 7)) & 0x07ff;                       //!< Channel 3
+	raw_rc_ch[4] = (sbus_buf[16] | (sbus_buf[17] << 8)) & 0x07ff;                            //!< Channel 4
+	rc_ctrl->rc.s[0] = ((sbus_buf[5] >> 4) & 0x0003);                                        //!< Switch right
+	rc_ctrl->rc.s[1] = ((sbus_buf[5] >> 4) & 0x000C) >> 2;                                   //!< Switch left
+	rc_ctrl->mouse.x = sbus_buf[6] | (sbus_buf[7] << 8);                                     //!< Mouse X axis
+	rc_ctrl->mouse.y = sbus_buf[8] | (sbus_buf[9] << 8);                                     //!< Mouse Y axis
+	rc_ctrl->mouse.z = sbus_buf[10] | (sbus_buf[11] << 8);                                   //!< Mouse Z axis
+	rc_ctrl->mouse.press_l = sbus_buf[12];                                                   //!< Mouse Left Is Press ?
+	rc_ctrl->mouse.press_r = sbus_buf[13];                                                   //!< Mouse Right Is Press ?
+	rc_ctrl->key.v = sbus_buf[14] | (sbus_buf[15] << 8);                                     //!< KeyBoard value
 
-    rc_ctrl->rc.ch[0] -= RC_CH_VALUE_OFFSET;
-    rc_ctrl->rc.ch[1] -= RC_CH_VALUE_OFFSET;
-    rc_ctrl->rc.ch[2] -= RC_CH_VALUE_OFFSET;
-    rc_ctrl->rc.ch[3] -= RC_CH_VALUE_OFFSET;
-    rc_ctrl->rc.ch[4] -= RC_CH_VALUE_OFFSET;
+	raw_rc_ch[0] -= RC_CH_VALUE_OFFSET;
+	raw_rc_ch[1] -= RC_CH_VALUE_OFFSET;
+	raw_rc_ch[2] -= RC_CH_VALUE_OFFSET;
+	raw_rc_ch[3] -= RC_CH_VALUE_OFFSET;
+	raw_rc_ch[4] -= RC_CH_VALUE_OFFSET;
+
+	// @TODO: fix residual spike despite this fix, where raw_rc_ch has no spike but rc_ctrl->rc.ch has.
+	// Filtering out bit spikes
+	static uint8_t bConsecutiveAbnormalityCount[5] = {0, 0, 0, 0, 0};
+	for (uint8_t i = 0; i < 5; i++)
+	{
+		if ((RC_abs(raw_rc_ch[i] - rc_ctrl->rc.ch[i]) >= 256) && (bConsecutiveAbnormalityCount[i] < 2))
+		{
+			bConsecutiveAbnormalityCount[i]++;
+		}
+		else
+		{
+			rc_ctrl->rc.ch[i] = raw_rc_ch[i];
+			bConsecutiveAbnormalityCount[i] = 0;
+		}
+	}
 
 #if CV_INTERFACE
     CvCmder_DetectAutoAimSwitchEdge((rc_ctrl->key.v & AUTO_AIM_TOGGLE_KEYBOARD) != 0);
