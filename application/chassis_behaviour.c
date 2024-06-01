@@ -154,7 +154,11 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
         return;
     }
 
-	if (gimbal_emergency_stop())
+    if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING) && toe_is_error(DBUS_TOE))
+    {
+        ; // do not switch out of cv state
+    }
+	else if (gimbal_emergency_stop())
 	{
 		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
 	}
@@ -468,12 +472,15 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
 		// }
 	}
 
-	// Auto-aim test with varying spinning speeds
-    // Convert dial input to spinning speed
-	int16_t dial_channel;
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
-    spinning_speed = dial_channel * (NORMAL_MAX_CHASSIS_SPEED_WZ / JOYSTICK_HALF_RANGE);
-	*angle_set = spinning_speed;
+	if (toe_is_error(DBUS_TOE) == 0)
+	{
+		// Auto-aim test with varying spinning speeds
+		// Convert dial input to spinning speed
+		int16_t dial_channel;
+		deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
+		spinning_speed = dial_channel * (NORMAL_MAX_CHASSIS_SPEED_WZ / JOYSTICK_HALF_RANGE);
+		*angle_set = spinning_speed;
+	}
 #endif
 }
 

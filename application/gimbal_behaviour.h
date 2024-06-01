@@ -60,10 +60,8 @@ typedef enum
   GIMBAL_ABSOLUTE_ANGLE, 
   GIMBAL_RELATIVE_ANGLE, 
   GIMBAL_MOTIONLESS,
-#if CV_INTERFACE
   GIMBAL_AUTO_AIM,
   GIMBAL_AUTO_AIM_PATROL,
-#endif
 } gimbal_behaviour_e;
 
 extern gimbal_behaviour_e gimbal_behaviour;

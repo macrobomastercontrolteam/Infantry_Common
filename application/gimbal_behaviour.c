@@ -393,7 +393,11 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
     }
 
     // remote controller logic
-    if(gimbal_emergency_stop())
+	if (((gimbal_behaviour == GIMBAL_AUTO_AIM) || (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)) && toe_is_error(DBUS_TOE))
+	{
+		; // do not switch out of cv state
+	}
+	else if(gimbal_emergency_stop())
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
