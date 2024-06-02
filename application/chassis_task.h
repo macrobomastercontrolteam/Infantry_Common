@@ -231,6 +231,9 @@ typedef struct
   fp32 chassis_pitch; //the pitch angle calculated by gyro sensor and gimbal motor
   fp32 chassis_roll;  //the roll angle calculated by gyro sensor and gimbal motor
 
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+  uint8_t fUpperHeadEnabled;
+#endif
 } chassis_move_t;
 
 /**

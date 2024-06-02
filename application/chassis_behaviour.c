@@ -198,7 +198,20 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 	}
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-  	CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING) ? 1 : 0);
+	if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
+	{
+		CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, 1);
+#if SENTRY_UPPER_HEAD_TEST
+        chassis_move.fUpperHeadEnabled = 1;
+#else
+        chassis_move.fUpperHeadEnabled = is_game_started();
+#endif
+	}
+	else
+	{
+		CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, 0);
+		chassis_move.fUpperHeadEnabled = 0;
+	}
 #endif
 
 	switch (chassis_behaviour_mode)

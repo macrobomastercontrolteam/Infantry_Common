@@ -73,6 +73,10 @@ static void chassis_set_control(chassis_move_t *chassis_move_control);
   */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+void sentry_upper_head_manager(void);
+#endif
+
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static uint16_t motor_angle_to_ecd_change(fp32 angle);
 #endif
@@ -124,6 +128,10 @@ void chassis_task(void const *pvParameters)
 
         CAN_cmd_chassis();
 
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+        sentry_upper_head_manager();
+#endif
+
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
 
 #if CHASSIS_TEST_MODE
@@ -135,6 +143,19 @@ void chassis_task(void const *pvParameters)
 #endif
     }
 }
+
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+void sentry_upper_head_manager(void)
+{
+#if (DISABLE_UPPER_HEAD_POWER == 0)
+    if (chassis_move.fUpperHeadEnabled)
+	{
+        osDelay(1);
+		CAN_cmd_upper_head();
+	}
+#endif
+}
+#endif
 
 /**
   * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
@@ -185,6 +206,10 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 
     chassis_move_init->vx_rc_sen = chassis_move_init->vx_max_speed / JOYSTICK_HALF_RANGE;
     chassis_move_init->vy_rc_sen = chassis_move_init->vy_max_speed / JOYSTICK_HALF_RANGE;
+
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+    chassis_move_init->fUpperHeadEnabled = 0;
+#endif
 
     //update data
     chassis_feedback_update(chassis_move_init);

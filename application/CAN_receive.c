@@ -26,6 +26,7 @@
 #include "detect_task.h"
 #include "chassis_task.h"
 #include "string.h"
+#include "referee.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 1 when you commit
 #define DISABLE_DRIVE_MOTOR_POWER 1
@@ -35,6 +36,7 @@
 #define DISABLE_TRIGGER_MOTOR_POWER 1
 #define DISABLE_FRICTION_1_MOTOR_POWER 1
 #define DISABLE_FRICTION_2_MOTOR_POWER 1
+#define DISABLE_UPPER_HEAD_POWER 1
 
 
 #define REVERSE_M3508_1 0
@@ -289,6 +291,31 @@ void CAN_cmd_chassis_reset_ID(void)
 
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
+
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+void CAN_cmd_upper_head(void)
+{
+    uint32_t send_mail_box;
+    chassis_tx_message.StdId = CAN_LOWER_HEAD_TX_ID;
+    chassis_tx_message.IDE = CAN_ID_STD;
+    chassis_tx_message.RTR = CAN_RTR_DATA;
+    chassis_tx_message.DLC = 0x08;
+
+    uint16_t shoot_heat_limit = 0;
+    uint16_t shoot_heat1 = 0;
+    get_shoot_heat1_limit_and_heat(&shoot_heat_limit, &shoot_heat1);
+
+    chassis_can_send_data[0] = (shoot_heat_limit >> 8);
+    chassis_can_send_data[1] = shoot_heat_limit;
+    chassis_can_send_data[2] = (shoot_heat1 >> 8);
+    chassis_can_send_data[3] = shoot_heat1;
+    // chassis_can_send_data[4] = rev;
+    // chassis_can_send_data[5] = rev;
+    // chassis_can_send_data[6] = rev;
+    // chassis_can_send_data[7] = rev;
+    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+#endif
 
 /**
   * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs

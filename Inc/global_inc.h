@@ -14,6 +14,7 @@
 #define TEST_NO_REF 1
 // Warning: disable friction wheel safety guard only if you are prepared to test it
 #define FRICTION_MOTOR_SAFETY_GUARD 1
+#define SENTRY_UPPER_HEAD_TEST 1
 
 #if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM))
 #define ROBOT_YAW_HAS_SLIP_RING 1
