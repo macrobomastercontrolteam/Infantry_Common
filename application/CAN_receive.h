@@ -73,6 +73,10 @@ typedef enum
 	CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
 	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
 #endif
+
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+	CAN_LOWER_HEAD_TX_ID = 0x110,
+#endif
 } can_other_msg_id_e;
 
 //rm motor data
@@ -95,6 +99,10 @@ typedef struct
   * @retval         none
   */
 extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric1, int16_t fric2);
+
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+void CAN_cmd_upper_head(void);
+#endif
 
 /**
   * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
