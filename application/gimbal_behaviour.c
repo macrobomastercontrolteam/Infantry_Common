@@ -395,7 +395,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
     // remote controller logic
 	if (((gimbal_behaviour == GIMBAL_AUTO_AIM) || (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)) && toe_is_error(DBUS_TOE))
 	{
-		; // do not switch out of cv state
+		; // CV fully automatic mode without RC: do not switch out of cv state
 	}
 	else if(gimbal_emergency_stop())
     {
@@ -408,15 +408,10 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 			case RC_SW_UP:
 			{
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-                if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT))
-                {
-                    gimbal_behaviour = GIMBAL_AUTO_AIM;
-                }
-                else
+                gimbal_behaviour = GIMBAL_AUTO_AIM;
+#else
+                gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
 #endif
-                {
-                    gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
-                }
 				break;
 			}
 			case RC_SW_MID:

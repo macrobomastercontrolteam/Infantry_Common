@@ -156,7 +156,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 
     if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING) && toe_is_error(DBUS_TOE))
     {
-        ; // do not switch out of cv state
+        ; // CV fully automatic mode without RC: do not switch out of cv state
     }
 	else if (gimbal_emergency_stop())
 	{
