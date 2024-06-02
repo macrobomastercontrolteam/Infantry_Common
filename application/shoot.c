@@ -235,7 +235,7 @@ int16_t shoot_control_loop(void)
     {
         // 设置拨弹轮的拨动速度,并开启堵转反转处理
 #if SHOOT_WITH_REF_DATA
-        get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
+        get_shoot_heat0_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
         if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
         {
             shoot_control.trigger_speed_set = 0;
@@ -470,7 +470,7 @@ static void shoot_bullet_control(void)
     }
 
 #if SHOOT_WITH_REF_DATA
-    get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
+    get_shoot_heat0_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
     if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
     {
         shoot_control.trigger_speed_set = 0;

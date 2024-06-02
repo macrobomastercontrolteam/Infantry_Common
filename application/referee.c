@@ -6,6 +6,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "usart.h"
+#include "detect_task.h"
 
 frame_header_struct_t referee_receive_header;
 frame_header_struct_t referee_send_header;
@@ -285,8 +286,19 @@ uint8_t get_robot_id(void)
 	return robot_state.robot_id;
 }
 
-void get_shoot_heat_limit_and_heat(uint16_t *heat0_limit, uint16_t *heat0)
+void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0)
 {
-	*heat0_limit = robot_state.shooter_barrel_heat_limit;
+	*heat_limit = robot_state.shooter_barrel_heat_limit;
 	*heat0 = power_heat_data_t.shooter_17mm_1_barrel_heat;
+}
+
+void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1)
+{
+	*heat_limit = robot_state.shooter_barrel_heat_limit;
+	*heat1 = power_heat_data_t.shooter_17mm_2_barrel_heat;
+}
+
+uint8_t is_game_started(void)
+{
+	return ((game_state.game_progress == 4) && (toe_is_error(REFEREE_TOE) == 0));
 }
