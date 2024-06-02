@@ -29,7 +29,7 @@
 #define DATA_PACKAGE_HEADLESS_SIZE (DATA_PACKAGE_SIZE - DATA_PACKAGE_HEADER_SIZE)
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_HEADLESS_SIZE - sizeof(uint16_t) - sizeof(uint8_t)) // sizeof(uiTimestamp) and sizeof(bMsgType)
 #define CHAR_UNUSED 0xFF
-#define SHOOT_TIMEOUT_SEC 2000
+#define SHOOT_TIMEOUT_SEC 1000
 #define CV_TRANDELTA_FILTER_SIZE 4 // TranDelta means Transmission delay
 
 // Test result with pyserial: Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
