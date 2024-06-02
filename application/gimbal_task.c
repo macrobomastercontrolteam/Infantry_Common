@@ -460,12 +460,20 @@ static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init)
     
     fp32* speed_pid_ptr;
     fp32* angle_pid_ptr;
+    fp32 angle_pid_max_out;
+    fp32 angle_pid_max_iout;
+    fp32 speed_pid_max_out;
+    fp32 speed_pid_max_iout;
     switch (init->gimbal_yaw_motor.gimbal_motor_mode)
     {
     case GIMBAL_MOTOR_CAMERA:
     {
         speed_pid_ptr = yaw_camera_speed_pid;
         angle_pid_ptr = yaw_camera_angle_pid;
+        angle_pid_max_out = YAW_CAMERA_ANGLE_PID_MAX_OUT;
+        angle_pid_max_iout = YAW_CAMERA_ANGLE_PID_MAX_IOUT;
+        speed_pid_max_out = YAW_CAMERA_SPEED_PID_MAX_OUT;
+        speed_pid_max_iout = YAW_CAMERA_SPEED_PID_MAX_IOUT;
         break;
     }
     case GIMBAL_MOTOR_GYRO:
@@ -473,12 +481,16 @@ static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init)
     {
         speed_pid_ptr = yaw_speed_pid;
         angle_pid_ptr = yaw_angle_pid;
+        angle_pid_max_out = YAW_ANGLE_PID_MAX_OUT;
+        angle_pid_max_iout = YAW_ANGLE_PID_MAX_IOUT;
+        speed_pid_max_out = YAW_SPEED_PID_MAX_OUT;
+        speed_pid_max_iout = YAW_SPEED_PID_MAX_IOUT;
         break;
     }
     }
-    PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, angle_pid_ptr, YAW_ANGLE_PID_MAX_OUT, YAW_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+    PID_init(&init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, angle_pid_ptr, angle_pid_max_out, angle_pid_max_iout, 0, &rad_err_handler);
     // yaw speed is fast, so benefit of filtering on noise is insignificant comparing to the delay effect
-    PID_init(&init->gimbal_yaw_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT, 0.85f, &filter_err_handler);
+    PID_init(&init->gimbal_yaw_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, speed_pid_max_out, speed_pid_max_iout, 0.85f, &filter_err_handler);
 }
 
 /**
@@ -493,12 +505,20 @@ static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init)
 
     fp32* speed_pid_ptr;
     fp32* angle_pid_ptr;
+    fp32 angle_pid_max_out;
+    fp32 angle_pid_max_iout;
+    fp32 speed_pid_max_out;
+    fp32 speed_pid_max_iout;
     switch (init->gimbal_pitch_motor.gimbal_motor_mode)
     {
     case GIMBAL_MOTOR_CAMERA:
     {
         speed_pid_ptr = pitch_camera_speed_pid;
         angle_pid_ptr = pitch_camera_angle_pid;
+        angle_pid_max_out = PITCH_CAMERA_ANGLE_PID_MAX_OUT;
+        angle_pid_max_iout = PITCH_CAMERA_ANGLE_PID_MAX_IOUT;
+        speed_pid_max_out = PITCH_CAMERA_SPEED_PID_MAX_OUT;
+        speed_pid_max_iout = PITCH_CAMERA_SPEED_PID_MAX_IOUT;
         break;
     }
     case GIMBAL_MOTOR_GYRO:
@@ -506,11 +526,15 @@ static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init)
     {
         speed_pid_ptr = pitch_speed_pid;
         angle_pid_ptr = pitch_angle_pid;
+        angle_pid_max_out = PITCH_ANGLE_PID_MAX_OUT;
+        angle_pid_max_iout = PITCH_ANGLE_PID_MAX_IOUT;
+        speed_pid_max_out = PITCH_SPEED_PID_MAX_OUT;
+        speed_pid_max_iout = PITCH_SPEED_PID_MAX_IOUT;
         break;
     }
     }
-    PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, angle_pid_ptr, PITCH_CAMERA_ANGLE_PID_MAX_OUT, PITCH_CAMERA_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-    PID_init(&init->gimbal_pitch_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, PITCH_CAMERA_SPEED_PID_MAX_OUT, PITCH_CAMERA_SPEED_PID_MAX_IOUT, 0.85f, &filter_err_handler);
+    PID_init(&init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, angle_pid_ptr, angle_pid_max_out, angle_pid_max_iout, 0, &rad_err_handler);
+    PID_init(&init->gimbal_pitch_motor.gimbal_motor_speed_pid, PID_POSITION, speed_pid_ptr, speed_pid_max_out, speed_pid_max_iout, 0.85f, &filter_err_handler);
 }
 
 /**
