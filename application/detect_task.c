@@ -205,22 +205,16 @@ static void detect_init(uint32_t time)
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
-            {10, 10, 11},   //motor1
-            {10, 10, 10},   //motor2
-            {10, 10, 9},    //motor3
-            {10, 10, 8},    //motor4
-            {2, 3, 14},     //yaw
-            {2, 3, 13},     //pitch
+            {4, 3, 14},     //yaw
+            {4, 3, 13},     //pitch
             {10, 10, 12},   //trigger
             {10, 10, 16},   //fric 1
             {10, 10, 17},   //fric 2
             {2, 3, 7},      //board gyro
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag
-            {100, 100, 5},  //referee
             {200, 0, 7},    //cv usart
-            {40, 0, 11},    // super capacitor
-            // {100, 100, 1},  //oled
+            {200, 0, 7},    //lower head
         };
 
     for (uint8_t i = 0; i < ERROR_LIST_LENGTH; i++)
@@ -243,25 +237,7 @@ static void detect_init(uint32_t time)
         error_list[i].lost_time = time;
         error_list[i].work_time = time;
     }
-#if TEST_NO_REF
-	error_list[REFEREE_TOE].enable = 0;
-	error_list[REFEREE_TOE].error_exist = 0;
-	error_list[REFEREE_TOE].is_lost = 0;
-	error_list[REFEREE_TOE].data_is_error = 0;
-#endif
-
-#if CV_INTERFACE
     error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
-#endif
-
-	// error_list[OLED_TOE].data_is_error_fun = NULL;
-    // error_list[OLED_TOE].solve_lost_fun = OLED_com_reset;
-    // error_list[OLED_TOE].solve_data_error_fun = NULL;
-
-//    error_list[DBUS_TOE].data_is_error_fun = RC_data_is_error;
-//    error_list[DBUS_TOE].solve_lost_fun = solve_RC_lost;
-//    error_list[DBUS_TOE].solve_data_error_fun = solve_data_error;
-
 }
 
 uint8_t ifToeStatusExist(uint8_t _start, uint8_t _end, toe_status_e _status_to_find, uint8_t* pbHitIndex)

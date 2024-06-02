@@ -105,28 +105,17 @@ void shoot_init(void)
   */
 int16_t shoot_control_loop(void)
 {
-    shoot_set_mode();        
+    shoot_set_mode();
     shoot_feedback_update();
 
     // detect case switch edge
     static shoot_mode_e pre_shoot_mode = SHOOT_STOP;
     if (pre_shoot_mode != shoot_control.shoot_mode)
     {
-        // laser_enable(shoot_control.shoot_mode != SHOOT_STOP);
         switch (shoot_control.shoot_mode)
         {
-            case SHOOT_STOP:
-            {
-#if USE_SERVO_TO_STIR_AMMO
-                CAN_cmd_load_servo(0, 3);
-#endif
-                break;
-            }
             case SHOOT_READY_FRIC:
             {
-#if USE_SERVO_TO_STIR_AMMO
-                CAN_cmd_load_servo(1, 3);
-#endif
                 shoot_control.trigger_speed_set = 0;
 
                 PID_clear(&shoot_control.friction_motor1_pid);
@@ -144,6 +133,7 @@ int16_t shoot_control_loop(void)
                 shoot_control.trigger_speed_set = AUTO_FIRE_TRIGGER_SPEED;
                 break;
             }
+            case SHOOT_STOP:
             default:
             {
                 break;
@@ -173,20 +163,9 @@ int16_t shoot_control_loop(void)
     }
     case SHOOT_READY_FRIC:
     {
-		if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+        if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 		{
-			shoot_control.shoot_mode = SHOOT_STOP;
-		}
-		else if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
-		{
-			if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
-			{
-				shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-			}
-			else
-			{
-				shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
-			}
+            shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
 		}
 		break;
     }
@@ -235,8 +214,7 @@ int16_t shoot_control_loop(void)
     {
         // 设置拨弹轮的拨动速度,并开启堵转反转处理
 #if SHOOT_WITH_REF_DATA
-        get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
-        if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
+        if (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
         {
             shoot_control.trigger_speed_set = 0;
         }
@@ -270,9 +248,64 @@ int16_t shoot_control_loop(void)
   */
 static void shoot_set_mode(void)
 {
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-    shoot_control.fIsCvControl = (shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP);
-	if (shoot_control.fIsCvControl)
+#if GIMBAL_RC_TEST
+    // normal RC control
+    if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+    {
+        shoot_control.shoot_mode = SHOOT_STOP;
+    }
+    else
+    {
+        // remote controller S1 switch logic
+        static int8_t last_s = RC_SW_UP;
+        int8_t new_s = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL];
+        switch (new_s)
+        {
+            case RC_SW_UP:
+            {
+                if (last_s != RC_SW_UP)
+                {
+                    shoot_control.shoot_mode = SHOOT_READY_FRIC;
+                }
+                break;
+            }
+            case RC_SW_MID:
+            {
+                if (shoot_control.press_l)
+                {
+                    if (shoot_control.last_press_l == 0)
+                    {
+                        shoot_control.shoot_mode = SHOOT_READY_FRIC;
+                    }
+                }
+                else
+                {
+                    shoot_control.shoot_mode = SHOOT_STOP;
+                }
+                break;
+            }
+            case RC_SW_DOWN:
+            {
+                if (last_s != RC_SW_DOWN)
+                {
+                    if (shoot_control.shoot_mode == SHOOT_READY)
+                    {
+                        // burst fire
+                        shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
+                    }
+                }
+                break;
+            }
+        }
+        last_s = new_s;
+    }
+#else
+    if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
+    {
+        shoot_control.shoot_mode = SHOOT_STOP;
+    }
+    // cv shoot control
+    else if (toe_is_error(LOWER_HEAD_TOE) == 0)
 	{
 		static uint8_t lastCvShootMode = 0;
 		uint8_t CvShootMode = CvCmder_GetMode(CV_MODE_SHOOT_BIT);
@@ -289,60 +322,7 @@ static void shoot_set_mode(void)
 			lastCvShootMode = CvShootMode;
 		}
 	}
-	else
 #endif
-	{
-        // normal RC control
-        if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
-		{
-			shoot_control.shoot_mode = SHOOT_STOP;
-		}
-		else
-		{
-			// remote controller S1 switch logic
-			static int8_t last_s = RC_SW_UP;
-			int8_t new_s = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL];
-			switch (new_s)
-			{
-				case RC_SW_UP:
-				{
-					if (last_s != RC_SW_UP)
-					{
-						shoot_control.shoot_mode = SHOOT_READY_FRIC;
-					}
-					break;
-				}
-				case RC_SW_MID:
-				{
-					if (shoot_control.press_l)
-					{
-						if (shoot_control.last_press_l == 0)
-						{
-							shoot_control.shoot_mode = SHOOT_READY_FRIC;
-						}
-					}
-					else
-					{
-						shoot_control.shoot_mode = SHOOT_STOP;
-					}
-					break;
-				}
-				case RC_SW_DOWN:
-				{
-					if (last_s != RC_SW_DOWN)
-					{
-						if (shoot_control.shoot_mode == SHOOT_READY)
-						{
-							// burst fire
-							shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
-						}
-					}
-					break;
-				}
-			}
-			last_s = new_s;
-		}
-	}
 }
 /**
   * @brief          Update shooting data

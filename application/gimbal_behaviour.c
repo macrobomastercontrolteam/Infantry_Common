@@ -199,6 +199,7 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
             gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
             break;
         }
+        case GIMBAL_INIT:
         case GIMBAL_ABSOLUTE_ANGLE:
         {
             gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
@@ -214,7 +215,6 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
             break;
         }
 #endif
-        case GIMBAL_INIT:
         case GIMBAL_RELATIVE_ANGLE:
         case GIMBAL_MOTIONLESS:
         default:
@@ -364,7 +364,6 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         if ((fabs(gimbal_mode_set->gimbal_yaw_motor.relative_angle - INIT_YAW_SET) < GIMBAL_INIT_ANGLE_ERROR &&
              fabs(gimbal_mode_set->gimbal_pitch_motor.absolute_angle - INIT_PITCH_SET) < GIMBAL_INIT_ANGLE_ERROR))
         {
-            
             if (init_stop_time < GIMBAL_INIT_STOP_TIME)
             {
                 init_stop_time++;
@@ -372,7 +371,6 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
         else
         {
-            
             if (init_time < GIMBAL_INIT_TIME)
             {
                 init_time++;
@@ -380,8 +378,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
 
         //The initialization process is terminated due to exceeding the maximum initialization time, reaching a stable median value for an extended period, or the switch is down, or the remote control is offline
-        if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME &&
-            !switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]) && !toe_is_error(DBUS_TOE))
+        if ((init_time < GIMBAL_INIT_TIME) && (init_stop_time < GIMBAL_INIT_STOP_TIME) && (!switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL])) && (!toe_is_error(DBUS_TOE)))
         {
             return;
         }
@@ -392,31 +389,23 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
     }
 
-    // remote controller logic
+#if GIMBAL_RC_TEST
+    // gimbal rc test
 	if (((gimbal_behaviour == GIMBAL_AUTO_AIM) || (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)) && toe_is_error(DBUS_TOE))
 	{
 		; // do not switch out of cv state
 	}
-	else if(gimbal_emergency_stop())
-    {
-        gimbal_behaviour = GIMBAL_ZERO_FORCE;
-    }
+	else if (gimbal_emergency_stop() || toe_is_error(DBUS_TOE))
+	{
+		gimbal_behaviour = GIMBAL_ZERO_FORCE;
+	}
 	else
 	{
 		switch (gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL])
 		{
 			case RC_SW_UP:
 			{
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-                if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT))
-                {
-                    gimbal_behaviour = GIMBAL_AUTO_AIM;
-                }
-                else
-#endif
-                {
-                    gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
-                }
+				gimbal_behaviour = GIMBAL_AUTO_AIM;
 				break;
 			}
 			case RC_SW_MID:
@@ -432,8 +421,23 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 			}
 		}
 	}
+#else
+    // mode switch logic
+	if (gimbal_emergency_stop() || toe_is_error(LOWER_HEAD_TOE))
+	{
+		gimbal_behaviour = GIMBAL_ZERO_FORCE;
+	}
+    else
+    {
+        gimbal_behaviour = GIMBAL_AUTO_AIM;
+    }
+#endif
 
-    //enter init mode (gimbal back to center)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+  	CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, ((gimbal_behaviour == GIMBAL_AUTO_AIM) || (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)) ? 1 : 0);
+#endif
+
+	//enter init mode (gimbal back to center)
 	if ((last_gimbal_behaviour == GIMBAL_ZERO_FORCE) && (gimbal_behaviour != GIMBAL_ZERO_FORCE) && (gimbal_behaviour != GIMBAL_ABSOLUTE_ANGLE))
 	{
 		gimbal_behaviour = GIMBAL_INIT;
@@ -476,16 +480,26 @@ static void gimbal_init_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
         return;
     }
 
-    // calculate for init parameters
+    // // calculate for init parameters
+    // if (fabs(INIT_PITCH_SET - gimbal_control_set->gimbal_pitch_motor.absolute_angle) > GIMBAL_INIT_ANGLE_ERROR)
+    // {
+    //     *pitch = (INIT_PITCH_SET - gimbal_control_set->gimbal_pitch_motor.absolute_angle) * GIMBAL_INIT_PITCH_SPEED;
+    //     *yaw = 0.0f;
+    // }
+    // else
+    // {
+    //     *pitch = (INIT_PITCH_SET - gimbal_control_set->gimbal_pitch_motor.absolute_angle) * GIMBAL_INIT_PITCH_SPEED;
+    //     *yaw = (INIT_YAW_SET - gimbal_control_set->gimbal_yaw_motor.relative_angle) * GIMBAL_INIT_YAW_SPEED;
+    // }
     if (fabs(INIT_PITCH_SET - gimbal_control_set->gimbal_pitch_motor.absolute_angle) > GIMBAL_INIT_ANGLE_ERROR)
     {
-        *pitch = (INIT_PITCH_SET - gimbal_control_set->gimbal_pitch_motor.absolute_angle) * GIMBAL_INIT_PITCH_SPEED;
+        *pitch = rad_format(INIT_PITCH_SET - gimbal_control_set->gimbal_pitch_motor.absolute_angle_set);
         *yaw = 0.0f;
     }
     else
     {
-        *pitch = (INIT_PITCH_SET - gimbal_control_set->gimbal_pitch_motor.absolute_angle) * GIMBAL_INIT_PITCH_SPEED;
-        *yaw = (INIT_YAW_SET - gimbal_control_set->gimbal_yaw_motor.relative_angle) * GIMBAL_INIT_YAW_SPEED;
+        *pitch = rad_format(INIT_PITCH_SET - gimbal_control_set->gimbal_pitch_motor.absolute_angle_set);
+        *yaw = rad_format(INIT_YAW_SET - gimbal_control_set->gimbal_yaw_motor.absolute_angle_set);
     }
 }
 
@@ -534,7 +548,7 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
 #endif
             break;
 		}
-    #if(!ROBOT_YAW_HAS_SLIP_RING)
+#if(!ROBOT_YAW_HAS_SLIP_RING)
 		case GIMBAL_CALI_YAW_MAX_STEP:
 		{
 			*pitch = 0;
@@ -555,7 +569,7 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
 			                       gimbal_control_set->gimbal_yaw_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
 			break;
 		}
-    #endif
+#endif
 		case GIMBAL_CALI_END_STEP:
 		{
 			cali_time = 0;
@@ -655,7 +669,7 @@ static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_c
     if (checkAndResetFlag(&CvCmdHandler.fCvCmdValid))
     {
 #if CV_ABS_ANGLE_INPUT
-		yaw_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.xAngle + gimbal_control_set->gimbal_yaw_motor.absolute_angle_offset - gimbal_control_set->gimbal_yaw_motor.absolute_angle_set);        
+		yaw_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.xAngle + gimbal_control_set->gimbal_yaw_motor.absolute_angle_offset - gimbal_control_set->gimbal_yaw_motor.absolute_angle_set);
 		pitch_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.yAngle + gimbal_control_set->gimbal_pitch_motor.absolute_angle_offset - gimbal_control_set->gimbal_pitch_motor.absolute_angle_set);
 #else
 		yaw_target_adjustment = -CvCmdHandler.CvCmdMsg.xAngle - rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle_set - gimbal_control_set->gimbal_yaw_motor.absolute_angle);

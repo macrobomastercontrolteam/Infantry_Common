@@ -39,6 +39,11 @@
 #define MOVING_AVERAGE_RESET 1
 #define MOVING_AVERAGE_CALC 0
 
+//chassis 3508 max motor control current
+#define MAX_MOTOR_CAN_CURRENT 16000.0f
+//chassis 6020 max motor control voltage
+#define MAX_MOTOR_CAN_VOLTAGE 20000.0f
+
 /**
   * @brief          remote control dealline solve,because the value of joystick is not zero in middle place,
   * @param          input:the raw channel value 

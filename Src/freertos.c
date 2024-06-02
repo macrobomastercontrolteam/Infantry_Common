@@ -28,7 +28,7 @@
 /* USER CODE BEGIN Includes */
 
 #include "calibrate_task.h"
-#include "chassis_task.h"
+// #include "chassis_task.h"
 #include "detect_task.h"
 #include "gimbal_task.h"
 #include "INS_task.h"
@@ -45,13 +45,13 @@
 /* USER CODE BEGIN PTD */
 
 osThreadId calibrate_tast_handle;
-osThreadId chassisTaskHandle;
+// osThreadId chassisTaskHandle;
 osThreadId detect_handle;
 osThreadId gimbalTaskHandle;
 osThreadId imuTaskHandle;
 osThreadId led_RGB_flow_handle;
 // osThreadId oled_handle;
-osThreadId referee_usart_task_handle;
+// osThreadId referee_usart_task_handle;
 osThreadId usb_task_handle;
 // osThreadId battery_voltage_handle;
 // osThreadId servo_task_handle;
@@ -154,8 +154,8 @@ void MX_FREERTOS_Init(void) {
     osThreadDef(cali, calibrate_task, osPriorityNormal, 0, 512);
     calibrate_tast_handle = osThreadCreate(osThread(cali), NULL);
 
-    osThreadDef(ChassisTask, chassis_task, osPriorityAboveNormal, 0, 512);
-    chassisTaskHandle = osThreadCreate(osThread(ChassisTask), NULL);
+    // osThreadDef(ChassisTask, chassis_task, osPriorityAboveNormal, 0, 512);
+    // chassisTaskHandle = osThreadCreate(osThread(ChassisTask), NULL);
 
     osThreadDef(DETECT, detect_task, osPriorityNormal, 0, 256);
     detect_handle = osThreadCreate(osThread(DETECT), NULL);
@@ -174,8 +174,8 @@ void MX_FREERTOS_Init(void) {
     // oled_handle = osThreadCreate(osThread(OLED), NULL);
 
 
-    osThreadDef(REFEREE, referee_usart_task, osPriorityNormal, 0, 128);
-    referee_usart_task_handle = osThreadCreate(osThread(REFEREE), NULL);
+    // osThreadDef(REFEREE, referee_usart_task, osPriorityNormal, 0, 128);
+    // referee_usart_task_handle = osThreadCreate(osThread(REFEREE), NULL);
 
 
     // osThreadDef(USBTask, usb_task, osPriorityNormal, 0, 128);

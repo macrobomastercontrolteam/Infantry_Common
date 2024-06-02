@@ -22,7 +22,6 @@
 #include "gimbal_task.h"
 #include "remote_control.h"
 #include "user_lib.h"
-#include "chassis_task.h"
 
 #define SHOOT_CONTROL_TIME_MS GIMBAL_CONTROL_TIME_MS
 #define SHOOT_CONTROL_TIME_S GIMBAL_CONTROL_TIME_S

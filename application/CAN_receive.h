@@ -28,52 +28,28 @@
 /* CAN send and receive ID */
 typedef enum
 {
-    /*******Chassis CAN IDs********/
-    CAN_3508_M1_ID = 0x201,
-    CAN_3508_M2_ID = 0x202,
-    CAN_3508_M3_ID = 0x203,
-    CAN_3508_M4_ID = 0x204,
+    // gimbal can rx
     CAN_YAW_MOTOR_ID = 0x205,
-
-    /********Gimbal CAN IDs********/
     CAN_PIT_MOTOR_ID = 0x206,
-
-    /********Other CAN IDs: Location depends on Model********/
-    // INFANTRY_2023_MECANUM: On gimbal
-    // INFANTRY_2024_MECANUM: On gimbal
-    // INFANTRY_2023_SWERVE: On chassis
-    // SENTRY_2023_MECANUM: On chassis
     CAN_TRIGGER_MOTOR_ID = 0x207,
-
-    CAN_FRICTION_MOTOR_LEFT_ID = 0x205, // friction1
-    CAN_FRICTION_MOTOR_RIGHT_ID = 0x208, // friction2
+    CAN_FRICTION_MOTOR_LEFT_ID = 0x208, // friction1
+    CAN_FRICTION_MOTOR_RIGHT_ID = 0x209, // friction2
+    // gimbal can tx
+    CAN_RM_LOW_RANGE_TX_ID = 0x1FF,
+    CAN_RM_HIGH_RANGE_TX_ID = 0x2FF,
+    // chassis can rx
+    CAN_LOWER_HEAD_RX_ID = 0x110,
 } can_msg_id_e;
 
 typedef enum
 {
-	MOTOR_INDEX_3508_M1 = 0,
-	MOTOR_INDEX_3508_M2,
-	MOTOR_INDEX_3508_M3,
-	MOTOR_INDEX_3508_M4,
-	MOTOR_INDEX_YAW,
+	MOTOR_INDEX_YAW = 0,
 	MOTOR_INDEX_PITCH,
 	MOTOR_INDEX_TRIGGER,
   MOTOR_INDEX_FRICTION_LEFT,
   MOTOR_INDEX_FRICTION_RIGHT,
 	MOTOR_LIST_LENGTH,
 } can_motor_id_e;
-
-typedef enum
-{
-	/*******Tx CAN IDs********/
-	CAN_CHASSIS_M3508_TX_ID = 0x200,
-	CAN_GIMBAL_ALL_TX_ID = 0x1FF,
-  SUPCAP_RX_ID = 0x301,
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-	CAN_CHASSIS_CONTROLLER_TX_ID = 0x112,
-	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
-#endif
-} can_other_msg_id_e;
 
 //rm motor data
 typedef struct
@@ -95,13 +71,6 @@ typedef struct
   * @retval         none
   */
 extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric1, int16_t fric2);
-
-/**
-  * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
-  * @param[in]      none
-  * @retval         none
-  */
-extern void CAN_cmd_chassis_reset_ID(void);
 
 /**
   * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs

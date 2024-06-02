@@ -313,10 +313,10 @@ static void RC_cmd_to_calibrate(void)
     {
         rc_action_flag = 0;
         rc_cmd_time = 0;
-        //send CAN reset ID cmd to M3508
-        CAN_cmd_chassis_reset_ID();
-        CAN_cmd_chassis_reset_ID();
-        CAN_cmd_chassis_reset_ID();
+        // //send CAN reset ID cmd to M3508
+        // CAN_cmd_chassis_reset_ID();
+        // CAN_cmd_chassis_reset_ID();
+        // CAN_cmd_chassis_reset_ID();
         cali_buzzer_off();
     }
 

@@ -573,6 +573,11 @@
               <FileType>1</FileType>
               <FilePath>..\bsp\boards\bsp_servo_pwm.c</FilePath>
             </File>
+            <File>
+              <FileName>bsp_laser.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\boards\bsp_laser.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -587,21 +592,6 @@
               <FileName>CAN_receive.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\CAN_receive.c</FilePath>
-            </File>
-            <File>
-              <FileName>chassis_behaviour.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\chassis_behaviour.c</FilePath>
-            </File>
-            <File>
-              <FileName>chassis_power_control.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\chassis_power_control.c</FilePath>
-            </File>
-            <File>
-              <FileName>chassis_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\chassis_task.c</FilePath>
             </File>
             <File>
               <FileName>detect_task.c</FileName>
@@ -647,11 +637,6 @@
               <FileName>shoot.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\shoot.c</FilePath>
-            </File>
-            <File>
-              <FileName>test_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\test_task.c</FilePath>
             </File>
             <File>
               <FileName>usb_task.c</FileName>
