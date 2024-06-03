@@ -389,18 +389,14 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
     }
 
-#if GIMBAL_RC_TEST
-    // gimbal rc test
-	if (((gimbal_behaviour == GIMBAL_AUTO_AIM) || (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)) && toe_is_error(DBUS_TOE))
-	{
-		; // do not switch out of cv state
-	}
-	else if (gimbal_emergency_stop() || toe_is_error(DBUS_TOE))
+	// mode switch logic
+	if (gimbal_emergency_stop())
 	{
 		gimbal_behaviour = GIMBAL_ZERO_FORCE;
 	}
-	else
+	else if (toe_is_error(DBUS_TOE) == 0)
 	{
+		// gimbal rc test
 		switch (gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL])
 		{
 			case RC_SW_UP:
@@ -421,24 +417,21 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 			}
 		}
 	}
-#else
-    // mode switch logic
-	if (gimbal_emergency_stop() || toe_is_error(LOWER_HEAD_TOE))
+	else if (toe_is_error(LOWER_HEAD_TOE))
 	{
 		gimbal_behaviour = GIMBAL_ZERO_FORCE;
 	}
-    else
-    {
-        gimbal_behaviour = GIMBAL_AUTO_AIM;
-    }
-#endif
+	else
+	{
+		gimbal_behaviour = GIMBAL_AUTO_AIM;
+	}
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
   	CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, ((gimbal_behaviour == GIMBAL_AUTO_AIM) || (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)) ? 1 : 0);
 #endif
 
 	//enter init mode (gimbal back to center)
-	if ((last_gimbal_behaviour == GIMBAL_ZERO_FORCE) && (gimbal_behaviour != GIMBAL_ZERO_FORCE) && (gimbal_behaviour != GIMBAL_ABSOLUTE_ANGLE))
+	if ((last_gimbal_behaviour == GIMBAL_ZERO_FORCE) && (gimbal_behaviour != GIMBAL_ZERO_FORCE) && (gimbal_behaviour != GIMBAL_ABSOLUTE_ANGLE) && (gimbal_behaviour != GIMBAL_AUTO_AIM))
 	{
 		gimbal_behaviour = GIMBAL_INIT;
 	}

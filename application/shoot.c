@@ -248,13 +248,29 @@ int16_t shoot_control_loop(void)
   */
 static void shoot_set_mode(void)
 {
-#if GIMBAL_RC_TEST
-    // normal RC control
-    if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+    if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
     {
         shoot_control.shoot_mode = SHOOT_STOP;
     }
-    else
+    // cv shoot control
+    else if (toe_is_error(LOWER_HEAD_TOE) == 0)
+	{
+		static uint8_t lastCvShootMode = 0;
+		uint8_t CvShootMode = CvCmder_GetMode(CV_MODE_SHOOT_BIT);
+		if (CvShootMode != lastCvShootMode)
+		{
+			if (CvShootMode == 1)
+			{
+				shoot_control.shoot_mode = SHOOT_READY_FRIC;
+			}
+			else
+			{
+				shoot_control.shoot_mode = SHOOT_STOP;
+			}
+			lastCvShootMode = CvShootMode;
+		}
+	}
+    else if (toe_is_error(DBUS_TOE) == 0)
     {
         // remote controller S1 switch logic
         static int8_t last_s = RC_SW_UP;
@@ -299,30 +315,6 @@ static void shoot_set_mode(void)
         }
         last_s = new_s;
     }
-#else
-    if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
-    {
-        shoot_control.shoot_mode = SHOOT_STOP;
-    }
-    // cv shoot control
-    else if (toe_is_error(LOWER_HEAD_TOE) == 0)
-	{
-		static uint8_t lastCvShootMode = 0;
-		uint8_t CvShootMode = CvCmder_GetMode(CV_MODE_SHOOT_BIT);
-		if (CvShootMode != lastCvShootMode)
-		{
-			if (CvShootMode == 1)
-			{
-				shoot_control.shoot_mode = SHOOT_READY_FRIC;
-			}
-			else
-			{
-				shoot_control.shoot_mode = SHOOT_STOP;
-			}
-			lastCvShootMode = CvShootMode;
-		}
-	}
-#endif
 }
 /**
   * @brief          Update shooting data
