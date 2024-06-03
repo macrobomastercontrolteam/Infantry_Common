@@ -302,3 +302,13 @@ uint8_t is_game_started(void)
 {
 	return ((game_state.game_progress == 4) && (toe_is_error(REFEREE_TOE) == 0));
 }
+
+uint8_t get_time_remain(void)
+{
+	return game_state.stage_remain_time;
+}
+
+uint16_t get_current_HP(void)
+{
+	return robot_state.current_HP;
+}

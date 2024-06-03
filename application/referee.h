@@ -371,4 +371,6 @@ extern uint8_t get_robot_id(void);
 extern void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0);
 extern void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1);
 uint8_t is_game_started(void);
+uint8_t get_time_remain(void);
+uint16_t get_current_HP(void);
 #endif
