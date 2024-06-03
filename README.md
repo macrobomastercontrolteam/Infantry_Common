@@ -1,7 +1,12 @@
-# MacRM_Standard_2022
-McMaster Robomaster Standard Infantry Robot Code for 2022 A&amp;M University Lone Star Competition
+# Common Infantry Code for MacRM
+Robot configs:
+- INFANTRY_2024_MECANUM
+- INFANTRY_2023_MECANUM
+- INFANTRY_2023_SWERVE
+- INFANTRY_BIPED
+- SENTRY_2023_MECANUM
 
-Developed based on "RoboMaster competition robot 2020 self-assembly version A". Refer to user manuals posted on
+Developed based on "RoboMaster competition robot 2020 self-assembly version A", which was for Type A Dev Board. Refer to user manuals posted on
 > "File download: [RoboMaster Competition Robot 2020 Self-Assembled Version A Type Related Documents](https://rm-static.djicdn.com/documents/26898/57bcb7163d7bd1575980335867998835.7z)"
 
 on 
@@ -12,8 +17,8 @@ on
 - FreeRTOS
 
 # Firmware Architecture
-Same architecture to 2019:
-![image](https://user-images.githubusercontent.com/57267209/185773597-4cd07a38-2232-4443-a679-13531dbe4313.png)
+WIP on branch misc/Electrical_Assembly_Diagram
 
-# Branches
+# Special Branches
 - test_no_ref: test all other features without referee system by ignoring ref errrors
+- release/sentry_head: code for upper head on dual-head sentry.
