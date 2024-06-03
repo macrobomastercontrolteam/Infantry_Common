@@ -79,8 +79,8 @@
 #define PITCH_SPEED_PID_MAX_IOUT  10000.0f
 
 //yaw speed close-loop PID params, max out and max iout
-#define YAW_SPEED_PID_KP        12500.0f
-#define YAW_SPEED_PID_KI        1000.0f
+#define YAW_SPEED_PID_KP        15000.0f
+#define YAW_SPEED_PID_KI        0.0f
 #define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   30000.0f
 #define YAW_SPEED_PID_MAX_IOUT  5000.0f
@@ -93,7 +93,7 @@
 #define PITCH_ANGLE_PID_MAX_IOUT 10.0f
 
 //yaw gyro angle close-loop PID params, max out and max iout
-#define YAW_ANGLE_PID_KP        20.0f
+#define YAW_ANGLE_PID_KP        7.5f
 #define YAW_ANGLE_PID_KI        0.0f
 #define YAW_ANGLE_PID_KD        0.0f
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
@@ -136,8 +136,8 @@
 #define PITCH_CAMERA_SPEED_PID_MAX_OUT 30000.0f
 #define PITCH_CAMERA_SPEED_PID_MAX_IOUT 10000.0f
 
-#define YAW_CAMERA_SPEED_PID_KP 12500.0f
-#define YAW_CAMERA_SPEED_PID_KI 1000.0f
+#define YAW_CAMERA_SPEED_PID_KP 15000.0f
+#define YAW_CAMERA_SPEED_PID_KI 0.0f
 #define YAW_CAMERA_SPEED_PID_KD 0.0f
 #define YAW_CAMERA_SPEED_PID_MAX_OUT 30000.0f
 #define YAW_CAMERA_SPEED_PID_MAX_IOUT 5000.0f
@@ -148,7 +148,7 @@
 #define PITCH_CAMERA_ANGLE_PID_MAX_OUT 10.0f // max speed (rad/s)
 #define PITCH_CAMERA_ANGLE_PID_MAX_IOUT 10.0f
 
-#define YAW_CAMERA_ANGLE_PID_KP 20.0f
+#define YAW_CAMERA_ANGLE_PID_KP 7.5f
 #define YAW_CAMERA_ANGLE_PID_KI 0.0f
 #define YAW_CAMERA_ANGLE_PID_KD 0.0f
 #define YAW_CAMERA_ANGLE_PID_MAX_OUT 10.0f // max speed (rad/s)
