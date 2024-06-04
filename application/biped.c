@@ -15,6 +15,10 @@
 #define LQR_ADJUST_COEFF 0.3f
 #define LQR_ADJUST_DIS_COEFF 0.3f
 
+#define REVERSE_ROLL_ANGLE 0
+#define REVERSE_PITCH_ANGLE 1
+#define REVERSE_YAW_ANGLE 0
+
 biped_t biped;
 
 // Jump parameters
@@ -143,18 +147,32 @@ void biped_status_update(void)
 {
 	biped.time_ms = xTaskGetTickCount();
 
-	biped.roll.now = -*(chassis_move.chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
-	biped.roll.dot = -*(chassis_move.chassis_INS_speed + INS_GYRO_X_ADDRESS_OFFSET);
+	biped.roll.now = *(chassis_move.chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
+	biped.roll.dot = *(chassis_move.chassis_INS_speed + INS_GYRO_X_ADDRESS_OFFSET);
+#if REVERSE_ROLL_ANGLE
+	biped.roll.now *= -1;
+	biped.roll.dot *= -1;
+#endif
 	biped.roll.last = biped.roll.now;
 
 	biped.pitch.now = *(chassis_move.chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET);
-	biped.pitch.now -= biped.balance_angle; // the angle relative to the balanced pitch
 	biped.pitch.dot = *(chassis_move.chassis_INS_speed + INS_GYRO_Y_ADDRESS_OFFSET);
 	// biped.pitch.dot = first_order_filter(*(chassis_move.chassis_INS_speed + INS_GYRO_Y_ADDRESS_OFFSET), biped.pitch.dot, 1.000f);
+#if REVERSE_PITCH_ANGLE
+	biped.pitch.now *= -1;
+	biped.pitch.dot *= -1;
+	biped.pitch.now += biped.balance_angle; // the angle relative to the balanced pitch
+#else
+	biped.pitch.now -= biped.balance_angle; // the angle relative to the balanced pitch
+#endif
 	biped.pitch.last = biped.pitch.now;
 
 	biped.yaw.now = *(chassis_move.chassis_INS_angle + INS_YAW_ADDRESS_OFFSET);
 	biped.yaw.dot = *(chassis_move.chassis_INS_speed + INS_GYRO_Z_ADDRESS_OFFSET);
+#if REVERSE_YAW_ANGLE
+	biped.yaw.now *= -1;
+	biped.yaw.dot *= -1;
+#endif
 	biped.yaw.last = biped.yaw.now;
 
 	// biped.accel_x = *(chassis_move.chassis_INS_accel + INS_ACCEL_X_ADDRESS_OFFSET);
