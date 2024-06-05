@@ -417,13 +417,13 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 			}
 		}
 	}
-	else if (toe_is_error(LOWER_HEAD_TOE))
+	else if (toe_is_error(LOWER_HEAD_TOE) == 0)
 	{
-		gimbal_behaviour = GIMBAL_ZERO_FORCE;
+		gimbal_behaviour = GIMBAL_AUTO_AIM;
 	}
 	else
 	{
-		gimbal_behaviour = GIMBAL_AUTO_AIM;
+		gimbal_behaviour = GIMBAL_ZERO_FORCE;
 	}
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)

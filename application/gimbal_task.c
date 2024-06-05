@@ -991,6 +991,7 @@ static void J_scope_gimbal_test(void)
  */
 bool_t gimbal_emergency_stop(void)
 {
+    uint8_t fEStop = 1;
     static uint8_t fFatalError = 0;
     if (fFatalError)
     {
@@ -1000,5 +1001,9 @@ bool_t gimbal_emergency_stop(void)
     {
         fFatalError = 1;
     }
-    return fFatalError;
+    else
+    {
+        fEStop = (toe_is_error(DBUS_TOE) && toe_is_error(LOWER_HEAD_TOE));
+    }
+    return fEStop;
 }
