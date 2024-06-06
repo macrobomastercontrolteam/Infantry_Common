@@ -254,7 +254,7 @@ void CvCmder_SendSetModeRequest(void)
 {
     CvTxBuffer.tData.bMsgType = MSG_MODE_CONTROL;
     // If current timestamp is smaller than sync_time, add 0x10000 to it. It's automatically handled by uint16_t type
-    CvTxBuffer.tData.uiTimestamp = (uint16_t)xTaskGetTickCount() - CvTimestamps.uiCtrlSyncTime;
+    CvTxBuffer.tData.uiTimestamp = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime;
     memset(CvTxBuffer.tData.abPayload, CHAR_UNUSED, DATA_PACKAGE_PAYLOAD_SIZE);
     CvTxBuffer.tData.abPayload[0] = CvCmdHandler.fCvMode;
     HAL_UART_Transmit(&huart1, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
@@ -266,7 +266,7 @@ void CvCmder_SendInfoData(eInfoBits InfoBit)
 {
     CvTxBuffer.tData.bMsgType = MSG_INFO_DATA;
     // If current timestamp is smaller than sync_time, add 0x10000 to it. It's automatically handled by uint16_t type
-    CvTxBuffer.tData.uiTimestamp = (uint16_t)xTaskGetTickCount() - CvTimestamps.uiCtrlSyncTime;
+    CvTxBuffer.tData.uiTimestamp = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime;
     memset(CvTxBuffer.tData.abPayload, CHAR_UNUSED, DATA_PACKAGE_PAYLOAD_SIZE);
     CvTxBuffer.tData.abPayload[0] = InfoBit;
     switch (InfoBit)
@@ -321,7 +321,7 @@ void CvCmder_RxParser(void)
         if (fValid)
         {
             // Synchronize time after ACK
-            uint16_t uiCtrlTimestamp = xTaskGetTickCount();
+            uint16_t uiCtrlTimestamp = osKernelSysTick();
             int16_t iTranDelta = ((uiCtrlTimestamp - CvTimestamps.uiCtrlSyncTime) - CvRxBuffer.tData.CvAckMsgPayload.uiReqTimestamp - CvRxBuffer.tData.CvAckMsgPayload.uiExecDelta) / 2;
             CvTimestamps.iTranDeltaMA = moving_average_calc(iTranDelta, &CvTimestamps.TranDeltaFilter, (CvTimestamps.uiCtrlSyncTime == 0) ? MOVING_AVERAGE_RESET : MOVING_AVERAGE_CALC);
             CvTimestamps.uiCtrlSyncTime = uiCtrlTimestamp - iTranDelta;
@@ -394,7 +394,7 @@ void CvCmder_RxParser(void)
 
 void CvCmder_UpdateTranDelta(void)
 {
-    int16_t iTranDelta = (uint16_t)xTaskGetTickCount() - CvTimestamps.uiCtrlSyncTime - CvRxBuffer.tData.uiTimestamp;
+    int16_t iTranDelta = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime - CvRxBuffer.tData.uiTimestamp;
     CvTimestamps.iTranDeltaMA = moving_average_calc(iTranDelta, &CvTimestamps.TranDeltaFilter, MOVING_AVERAGE_CALC);
 }
 
