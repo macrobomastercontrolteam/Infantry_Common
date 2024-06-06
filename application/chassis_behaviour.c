@@ -99,7 +99,6 @@ static void chassis_no_move_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, ch
 static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
 static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
-static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
 
@@ -125,8 +124,10 @@ static void chassis_engineer_follow_chassis_yaw_control(fp32 *vx_set, fp32 *vy_s
   */
 static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static void swerve_chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
-
+static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
+#endif
 
 
 /**
@@ -301,11 +302,18 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 			chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
 			break;
 		}
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 		case SWERVE_CHASSIS_NO_FOLLOW_YAW:
 		{
 			swerve_chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
 			break;
 		}
+		case SWERVE_CHASSIS_SPINNING:
+		{
+			swerve_chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+			break;
+		}
+#endif
 		case CHASSIS_OPEN:
 		{
 			chassis_open_set_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
@@ -314,11 +322,6 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 		case CHASSIS_SPINNING:
 		{
 			chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
-		case SWERVE_CHASSIS_SPINNING:
-		{
-			swerve_chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
 			break;
 		}
 		case CHASSIS_CV_CONTROL_SPINNING:
@@ -477,6 +480,7 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
     *angle_set = spinning_speed;
 }
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
 {
     if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
@@ -504,6 +508,7 @@ static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *an
 
     *angle_set = spinning_speed;
 }
+#endif
 
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
 {
@@ -592,6 +597,7 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
     *wz_set = CHASSIS_WZ_RC_SEN * dial_channel;
 }
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static void swerve_chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector)
 {
     if (vx_set == NULL || vy_set == NULL || wz_set == NULL || chassis_move_rc_to_vector == NULL)
@@ -601,6 +607,7 @@ static void swerve_chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp3
 
     swerve_chassis_rc_to_control_vector(vx_set, vy_set, wz_set, chassis_move_rc_to_vector, 1);
 }
+#endif
 
 /**
   * @brief          when chassis behaviour mode is CHASSIS_OPEN, chassis control mode is raw control mode.

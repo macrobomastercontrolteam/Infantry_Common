@@ -306,8 +306,11 @@ extern void chassis_task(void const *pvParameters);
   * @retval         none
   */
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
+
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector, uint8_t fEnableWz);
 void chassis_swerve_params_reset(void);
+#endif
 
 extern chassis_move_t chassis_move;
 

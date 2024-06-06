@@ -62,8 +62,11 @@ extern CAN_HandleTypeDef hcan2;
 
 uint8_t convertCanIdToMotorIndex(uint32_t canId);
 void reverse_motor_feedback(uint8_t bMotorId);
+
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data);
 uint8_t decode_swerve_chassis_feedback(uint8_t *data);
+#endif
 
 /**
  * @brief motor feedback data
@@ -222,6 +225,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     }
 }
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 uint8_t decode_swerve_chassis_feedback(uint8_t *data)
 {
     uint8_t fDataValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
@@ -254,6 +258,7 @@ uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data)
 	}
     return fDataValid;
 }
+#endif
 
 void reverse_motor_feedback(uint8_t bMotorId)
 {
@@ -455,6 +460,7 @@ void CAN_cmd_chassis(void)
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void CAN_cmd_swerve_steer(void)
 {
     uint32_t send_mail_box;
@@ -492,7 +498,7 @@ void CAN_cmd_swerve_hip(void)
 
 	chassis_tx_message.StdId = CAN_SWERVE_CONTROLLERE_TX_ID;
 #if ENABLE_HIP_MOTOR_POWER
-    if ((chassis_move.chassis_mode == SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW) || (chassis_move.chassis_mode == SWERVE_CHASSIS_VECTOR_SPINNING)
+    if ((chassis_move.chassis_mode == SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW) || (chassis_move.chassis_mode == SWERVE_CHASSIS_VECTOR_SPINNING))
 	{
 		int16_t target_alpha1_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha1, SWERVE_ANGLE_ECD_MAX_LIMIT) * swerve_angle_encoding_ratio;
 		int16_t target_alpha2_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha2, SWERVE_ANGLE_ECD_MAX_LIMIT) * swerve_angle_encoding_ratio;
@@ -515,6 +521,7 @@ void CAN_cmd_swerve_hip(void)
 	}
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
+#endif
 
 #if USE_SERVO_TO_STIR_AMMO
 void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes)
