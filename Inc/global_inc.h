@@ -12,8 +12,8 @@
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define TEST_NO_REF 1
-// Warning: disable friction wheel safety guard only if you are prepared to test it
-#define FRICTION_MOTOR_SAFETY_GUARD 1
+// Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
+#define ENABLE_SHOOT_REDUNDANT_SWITCH 0
 #define ENABLE_LASER 1
 
 #if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM))

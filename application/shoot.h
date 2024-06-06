@@ -52,10 +52,10 @@
 #define FRICTION_MOTOR_SPEED_THRESHOLD 0.9f // 10% tolerance
 
 // max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
-#if FRICTION_MOTOR_SAFETY_GUARD
-#define FRICTION_MOTOR_SPEED  1.0f
-#else
+#if ENABLE_SHOOT_REDUNDANT_SWITCH
 #define FRICTION_MOTOR_SPEED  25.0f
+#else
+#define FRICTION_MOTOR_SPEED  1.0f
 #endif
 
 #define SEMI_AUTO_FIRE_TRIGGER_SPEED 10.0f

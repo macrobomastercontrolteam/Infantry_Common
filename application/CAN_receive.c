@@ -27,12 +27,13 @@
 #include "shoot.h"
 #include "string.h"
 
-// Warning: for safety, PLEASE ALWAYS keep those default values as 1 when you commit
-#define DISABLE_YAW_MOTOR_POWER 0
-#define DISABLE_PITCH_MOTOR_POWER 0
-#define DISABLE_TRIGGER_MOTOR_POWER 1
-#define DISABLE_FRICTION_1_MOTOR_POWER 1
-#define DISABLE_FRICTION_2_MOTOR_POWER 1
+// Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
+// Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
+#define ENABLE_YAW_MOTOR_POWER 0
+#define ENABLE_PITCH_MOTOR_POWER 0
+#define ENABLE_TRIGGER_MOTOR_POWER 0
+#define ENABLE_FRICTION_1_MOTOR_POWER 0
+#define ENABLE_FRICTION_2_MOTOR_POWER 0
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
@@ -162,19 +163,19 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
     gimbal_tx_message.RTR = CAN_RTR_DATA;
     gimbal_tx_message.DLC = 0x08;
 
-#if DISABLE_YAW_MOTOR_POWER
+#if (ENABLE_YAW_MOTOR_POWER == 0)
     yaw = 0;
 #endif
-#if DISABLE_TRIGGER_MOTOR_POWER
+#if (ENABLE_TRIGGER_MOTOR_POWER == 0)
     trigger = 0;
 #endif
-#if DISABLE_PITCH_MOTOR_POWER
+#if (ENABLE_PITCH_MOTOR_POWER == 0)
     pitch = 0;
 #endif
-#if (DISABLE_FRICTION_1_MOTOR_POWER || FRICTION_MOTOR_SAFETY_GUARD)
+#if ((ENABLE_FRICTION_1_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
     fric_left = 0;
 #endif
-#if (DISABLE_FRICTION_2_MOTOR_POWER || FRICTION_MOTOR_SAFETY_GUARD)
+#if ((ENABLE_FRICTION_2_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
     fric_right = 0;
 #endif
 
