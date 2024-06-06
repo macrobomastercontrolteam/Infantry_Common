@@ -107,6 +107,10 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
             }
         }
     }
+    else
+    {
+        total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
+    }
 
     
     total_current = 0.0f;
