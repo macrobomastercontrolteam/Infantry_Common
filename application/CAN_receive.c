@@ -137,7 +137,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     if (hcan == &GIMBAL_CAN) {
         switch (rx_header.StdId) {
             case CAN_PIT_MOTOR_ID:
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
             case CAN_TRIGGER_MOTOR_ID:
 #endif
             {
@@ -170,7 +170,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
             case CAN_3508_M2_ID:
             case CAN_3508_M3_ID:
             case CAN_3508_M4_ID:
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
             case CAN_TRIGGER_MOTOR_ID:
 #endif
             case CAN_YAW_MOTOR_ID:

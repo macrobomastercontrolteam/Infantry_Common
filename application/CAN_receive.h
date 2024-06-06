@@ -40,7 +40,7 @@ typedef enum
 
     /********Other CAN IDs: Location depends on Model********/
     // INFANTRY_2023_MECANUM: On gimbal
-    // INFANTRY_2024_MECANUM: On gimbal
+    // INFANTRY_2024_MECANUM: On chassis
     // INFANTRY_2023_SWERVE: On chassis
     // SENTRY_2023_MECANUM: On chassis
     CAN_TRIGGER_MOTOR_ID = 0x207,
