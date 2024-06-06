@@ -28,15 +28,16 @@
 #include "string.h"
 #include "referee.h"
 
-// Warning: for safety, PLEASE ALWAYS keep those default values as 1 when you commit
-#define DISABLE_DRIVE_MOTOR_POWER 1
-#define DISABLE_STEER_MOTOR_POWER 1
-#define DISABLE_YAW_MOTOR_POWER 1
-#define DISABLE_PITCH_MOTOR_POWER 1
-#define DISABLE_TRIGGER_MOTOR_POWER 1
-#define DISABLE_FRICTION_1_MOTOR_POWER 1
-#define DISABLE_FRICTION_2_MOTOR_POWER 1
-#define DISABLE_UPPER_HEAD_POWER 1
+// Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
+// Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
+#define ENABLE_DRIVE_MOTOR_POWER 0
+#define ENABLE_STEER_MOTOR_POWER 0
+#define ENABLE_YAW_MOTOR_POWER 0
+#define ENABLE_PITCH_MOTOR_POWER 0
+#define ENABLE_TRIGGER_MOTOR_POWER 0
+#define ENABLE_FRICTION_1_MOTOR_POWER 0
+#define ENABLE_FRICTION_2_MOTOR_POWER 0
+#define ENABLE_UPPER_HEAD_POWER 0
 
 
 #define REVERSE_M3508_1 0
@@ -229,19 +230,19 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
     gimbal_tx_message.RTR = CAN_RTR_DATA;
     gimbal_tx_message.DLC = 0x08;
 
-#if DISABLE_YAW_MOTOR_POWER
+#if (ENABLE_YAW_MOTOR_POWER == 0)
     yaw = 0;
 #endif
-#if DISABLE_TRIGGER_MOTOR_POWER
+#if (ENABLE_TRIGGER_MOTOR_POWER == 0)
     trigger = 0;
 #endif
-#if DISABLE_PITCH_MOTOR_POWER
+#if (ENABLE_PITCH_MOTOR_POWER == 0)
     pitch = 0;
 #endif
-#if (DISABLE_FRICTION_1_MOTOR_POWER || FRICTION_MOTOR_SAFETY_GUARD)
+#if ((ENABLE_FRICTION_1_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
     fric_left = 0;
 #endif
-#if (DISABLE_FRICTION_2_MOTOR_POWER || FRICTION_MOTOR_SAFETY_GUARD)
+#if ((ENABLE_FRICTION_2_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
     fric_right = 0;
 #endif
 
@@ -295,6 +296,7 @@ void CAN_cmd_chassis_reset_ID(void)
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 void CAN_cmd_upper_head(void)
 {
+#if ENABLE_UPPER_HEAD_POWER
     uint32_t send_mail_box;
     chassis_tx_message.StdId = CAN_LOWER_HEAD_TX_ID;
     chassis_tx_message.IDE = CAN_ID_STD;
@@ -314,6 +316,7 @@ void CAN_cmd_upper_head(void)
     // chassis_can_send_data[6] = rev;
     // chassis_can_send_data[7] = rev;
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+#endif
 }
 #endif
 
@@ -338,16 +341,16 @@ void CAN_cmd_chassis(void)
     chassis_tx_message.RTR = CAN_RTR_DATA;
     chassis_tx_message.DLC = 0x08;
 
-#if DISABLE_DRIVE_MOTOR_POWER
-    int16_t motor1 = 0;
-    int16_t motor2 = 0;
-    int16_t motor3 = 0;
-    int16_t motor4 = 0;
-#else
+#if ENABLE_DRIVE_MOTOR_POWER
     int16_t motor1 = chassis_move.motor_chassis[0].give_current;
     int16_t motor2 = chassis_move.motor_chassis[1].give_current;
     int16_t motor3 = chassis_move.motor_chassis[2].give_current;
     int16_t motor4 = chassis_move.motor_chassis[3].give_current;
+#else
+    int16_t motor1 = 0;
+    int16_t motor2 = 0;
+    int16_t motor3 = 0;
+    int16_t motor4 = 0;
 #endif
 
 #if REVERSE_M3508_1
@@ -380,9 +383,7 @@ void CAN_cmd_chassis(void)
     // Send target encoder value of steering motors (GM6020) to chassis controller
     chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLER_TX_ID;
 
-#if DISABLE_STEER_MOTOR_POWER
-    memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
-#else
+#if ENABLE_STEER_MOTOR_POWER
     uint16_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
     uint16_t steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;
     uint16_t steer_motor3 = chassis_move.steer_motor_chassis[2].target_ecd;
@@ -396,6 +397,8 @@ void CAN_cmd_chassis(void)
     chassis_can_send_data[5] = steer_motor3;
     chassis_can_send_data[6] = steer_motor4 >> 8;
     chassis_can_send_data[7] = steer_motor4;
+#else
+    memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
 #endif
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 #endif

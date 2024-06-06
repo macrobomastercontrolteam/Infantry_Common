@@ -147,13 +147,11 @@ void chassis_task(void const *pvParameters)
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 void sentry_upper_head_manager(void)
 {
-#if (DISABLE_UPPER_HEAD_POWER == 0)
     if (chassis_move.fUpperHeadEnabled)
 	{
         osDelay(1);
 		CAN_cmd_upper_head();
 	}
-#endif
 }
 #endif
 
