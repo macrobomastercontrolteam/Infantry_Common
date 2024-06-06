@@ -369,25 +369,28 @@ void CAN_cmd_chassis_reset_ID(void)
 void CAN_cmd_upper_head(void)
 {
 #if ENABLE_UPPER_HEAD_POWER
-    uint32_t send_mail_box;
-    chassis_tx_message.StdId = CAN_LOWER_HEAD_TX_ID;
-    chassis_tx_message.IDE = CAN_ID_STD;
-    chassis_tx_message.RTR = CAN_RTR_DATA;
-    chassis_tx_message.DLC = 0x08;
+	if (chassis_move.fUpperHeadEnabled)
+	{
+		uint32_t send_mail_box;
+		chassis_tx_message.StdId = CAN_LOWER_HEAD_TX_ID;
+		chassis_tx_message.IDE = CAN_ID_STD;
+		chassis_tx_message.RTR = CAN_RTR_DATA;
+		chassis_tx_message.DLC = 0x08;
 
-    uint16_t shoot_heat_limit = 0;
-    uint16_t shoot_heat1 = 0;
-    get_shoot_heat1_limit_and_heat(&shoot_heat_limit, &shoot_heat1);
+		uint16_t shoot_heat_limit = 0;
+		uint16_t shoot_heat1 = 0;
+		get_shoot_heat1_limit_and_heat(&shoot_heat_limit, &shoot_heat1);
 
-    chassis_can_send_data[0] = (shoot_heat_limit >> 8);
-    chassis_can_send_data[1] = shoot_heat_limit;
-    chassis_can_send_data[2] = (shoot_heat1 >> 8);
-    chassis_can_send_data[3] = shoot_heat1;
-    // chassis_can_send_data[4] = rev;
-    // chassis_can_send_data[5] = rev;
-    // chassis_can_send_data[6] = rev;
-    // chassis_can_send_data[7] = rev;
-    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+		chassis_can_send_data[0] = (shoot_heat_limit >> 8);
+		chassis_can_send_data[1] = shoot_heat_limit;
+		chassis_can_send_data[2] = (shoot_heat1 >> 8);
+		chassis_can_send_data[3] = shoot_heat1;
+		// chassis_can_send_data[4] = rev;
+		// chassis_can_send_data[5] = rev;
+		// chassis_can_send_data[6] = rev;
+		// chassis_can_send_data[7] = rev;
+		HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+	}
 #endif
 }
 #endif

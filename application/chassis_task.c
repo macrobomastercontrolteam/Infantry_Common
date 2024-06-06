@@ -75,10 +75,6 @@ static void chassis_set_control(chassis_move_t *chassis_move_control);
   */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-void sentry_upper_head_manager(void);
-#endif
-
 void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle);
 void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32 alpha2, fp32 gimbal_chassis_relative_yaw_angle);
 
@@ -158,7 +154,8 @@ void chassis_task(void const *pvParameters)
 #endif
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-        sentry_upper_head_manager();
+        osDelay(1);
+        CAN_cmd_upper_head();
 #endif
 
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
@@ -172,17 +169,6 @@ void chassis_task(void const *pvParameters)
 #endif
     }
 }
-
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-void sentry_upper_head_manager(void)
-{
-    if (chassis_move.fUpperHeadEnabled)
-	{
-        osDelay(1);
-		CAN_cmd_upper_head();
-	}
-}
-#endif
 
 /**
   * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
