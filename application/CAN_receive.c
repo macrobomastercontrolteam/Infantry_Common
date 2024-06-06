@@ -28,8 +28,8 @@
 #include "main.h"
 #include "user_lib.h"
 
-#define DISABLE_DRIVE_MOTOR_POWER 0
-#define DISABLE_HIP_MOTOR_POWER 0
+#define ENABLE_DRIVE_MOTOR_POWER 0
+#define ENABLE_HIP_MOTOR_POWER 0
 
 // reverse hip motor direction
 #define REVERSE_LB_HIP_MOTOR_DIRECTION 1
@@ -471,7 +471,7 @@ uint8_t hip_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float 
 		fValidInput = 1;
 	}
 
-#if DISABLE_HIP_MOTOR_POWER
+#if (ENABLE_HIP_MOTOR_POWER == 0)
 	RF_torq = 0;
 	LF_torq = 0;
 	LB_torq = 0;
@@ -531,7 +531,7 @@ uint8_t drive_motor_set_torque(float R_torq, float L_torq, uint8_t blocking_call
 	{
 		fValidInput = 1;
 	}
-#if DISABLE_DRIVE_MOTOR_POWER
+#if (ENABLE_DRIVE_MOTOR_POWER == 0)
 	R_torq = 0;
 	L_torq = 0;
 #endif
