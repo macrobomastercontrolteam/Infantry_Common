@@ -59,8 +59,8 @@
 #include "detect_task.h"
 #include "gimbal_behaviour.h"
 
-// dynamic spinning mode parameters
-#define ENABLE_DYNAMIC_SPINNING_MODE 0
+// random spin mode parameters
+#define ENABLE_RANDOM_SPIN_MODE 0
 #define MIN_SPIN_PARAM_CHANGE_PERIOD 1.0f
 #define NORMAL_SPIN_PARAM_CHANGE_PERIOD 5.0f
 #define DELTA_SPIN_PARAM_CHANGE_PERIOD 2.0f
@@ -466,7 +466,7 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
 	int16_t dial_channel;
 	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
 
-#if ENABLE_DYNAMIC_SPINNING_MODE
+#if ENABLE_RANDOM_SPIN_MODE
 	// Dial changes: range of possible speed and interval to change speed; positive dial value more rapid, negative less rapid
 	static fp32 spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
 	static uint32_t ulLastUpdateTime = 0;
