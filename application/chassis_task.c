@@ -80,7 +80,6 @@ void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static uint16_t motor_angle_to_ecd_change(fp32 angle);
-// static uint8_t motor_angle_to_ecd_change_shrinked(fp32 angle);
 #endif
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
@@ -231,6 +230,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     chassis_feedback_update();
 }
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void chassis_swerve_params_reset(void)
 {
     chassis_move.chassis_platform.target_roll = 0;
@@ -248,6 +248,7 @@ void chassis_swerve_params_reset(void)
         chassis_move.target_wheel_rot_radii_dot[i] = 0;
     }
 }
+#endif
 
 /**
   * @brief          set chassis control mode, mainly call 'chassis_behaviour_mode_set' function
@@ -323,7 +324,7 @@ static void chassis_feedback_update(void)
         chassis_move.motor_chassis[i].accel = chassis_move.motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
     }
 
-#if !(ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE != INFANTRY_2023_SWERVE)
     //update chassis parameters: vertical speed x, horizontal speed y, rotation speed wz, right hand rule
     chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
     chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
@@ -410,6 +411,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
     *vy_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out;
 }
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector, uint8_t fEnableWz)
 {
     if (chassis_move_rc_to_vector == NULL || vx_set == NULL || vy_set == NULL)
@@ -547,6 +549,7 @@ void swerve_chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_se
 	}
 #endif
 }
+#endif
 
 void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle)
 {
