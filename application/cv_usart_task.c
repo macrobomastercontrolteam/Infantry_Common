@@ -259,7 +259,6 @@ void CvCmder_SendSetModeRequest(void)
     CvTxBuffer.tData.abPayload[0] = CvCmdHandler.fCvMode;
     HAL_UART_Transmit(&huart1, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
 
-    CvCmdHandler.fCvCmdValid = CvCmdHandler.fCvCmdValid && (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT) || CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT));
     CvCmder_EchoTxMsgToUsb();
 }
 
@@ -299,11 +298,10 @@ void CvCmder_RxParser(void)
     {
     case MSG_CV_CMD:
     {
-        fValid = (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT) || CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT));
         // // Check for ACK is not used, because it may be misaligned in the middle and ignored so that further msgs align
         // // However, ACK is still helpful because it can help synchronize communication in the beginning
         // fValid &= CvCmdHandler.fIsWaitingForAck;
-        fValid &= (memcmp(&CvRxBuffer.tData.abPayload[sizeof(tCvCmdMsg)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvCmdMsg)) == 0);
+        fValid = (memcmp(&CvRxBuffer.tData.abPayload[sizeof(tCvCmdMsg)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvCmdMsg)) == 0);
         if (fValid)
         {
             CvCmder_UpdateTranDelta();
