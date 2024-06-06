@@ -28,6 +28,7 @@
 /* CAN send and receive ID */
 typedef enum
 {
+    // LED flashing time: GM6020 counts from 0x204, M2006 and M3508 ID counts from 0x200
     /*******Chassis CAN IDs********/
     CAN_3508_M1_ID = 0x201,
     CAN_3508_M2_ID = 0x202,
