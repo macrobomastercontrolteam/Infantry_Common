@@ -286,8 +286,11 @@ typedef struct
   fp32 vy_min_speed;  //max right speed, unit m/s
   fp32 vx_rc_sen;     //map joystick value to vertical speed
   fp32 vy_rc_sen;     //map joystick value to horizontal speed
-  fp32 wz_max_speed;  //max spinning speed, unit rad/s. Only enforced in CHASSIS_DYNAMIC_SPINNING
-  fp32 wz_min_speed;  //min spinning speed, unit rad/s. Only enforced in CHASSIS_DYNAMIC_SPINNING
+
+  // @TODO: Currently wz limits are only enforced in CHASSIS_DYNAMIC_SPINNING, extend that to other modes
+  fp32 wz_max_speed;  //max spinning speed, unit rad/s.
+  fp32 wz_min_speed;  //min spinning speed, unit rad/s.
+
   fp32 chassis_yaw;   //the yaw angle calculated by gyro sensor and gimbal motor
   fp32 chassis_pitch; //the pitch angle calculated by gyro sensor and gimbal motor
   fp32 chassis_roll;  //the roll angle calculated by gyro sensor and gimbal motor

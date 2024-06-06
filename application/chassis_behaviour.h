@@ -66,7 +66,6 @@ typedef enum
   CHASSIS_OPEN,                          // Get current value by scaling up remote control, which should be sent to can bus directly
   SWERVE_CHASSIS_SPINNING,
   CHASSIS_SPINNING,
-  CHASSIS_DYNAMIC_SPINNING,
   CHASSIS_CV_CONTROL_SPINNING,           //Autonomous chassis control by Computer Vision; when enemy detected spin faster
 } chassis_behaviour_e;
 
