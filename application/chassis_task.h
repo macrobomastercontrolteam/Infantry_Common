@@ -253,9 +253,9 @@ typedef struct
   chassis_motor_t motor_chassis[4];          //chassis motor data
   pid_type_def motor_speed_pid[4];             //motor speed PID
   pid_type_def chassis_angle_pid;              //follow angle PID
-  fp32 target_wheel_rot_radii_dot[4];
   fp32 wheel_rot_radii[4];
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+  fp32 target_wheel_rot_radii_dot[4];
   chassis_steer_motor_t steer_motor_chassis[4];//chassis steering motor data
   chassis_platform_t chassis_platform;
 #endif
