@@ -30,7 +30,7 @@
 
 graphic_data_struct_t barrel_dir;
 graphic_data_struct_t chassis_dir;
-string_data chassis_angle;
+string_data chassis_relative_angle;
 string_data gimbal_dir_0;
 string_data gimbal_angle;
 string_data cap_voltage_data;
@@ -42,16 +42,16 @@ graphic_data_struct_t armor_0;
 graphic_data_struct_t armor_1;
 graphic_data_struct_t armor_2;
 graphic_data_struct_t armor_3;
-graphic_data_struct_t G1;
-graphic_data_struct_t G2;
-graphic_data_struct_t G3;
-graphic_data_struct_t G4;
-graphic_data_struct_t G5;
-graphic_data_struct_t G6;
+graphic_data_struct_t crosshair_vert;
+graphic_data_struct_t crosshair_hori_2;
+graphic_data_struct_t crosshair_hori_3;
+graphic_data_struct_t crosshair_hori_4;
+graphic_data_struct_t crosshair_hori_5;
+graphic_data_struct_t crosshair_hori_6;
 string_data trigger_speed;
 string_data trigger_speed_data;
 string_data robot_status_str;
-string_data logo;
+string_data MacRM_logo;
 
 float IMU_data;
 float trigger_motor_rpm = 0.00f;
@@ -114,8 +114,8 @@ void static_elements_init(void)
 {
 	char_draw(&cap_voltage, "capVlotageStr", UI_Graph_ADD, 1, UI_Color_Pink, 20, 4, 3, 1473, 468, "CAPV");
 	update_char(&cap_voltage);
-	char_draw(&logo, "macfalcons", UI_Graph_ADD, 1, UI_Color_Pink, 20, 11, 3, 850, 60, "MACFALCONS");
-	update_char(&logo);
+	char_draw(&MacRM_logo, "macfalcons", UI_Graph_ADD, 1, UI_Color_Pink, 20, 11, 3, 850, 60, "MACFALCONS");
+	update_char(&MacRM_logo);
 	char_draw(&cap_power, "capPowerStr", UI_Graph_ADD, 0, UI_Color_Pink, 20, 4, 3, 1473, 428, "CAPP");
 	update_char(&cap_power);
 	float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_ADD, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)(cap_message_rx.cap_message.cap_voltage / 1000.0f));
@@ -128,28 +128,28 @@ void static_elements_init(void)
 	update_char(&trigger_speed);
 	char_draw(&robot_status_str, "robot_status_str", UI_Graph_ADD, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
 	update_char(&robot_status_str);
-	line_draw(&G1, "091", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 960, 330, 960, 620);
-	update_ui(&G1);
-	line_draw(&G2, "092", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 880, 580, 1040, 580);
-	update_ui(&G2);
-	line_draw(&G3, "093", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 800, 540, 1120, 540);
-	update_ui(&G3);
-	line_draw(&G4, "094", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 880, 500, 1040, 500);
-	update_ui(&G4);
-	line_draw(&G5, "095", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 900, 420, 1020, 420);
-	update_ui(&G5);
-	line_draw(&G6, "096", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 920, 370, 1000, 370);
-	update_ui(&G6);
+	line_draw(&crosshair_vert, "091", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 960, 330, 960, 620);
+	update_ui(&crosshair_vert);
+	line_draw(&crosshair_hori_2, "092", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 880, 580, 1040, 580);
+	update_ui(&crosshair_hori_2);
+	line_draw(&crosshair_hori_3, "093", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 800, 540, 1120, 540);
+	update_ui(&crosshair_hori_3);
+	line_draw(&crosshair_hori_4, "094", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 880, 500, 1040, 500);
+	update_ui(&crosshair_hori_4);
+	line_draw(&crosshair_hori_5, "095", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 900, 420, 1020, 420);
+	update_ui(&crosshair_hori_5);
+	line_draw(&crosshair_hori_6, "096", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 920, 370, 1000, 370);
+	update_ui(&crosshair_hori_6);
 }
 
 void chassis_direction_draw(float yaw_relative_angle)
 {
 	char_draw(&chassis_front_dir, "gimbal_dir_0", UI_Graph_ADD, 3, UI_Color_Orange, 30, 1, 5, 960 - arm_cos_f32(yaw_relative_angle + PI / 2) * 100, 560 + arm_sin_f32(yaw_relative_angle + PI / 2) * 100, "X");
 	update_char(&chassis_front_dir);
-	float_draw(&chassis_angle, "chassis_angle_rad", UI_Graph_ADD, 7, UI_Color_Orange, 16, 4, 3, 1200, 600, ((yaw_relative_angle * 180.0f) / PI));
-	update_char(&chassis_angle);
-	float_draw(&chassis_angle, "chassis_angle_rad", UI_Graph_Change, 7, UI_Color_Orange, 16, 4, 3, 1200, 600, ((yaw_relative_angle * 180.0f) / PI));
-	update_char(&chassis_angle);
+	float_draw(&chassis_relative_angle, "chassis_relative_angle_rad", UI_Graph_ADD, 7, UI_Color_Orange, 16, 4, 3, 1200, 600, ((yaw_relative_angle * 180.0f) / PI));
+	update_char(&chassis_relative_angle);
+	float_draw(&chassis_relative_angle, "chassis_relative_angle_rad", UI_Graph_Change, 7, UI_Color_Orange, 16, 4, 3, 1200, 600, ((yaw_relative_angle * 180.0f) / PI));
+	update_char(&chassis_relative_angle);
 	char_draw(&chassis_front_dir, "gimbal_dir_0", UI_Graph_Change, 3, UI_Color_Orange, 30, 1, 5, 960 - arm_cos_f32(yaw_relative_angle + PI / 2) * 100, 560 + arm_sin_f32(yaw_relative_angle + PI / 2) * 100, "X");
 	update_char(&chassis_front_dir);
 }
