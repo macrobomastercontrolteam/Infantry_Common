@@ -97,72 +97,72 @@
 
 typedef struct
 {
-   uint8_t SOF;          // Start byte, fixed at 0xA5
-   uint16_t data_length; // Frame data length
-   uint8_t seq;          // Packet sequence number
-   uint8_t CRC8;         // CRC8 checksum value
-   uint16_t cmd_ID;      // Command ID
-} graphic_data_packhead; // Frame header
+	uint8_t SOF;          // Start byte, fixed at 0xA5
+	uint16_t data_length; // Frame data length
+	uint8_t seq;          // Packet sequence number
+	uint8_t CRC8;         // CRC8 checksum value
+	uint16_t cmd_ID;      // Command ID
+} graphic_data_packhead;  // Frame header
 
 typedef __packed struct
 {
-   uint8_t figure_name[3];
-   uint32_t operate_type : 3; // Add, Modify, Delete
-   uint32_t figure_type : 3;
-   uint32_t layer : 4;
-   uint32_t color : 4;
-   uint32_t details_a : 9;
-   uint32_t details_b : 9;
-   uint32_t width : 10;
-   uint32_t start_x : 11;
-   uint32_t start_y : 11;
-   uint32_t details_c : 10;
-   uint32_t details_d : 11;
-   uint32_t details_e : 11;
+	uint8_t figure_name[3];
+	uint32_t operate_type : 3; // Add, Modify, Delete
+	uint32_t figure_type : 3;
+	uint32_t layer : 4;
+	uint32_t color : 4;
+	uint32_t details_a : 9;
+	uint32_t details_b : 9;
+	uint32_t width : 10;
+	uint32_t start_x : 11;
+	uint32_t start_y : 11;
+	uint32_t details_c : 10;
+	uint32_t details_d : 11;
+	uint32_t details_e : 11;
 } graphic_data_struct_t;
 
 // Client Drawing Graphics
 typedef __packed struct
 {
-   // TODO: Maybe try making this an array as supported by the protocol
-   graphic_data_struct_t grapic_data_struct;
+	// TODO: Maybe try making this an array as supported by the protocol
+	graphic_data_struct_t grapic_data_struct;
 } ext_client_custom_graphic_t;
 
 // Interactive Data Information
 typedef __packed struct
 {
-   uint16_t data_cmd_id;                       // Data segment content ID
-   uint16_t sender_ID;                         // Sender ID
-   uint16_t receiver_ID;                       // Receiver ID
-   ext_client_custom_graphic_t graphic_custom; // Custom graphic data
+	uint16_t data_cmd_id;                       // Data segment content ID
+	uint16_t sender_ID;                         // Sender ID
+	uint16_t receiver_ID;                       // Receiver ID
+	ext_client_custom_graphic_t graphic_custom; // Custom graphic data
 } ext_student_interactive_header_data_t;
 
 typedef __packed struct
 {
-   graphic_data_struct_t graph_control;
-   uint8_t show_data[30];
+	graphic_data_struct_t graph_control;
+	uint8_t show_data[30];
 } string_data;
 
 typedef __packed struct
 {
-   uint16_t data_cmd_id;      // Data segment content ID
-   uint16_t sender_ID;        // Sender ID
-   uint16_t receiver_ID;      // Receiver ID
-   string_data string_custom; // Custom graphic data
+	uint16_t data_cmd_id;      // Data segment content ID
+	uint16_t sender_ID;        // Sender ID
+	uint16_t receiver_ID;      // Receiver ID
+	string_data string_custom; // Custom graphic data
 } string_payload;
 
 typedef __packed struct
 {
-   uint16_t data_cmd_ID; // Data segment content ID
-   uint16_t sender_ID;   // Sender ID
-   uint16_t receiver_ID; // Receiver ID
-} graphic_data_head;     // => ext_student_interactive_header_data_t
+	uint16_t data_cmd_ID; // Data segment content ID
+	uint16_t sender_ID;   // Sender ID
+	uint16_t receiver_ID; // Receiver ID
+} graphic_data_head;      // => ext_student_interactive_header_data_t
 
 typedef struct
 {
-   uint8_t delete_operate; // Delete operation
-   uint8_t layer;          // Layer to be deleted
-} graphic_delete;          // Frame for deleting a layer
+	uint8_t delete_operate; // Delete operation
+	uint8_t layer;          // Layer to be deleted
+} graphic_delete;           // Frame for deleting a layer
 
 void line_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t end_x, uint32_t end_y);
 void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, char *char_data);

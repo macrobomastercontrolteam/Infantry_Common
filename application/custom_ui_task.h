@@ -29,11 +29,11 @@
 
 typedef enum
 {
-  ARMOR_ZERO,
-  ARMOR_ONE,
-  ARMOR_TWO,
-  ARMOR_THREE,
-  NONE,
+	ARMOR_ZERO,
+	ARMOR_ONE,
+	ARMOR_TWO,
+	ARMOR_THREE,
+	NONE,
 } armor_damage_info;
 /**
  * @brief          client ui drawing
