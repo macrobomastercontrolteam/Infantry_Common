@@ -599,40 +599,40 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
     *pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
 
 
-    {
-        static uint16_t last_turn_keyboard = 0;
-        static uint8_t gimbal_turn_flag = 0;
-        static fp32 gimbal_end_angle = 0.0f;
+    // {
+    //     static uint16_t last_turn_keyboard = 0;
+    //     static uint8_t gimbal_turn_flag = 0;
+    //     static fp32 gimbal_end_angle = 0.0f;
 
-        if ((gimbal_control_set->gimbal_rc_ctrl->key.v & TURN_KEYBOARD) && !(last_turn_keyboard & TURN_KEYBOARD))
-        {
-            if (gimbal_turn_flag == 0)
-            {
-                gimbal_turn_flag = 1;
-                // save the target value to turn
-                gimbal_end_angle = rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle + PI);
-            }
-        }
-        last_turn_keyboard = gimbal_control_set->gimbal_rc_ctrl->key.v ;
+    //     if ((gimbal_control_set->gimbal_rc_ctrl->key.v & TURN_KEYBOARD) && !(last_turn_keyboard & TURN_KEYBOARD))
+    //     {
+    //         if (gimbal_turn_flag == 0)
+    //         {
+    //             gimbal_turn_flag = 1;
+    //             // save the target value to turn
+    //             gimbal_end_angle = rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle + PI);
+    //         }
+    //     }
+    //     last_turn_keyboard = gimbal_control_set->gimbal_rc_ctrl->key.v ;
 
-        if (gimbal_turn_flag)
-        {
-            // control to the target value of turning, positive or reverse rotation is random
-            if (rad_format(gimbal_end_angle - gimbal_control_set->gimbal_yaw_motor.absolute_angle) > 0.0f)
-            {
-                *yaw += TURN_SPEED;
-            }
-            else
-            {
-                *yaw -= TURN_SPEED;
-            }
-        }
-        // stop after reaching pi
-        if (gimbal_turn_flag && fabs(rad_format(gimbal_end_angle - gimbal_control_set->gimbal_yaw_motor.absolute_angle)) < 0.01f)
-        {
-            gimbal_turn_flag = 0;
-        }
-    }
+    //     if (gimbal_turn_flag)
+    //     {
+    //         // control to the target value of turning, positive or reverse rotation is random
+    //         if (rad_format(gimbal_end_angle - gimbal_control_set->gimbal_yaw_motor.absolute_angle) > 0.0f)
+    //         {
+    //             *yaw += TURN_SPEED;
+    //         }
+    //         else
+    //         {
+    //             *yaw -= TURN_SPEED;
+    //         }
+    //     }
+    //     // stop after reaching pi
+    //     if (gimbal_turn_flag && fabs(rad_format(gimbal_end_angle - gimbal_control_set->gimbal_yaw_motor.absolute_angle)) < 0.01f)
+    //     {
+    //         gimbal_turn_flag = 0;
+    //     }
+    // }
 }
 
 #if CV_INTERFACE
