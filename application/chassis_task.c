@@ -75,11 +75,11 @@ static void chassis_set_control(chassis_move_t *chassis_move_control);
  */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 
-void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle);
-void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32 alpha2, fp32 gimbal_chassis_relative_yaw_angle);
-
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static uint16_t motor_angle_to_ecd_change(fp32 angle);
+void swerve_platform_rc_mapping(void);
+void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle);
+void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32 alpha2, fp32 gimbal_chassis_relative_yaw_angle);
 #endif
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
@@ -517,59 +517,72 @@ void swerve_chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_se
 		*wz_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out;
 	}
 
-#if SWERVE_HIP_RC_TEST
-	// test tilting chassis platform with left joystick, while control of gimbal by joystick is temporarily disabled
-	if (chassis_move_rc_to_vector->chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
-	{
-		int16_t vert_channel, hori_channel;
-		fp32 vert_set_channel, hori_set_channel;
-		deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], vert_channel, CHASSIS_RC_DEADLINE);
-		deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], hori_channel, CHASSIS_RC_DEADLINE);
-
-		if (chassis_move_rc_to_vector->chassis_RC->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_MID)
-		{
-			// left joystick: up & down changes height, left & right changes pseudo roll
-			vert_set_channel = vert_channel * SWERVE_HIP_TEST_HEIGHT_RC_SEN_INC;
-			chassis_move_rc_to_vector->chassis_platform.target_height += vert_set_channel;
-		}
-		else if (chassis_move_rc_to_vector->chassis_RC->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_DOWN)
-		{
-			// left joystick: up & down changes pseudo pitch, left & right changes pseudo roll
-			vert_set_channel = vert_channel * SWERVE_HIP_TEST_PITCH_RC_SEN_INC;
-			chassis_move_rc_to_vector->chassis_platform.target_pitch += vert_set_channel;
-		}
-		hori_set_channel = hori_channel * SWERVE_HIP_TEST_ROLL_RC_SEN_INC;
-		chassis_move_rc_to_vector->chassis_platform.target_roll += hori_set_channel;
-
-		// constrain target roll, pitch, and height values
-		chassis_move_rc_to_vector->chassis_platform.target_roll = fp32_constrain(chassis_move_rc_to_vector->chassis_platform.target_roll, -CHASSIS_ROLL_UPPER_LIMIT, CHASSIS_ROLL_UPPER_LIMIT);
-		chassis_move_rc_to_vector->chassis_platform.target_pitch = fp32_constrain(chassis_move_rc_to_vector->chassis_platform.target_pitch, -CHASSIS_PITCH_UPPER_LIMIT, CHASSIS_PITCH_UPPER_LIMIT);
-		chassis_move_rc_to_vector->chassis_platform.target_height = fp32_constrain(chassis_move_rc_to_vector->chassis_platform.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
-
-		// chassis platform posture conversion
-		swerve_convert_from_rpy_to_alpha(chassis_move_rc_to_vector->chassis_platform.target_roll, chassis_move_rc_to_vector->chassis_platform.target_pitch, &(chassis_move_rc_to_vector->chassis_platform.target_alpha1), &(chassis_move_rc_to_vector->chassis_platform.target_alpha2), chassis_move_rc_to_vector->chassis_yaw_motor->relative_angle);
-
-		// constrain target alpha1 and alpha2 values
-		// calculation for alpha limit: According to the matlab calculation, the available workspace in height-alpha space is triangular, so we assume height target has more priority than alpha target, and calculate alpha limit based on height
-		if (chassis_move_rc_to_vector->chassis_platform.target_height >= CHASSIS_H_WORKSPACE_PEAK)
-		{
-			chassis_move_rc_to_vector->chassis_platform.alpha_upper_limit = (chassis_move_rc_to_vector->chassis_platform.target_height - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
-		}
-		else
-		{
-			chassis_move_rc_to_vector->chassis_platform.alpha_upper_limit = (chassis_move_rc_to_vector->chassis_platform.target_height - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
-		}
-		chassis_move_rc_to_vector->chassis_platform.alpha_lower_limit = -chassis_move_rc_to_vector->chassis_platform.alpha_upper_limit;
-
-		chassis_move_rc_to_vector->chassis_platform.target_alpha1 = fp32_constrain(chassis_move_rc_to_vector->chassis_platform.target_alpha1, chassis_move_rc_to_vector->chassis_platform.alpha_lower_limit, chassis_move_rc_to_vector->chassis_platform.alpha_upper_limit);
-		chassis_move_rc_to_vector->chassis_platform.target_alpha2 = fp32_constrain(chassis_move_rc_to_vector->chassis_platform.target_alpha2, chassis_move_rc_to_vector->chassis_platform.alpha_lower_limit, chassis_move_rc_to_vector->chassis_platform.alpha_upper_limit);
-
-		// chassis platform posture inverse conversion to reflect limited alpha values onto the set roll and pitch values
-		swerve_convert_from_alpha_to_rpy(&(chassis_move_rc_to_vector->chassis_platform.target_roll), &(chassis_move_rc_to_vector->chassis_platform.target_pitch), chassis_move_rc_to_vector->chassis_platform.target_alpha1, chassis_move_rc_to_vector->chassis_platform.target_alpha2, chassis_move_rc_to_vector->chassis_yaw_motor->relative_angle);
-	}
-#endif
+	// chassis platform command (mainly for hip motors)
+	swerve_platform_rc_mapping();
 }
-#endif
+
+void swerve_platform_rc_mapping(void)
+{
+	// roll
+	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
+	{
+		chassis_move.chassis_platform.target_roll += SWERVE_HIP_ROLL_KEYBOARD_SEN_INC;
+	}
+	else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C)
+	{
+		chassis_move.chassis_platform.target_roll -= SWERVE_HIP_ROLL_KEYBOARD_SEN_INC;
+	}
+
+	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
+	{
+		// height
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+		{
+			chassis_move.chassis_platform.target_height += SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
+		}
+		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+		{
+			chassis_move.chassis_platform.target_height -= SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
+		}
+	}
+	else
+	{
+		// pitch
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+		{
+			chassis_move.chassis_platform.target_pitch += SWERVE_HIP_PITCH_KEYBOARD_SEN_INC;
+		}
+		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+		{
+			chassis_move.chassis_platform.target_pitch -= SWERVE_HIP_PITCH_KEYBOARD_SEN_INC;
+		}
+	}
+	// constrain target roll, pitch, and height values
+	chassis_move.chassis_platform.target_roll = fp32_constrain(chassis_move.chassis_platform.target_roll, -CHASSIS_ROLL_UPPER_LIMIT, CHASSIS_ROLL_UPPER_LIMIT);
+	chassis_move.chassis_platform.target_pitch = fp32_constrain(chassis_move.chassis_platform.target_pitch, -CHASSIS_PITCH_UPPER_LIMIT, CHASSIS_PITCH_UPPER_LIMIT);
+	chassis_move.chassis_platform.target_height = fp32_constrain(chassis_move.chassis_platform.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
+
+	// chassis platform posture conversion
+	swerve_convert_from_rpy_to_alpha(chassis_move.chassis_platform.target_roll, chassis_move.chassis_platform.target_pitch, &(chassis_move.chassis_platform.target_alpha1), &(chassis_move.chassis_platform.target_alpha2), chassis_move.chassis_yaw_motor->relative_angle);
+
+	// constrain target alpha1 and alpha2 values
+	// calculation for alpha limit: According to the matlab calculation, the available workspace in height-alpha space is triangular, so we assume height target has more priority than alpha target, and calculate alpha limit based on height
+	if (chassis_move.chassis_platform.target_height >= CHASSIS_H_WORKSPACE_PEAK)
+	{
+		chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
+	}
+	else
+	{
+		chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
+	}
+	chassis_move.chassis_platform.alpha_lower_limit = -chassis_move.chassis_platform.alpha_upper_limit;
+
+	chassis_move.chassis_platform.target_alpha1 = fp32_constrain(chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
+	chassis_move.chassis_platform.target_alpha2 = fp32_constrain(chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
+
+	// chassis platform posture inverse conversion to reflect limited alpha values onto the set roll and pitch values
+	swerve_convert_from_alpha_to_rpy(&(chassis_move.chassis_platform.target_roll), &(chassis_move.chassis_platform.target_pitch), chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_yaw_motor->relative_angle);
+}
 
 void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle)
 {
@@ -605,6 +618,7 @@ void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32
 	*roll = cos_total * alpha2 + sin_total * alpha1;
 	*pitch = -sin_total * alpha2 + cos_total * alpha1;
 }
+#endif
 
 /**
  * @brief          set chassis control set-point, three movement control value is set by "chassis_behaviour_control_set".
