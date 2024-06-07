@@ -347,15 +347,15 @@ static void chassis_feedback_update(void)
 
 	// KEY_PRESSED_OFFSET_E toggles random spinning mode
 	// no need to debounce because keyboard signal is clean
-	static uint8_t fLastKeySignal = 0;
-	uint8_t fIsKeyPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_E) != 0);
-	if (fLastKeySignal != fIsKeyPressed)
+	static uint8_t fLastKeyESignal = 0;
+	uint8_t fIsKeyEPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_E) != 0);
+	if (fLastKeyESignal != fIsKeyEPressed)
 	{
-		if (fIsKeyPressed)
+		if (fIsKeyEPressed)
 		{
 			chassis_move.fRandomSpinOn = !chassis_move.fRandomSpinOn;
 		}
-		fLastKeySignal = fIsKeyPressed;
+		fLastKeyESignal = fIsKeyEPressed;
 	}
 }
 /**
