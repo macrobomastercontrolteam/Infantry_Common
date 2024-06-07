@@ -119,7 +119,7 @@ static void J_scope_chassis_test(void)
  */
 void chassis_task(void const *pvParameters)
 {
-	uint32_t ulSystemTime = ulSystemTime = osKernelSysTick();
+	uint32_t ulSystemTime = osKernelSysTick();
 	// wait a time
 	osDelay(CHASSIS_TASK_INIT_TIME);
 
