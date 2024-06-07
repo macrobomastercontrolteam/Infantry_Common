@@ -222,6 +222,8 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	chassis_move_init->vx_rc_sen = chassis_move_init->vx_max_speed / JOYSTICK_HALF_RANGE;
 	chassis_move_init->vy_rc_sen = chassis_move_init->vy_max_speed / JOYSTICK_HALF_RANGE;
 
+	chassis_move_init->fRandomSpinOn = 0;
+
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	chassis_move_init->fUpperHeadEnabled = 0;
 #endif
@@ -342,6 +344,19 @@ static void chassis_feedback_update(void)
 	chassis_move.chassis_yaw = rad_format(*(chassis_move.chassis_INS_angle + INS_YAW_ADDRESS_OFFSET) - chassis_move.chassis_yaw_motor->relative_angle);
 	chassis_move.chassis_pitch = rad_format(*(chassis_move.chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET) - chassis_move.chassis_pitch_motor->relative_angle);
 	chassis_move.chassis_roll = *(chassis_move.chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
+
+	// KEY_PRESSED_OFFSET_E toggles random spinning mode
+	// no need to debounce because keyboard signal is clean
+	static uint8_t fLastKeySignal = 0;
+	uint8_t fIsKeyPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_E) != 0);
+	if (fLastKeySignal != fIsKeyPressed)
+	{
+		if (fIsKeyPressed)
+		{
+			chassis_move.fRandomSpinOn = !chassis_move.fRandomSpinOn;
+		}
+		fLastKeySignal = fIsKeyPressed;
+	}
 }
 /**
  * @brief          accroding to the channel value of remote control, calculate chassis vertical and horizontal speed set-point
