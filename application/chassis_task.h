@@ -89,8 +89,8 @@
 #define MAX_MOTOR_CAN_CURRENT 16000.0f
 // chassis 6020 max motor control voltage
 #define MAX_MOTOR_CAN_VOLTAGE 20000.0f
-// press the key, chassis will swing
-#define SWING_KEY KEY_PRESSED_OFFSET_CTRL
+// // press the key, chassis will swing
+// #define SWING_KEY KEY_PRESSED_OFFSET_CTRL
 // chassi forward, back, left, right key
 #define CHASSIS_FRONT_KEY KEY_PRESSED_OFFSET_W
 #define CHASSIS_BACK_KEY KEY_PRESSED_OFFSET_S

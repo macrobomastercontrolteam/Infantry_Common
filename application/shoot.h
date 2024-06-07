@@ -27,9 +27,6 @@
 #define SHOOT_CONTROL_TIME_MS GIMBAL_CONTROL_TIME_MS
 #define SHOOT_CONTROL_TIME_S GIMBAL_CONTROL_TIME_S
 
-#define SHOOT_ON_KEYBOARD           KEY_PRESSED_OFFSET_Q
-#define SHOOT_OFF_KEYBOARD          KEY_PRESSED_OFFSET_E
-
 // After the shooting is enabled, the bullet is continuously fired for a period of time, used to clear the bullet
 #define RC_S_LONG_TIME              800
 
