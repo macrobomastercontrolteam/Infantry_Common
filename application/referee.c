@@ -312,3 +312,8 @@ uint16_t get_current_HP(void)
 {
 	return robot_state.current_HP;
 }
+
+uint8_t get_armor_hurt(void)
+{
+	return robot_hurt_t.armor_id;
+}
