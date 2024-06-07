@@ -366,6 +366,7 @@ extern bool_t cmd_cali_gimbal_hook(uint16_t *yaw_offset, uint16_t *pitch_offset,
   * @param[in]      min_yaw:pitch min relative angle
   * @retval         none
   */
+extern gimbal_control_t gimbal_control;
 extern void set_cali_gimbal_hook(const uint16_t yaw_offset, const uint16_t pitch_offset, const fp32 max_yaw, const fp32 min_yaw, const fp32 max_pitch, const fp32 min_pitch);
 
 extern fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
