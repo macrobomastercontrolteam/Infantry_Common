@@ -580,26 +580,33 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
         return;
     }
 
-    static int16_t yaw_channel = 0, pitch_channel = 0;
-
-#if SWERVE_HIP_RC_TEST
-    if ((chassis_behaviour_mode == SWERVE_CHASSIS_NO_FOLLOW_YAW) || (chassis_behaviour_mode == SWERVE_CHASSIS_SPINNING))
+    if (gimbal_control_set->gimbal_rc_ctrl->key.v & KEY_PRESSED_OFFSET_R)
     {
-        yaw_channel = 0;
-        pitch_channel = 0;
+        *yaw = rad_format(0 - gimbal_control_set->gimbal_yaw_motor.absolute_angle_set);
+		*pitch = rad_format(0 - gimbal_control_set->gimbal_pitch_motor.absolute_angle_set);
     }
-	else
-#endif
+    else
 	{
-		deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
-		deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
+		int16_t yaw_channel = 0;
+		int16_t pitch_channel = 0;
+#if SWERVE_HIP_RC_TEST
+		if ((chassis_behaviour_mode == SWERVE_CHASSIS_NO_FOLLOW_YAW) || (chassis_behaviour_mode == SWERVE_CHASSIS_SPINNING))
+		{
+			yaw_channel = 0;
+			pitch_channel = 0;
+		}
+		else
+#endif
+		{
+			deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
+			deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
+		}
+
+		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
+		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
 	}
 
-	*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
-    *pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
-
-
-    // {
+	// {
     //     static uint16_t last_turn_keyboard = 0;
     //     static uint8_t gimbal_turn_flag = 0;
     //     static fp32 gimbal_end_angle = 0.0f;
@@ -711,15 +718,23 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
     {
         return;
     }
-    static int16_t yaw_channel = 0, pitch_channel = 0;
 
-    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
-    deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
+	if (gimbal_control_set->gimbal_rc_ctrl->key.v & KEY_PRESSED_OFFSET_R)
+	{
+		*yaw = rad_format(0 - gimbal_control_set->gimbal_yaw_motor.relative_angle_set);
+		*pitch = rad_format(0 - gimbal_control_set->gimbal_pitch_motor.relative_angle_set);
+	}
+	else
+	{
+		int16_t yaw_channel = 0;
+		int16_t pitch_channel = 0;
 
-    *yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
-    *pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
+		deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
+		deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
 
-
+		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
+		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
+	}
 }
 
 /**
