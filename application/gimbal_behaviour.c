@@ -402,7 +402,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
-	else
+    else
 	{
 		switch (gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL])
 		{
@@ -580,12 +580,23 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
         return;
     }
 
-    if (gimbal_control_set->gimbal_rc_ctrl->key.v & KEY_PRESSED_OFFSET_R)
-    {
-        *yaw = rad_format(0 - gimbal_control_set->gimbal_yaw_motor.absolute_angle_set);
-		*pitch = rad_format(0 - gimbal_control_set->gimbal_pitch_motor.absolute_angle_set);
-    }
-    else
+    // KEY_PRESSED_OFFSET_R centers gimbal
+	// no need to debounce because keyboard signal is clean
+	uint8_t fCenterGimbal = 0;
+	static uint8_t fLastKeyRSignal = 0;
+	uint8_t fIsKeyRPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) != 0);
+	if (fLastKeyRSignal != fIsKeyRPressed)
+	{
+		fCenterGimbal = fIsKeyRPressed;
+		fLastKeyRSignal = fIsKeyRPressed;
+	}
+
+	if (fCenterGimbal)
+	{
+		*yaw = -gimbal_control_set->gimbal_yaw_motor.relative_angle;
+		*pitch = -gimbal_control_set->gimbal_pitch_motor.absolute_angle_set;
+	}
+	else
 	{
 		int16_t yaw_channel = 0;
 		int16_t pitch_channel = 0;
@@ -719,10 +730,21 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
         return;
     }
 
-	if (gimbal_control_set->gimbal_rc_ctrl->key.v & KEY_PRESSED_OFFSET_R)
+    // KEY_PRESSED_OFFSET_R centers gimbal
+	// no need to debounce because keyboard signal is clean
+	uint8_t fCenterGimbal = 0;
+	static uint8_t fLastKeyRSignal = 0;
+	uint8_t fIsKeyRPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) != 0);
+	if (fLastKeyRSignal != fIsKeyRPressed)
 	{
-		*yaw = rad_format(0 - gimbal_control_set->gimbal_yaw_motor.relative_angle_set);
-		*pitch = rad_format(0 - gimbal_control_set->gimbal_pitch_motor.relative_angle_set);
+		fCenterGimbal = fIsKeyRPressed;
+		fLastKeyRSignal = fIsKeyRPressed;
+	}
+
+	if (fCenterGimbal)
+	{
+		*yaw = -gimbal_control_set->gimbal_yaw_motor.relative_angle;
+		*pitch = -gimbal_control_set->gimbal_pitch_motor.absolute_angle_set;
 	}
 	else
 	{
