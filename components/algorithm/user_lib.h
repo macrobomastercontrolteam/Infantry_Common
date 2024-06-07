@@ -1,6 +1,7 @@
 #ifndef USER_LIB_H
 #define USER_LIB_H
 #include "global_inc.h"
+// @TODO: Do not use arm_sin_f32 and arm_cos_f32 until the library is fixed by git issue [https://github.com/macrobomastercontrolteam/Task_Board/issues/41]
 #include "arm_math.h"
 
 /** A compile time assertion check.
