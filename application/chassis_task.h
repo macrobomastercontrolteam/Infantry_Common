@@ -291,6 +291,8 @@ typedef struct
 	fp32 chassis_roll;  // the roll angle calculated by gyro sensor and gimbal motor
 
 	uint8_t fRandomSpinOn;
+	int16_t dial_channel_latched;
+	int16_t dial_channel_out;
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	uint8_t fUpperHeadEnabled;

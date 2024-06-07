@@ -144,6 +144,7 @@ static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *an
 static void chassis_open_set_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
 
 fp32 chassis_spinning_speed_manager(void);
+void dial_channel_manager(void);
 
 // Watchout for the default value of chassis behaviour mode
 chassis_behaviour_e chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
@@ -281,6 +282,8 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 		return;
 	}
 
+	dial_channel_manager();
+
 	switch (chassis_behaviour_mode)
 	{
 		case CHASSIS_NO_MOVE:
@@ -336,6 +339,32 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 			chassis_zero_force_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
 			break;
 		}
+	}
+}
+
+void dial_channel_manager(void)
+{
+	if (toe_is_error(DBUS_TOE) == 0)
+	{
+		int16_t dial_channel_raw;
+		deadband_limit(chassis_move.chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel_raw, CHASSIS_RC_DEADLINE);
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
+		{
+			chassis_move.dial_channel_latched = dial_channel_raw;
+		}
+
+		if (dial_channel_raw == 0)
+		{
+			chassis_move.dial_channel_out = chassis_move.dial_channel_latched;
+		}
+		else
+		{
+			chassis_move.dial_channel_out = dial_channel_raw;
+		}
+	}
+	else
+	{
+		chassis_move.dial_channel_out = 0;
 	}
 }
 
@@ -455,14 +484,8 @@ static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_se
 
 fp32 chassis_spinning_speed_manager(void)
 {
-	int16_t dial_channel = 0;
-	static fp32 spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
-	if (toe_is_error(DBUS_TOE) == 0)
-	{
-		deadband_limit(chassis_move.chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
-	}
-
 	// Randomly spin or manually change spin speed
+	static fp32 spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
 	if (chassis_move.fRandomSpinOn)
 	{
 		// Dial changes: range of possible speed and interval to change speed; positive dial value more rapid, negative less rapid
@@ -471,7 +494,7 @@ fp32 chassis_spinning_speed_manager(void)
 		static uint32_t speed_change_period = MID_SPIN_SPEED_CHANGE_PERIOD;
 		static uint8_t param_change_period = NORMAL_SPIN_PARAM_CHANGE_PERIOD;
 		static fp32 spinning_sign = 1;
-		fp32 dial_ratio = dial_channel / JOYSTICK_HALF_RANGE;
+		fp32 dial_ratio = chassis_move.dial_channel_out / JOYSTICK_HALF_RANGE;
 
 		// once per speed_change_period, update spinning speed to a random number in between wz_min_speed and wz_max_speed
 		if (osKernelSysTick() - ulLastUpdateTime >= speed_change_period)
@@ -495,13 +518,13 @@ fp32 chassis_spinning_speed_manager(void)
 	else
 	{
 		// piecewise linear mapping
-		if (dial_channel > 0)
+		if (chassis_move.dial_channel_out > 0)
 		{
-			spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_POSITIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
+			spinning_speed = chassis_move.dial_channel_out * CHASSIS_SPIN_RC_SEN_POSITIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
 		}
 		else
 		{
-			spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_NEGATIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
+			spinning_speed = chassis_move.dial_channel_out * CHASSIS_SPIN_RC_SEN_NEGATIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
 		}
 	}
 	return spinning_speed;
@@ -605,10 +628,7 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
 	}
 
 	chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-
-	int16_t dial_channel;
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
-	*wz_set = CHASSIS_WZ_RC_SEN * dial_channel;
+	*wz_set = CHASSIS_WZ_RC_SEN * chassis_move.dial_channel_out;
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)

@@ -223,6 +223,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	chassis_move_init->vy_rc_sen = chassis_move_init->vy_max_speed / JOYSTICK_HALF_RANGE;
 
 	chassis_move_init->fRandomSpinOn = 0;
+	chassis_move_init->dial_channel_latched = 0;
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	chassis_move_init->fUpperHeadEnabled = 0;
@@ -313,6 +314,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 		}
 		chassis_move_transit->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA;
 		chassis_move_transit->wz_min_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
+		chassis_move_transit->dial_channel_latched = 0;
 
 		chassis_move_transit->last_chassis_mode = chassis_move_transit->chassis_mode;
 	}
@@ -441,15 +443,11 @@ void swerve_chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_se
 		return;
 	}
 
-	int16_t vx_channel, vy_channel, wz_channel;
+	int16_t vx_channel, vy_channel;
 	fp32 vx_set_channel, vy_set_channel, wz_set_channel;
 	// deadline, because some remote control need be calibrated,  the value of joystick is not zero in middle place,
 	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], vx_channel, CHASSIS_RC_DEADLINE);
 	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], vy_channel, CHASSIS_RC_DEADLINE);
-	if (fEnableWz)
-	{
-		deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], wz_channel, CHASSIS_RC_DEADLINE);
-	}
 
 	// change max speed
 	if (chassis_move_rc_to_vector->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
@@ -469,7 +467,7 @@ void swerve_chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_se
 	vy_set_channel = vy_channel * -(chassis_move_rc_to_vector->vy_rc_sen);
 	if (fEnableWz)
 	{
-		wz_set_channel = wz_channel * -CHASSIS_WZ_RC_SEN;
+		wz_set_channel = chassis_move.dial_channel_out * -CHASSIS_WZ_RC_SEN;
 	}
 
 	// keyboard set speed set-point
