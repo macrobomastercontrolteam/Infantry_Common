@@ -60,7 +60,6 @@
 #include "gimbal_behaviour.h"
 
 // random spin mode parameters
-#define ENABLE_RANDOM_SPIN_MODE 0
 #define MIN_SPIN_PARAM_CHANGE_PERIOD 1.0f
 #define NORMAL_SPIN_PARAM_CHANGE_PERIOD 5.0f
 #define DELTA_SPIN_PARAM_CHANGE_PERIOD 2.0f
@@ -143,6 +142,8 @@ static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *an
  * @retval         none
  */
 static void chassis_open_set_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
+
+fp32 chassis_spinning_speed_manager(void);
 
 // Watchout for the default value of chassis behaviour mode
 chassis_behaviour_e chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
@@ -452,6 +453,60 @@ static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_se
 	// *angle_set = swing_angle;
 }
 
+fp32 chassis_spinning_speed_manager(void)
+{
+	int16_t dial_channel = 0;
+	static fp32 spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
+	if (toe_is_error(DBUS_TOE) == 0)
+	{
+		deadband_limit(chassis_move.chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
+	}
+
+	// Randomly spin or manually change spin speed
+	if (chassis_move.fRandomSpinOn)
+	{
+		// Dial changes: range of possible speed and interval to change speed; positive dial value more rapid, negative less rapid
+		static uint32_t ulLastUpdateTime = 0;
+		static uint8_t param_change_counter = 0;
+		static uint32_t speed_change_period = MID_SPIN_SPEED_CHANGE_PERIOD;
+		static uint8_t param_change_period = NORMAL_SPIN_PARAM_CHANGE_PERIOD;
+		static fp32 spinning_sign = 1;
+		fp32 dial_ratio = dial_channel / JOYSTICK_HALF_RANGE;
+
+		// once per speed_change_period, update spinning speed to a random number in between wz_min_speed and wz_max_speed
+		if (osKernelSysTick() - ulLastUpdateTime >= speed_change_period)
+		{
+			spinning_speed = spinning_sign * RNG_get_random_range_fp32(chassis_move.wz_min_speed, chassis_move.wz_max_speed);
+			ulLastUpdateTime = osKernelSysTick();
+			param_change_counter++;
+
+			// change the speed changing period after certain number of changes
+			if (param_change_counter >= param_change_period)
+			{
+				param_change_period = RNG_get_random_range_int32(MIN_SPIN_PARAM_CHANGE_PERIOD, roundf(NORMAL_SPIN_PARAM_CHANGE_PERIOD + dial_ratio * DELTA_SPIN_PARAM_CHANGE_PERIOD));
+				chassis_move.wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA * (-dial_ratio / 2 + 1);
+				fp32 param_change_period_max = MID_SPIN_SPEED_CHANGE_PERIOD + dial_ratio * DELTA_SPIN_SPEED_CHANGE_PERIOD;
+				speed_change_period = RNG_get_random_range_fp32(MIN_SPIN_SPEED_CHANGE_PERIOD, param_change_period_max);
+				spinning_sign = RNG_get_random_range_int32(0, 1) ? -1 : 1;
+				param_change_counter = 0;
+			}
+		}
+	}
+	else
+	{
+		// piecewise linear mapping
+		if (dial_channel > 0)
+		{
+			spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_POSITIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
+		}
+		else
+		{
+			spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_NEGATIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
+		}
+	}
+	return spinning_speed;
+}
+
 static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
 {
 	if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
@@ -461,53 +516,7 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
 
 	// Convert joystick and keyboard input to commands
 	chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-
-	// Convert dial input to spinning speed
-	int16_t dial_channel;
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
-
-#if ENABLE_RANDOM_SPIN_MODE
-	// Dial changes: range of possible speed and interval to change speed; positive dial value more rapid, negative less rapid
-	static fp32 spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-	static uint32_t ulLastUpdateTime = 0;
-	static uint8_t param_change_counter = 0;
-	static uint32_t speed_change_period = MID_SPIN_SPEED_CHANGE_PERIOD;
-	static uint8_t param_change_period = NORMAL_SPIN_PARAM_CHANGE_PERIOD;
-	static fp32 spinning_sign = 1;
-	fp32 dial_ratio = dial_channel / JOYSTICK_HALF_RANGE;
-
-	// once per speed_change_period, update spinning speed to a random number in between wz_min_speed and wz_max_speed
-	if (osKernelSysTick() - ulLastUpdateTime >= speed_change_period)
-	{
-		spinning_speed = spinning_sign * RNG_get_random_range_fp32(chassis_move_rc_to_vector->wz_min_speed, chassis_move_rc_to_vector->wz_max_speed);
-		ulLastUpdateTime = osKernelSysTick();
-		param_change_counter++;
-
-		// change the speed changing period after certain number of changes
-		if (param_change_counter >= param_change_period)
-		{
-			param_change_period = RNG_get_random_range_int32(MIN_SPIN_PARAM_CHANGE_PERIOD, roundf(NORMAL_SPIN_PARAM_CHANGE_PERIOD + dial_ratio * DELTA_SPIN_PARAM_CHANGE_PERIOD));
-			chassis_move_rc_to_vector->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA * (-dial_ratio / 2 + 1);
-			fp32 param_change_period_max = MID_SPIN_SPEED_CHANGE_PERIOD + dial_ratio * DELTA_SPIN_SPEED_CHANGE_PERIOD;
-			speed_change_period = RNG_get_random_range_fp32(MIN_SPIN_SPEED_CHANGE_PERIOD, param_change_period_max);
-			spinning_sign = RNG_get_random_range_int32(0, 1) ? -1 : 1;
-			param_change_counter = 0;
-		}
-	}
-#else
-	fp32 spinning_speed;
-	// piecewise linear mapping
-	if (dial_channel > 0)
-	{
-		spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_POSITIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
-	}
-	else
-	{
-		spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_NEGATIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
-	}
-#endif
-
-	*angle_set = spinning_speed;
+	*angle_set = chassis_spinning_speed_manager();
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
@@ -521,22 +530,7 @@ static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *an
 	// Convert joystick and keyboard input to commands
 	fp32 dummy_wz_set;
 	swerve_chassis_rc_to_control_vector(vx_set, vy_set, &dummy_wz_set, chassis_move_rc_to_vector, 0);
-
-	// Convert dial input to spinning speed
-	int16_t dial_channel;
-	fp32 spinning_speed;
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
-	// piecewise linear mapping
-	if (dial_channel > 0)
-	{
-		spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_POSITIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
-	}
-	else
-	{
-		spinning_speed = dial_channel * CHASSIS_SPIN_RC_SEN_NEGATIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
-	}
-
-	*angle_set = spinning_speed;
+	*angle_set = chassis_spinning_speed_manager();
 }
 #endif
 
@@ -548,7 +542,6 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
 	}
 
 #if CV_INTERFACE
-	fp32 spinning_speed;
 	if (toe_is_error(CV_TOE))
 	{
 		*vx_set = 0;
@@ -569,16 +562,7 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
 		// {
 		// 	spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
 		// }
-	}
-
-	if (toe_is_error(DBUS_TOE) == 0)
-	{
-		// Auto-aim test with varying spinning speeds
-		// Convert dial input to spinning speed
-		int16_t dial_channel;
-		deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel, CHASSIS_RC_DEADLINE);
-		spinning_speed = dial_channel * (NORMAL_MAX_CHASSIS_SPEED_WZ / JOYSTICK_HALF_RANGE);
-		*angle_set = spinning_speed;
+		*angle_set = chassis_spinning_speed_manager();
 	}
 #endif
 }
