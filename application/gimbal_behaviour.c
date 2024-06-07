@@ -337,7 +337,7 @@ bool_t gimbal_cmd_to_shoot_stop(void)
   */
 static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 {
-    static gimbal_behaviour_e last_gimbal_behaviour = GIMBAL_ZERO_FORCE;
+    // static gimbal_behaviour_e last_gimbal_behaviour = GIMBAL_ZERO_FORCE;
 
     if (gimbal_mode_set == NULL)
     {
@@ -430,11 +430,11 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 	}
 
     //enter init mode (gimbal back to center)
-	if ((last_gimbal_behaviour == GIMBAL_ZERO_FORCE) && (gimbal_behaviour != GIMBAL_ZERO_FORCE) && (gimbal_behaviour != GIMBAL_ABSOLUTE_ANGLE))
-	{
-		gimbal_behaviour = GIMBAL_INIT;
-	}
-	last_gimbal_behaviour = gimbal_behaviour;
+	// if ((last_gimbal_behaviour == GIMBAL_ZERO_FORCE) && (gimbal_behaviour != GIMBAL_ZERO_FORCE) && (gimbal_behaviour != GIMBAL_ABSOLUTE_ANGLE))
+	// {
+	// 	gimbal_behaviour = GIMBAL_INIT;
+	// }
+	// last_gimbal_behaviour = gimbal_behaviour;
 }
 
 /**
