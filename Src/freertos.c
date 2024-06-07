@@ -179,7 +179,7 @@ void MX_FREERTOS_Init(void) {
     osThreadDef(REFEREE, referee_usart_task, osPriorityNormal, 0, 128);
     referee_usart_task_handle = osThreadCreate(osThread(REFEREE), NULL);
 
-    osThreadDef(customUITask, custom_ui_task, osPriorityBelowNormal, 0, 1024);
+    osThreadDef(customUITask, custom_ui_task, osPriorityBelowNormal, 0, 512);
     custom_ui_task_handle = osThreadCreate(osThread(customUITask), NULL);
 
 
