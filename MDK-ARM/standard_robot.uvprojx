@@ -678,6 +678,16 @@
               <FileType>1</FileType>
               <FilePath>..\application\cv_usart_task.c</FilePath>
             </File>
+            <File>
+              <FileName>custom_ui_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\custom_ui_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>graphic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\graphic.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
