@@ -30,15 +30,6 @@
 
 #define CUSTOM_UI_TIME_MS 10.0f
 
-typedef enum
-{
-	ARMOR_ZERO,
-	ARMOR_ONE,
-	ARMOR_TWO,
-	ARMOR_THREE,
-	ARMOR_NONE,
-} armor_damage_info_t;
-
 graphic_data_struct_t barrel_dir;
 graphic_data_struct_t chassis_dir;
 string_data chassis_relative_angle;
@@ -64,7 +55,6 @@ string_data trigger_speed_data;
 string_data robot_status_str;
 string_data MacRM_logo_str;
 
-armor_damage_info_t armor_damage_judge(void);
 void static_elements_init(void);
 void super_cap_status_draw(void);
 void chassis_direction_draw(float yaw_relative_angle);
@@ -91,17 +81,6 @@ void custom_ui_task(void const *argument)
 		chassis_mode_draw();
 		osDelayUntil(&ulSystemTime, CUSTOM_UI_TIME_MS);
 	}
-}
-
-armor_damage_info_t armor_damage_judge(void)
-{
-	uint8_t armor_id = get_armor_hurt();
-	armor_damage_info_t armor_damage_info = ARMOR_NONE;
-	if (armor_id < ARMOR_NONE)
-	{
-		armor_damage_info = (armor_damage_info_t)armor_id;
-	}
-	return armor_damage_info;
 }
 
 void static_elements_init(void)
@@ -163,7 +142,7 @@ void gimbal_pitch_direction_draw(float pitch_relative_angle)
 void armor_damage_draw(float yaw_relative_angle)
 {
 	uint8_t i;
-	switch (armor_damage_judge())
+	switch (get_armor_hurt())
 	{
 		case ARMOR_ZERO:
 		{
@@ -201,6 +180,7 @@ void armor_damage_draw(float yaw_relative_angle)
 			}
 			break;
 		}
+		case ARMOR_NONE:
 		default:
 		{
 			osDelay(3);

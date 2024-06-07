@@ -33,6 +33,16 @@ typedef enum
 	PROGRESS_BATTLE = 4,
 	PROGRESS_CALCULATING = 5,
 } game_progress_t;
+
+typedef enum
+{
+	ARMOR_ZERO,
+	ARMOR_ONE,
+	ARMOR_TWO,
+	ARMOR_THREE,
+	ARMOR_NONE,
+} armor_damage_info_t;
+
 typedef __packed struct // 0001
 {
 	uint8_t game_type : 4;
@@ -373,5 +383,7 @@ extern void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1
 uint8_t is_game_started(void);
 uint8_t get_time_remain(void);
 uint16_t get_current_HP(void);
-uint8_t get_armor_hurt(void);
+armor_damage_info_t get_armor_hurt(void);
+
+extern ext_robot_hurt_t robot_hurt_t;
 #endif
