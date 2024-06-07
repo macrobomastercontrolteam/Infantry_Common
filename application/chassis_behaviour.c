@@ -366,6 +366,8 @@ void dial_channel_manager(void)
 	{
 		chassis_move.dial_channel_out = 0;
 	}
+	// Add mouse scroll input
+	chassis_move.dial_channel_out += chassis_move.chassis_RC->mouse.z * MOUSE_SCROLL_TO_DIAL_SEN_INC;
 }
 
 /**
