@@ -61,6 +61,8 @@ static void trigger_motor_stall_handler(void);
   */
 static void auto_load_bullet_control(void);
 
+bool_t overheat_detection(void);
+
 shoot_control_t shoot_control;
 
 /**
@@ -245,30 +247,19 @@ int16_t shoot_control_loop(void)
     }
     case SHOOT_SEMI_AUTO_FIRE:
     {
-#if SHOOT_WITH_REF_DATA
-        get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
-        if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
+
+        if ((rad_format(shoot_control.set_angle - shoot_control.angle) <= TRIGGER_MOTOR_ANGLE_THRESHOLD) || (overheat_detection()))
         {
-            shoot_control.trigger_speed_set = 0;
+            shoot_control.trigger_speed_set = 0.0f;
             shoot_control.move_flag = 0;
             shoot_control.set_angle = shoot_control.angle;
             shoot_control.shoot_mode = SHOOT_READY_FRIC;
         }
         else
-#endif
         {
-            if (rad_format(shoot_control.set_angle - shoot_control.angle) <= TRIGGER_MOTOR_ANGLE_THRESHOLD)
-            {
-                shoot_control.trigger_speed_set = 0.0f;
-                shoot_control.move_flag = 0;
-                shoot_control.set_angle = shoot_control.angle;
-                shoot_control.shoot_mode = SHOOT_READY_FRIC;
-            }
-            else
-            {
-                shoot_control.trigger_speed_set = SEMI_AUTO_FIRE_TRIGGER_SPEED;
-            }
+            shoot_control.trigger_speed_set = SEMI_AUTO_FIRE_TRIGGER_SPEED;
         }
+
         if (shoot_control.press_r == 0)
         {
             shoot_control.shoot_mode = SHOOT_STOP;
@@ -276,9 +267,9 @@ int16_t shoot_control_loop(void)
         break;
     }
     case SHOOT_AUTO_FIRE:
-    { 
-        auto_load_bullet_control();
-        shoot_control.trigger_speed_set = AUTO_FIRE_TRIGGER_SPEED;    
+    {
+        shoot_control.trigger_speed_set = AUTO_FIRE_TRIGGER_SPEED;  
+        auto_load_bullet_control();  
         break;
     }
     }
@@ -428,6 +419,7 @@ static void shoot_feedback_update(void)
     {
         shoot_control.shoot_hold_time = 0;
     }
+    get_shoot_heat0_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
 }
 
 static void trigger_motor_stall_handler(void)
@@ -504,11 +496,20 @@ static void auto_load_bullet_control(void)
             }
         }
     }
+    overheat_detection();
+}
+
+bool_t overheat_detection(void)
+{
 #if SHOOT_WITH_REF_DATA
-    get_shoot_heat_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
     if (!toe_is_error(REFEREE_TOE) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
     {
         shoot_control.trigger_speed_set = 0;
+        return 1;
     }
+    else
 #endif
+    {
+        return 0;
+    }
 }

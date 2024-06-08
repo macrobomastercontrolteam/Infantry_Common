@@ -28,7 +28,7 @@
 #define SHOOT_CONTROL_TIME_S GIMBAL_CONTROL_TIME_S
 
 // After the shooting is enabled, the bullet is continuously fired for a period of time, used to clear the bullet
-#define RC_S_LONG_TIME              600
+#define RC_S_LONG_TIME              250
 
 #if (ROBOT_TYPE == INFANTRY_2018_MECANUM) 
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  1.0f
@@ -51,21 +51,21 @@
 #define FULL_COUNT                  18
 
 #define FRICTION_MOTOR_RADIUS 0.03f
-#define SPEED_COMPENSATION_RATIO 0.87f
+#define SPEED_COMPENSATION_RATIO 1.0f
 #define FRICTION_MOTOR_RPM_TO_SPEED (2.0f * PI / 60.0f * (FRICTION_MOTOR_RADIUS * SPEED_COMPENSATION_RATIO))
 #define FRICTION_MOTOR_SPEED_TO_RPM (1.0f / FRICTION_MOTOR_RPM_TO_SPEED)
 #define FRICTION_MOTOR_SPEED_THRESHOLD 0.9f // 10% tolerance
 
 // max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
 #if ENABLE_SHOOT_REDUNDANT_SWITCH
-#define FRICTION_MOTOR_SPEED  25.0f
+#define FRICTION_MOTOR_SPEED  20.0f
 #else
 #define FRICTION_MOTOR_SPEED  1.0f
 #endif
 
 //rounds per minute
 #define SEMI_AUTO_FIRE_RATE 120.0f 
-#define AUTO_FIRE_RATE     120.0f
+#define AUTO_FIRE_RATE     100.0f
 
 
 //revolutions per minute
