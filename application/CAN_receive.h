@@ -82,7 +82,7 @@ typedef enum
 #endif
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-	CAN_LOWER_HEAD_TX_ID = 0x110,
+	CAN_UPPER_HEAD_TX_ID = 0x110,
 #endif
 } can_other_msg_id_e;
 

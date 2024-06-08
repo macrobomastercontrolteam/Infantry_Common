@@ -381,7 +381,7 @@ void CAN_cmd_upper_head(void)
 	if (chassis_move.fUpperHeadEnabled)
 	{
 		uint32_t send_mail_box;
-		chassis_tx_message.StdId = CAN_LOWER_HEAD_TX_ID;
+		chassis_tx_message.StdId = CAN_UPPER_HEAD_TX_ID;
 		chassis_tx_message.IDE = CAN_ID_STD;
 		chassis_tx_message.RTR = CAN_RTR_DATA;
 		chassis_tx_message.DLC = 0x08;
