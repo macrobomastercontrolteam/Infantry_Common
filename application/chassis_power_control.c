@@ -51,12 +51,8 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
     fp32 total_current_limit = 0.0f;
     fp32 total_current = 0.0f;
     uint8_t robot_id = get_robot_id();
-    if(toe_is_error(REFEREE_TOE))
-    {
-        total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
-    }
-    else if(robot_id == RED_ENGINEER || robot_id == BLUE_ENGINEER || robot_id == 0)
-    {
+	if (toe_is_error(REFEREE_TOE) || (robot_id == 0))
+	{
         total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
     }
     else if (toe_is_error(SUPCAP_TOE) || (cap_message_rx.cap_message.cap_voltage <= 10000))
