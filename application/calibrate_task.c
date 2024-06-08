@@ -67,7 +67,6 @@
 #include "can_receive.h"
 #include "remote_control.h"
 #include "INS_task.h"
-#include "gimbal_task.h"
 
 
 //include head,gimbal,gyro,accel,mag. gyro,accel and mag have the same data struct. total 5(CALI_LIST_LENGTH) devices, need data length + 5 * 4 bytes(name[3]+cali)
@@ -314,9 +313,9 @@ static void RC_cmd_to_calibrate(void)
         rc_action_flag = 0;
         rc_cmd_time = 0;
         //send CAN reset ID cmd to M3508
-        CAN_cmd_chassis_reset_ID();
-        CAN_cmd_chassis_reset_ID();
-        CAN_cmd_chassis_reset_ID();
+        // CAN_cmd_chassis_reset_ID();
+        // CAN_cmd_chassis_reset_ID();
+        // CAN_cmd_chassis_reset_ID();
         cali_buzzer_off();
     }
 
@@ -565,33 +564,5 @@ static bool_t cali_gyro_hook(uint32_t *cali, bool_t cmd)
   */
 static bool_t cali_gimbal_hook(uint32_t *cali, bool_t cmd)
 {
-
-    gimbal_cali_t *local_cali_t = (gimbal_cali_t *)cali;
-    if (cmd == CALI_FUNC_CMD_INIT)
-    {
-        set_cali_gimbal_hook(local_cali_t->yaw_offset, local_cali_t->pitch_offset,
-                             local_cali_t->yaw_max_angle, local_cali_t->yaw_min_angle,
-                             local_cali_t->pitch_max_angle, local_cali_t->pitch_min_angle);
-        
-        return 0;
-    }
-    else if (cmd == CALI_FUNC_CMD_ON)
-    {
-        if (cmd_cali_gimbal_hook(&local_cali_t->yaw_offset, &local_cali_t->pitch_offset,
-                                 &local_cali_t->yaw_max_angle, &local_cali_t->yaw_min_angle,
-                                 &local_cali_t->pitch_max_angle, &local_cali_t->pitch_min_angle))
-        {
-            cali_buzzer_off();
-            
-            return 1;
-        }
-        else
-        {
-            gimbal_start_buzzer();
-            
-            return 0;
-        }
-    }
-    
-    return 0;
+    return 1;
 }

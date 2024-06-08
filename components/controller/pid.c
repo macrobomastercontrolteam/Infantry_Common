@@ -191,3 +191,13 @@ fp32 filter_rad_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff)
   fp32 output = first_order_filter(new_err, err[1], filter_coeff);
   return output;
 }
+
+fp32 MG6012_ecd_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff)
+{
+  return MG6012_loop_ecd_constrain(set - ref);
+}
+
+fp32 M6020_ecd_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff)
+{
+  return M6020_loop_ecd_constrain(set - ref);
+}

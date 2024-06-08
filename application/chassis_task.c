@@ -16,99 +16,142 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
 #include "chassis_task.h"
-#include "chassis_behaviour.h"
-
-#include "cmsis_os.h"
-
 #include "AHRS_middleware.h"
 #include "CAN_receive.h"
 #include "INS_task.h"
-#include "chassis_power_control.h"
-#include "cv_usart_task.h"
-#include "detect_task.h"
+#include "arm_math.h"
+#include "cmsis_os.h"
 #include "pid.h"
-#include "remote_control.h"
 #include "user_lib.h"
+#include <assert.h>
 
-#define STEER_MOTOR_UPSIDE_DOWN_MOUNTING 0
-#define SWERVE_INVALID_HIP_DATA_RESET_TIMEOUT 1000
+#define CHASSIS_TASK_INIT_TIME 357
+#define CHASSIS_CONTROL_TIME_MS 5.0f
+#define CHASSIS_CONTROL_TIME_S (CHASSIS_CONTROL_TIME_MS / 1000.0f)
 
-/**
- * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
- *                 data point initialization, gimbal motor data point initialization, and gyro sensor angle point initialization.
- * @param[out]     chassis_move_init: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_init(chassis_move_t *chassis_move_init);
+#define M6020_MOTOR_ANGLE_PID_KP 80.0f
+// #define M6020_MOTOR_ANGLE_PID_KI 1.5f
+// #define M6020_MOTOR_ANGLE_PID_KD 2.5f
+#define M6020_MOTOR_ANGLE_PID_KI 300.0f
+#define M6020_MOTOR_ANGLE_PID_KD 0.0125f
+#define M6020_MOTOR_ANGLE_PID_MAX_OUT M6020_MAX_VOLTAGE
+#define M6020_MOTOR_ANGLE_PID_MAX_IOUT 10000.0f
 
-/**
- * @brief          set chassis control mode, mainly call 'chassis_behaviour_mode_set' function
- * @param[out]     chassis_move_mode: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_set_mode(chassis_move_t *chassis_move_mode);
+// MG6012 hip motor configs
+#define MG6012_MOTOR_ANGLE_PID_KP 0.001f
+#define MG6012_MOTOR_ANGLE_PID_KI 0.0f
+#define MG6012_MOTOR_ANGLE_PID_KD 0.0f
+#define MG6012_MOTOR_ANGLE_PID_MAX_OUT 10.0f
+#define MG6012_MOTOR_ANGLE_PID_MAX_IOUT 0.0f
 
-/**
- * @brief          when chassis mode change, some param should be changed, suan as chassis yaw_set should be now chassis yaw
- * @param[out]     chassis_move_transit: "chassis_move" valiable point
- * @retval         none
- */
-void chassis_mode_change_control_transit(chassis_move_t *chassis_move_transit);
-/**
- * @brief          chassis some measure data updata, such as motor speed, euler angle, and robot speed
- * @param[out]     chassis_move_update: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_feedback_update(void);
-/**
- * @brief          set chassis control set-point, three movement control value is set by "chassis_behaviour_control_set".
- *
- * @param[out]     chassis_move_update: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_set_control(chassis_move_t *chassis_move_control);
-/**
- * @brief          control loop, according to control set-point, calculate motor current,
- *                 motor current will be sentto motor
- * @param[out]     chassis_move_control_loop: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
+#define MG6012_MOTOR_SPEED_PID_KP 5.5f
+// #define MG6012_MOTOR_SPEED_PID_KI 0.125f
+#define MG6012_MOTOR_SPEED_PID_KI 25.0f
+#define MG6012_MOTOR_SPEED_PID_KD 0.0f
+#define MG6012_MOTOR_SPEED_PID_MAX_OUT MG6012_MAX_TORQUE
+#define MG6012_MOTOR_SPEED_PID_MAX_IOUT MG6012_MAX_TORQUE
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-static uint16_t motor_angle_to_ecd_change(fp32 angle);
-void swerve_platform_rc_mapping(void);
-void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle);
-void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32 alpha2, fp32 gimbal_chassis_relative_yaw_angle);
-#endif
+#define ROTATE_6020_OFFSET 0
+#define M6020_MOTOR_0_ANGLE_ECD_OFFSET ((1679U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
+#define M6020_MOTOR_1_ANGLE_ECD_OFFSET ((5111U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
+#define M6020_MOTOR_2_ANGLE_ECD_OFFSET ((4447U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
+#define M6020_MOTOR_3_ANGLE_ECD_OFFSET ((7769U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
+
+#define MG6012_MOTOR_0_ANGLE_ECD_OFFSET (MG6012_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD + 1)
+#define MG6012_MOTOR_1_ANGLE_ECD_OFFSET (MG6012_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD + 87)
+#define MG6012_MOTOR_2_ANGLE_ECD_OFFSET (MG6012_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD + 56)
+#define MG6012_MOTOR_3_ANGLE_ECD_OFFSET (MG6012_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD + 174)
+
+#define CHASSIS_TEST_MODE 1
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
 #endif
-supcap_t cap_message_rx;
 
 chassis_move_t chassis_move;
 
+void param_asserts(void);
+void chassis_init(void);
+void chassis_calc_feedbacks(void);
+void chassis_calc_targets(void);
+void chassis_inv_kine_diagonal(fp32 alpha, fp32 height, fp32 *theta_right, fp32 *theta_left);
+void chassis_safe_guard(void);
+
+float M6020_abs_angle_pid_calc(pid_type_def *pid, float feedback_abs_ecd_fp32, float target_ecd);
+float MG6012_abs_angle_pid_calc(pid_type_def *pid, float feedback_abs_ecd_fp32, float target_ecd);
+
 #if CHASSIS_TEST_MODE
-fp32 rot_radius0;
-fp32 rot_radius1;
-fp32 rot_radius2;
-fp32 rot_radius3;
-fp32 rot_radius_dot0;
-fp32 rot_radius_dot1;
-fp32 rot_radius_dot2;
-fp32 rot_radius_dot3;
+// fp32 hip1_angle;
+// fp32 hip2_angle;
+// fp32 hip3_angle;
+// fp32 hip4_angle;
+// fp32 height_fp32;
+// fp32 alpha1_fp32;
+// fp32 alpha2_fp32;
+// fp32 target_height_fp32;
+// fp32 target_alpha1_fp32;
+// fp32 target_alpha2_fp32;
+// fp32 target_theta1_fp32;
+// fp32 target_theta2_fp32;
+// fp32 target_theta3_fp32;
+// fp32 target_theta4_fp32;
+// fp32 rot_radius1_fp32;
+// fp32 rot_radius2_fp32;
+// fp32 rot_radius3_fp32;
+// fp32 rot_radius4_fp32;
+// fp32 rot_radius1_dot_fp32;
+// fp32 rot_radius2_dot_fp32;
+// fp32 rot_radius3_dot_fp32;
+// fp32 rot_radius4_dot_fp32;
+// fp32 current_theta1_fp32;
+// fp32 current_theta2_fp32;
+// fp32 current_theta3_fp32;
+// fp32 current_theta4_fp32;
+// fp32 target_theta1_dot_fp32;
+// fp32 target_theta2_dot_fp32;
+// fp32 target_theta3_dot_fp32;
+// fp32 target_theta4_dot_fp32;
+// fp32 set_torque3_fp32;
 static void J_scope_chassis_test(void)
 {
-	rot_radius0 = chassis_move.wheel_rot_radii[0] * 1000.0f;
-	rot_radius1 = chassis_move.wheel_rot_radii[1] * 1000.0f;
-	rot_radius2 = chassis_move.wheel_rot_radii[2] * 1000.0f;
-	rot_radius3 = chassis_move.wheel_rot_radii[3] * 1000.0f;
+	// hip1_angle = motor_info[CHASSIS_ID_HIP_1].feedback_abs_angle * 180.0f / PI;
+	// hip2_angle = motor_info[CHASSIS_ID_HIP_2].feedback_abs_angle * 180.0f / PI;
+	// hip3_angle = motor_info[CHASSIS_ID_HIP_3].feedback_abs_angle * 180.0f / PI;
+	// hip4_angle = motor_info[CHASSIS_ID_HIP_4].feedback_abs_angle * 180.0f / PI;
 
-	rot_radius_dot0 = chassis_move.target_wheel_rot_radii_dot[0] * 1000.0f;
-	rot_radius_dot1 = chassis_move.target_wheel_rot_radii_dot[1] * 1000.0f;
-	rot_radius_dot2 = chassis_move.target_wheel_rot_radii_dot[2] * 1000.0f;
-	rot_radius_dot3 = chassis_move.target_wheel_rot_radii_dot[3] * 1000.0f;
+	// height_fp32 = chassis_move.height * 1000.0f;
+	// alpha1_fp32 = chassis_move.current_alpha1 * 180.0f / PI;
+	// alpha2_fp32 = chassis_move.current_alpha2 * 180.0f / PI;
+	// target_height_fp32 = chassis_move.target_height * 1000.0f;
+	// target_alpha1_fp32 = chassis_move.target_alpha1 * 180.0f / PI;
+	// target_alpha2_fp32 = chassis_move.target_alpha2 * 180.0f / PI;
+
+	// target_theta1_fp32 = chassis_move.target_theta[0] * 180.0f / PI;
+	// target_theta2_fp32 = chassis_move.target_theta[1] * 180.0f / PI;
+	// target_theta3_fp32 = chassis_move.target_theta[2] * 180.0f / PI;
+	// target_theta4_fp32 = chassis_move.target_theta[3] * 180.0f / PI;
+
+	// rot_radius1_fp32 = chassis_move.wheel_rot_radius[0] * 1000.0f;
+	// rot_radius2_fp32 = chassis_move.wheel_rot_radius[1] * 1000.0f;
+	// rot_radius3_fp32 = chassis_move.wheel_rot_radius[2] * 1000.0f;
+	// rot_radius4_fp32 = chassis_move.wheel_rot_radius[3] * 1000.0f;
+
+	// rot_radius1_dot_fp32 = chassis_move.target_wheel_rot_radius_dot[0] * 1000.0f;
+	// rot_radius2_dot_fp32 = chassis_move.target_wheel_rot_radius_dot[1] * 1000.0f;
+	// rot_radius3_dot_fp32 = chassis_move.target_wheel_rot_radius_dot[2] * 1000.0f;
+	// rot_radius4_dot_fp32 = chassis_move.target_wheel_rot_radius_dot[3] * 1000.0f;
+
+	// target_theta1_dot_fp32 = chassis_move.target_theta_dot[0] * 180.0f / PI;
+	// target_theta2_dot_fp32 = chassis_move.target_theta_dot[1] * 180.0f / PI;
+	// target_theta3_dot_fp32 = chassis_move.target_theta_dot[2] * 180.0f / PI;
+	// target_theta4_dot_fp32 = chassis_move.target_theta_dot[3] * 180.0f / PI;
+
+	// current_theta1_fp32 = motor_info[CHASSIS_ID_HIP_1].feedback_abs_ecd_fp32 / MG6012_ECD_RANGE_180 * 180.0f;
+	// current_theta2_fp32 = motor_info[CHASSIS_ID_HIP_2].feedback_abs_ecd_fp32 / MG6012_ECD_RANGE_180 * 180.0f;
+	// current_theta3_fp32 = motor_info[CHASSIS_ID_HIP_3].feedback_abs_ecd_fp32 / MG6012_ECD_RANGE_180 * 180.0f;
+	// current_theta4_fp32 = motor_info[CHASSIS_ID_HIP_4].feedback_abs_ecd_fp32 / MG6012_ECD_RANGE_180 * 180.0f;
+
+	// set_torque3_fp32 = motor_info[CHASSIS_ID_HIP_3].set_torque * 50.0f;
 }
 #endif
 
@@ -120,42 +163,63 @@ static void J_scope_chassis_test(void)
 void chassis_task(void const *pvParameters)
 {
 	uint32_t ulSystemTime = osKernelSysTick();
-	// wait a time
+	uint8_t bMotorId;
+	uint8_t bMotorRelativeId;
+
+	param_asserts();
+	chassis_init();
 	osDelay(CHASSIS_TASK_INIT_TIME);
-
-	// while (ifToeStatusExist(DBUS_TOE, CHASSIS_MOTOR4_TOE, TOE_STATUS_OFFLINE, NULL))
-	// {
-	//     osDelay(CHASSIS_CONTROL_TIME_MS * 2);
-	// }
-
-	// chassis init
-	chassis_init(&chassis_move);
 
 	while (1)
 	{
-		// set chassis control mode
-		chassis_set_mode(&chassis_move);
-		// when mode changes, save some data
-		chassis_mode_change_control_transit(&chassis_move);
-		// chassis data update
-		chassis_feedback_update();
-		// set chassis control set-point
-		chassis_set_control(&chassis_move);
-		// chassis control pid calculate
-		chassis_control_loop(&chassis_move);
+		chassis_calc_feedbacks();
+		chassis_calc_targets();
+		chassis_safe_guard();
 
-		CAN_cmd_chassis();
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-		osDelay(1);
-		CAN_cmd_swerve_steer();
-		osDelay(1);
-		CAN_cmd_swerve_hip();
-#endif
+		// @TODO: reenable this after fixing fatal error
+		// if (chassis_move.fFatalError)
+		// {
+		// 	chassis_move.fSteerMotorEnabled = 0;
+		// 	chassis_move.fHipMotorEnabled = 0;
+		// }
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+		// PID calculation
+		for (bMotorId = 0; bMotorId < CHASSIS_ID_LAST; bMotorId++)
+		{
+			switch (bMotorId)
+			{
+				case CHASSIS_ID_STEER_1:
+				case CHASSIS_ID_STEER_2:
+				case CHASSIS_ID_STEER_3:
+				case CHASSIS_ID_STEER_4:
+				{
+					bMotorRelativeId = bMotorId - CHASSIS_ID_STEER_1;
+					motor_info[bMotorId].set_voltage = PID_calc(&chassis_move.steer_angle_pid[bMotorRelativeId], motor_info[bMotorId].feedback_abs_ecd_fp32, motor_info[bMotorId].target_ecd, CHASSIS_CONTROL_TIME_S);
+					break;
+				}
+				case CHASSIS_ID_HIP_1:
+				case CHASSIS_ID_HIP_2:
+				case CHASSIS_ID_HIP_3:
+				case CHASSIS_ID_HIP_4:
+				{
+					bMotorRelativeId = bMotorId - CHASSIS_ID_HIP_1;
+					chassis_move.target_theta_dot[bMotorRelativeId] = PID_calc(&chassis_move.hip_angle_pid[bMotorRelativeId], motor_info[bMotorId].feedback_abs_ecd_fp32, chassis_move.target_theta[bMotorRelativeId] * MG6012_MOTOR_RAD_TO_ECD, CHASSIS_CONTROL_TIME_S);
+					motor_info[bMotorId].set_torque = PID_calc(&chassis_move.hip_speed_pid[bMotorRelativeId], DEG_TO_RAD(motor_info[bMotorId].rotor_speed), chassis_move.target_theta_dot[bMotorRelativeId], CHASSIS_CONTROL_TIME_S);
+					break;
+				}
+				default:
+				{
+					break;
+				}
+			}
+		}
+
+		/* send motor control message through can bus*/
+		CAN_cmd_steer_motors(0, motor_info[CHASSIS_ID_STEER_1].set_voltage, motor_info[CHASSIS_ID_STEER_2].set_voltage, motor_info[CHASSIS_ID_STEER_3].set_voltage, motor_info[CHASSIS_ID_STEER_4].set_voltage);
+		CAN_send_shrinked_params_to_upper_board(chassis_move.wheel_rot_radius[0], chassis_move.wheel_rot_radius[1], chassis_move.wheel_rot_radius[2], chassis_move.wheel_rot_radius[3], chassis_move.current_alpha1, chassis_move.current_alpha2, chassis_move.height);
 		osDelay(1);
-		CAN_cmd_upper_head();
-#endif
+		CAN_cmd_hip_motors(motor_info[CHASSIS_ID_HIP_1].set_torque, motor_info[CHASSIS_ID_HIP_2].set_torque, motor_info[CHASSIS_ID_HIP_3].set_torque, motor_info[CHASSIS_ID_HIP_4].set_torque);
+		CAN_send_radius_dot_to_upper_board(chassis_move.target_wheel_rot_radius_dot[0], chassis_move.target_wheel_rot_radius_dot[1], chassis_move.target_wheel_rot_radius_dot[2], chassis_move.target_wheel_rot_radius_dot[3]);
 
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
 
@@ -169,735 +233,186 @@ void chassis_task(void const *pvParameters)
 	}
 }
 
-/**
- * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
- *                 data point initialization, gimbal motor data point initialization, and gyro sensor angle point initialization.
- * @param[out]     chassis_move_init: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_init(chassis_move_t *chassis_move_init)
+void param_asserts(void)
 {
-	if (chassis_move_init == NULL)
+	assert(CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH <= METER_ENCODER_MAX_LIMIT);
+	assert(CHASSIS_H_UPPER_LIMIT <= METER_ENCODER_MAX_LIMIT);
+
+	assert(CHASSIS_H_LOWER_LIMIT < CHASSIS_H_UPPER_LIMIT);
+	assert(CHASSIS_H_LOWER_LIMIT >= CHASSIS_L2_LENGTH);
+	assert(CHASSIS_H_UPPER_LIMIT <= CHASSIS_L1_LENGTH + CHASSIS_L2_LENGTH);
+	assert((CHASSIS_H_WORKSPACE_PEAK < CHASSIS_H_UPPER_LIMIT) && (CHASSIS_H_WORKSPACE_PEAK > CHASSIS_H_LOWER_LIMIT));
+	assert((CHASSIS_H_WORKSPACE_SLOPE1 > 0) && (CHASSIS_H_WORKSPACE_SLOPE1 < 1));
+	assert((CHASSIS_H_WORKSPACE_SLOPE2 < 0) && (CHASSIS_H_WORKSPACE_SLOPE2 > -1));
+}
+
+void chassis_init(void)
+{
+	uint8_t bMotorId;
+	uint8_t bMotorRelativeId;
+	const uint16_t steer_motor_offset_ecd[4] = {M6020_MOTOR_0_ANGLE_ECD_OFFSET, M6020_MOTOR_1_ANGLE_ECD_OFFSET, M6020_MOTOR_2_ANGLE_ECD_OFFSET, M6020_MOTOR_3_ANGLE_ECD_OFFSET};
+	const fp32 steer_angle_pid_params[3] = {M6020_MOTOR_ANGLE_PID_KP, M6020_MOTOR_ANGLE_PID_KI, M6020_MOTOR_ANGLE_PID_KD};
+	for (bMotorRelativeId = 0; bMotorRelativeId < STEER_MOTOR_COUNT; bMotorRelativeId++)
 	{
-		return;
+		bMotorId = bMotorRelativeId + CHASSIS_ID_STEER_1;
+		PID_init(&chassis_move.steer_angle_pid[bMotorRelativeId], PID_POSITION, steer_angle_pid_params, M6020_MOTOR_ANGLE_PID_MAX_OUT, M6020_MOTOR_ANGLE_PID_MAX_IOUT, 0, &M6020_ecd_err_handler);
+		motor_info[bMotorId].offset_ecd = steer_motor_offset_ecd[bMotorRelativeId];
 	}
 
-	// chassis drive motor (3508) speed PID
-	const static fp32 motor_speed_pid[3] = {M3508_MOTOR_SPEED_PID_KP, M3508_MOTOR_SPEED_PID_KI, M3508_MOTOR_SPEED_PID_KD};
-
-	// chassis angle PID
-	const static fp32 chassis_yaw_pid[3] = {CHASSIS_FOLLOW_GIMBAL_PID_KP, CHASSIS_FOLLOW_GIMBAL_PID_KI, CHASSIS_FOLLOW_GIMBAL_PID_KD};
-
-	const static fp32 chassis_x_order_filter[1] = {CHASSIS_ACCEL_X_NUM};
-	const static fp32 chassis_y_order_filter[1] = {CHASSIS_ACCEL_Y_NUM};
-	const static fp32 chassis_wz_order_filter[1] = {CHASSIS_ACCEL_WZ_NUM};
-
-	chassis_move_init->chassis_mode = CHASSIS_VECTOR_RAW;
-	chassis_move_init->chassis_RC = get_remote_control_point();
-	chassis_move_init->chassis_INS_angle = get_INS_angle_point();
-	chassis_move_init->chassis_yaw_motor = get_yaw_motor_point();
-	chassis_move_init->chassis_pitch_motor = get_pitch_motor_point();
-
-	for (uint8_t i = 0; i < 4; i++)
+	const uint16_t hip_motor_offset_ecd[4] = {MG6012_MOTOR_0_ANGLE_ECD_OFFSET, MG6012_MOTOR_1_ANGLE_ECD_OFFSET, MG6012_MOTOR_2_ANGLE_ECD_OFFSET, MG6012_MOTOR_3_ANGLE_ECD_OFFSET};
+	const fp32 hip_angle_pid_params[3] = {MG6012_MOTOR_ANGLE_PID_KP, MG6012_MOTOR_ANGLE_PID_KI, MG6012_MOTOR_ANGLE_PID_KD};
+	const fp32 hip_speed_pid_params[3] = {MG6012_MOTOR_SPEED_PID_KP, MG6012_MOTOR_SPEED_PID_KI, MG6012_MOTOR_SPEED_PID_KD};
+	for (bMotorRelativeId = 0; bMotorRelativeId < HIP_MOTOR_COUNT; bMotorRelativeId++)
 	{
-		chassis_move_init->motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i);
-		PID_init(&chassis_move_init->motor_speed_pid[i], PID_POSITION, motor_speed_pid, M3508_MOTOR_SPEED_PID_MAX_OUT, M3508_MOTOR_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
-		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
+		bMotorId = bMotorRelativeId + CHASSIS_ID_HIP_1;
+		PID_init(&chassis_move.hip_angle_pid[bMotorRelativeId], PID_POSITION, hip_angle_pid_params, MG6012_MOTOR_ANGLE_PID_MAX_OUT, MG6012_MOTOR_ANGLE_PID_MAX_IOUT, 0, &MG6012_ecd_err_handler);
+		PID_init(&chassis_move.hip_speed_pid[bMotorRelativeId], PID_POSITION, hip_speed_pid_params, MG6012_MOTOR_SPEED_PID_MAX_OUT, MG6012_MOTOR_SPEED_PID_MAX_IOUT, 0.8f, &filter_err_handler);
+		motor_info[bMotorId].offset_ecd = hip_motor_offset_ecd[bMotorRelativeId];
 	}
-	PID_init(&chassis_move_init->chassis_angle_pid, PID_POSITION, chassis_yaw_pid, CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT, CHASSIS_FOLLOW_GIMBAL_PID_MAX_IOUT, 0, &rad_err_handler);
 
-	first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_vx, CHASSIS_CONTROL_TIME_S, chassis_x_order_filter);
-	first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_vy, CHASSIS_CONTROL_TIME_S, chassis_y_order_filter);
-	first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_wz, CHASSIS_CONTROL_TIME_S, chassis_wz_order_filter);
-
-	chassis_move_init->vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
-	chassis_move_init->vx_min_speed = -NORMAL_MAX_CHASSIS_SPEED_X;
-
-	chassis_move_init->vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
-	chassis_move_init->vy_min_speed = -NORMAL_MAX_CHASSIS_SPEED_Y;
-
-	chassis_move_init->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-	chassis_move_init->wz_min_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
-
-	chassis_move_init->vx_rc_sen = chassis_move_init->vx_max_speed / JOYSTICK_HALF_RANGE;
-	chassis_move_init->vy_rc_sen = chassis_move_init->vy_max_speed / JOYSTICK_HALF_RANGE;
-
-	chassis_move_init->fRandomSpinOn = 0;
-	chassis_move_init->dial_channel_latched = 0;
-
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-	chassis_move_init->fUpperHeadEnabled = 0;
+	chassis_move.target_alpha1 = 0;
+	chassis_move.target_alpha2 = 0;
+#if HEADLESS_HIP_TEST
+	// chassis_move.target_height = CHASSIS_H_WORKSPACE_PEAK;
+	chassis_move.target_height = CHASSIS_H_UPPER_LIMIT;
+#else
+	chassis_move.target_height = CHASSIS_H_LOWER_LIMIT;
 #endif
+	chassis_move.current_alpha1 = 0;
+	chassis_move.current_alpha2 = 0;
+	chassis_move.height = CHASSIS_H_LOWER_LIMIT;
+	chassis_move.alpha_lower_limit = 0;
+	chassis_move.alpha_upper_limit = 0;
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-	chassis_swerve_params_reset();
-#endif
+	for (bMotorId = 0; bMotorId < STEER_MOTOR_COUNT; bMotorId++)
+	{
+		chassis_move.wheel_rot_radius[bMotorId] = 0;
+		chassis_move.target_wheel_rot_radius_dot[bMotorId] = 0;
+		chassis_move.target_theta[bMotorId] = CHASSIS_THETA_LOWER_LIMIT;
+		chassis_move.target_theta_dot[bMotorId] = 0;
+	}
 
-	// update data
-	chassis_feedback_update();
+	chassis_move.fSteerMotorEnabled = 0;
+	chassis_move.fHipMotorEnabled = 0;
+	chassis_move.fFatalError = 0;
+	chassis_move.fHipDataIsValid = 0;
 }
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-void chassis_swerve_params_reset(void)
+void chassis_calc_feedbacks(void)
 {
-	chassis_move.chassis_platform.target_roll = 0;
-	chassis_move.chassis_platform.target_pitch = 0;
-	chassis_move.chassis_platform.target_alpha1 = 0;
-	chassis_move.chassis_platform.target_alpha2 = 0;
-	chassis_move.chassis_platform.target_height = CHASSIS_H_LOWER_LIMIT;
-	chassis_move.chassis_platform.feedback_alpha1 = 0;
-	chassis_move.chassis_platform.feedback_alpha2 = 0;
-	chassis_move.chassis_platform.feedback_height = CHASSIS_H_LOWER_LIMIT;
+	fp32 current_theta1 = motor_info[CHASSIS_ID_HIP_1].feedback_abs_angle;
+	fp32 current_theta2 = motor_info[CHASSIS_ID_HIP_2].feedback_abs_angle;
+	fp32 current_theta3 = motor_info[CHASSIS_ID_HIP_3].feedback_abs_angle;
+	fp32 current_theta4 = motor_info[CHASSIS_ID_HIP_4].feedback_abs_angle;
 
-	for (uint8_t i = 0; i < 4; i++)
-	{
-		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
-		chassis_move.target_wheel_rot_radii_dot[i] = 0;
-	}
-}
-#endif
+	// @TODO: calculate for chassis_move.current_alpha1 and chassis_move.current_alpha2 using IMU data
+	fp32 raw_roll = *(INS_angle + INS_ROLL_ADDRESS_OFFSET);
+	fp32 raw_pitch = *(INS_angle + INS_PITCH_ADDRESS_OFFSET);
+	chassis_move.current_alpha1 = rad_format(raw_roll + PI);
+	chassis_move.current_alpha2 = -raw_pitch;
 
-/**
- * @brief          set chassis control mode, mainly call 'chassis_behaviour_mode_set' function
- * @param[out]     chassis_move_mode: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_set_mode(chassis_move_t *chassis_move_mode)
-{
-	if (chassis_move_mode == NULL)
+	// calculation for chassis_move.height: some legs may not be on the ground, so pick the largest height calculated
+	// right diagonal
+	fp32 temp_heights[4];
+	temp_heights[0] = (CHASSIS_L1_LENGTH * AHRS_cosf(current_theta1) + CHASSIS_HALF_A_LENGTH) * AHRS_sinf(chassis_move.current_alpha1) + (CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta1)) * AHRS_cosf(chassis_move.current_alpha1);
+	temp_heights[2] = -(CHASSIS_L1_LENGTH * AHRS_cosf(current_theta3) + CHASSIS_HALF_A_LENGTH) * AHRS_sinf(chassis_move.current_alpha1) + (CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta3)) * AHRS_cosf(chassis_move.current_alpha1);
+	// left diagonal
+	temp_heights[3] = (CHASSIS_L1_LENGTH * AHRS_cosf(current_theta4) + CHASSIS_HALF_A_LENGTH) * AHRS_sinf(chassis_move.current_alpha2) + (CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta4)) * AHRS_cosf(chassis_move.current_alpha2);
+	temp_heights[1] = -(CHASSIS_L1_LENGTH * AHRS_cosf(current_theta2) + CHASSIS_HALF_A_LENGTH) * AHRS_sinf(chassis_move.current_alpha2) + (CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta2)) * AHRS_cosf(chassis_move.current_alpha2);
+	fp32 temp_heights_max;
+	uint32_t temp_heights_max_index;
+	arm_max_f32(temp_heights, sizeof(temp_heights) / sizeof(temp_heights[0]), &temp_heights_max, &temp_heights_max_index);
+	if (temp_heights_max > 0)
 	{
-		return;
-	}
-	// in file "chassis_behaviour.c"
-	chassis_behaviour_mode_set(chassis_move_mode);
-}
-
-/**
- * @brief          when chassis mode change, some param should be changed, suan as chassis yaw_set should be now chassis yaw
- * @param[out]     chassis_move_transit: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_transit)
-{
-	if (chassis_move_transit == NULL)
-	{
-		return;
+		chassis_move.height = temp_heights_max;
 	}
 
-	if (chassis_move_transit->last_chassis_mode != chassis_move_transit->chassis_mode)
-	{
-		switch (chassis_move_transit->chassis_mode)
-		{
-			case CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW:
-			{
-				chassis_move_transit->chassis_relative_angle_set = 0.0f;
-				break;
-			}
-			case CHASSIS_VECTOR_SPINNING:
-			case SWERVE_CHASSIS_VECTOR_SPINNING:
-			{
-				// Relative angle implementation for chassis spinning mode
-				// chassis_move_transit->chassis_relative_angle_set = chassis_move_transit->chassis_yaw_motor->relative_angle;
-				break;
-			}
-			case CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW:
-			case CHASSIS_VECTOR_NO_FOLLOW_YAW:
-			case SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW:
-			{
-				chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
-				break;
-			}
-			default:
-			{
-				break;
-			}
-		}
-		chassis_move_transit->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-		chassis_move_transit->wz_min_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
-		chassis_move_transit->dial_channel_latched = 0;
-
-		chassis_move_transit->last_chassis_mode = chassis_move_transit->chassis_mode;
-	}
+	// calculation for chassis_move.wheel_rot_radius
+	// right diagonal
+	chassis_move.wheel_rot_radius[0] = (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(current_theta1)) / AHRS_cosf(chassis_move.current_alpha1) - chassis_move.height * AHRS_tanf(chassis_move.current_alpha1);
+	chassis_move.wheel_rot_radius[2] = (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(current_theta3)) / AHRS_cosf(chassis_move.current_alpha1) + chassis_move.height * AHRS_tanf(chassis_move.current_alpha1);
+	// left diagonal
+	chassis_move.wheel_rot_radius[3] = (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(current_theta4)) / AHRS_cosf(chassis_move.current_alpha2) - chassis_move.height * AHRS_tanf(chassis_move.current_alpha2);
+	chassis_move.wheel_rot_radius[1] = (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(current_theta2)) / AHRS_cosf(chassis_move.current_alpha2) + chassis_move.height * AHRS_tanf(chassis_move.current_alpha2);
 }
 
-/**
- * @brief          chassis some measure data updata, such as motor speed, euler angle, and robot speed
- * @param[out]     chassis_move_update: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_feedback_update(void)
+void chassis_calc_targets(void)
 {
-	uint8_t i = 0;
-	for (i = 0; i < 4; i++)
-	{
-		// update motor speed, accel is differential of speed PID
-		chassis_move.motor_chassis[i].speed = CHASSIS_MOTOR_RPM_TO_VECTOR_SEN * chassis_move.motor_chassis[i].chassis_motor_measure->speed_rpm;
-		chassis_move.motor_chassis[i].accel = chassis_move.motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
-	}
+	fp32 current_theta1 = motor_info[CHASSIS_ID_HIP_1].feedback_abs_angle;
+	fp32 current_theta2 = motor_info[CHASSIS_ID_HIP_2].feedback_abs_angle;
+	fp32 current_theta3 = motor_info[CHASSIS_ID_HIP_3].feedback_abs_angle;
+	fp32 current_theta4 = motor_info[CHASSIS_ID_HIP_4].feedback_abs_angle;
 
-#if (ROBOT_TYPE != INFANTRY_2023_SWERVE)
-	// update chassis parameters: vertical speed x, horizontal speed y, rotation speed wz, right hand rule
-	chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
-	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
-	chassis_move.wz = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
-#endif
+	// calculate for chassis_move.target_theta corresponding to (chassis_move.target_alpha1, chassis_move.target_alpha2, chassis_move.target_height)
+	// right diagonal
+	chassis_inv_kine_diagonal(chassis_move.target_alpha1, chassis_move.target_height, &chassis_move.target_theta[0], &chassis_move.target_theta[2]);
+	// left diagonal
+	chassis_inv_kine_diagonal(chassis_move.target_alpha2, chassis_move.target_height, &chassis_move.target_theta[3], &chassis_move.target_theta[1]);
 
-	// calculate chassis euler angle, if chassis have a new gyro sensor,please change this code
-	chassis_move.chassis_yaw = rad_format(*(chassis_move.chassis_INS_angle + INS_YAW_ADDRESS_OFFSET) - chassis_move.chassis_yaw_motor->relative_angle);
-	chassis_move.chassis_pitch = rad_format(*(chassis_move.chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET) - chassis_move.chassis_pitch_motor->relative_angle);
-	chassis_move.chassis_roll = *(chassis_move.chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
-
-	// KEY_PRESSED_OFFSET_E toggles random spinning mode
-	// no need to debounce because keyboard signal is clean
-	static uint8_t fLastKeyESignal = 0;
-	uint8_t fIsKeyEPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_E) != 0);
-	if (fLastKeyESignal != fIsKeyEPressed)
-	{
-		if (fIsKeyEPressed)
-		{
-			chassis_move.fRandomSpinOn = !chassis_move.fRandomSpinOn;
-		}
-		fLastKeyESignal = fIsKeyEPressed;
-	}
-}
-/**
- * @brief          accroding to the channel value of remote control, calculate chassis vertical and horizontal speed set-point
- *
- * @param[out]     vx_set: vertical speed set-point
- * @param[out]     vy_set: horizontal speed set-point
- * @param[out]     chassis_move_rc_to_vector: "chassis_move" valiable point
- * @retval         none
- */
-void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector)
-{
-	if (chassis_move_rc_to_vector == NULL || vx_set == NULL || vy_set == NULL)
-	{
-		return;
-	}
-
-	// change max speed
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
-	{
-		chassis_move_rc_to_vector->vx_max_speed = SPRINT_MAX_CHASSIS_SPEED_X;
-		chassis_move_rc_to_vector->vy_max_speed = SPRINT_MAX_CHASSIS_SPEED_Y;
-	}
-	else
-	{
-		chassis_move_rc_to_vector->vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
-		chassis_move_rc_to_vector->vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
-	}
-	chassis_move_rc_to_vector->vx_rc_sen = chassis_move_rc_to_vector->vx_max_speed / JOYSTICK_HALF_RANGE;
-	chassis_move_rc_to_vector->vy_rc_sen = chassis_move_rc_to_vector->vy_max_speed / JOYSTICK_HALF_RANGE;
-
-	int16_t vx_channel, vy_channel;
-	fp32 vx_set_channel, vy_set_channel;
-	// deadline, because some remote control need be calibrated,  the value of joystick is not zero in middle place,
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], vx_channel, CHASSIS_RC_DEADLINE);
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], vy_channel, CHASSIS_RC_DEADLINE);
-
-	vx_set_channel = vx_channel * chassis_move_rc_to_vector->vx_rc_sen;
-	vy_set_channel = vy_channel * -(chassis_move_rc_to_vector->vy_rc_sen);
-
-	// keyboard set speed set-point
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_FRONT_KEY)
-	{
-		vx_set_channel = chassis_move_rc_to_vector->vx_max_speed;
-	}
-	else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_BACK_KEY)
-	{
-		vx_set_channel = chassis_move_rc_to_vector->vx_min_speed;
-	}
-
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEFT_KEY)
-	{
-		vy_set_channel = chassis_move_rc_to_vector->vy_max_speed;
-	}
-	else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_RIGHT_KEY)
-	{
-		vy_set_channel = chassis_move_rc_to_vector->vy_min_speed;
-	}
-
-	// first order low-pass replace ramp function, calculate chassis speed set-point to improve control performance
-	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_vx, vx_set_channel);
-	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_vy, vy_set_channel);
-	// stop command, need not slow change, set zero derectly
-	if (fabs(vx_set_channel) < CHASSIS_RC_DEADLINE * chassis_move_rc_to_vector->vx_rc_sen)
-	{
-		chassis_move_rc_to_vector->chassis_cmd_slow_set_vx.out = 0.0f;
-	}
-
-	if (fabs(vy_set_channel) < CHASSIS_RC_DEADLINE * chassis_move_rc_to_vector->vy_rc_sen)
-	{
-		chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out = 0.0f;
-	}
-
-	*vx_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vx.out;
-	*vy_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out;
+	// @TODO: verify calculation for target_wheel_rot_radius_dot using current_theta, target_theta_dot, current_alpha1, current_alpha2
+	// right diagonal
+	chassis_move.target_wheel_rot_radius_dot[0] = -CHASSIS_L1_LENGTH * AHRS_sinf(current_theta1) / AHRS_cosf(chassis_move.current_alpha1) * chassis_move.target_theta_dot[0];
+	chassis_move.target_wheel_rot_radius_dot[2] = -CHASSIS_L1_LENGTH * AHRS_sinf(current_theta3) / AHRS_cosf(chassis_move.current_alpha1) * chassis_move.target_theta_dot[2];
+	// left diagonal
+	chassis_move.target_wheel_rot_radius_dot[3] = -CHASSIS_L1_LENGTH * AHRS_sinf(current_theta4) / AHRS_cosf(chassis_move.current_alpha2) * chassis_move.target_theta_dot[3];
+	chassis_move.target_wheel_rot_radius_dot[1] = -CHASSIS_L1_LENGTH * AHRS_sinf(current_theta2) / AHRS_cosf(chassis_move.current_alpha2) * chassis_move.target_theta_dot[1];
 }
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-void swerve_chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector, uint8_t fEnableWz)
+void chassis_inv_kine_diagonal(fp32 alpha, fp32 height, fp32 *theta_right, fp32 *theta_left)
 {
-	if (chassis_move_rc_to_vector == NULL || vx_set == NULL || vy_set == NULL)
-	{
-		return;
-	}
+	fp32 A_right = height / AHRS_cosf(alpha) - CHASSIS_HALF_A_LENGTH * AHRS_tanf(alpha) - CHASSIS_L2_LENGTH;
+	fp32 A_left = height / AHRS_cosf(alpha) + CHASSIS_HALF_A_LENGTH * AHRS_tanf(alpha) - CHASSIS_L2_LENGTH;
+	fp32 B_right = A_right * AHRS_cosf(alpha) / CHASSIS_L1_LENGTH;
+	fp32 B_left = A_left * AHRS_cosf(alpha) / CHASSIS_L1_LENGTH;
 
-	int16_t vx_channel, vy_channel;
-	fp32 vx_set_channel, vy_set_channel, wz_set_channel;
-	// deadline, because some remote control need be calibrated,  the value of joystick is not zero in middle place,
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], vx_channel, CHASSIS_RC_DEADLINE);
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], vy_channel, CHASSIS_RC_DEADLINE);
+	*theta_right = fabs(alpha - AHRS_asinf(B_right));
+	*theta_left = fabs(alpha + AHRS_asinf(B_left));
+}
 
-	// change max speed
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
-	{
-		chassis_move_rc_to_vector->vx_max_speed = SPRINT_MAX_CHASSIS_SPEED_X;
-		chassis_move_rc_to_vector->vy_max_speed = SPRINT_MAX_CHASSIS_SPEED_Y;
-	}
-	else
-	{
-		chassis_move_rc_to_vector->vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
-		chassis_move_rc_to_vector->vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
-	}
-	chassis_move_rc_to_vector->vx_rc_sen = chassis_move_rc_to_vector->vx_max_speed / JOYSTICK_HALF_RANGE;
-	chassis_move_rc_to_vector->vy_rc_sen = chassis_move_rc_to_vector->vy_max_speed / JOYSTICK_HALF_RANGE;
-
-	vx_set_channel = vx_channel * chassis_move_rc_to_vector->vx_rc_sen;
-	vy_set_channel = vy_channel * -(chassis_move_rc_to_vector->vy_rc_sen);
-	if (fEnableWz)
-	{
-		wz_set_channel = chassis_move.dial_channel_out * -CHASSIS_WZ_RC_SEN;
-	}
-
-	// keyboard set speed set-point
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_FRONT_KEY)
-	{
-		vx_set_channel = chassis_move_rc_to_vector->vx_max_speed;
-	}
-	else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_BACK_KEY)
-	{
-		vx_set_channel = chassis_move_rc_to_vector->vx_min_speed;
-	}
-
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEFT_KEY)
-	{
-		vy_set_channel = chassis_move_rc_to_vector->vy_max_speed;
-	}
-	else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_RIGHT_KEY)
-	{
-		vy_set_channel = chassis_move_rc_to_vector->vy_min_speed;
-	}
-
-	// first order low-pass replace ramp function, calculate chassis speed set-point to improve control performance
-	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_vx, vx_set_channel);
-	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_vy, vy_set_channel);
-	if (fEnableWz)
-	{
-		first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz, wz_set_channel);
-	}
-	// Do not go back to zero immediately for swerve chassis, which would make steer cmd noisy
-	// stop command, need not slow change, set zero derectly
-	// if (fabs(vx_set_channel) < CHASSIS_RC_DEADLINE * chassis_move_rc_to_vector->vx_rc_sen)
+void chassis_safe_guard(void)
+{
+	// safety check for calculation results
+	// only check calculated data after data of motor and upper board are both received
+	// if (chassis_move.fHipDataIsValid)
 	// {
-	//     chassis_move_rc_to_vector->chassis_cmd_slow_set_vx.out = 0.0f;
+	// 	if (chassis_move.fFatalError == 0)
+	// 	{
+	// 		if ((chassis_move.current_alpha1 != chassis_move.current_alpha1) || (chassis_move.current_alpha2 != chassis_move.current_alpha2) || (chassis_move.height != chassis_move.height) || (chassis_move.wheel_rot_radius[0] != chassis_move.wheel_rot_radius[0]) || (chassis_move.wheel_rot_radius[1] != chassis_move.wheel_rot_radius[1]) || (chassis_move.wheel_rot_radius[2] != chassis_move.wheel_rot_radius[2]) || (chassis_move.wheel_rot_radius[3] != chassis_move.wheel_rot_radius[3]) || (chassis_move.target_wheel_rot_radius_dot[0] != chassis_move.target_wheel_rot_radius_dot[0]) || (chassis_move.target_wheel_rot_radius_dot[1] != chassis_move.target_wheel_rot_radius_dot[1]) || (chassis_move.target_wheel_rot_radius_dot[2] != chassis_move.target_wheel_rot_radius_dot[2]) || (chassis_move.target_wheel_rot_radius_dot[3] != chassis_move.target_wheel_rot_radius_dot[3]))
+	// 		{
+	// 			chassis_move.fFatalError = 1;
+	// 		}
+	// 		else if ((chassis_move.height < CHASSIS_H_LOWER_LIMIT) || (chassis_move.height > CHASSIS_H_UPPER_LIMIT))
+	// 		{
+	// 			chassis_move.fFatalError = 1;
+	// 		}
+	// 		else if (chassis_move.alpha_upper_limit > CHASSIS_ALPHA_WORKSPACE_PEAK)
+	// 		{
+	// 			chassis_move.fFatalError = 1;
+	// 		}
+
+	// 		for (uint8_t bMotorRelativeId = 0; bMotorRelativeId < STEER_MOTOR_COUNT; bMotorRelativeId++)
+	// 		{
+	// 			if ((chassis_move.wheel_rot_radius[bMotorRelativeId] < 0) || (chassis_move.wheel_rot_radius[bMotorRelativeId] > METER_ENCODER_MAX_LIMIT))
+	// 			{
+	// 				chassis_move.fFatalError = 1;
+	// 			}
+	// 		}
+
+	// 		for (uint8_t bMotorRelativeId = 0; bMotorRelativeId < HIP_MOTOR_COUNT; bMotorRelativeId++)
+	// 		{
+	// 			// if ((motor_info[bMotorRelativeId + CHASSIS_ID_HIP_1].feedback_abs_ecd_fp32 < CHASSIS_THETA_LOWER_LIMIT_ECD) || (motor_info[bMotorRelativeId + CHASSIS_ID_HIP_1].feedback_abs_ecd_fp32 > CHASSIS_THETA_UPPER_LIMIT_ECD))
+	// 			//{
+	// 			//	chassis_move.fFatalError = 1;
+	// 			// }
+	// 			chassis_move.target_theta[bMotorRelativeId] = fp32_constrain(chassis_move.target_theta[bMotorRelativeId], CHASSIS_THETA_LOWER_LIMIT_WITH_CLEARANCE, CHASSIS_THETA_UPPER_LIMIT);
+	// 		}
+	// 	}
+
+	// 	// @TODO: add conditionals to check for chassis_move.fHipDataIsValid
+
+	// 	if (chassis_move.fFatalError)
+	// 	{
+	// 		chassis_move.fHipDataIsValid = 0;
+	// 	}
 	// }
-
-	// if (fabs(vy_set_channel) < CHASSIS_RC_DEADLINE * chassis_move_rc_to_vector->vy_rc_sen)
-	// {
-	//     chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out = 0.0f;
-	// }
-
-	// wz doesn't need sudden brake
-
-	*vx_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vx.out;
-	*vy_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out;
-	if (fEnableWz)
-	{
-		*wz_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out;
-	}
-
-	// chassis platform command (mainly for hip motors)
-	swerve_platform_rc_mapping();
 }
-
-void swerve_platform_rc_mapping(void)
-{
-	// roll
-	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
-	{
-		chassis_move.chassis_platform.target_roll += SWERVE_HIP_ROLL_KEYBOARD_SEN_INC;
-	}
-	else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C)
-	{
-		chassis_move.chassis_platform.target_roll -= SWERVE_HIP_ROLL_KEYBOARD_SEN_INC;
-	}
-
-	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
-	{
-		// height
-		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
-		{
-			chassis_move.chassis_platform.target_height += SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
-		}
-		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
-		{
-			chassis_move.chassis_platform.target_height -= SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
-		}
-	}
-	else
-	{
-		// pitch
-		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
-		{
-			chassis_move.chassis_platform.target_pitch += SWERVE_HIP_PITCH_KEYBOARD_SEN_INC;
-		}
-		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
-		{
-			chassis_move.chassis_platform.target_pitch -= SWERVE_HIP_PITCH_KEYBOARD_SEN_INC;
-		}
-	}
-	// constrain target roll, pitch, and height values
-	chassis_move.chassis_platform.target_roll = fp32_constrain(chassis_move.chassis_platform.target_roll, -CHASSIS_ROLL_UPPER_LIMIT, CHASSIS_ROLL_UPPER_LIMIT);
-	chassis_move.chassis_platform.target_pitch = fp32_constrain(chassis_move.chassis_platform.target_pitch, -CHASSIS_PITCH_UPPER_LIMIT, CHASSIS_PITCH_UPPER_LIMIT);
-	chassis_move.chassis_platform.target_height = fp32_constrain(chassis_move.chassis_platform.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
-
-	// chassis platform posture conversion
-	swerve_convert_from_rpy_to_alpha(chassis_move.chassis_platform.target_roll, chassis_move.chassis_platform.target_pitch, &(chassis_move.chassis_platform.target_alpha1), &(chassis_move.chassis_platform.target_alpha2), chassis_move.chassis_yaw_motor->relative_angle);
-
-	// constrain target alpha1 and alpha2 values
-	// calculation for alpha limit: According to the matlab calculation, the available workspace in height-alpha space is triangular, so we assume height target has more priority than alpha target, and calculate alpha limit based on height
-	if (chassis_move.chassis_platform.target_height >= CHASSIS_H_WORKSPACE_PEAK)
-	{
-		chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
-	}
-	else
-	{
-		chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
-	}
-	chassis_move.chassis_platform.alpha_lower_limit = -chassis_move.chassis_platform.alpha_upper_limit;
-
-	chassis_move.chassis_platform.target_alpha1 = fp32_constrain(chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
-	chassis_move.chassis_platform.target_alpha2 = fp32_constrain(chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
-
-	// chassis platform posture inverse conversion to reflect limited alpha values onto the set roll and pitch values
-	swerve_convert_from_alpha_to_rpy(&(chassis_move.chassis_platform.target_roll), &(chassis_move.chassis_platform.target_pitch), chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_yaw_motor->relative_angle);
-}
-
-void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle)
-{
-	// roll: positive tilting right
-	// pitch: positive tilting down
-	// alpha1: positive tilting front-right
-	// alpha2: positive tilting rear-right
-
-	// pseudo conversion
-	// *alpha1 = (roll + pitch) / 2.0f;
-	// *alpha2 = (roll - pitch) / 2.0f;
-
-	fp32 cos_total = AHRS_cosf(PI / 4.0f - gimbal_chassis_relative_yaw_angle);
-	fp32 sin_total = AHRS_sinf(PI / 4.0f - gimbal_chassis_relative_yaw_angle);
-	*alpha2 = cos_total * roll - sin_total * pitch;
-	*alpha1 = sin_total * roll + cos_total * pitch;
-
-	// @TODO: implement conversion from roll & pitch to alpha1 & alpha2
-	// fp32 cos_alpha1;
-	// fp32 cos_alpha2;
-	// // AHRS_acosf output range is [0, PI]
-	// *alpha1 = AHRS_acosf();
-}
-
-void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32 alpha2, fp32 gimbal_chassis_relative_yaw_angle)
-{
-	// pseudo conversion
-	// *roll = alpha1 + alpha2;
-	// *pitch = alpha1 - alpha2;
-
-	fp32 cos_total = AHRS_cosf(PI / 4.0f - gimbal_chassis_relative_yaw_angle);
-	fp32 sin_total = AHRS_sinf(PI / 4.0f - gimbal_chassis_relative_yaw_angle);
-	*roll = cos_total * alpha2 + sin_total * alpha1;
-	*pitch = -sin_total * alpha2 + cos_total * alpha1;
-}
-#endif
-
-/**
- * @brief          set chassis control set-point, three movement control value is set by "chassis_behaviour_control_set".
- * @param[out]     chassis_move_update: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_set_control(chassis_move_t *chassis_move_control)
-{
-
-	if (chassis_move_control == NULL)
-	{
-		return;
-	}
-
-	fp32 vx_set = 0.0f, vy_set = 0.0f, angle_set = 0.0f;
-	// get three control set-point
-	chassis_behaviour_control_set(&vx_set, &vy_set, &angle_set, chassis_move_control);
-
-	// follow gimbal mode
-	if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW)
-	{
-		// rotate chassis direction, make sure vertial direction follow gimbal
-		fp32 sin_yaw = AHRS_sinf(chassis_move_control->chassis_yaw_motor->relative_angle);
-		fp32 cos_yaw = AHRS_cosf(chassis_move_control->chassis_yaw_motor->relative_angle);
-		chassis_move_control->vx_set = cos_yaw * vx_set + (-sin_yaw) * vy_set;
-		chassis_move_control->vy_set = sin_yaw * vx_set + cos_yaw * vy_set;
-		// set control relative angle  set-point
-		chassis_move_control->chassis_relative_angle_set = rad_format(angle_set);
-		// calculate ratation speed
-		chassis_move_control->wz_set = -PID_calc(&chassis_move_control->chassis_angle_pid, chassis_move_control->chassis_yaw_motor->relative_angle, chassis_move_control->chassis_relative_angle_set, CHASSIS_CONTROL_TIME_S);
-	}
-	// spinning mode is no-follow-gimbal mode with non-zero angular speed
-	else if ((chassis_move_control->chassis_mode == CHASSIS_VECTOR_SPINNING) || (chassis_move_control->chassis_mode == SWERVE_CHASSIS_VECTOR_SPINNING) || (chassis_move_control->chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW) || (chassis_move_control->chassis_mode == SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW))
-	{
-		// rotate chassis direction, make sure vertial direction follow gimbal
-		fp32 sin_yaw = AHRS_sinf(chassis_move_control->chassis_yaw_motor->relative_angle);
-		fp32 cos_yaw = AHRS_cosf(chassis_move_control->chassis_yaw_motor->relative_angle);
-		chassis_move_control->vx_set = cos_yaw * vx_set + (-sin_yaw) * vy_set;
-		chassis_move_control->vy_set = sin_yaw * vx_set + cos_yaw * vy_set;
-		// calculate ratation speed
-		chassis_move_control->wz_set = angle_set;
-	}
-	else if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW)
-	{
-		fp32 delat_angle = 0.0f;
-		// set chassis yaw angle set-point
-		chassis_move_control->chassis_yaw_set = rad_format(angle_set);
-		delat_angle = rad_format(chassis_move_control->chassis_yaw_set - chassis_move_control->chassis_yaw);
-		// calculate rotation speed
-		chassis_move_control->wz_set = PID_calc(&chassis_move_control->chassis_angle_pid, 0.0f, delat_angle, CHASSIS_CONTROL_TIME_S);
-	}
-	else if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_RAW)
-	{
-		// in raw mode, set-point is sent to CAN bus
-		chassis_move_control->vx_set = vx_set;
-		chassis_move_control->vy_set = vy_set;
-		chassis_move_control->wz_set = angle_set;
-		chassis_move_control->chassis_cmd_slow_set_vx.out = 0.0f;
-		chassis_move_control->chassis_cmd_slow_set_vy.out = 0.0f;
-		chassis_move_control->chassis_cmd_slow_set_wz.out = 0.0f;
-	}
-	// speed limit
-	chassis_move_control->vx_set = fp32_constrain(chassis_move_control->vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
-	chassis_move_control->vy_set = fp32_constrain(chassis_move_control->vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
-}
-
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
-/**
- * @brief          four mecanum wheels speed is calculated by three param.
- * @param[in]      vx_set: vertial speed
- * @param[in]      vy_set: horizontal speed
- * @param[in]      wz_set: rotation speed
- * @param[out]     wheel_speed: four mecanum wheels speed
- * @retval         none
- */
-static void chassis_vector_to_mecanum_wheel_speed(const fp32 vx_set, const fp32 vy_set, const fp32 wz_set, fp32 wheel_speed[4])
-{
-	// because the gimbal is in front of chassis, when chassis rotates, wheel 0 and wheel 1 should be slower and wheel 2 and wheel 3 should be faster
-	wheel_speed[0] = -vx_set - vy_set + (CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[0] * wz_set;
-	wheel_speed[1] = vx_set - vy_set + (CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[1] * wz_set;
-	wheel_speed[2] = vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[2] * wz_set;
-	wheel_speed[3] = -vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[3] * wz_set;
-}
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-/**
- * @brief          four drive wheels' speeds and four steering wheels' angles are calculated by three chassis param.
- * @param[in]      vx_set: vertial speed (up is positive)
- * @param[in]      vy_set: horizontal speed (remote controller: left is positive; internal calculation: right is positive)
- * @param[in]      wz_set: rotation speed (counter-clockwise is positive)
- * @param[out]     wheel_speed: four drive wheels speed
- * @param[out]     steer_wheel_angle: four steering wheels angle. Angle between positive y-axis and total velocity
- * @retval         none
- */
-void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 wheel_speed[4], fp32 steer_wheel_angle[4])
-{
-	// remote controller: left is positive; internal calculation: right is positive
-	vy_set = -vy_set;
-	// because the gimbal is behind chassis, when chassis rotates, wheel 0 and wheel 1 should be faster and wheel 2 and wheel 3 should be slower
-	// CHASSIS_WZ_SET_SCALE makes a coarse adjustment for that
-	const fp32 sin_gamma = AHRS_sinf(CHASSIS_LEG_TO_HORIZONTAL_ANGLE);
-	const fp32 cos_gamma = AHRS_cosf(CHASSIS_LEG_TO_HORIZONTAL_ANGLE);
-
-	// velocity contributed by wheel rotation
-	fp32 vx_by_wz[4];
-	fp32 vy_by_wz[4];
-	fp32 wz_set_adjusted_front_wheels = (1.0f + CHASSIS_WZ_SET_SCALE) * wz_set;
-	fp32 wz_set_adjusted_rear_wheels = (1.0f - CHASSIS_WZ_SET_SCALE) * wz_set;
-	// right front
-	vx_by_wz[0] = wz_set_adjusted_front_wheels * (chassis_move.wheel_rot_radii[0] * sin_gamma);  // wz_set * R * cos(gamma)
-	vy_by_wz[0] = -wz_set_adjusted_front_wheels * (chassis_move.wheel_rot_radii[0] * cos_gamma); // wz_set * R * sin(gamma)
-	// left front
-	vx_by_wz[1] = -wz_set_adjusted_front_wheels * (chassis_move.wheel_rot_radii[1] * sin_gamma); // wz_set * R * cos(gamma)
-	vy_by_wz[1] = -wz_set_adjusted_front_wheels * (chassis_move.wheel_rot_radii[1] * cos_gamma); // wz_set * R * sin(gamma)
-	// left rear
-	vx_by_wz[2] = -wz_set_adjusted_rear_wheels * (chassis_move.wheel_rot_radii[2] * sin_gamma); // wz_set * R * cos(gamma)
-	vy_by_wz[2] = wz_set_adjusted_rear_wheels * (chassis_move.wheel_rot_radii[2] * cos_gamma);  // wz_set * R * sin(gamma)
-	// right rear
-	vx_by_wz[3] = wz_set_adjusted_rear_wheels * (chassis_move.wheel_rot_radii[2] * sin_gamma); // wz_set * R * cos(gamma)
-	vy_by_wz[3] = wz_set_adjusted_rear_wheels * (chassis_move.wheel_rot_radii[2] * cos_gamma); // wz_set * R * sin(gamma)
-
-	// velocity contributed by hip
-	// fp32 vx_by_hip[4] = {0, 0, 0, 0};
-	// fp32 vy_by_hip[4] = {0, 0, 0, 0};
-	fp32 vx_by_hip[4];
-	fp32 vy_by_hip[4];
-	// right front
-	vx_by_hip[0] = chassis_move.target_wheel_rot_radii_dot[0] * sin_gamma;
-	vy_by_hip[0] = chassis_move.target_wheel_rot_radii_dot[0] * cos_gamma;
-	// left front
-	vx_by_hip[1] = chassis_move.target_wheel_rot_radii_dot[1] * sin_gamma;
-	vy_by_hip[1] = -chassis_move.target_wheel_rot_radii_dot[1] * cos_gamma;
-	// left rear
-	vx_by_hip[2] = -chassis_move.target_wheel_rot_radii_dot[2] * sin_gamma;
-	vy_by_hip[2] = -chassis_move.target_wheel_rot_radii_dot[2] * cos_gamma;
-	// right rear
-	vx_by_hip[3] = -chassis_move.target_wheel_rot_radii_dot[3] * sin_gamma;
-	vy_by_hip[3] = chassis_move.target_wheel_rot_radii_dot[3] * cos_gamma;
-
-	// pairs of velocities represented by (x,y)
-	fp32 wheel_velocity[4][2] = {
-		{vx_set + vx_by_wz[0] + vx_by_hip[0], vy_set + vy_by_wz[0] + vy_by_hip[0]},
-		{vx_set + vx_by_wz[1] + vx_by_hip[1], vy_set + vy_by_wz[1] + vy_by_hip[1]},
-		{vx_set + vx_by_wz[2] + vx_by_hip[2], vy_set + vy_by_wz[2] + vy_by_hip[2]},
-		{vx_set + vx_by_wz[3] + vx_by_hip[3], vy_set + vy_by_wz[3] + vy_by_hip[3]},
-	};
-
-#if STEER_MOTOR_UPSIDE_DOWN_MOUNTING
-	wheel_velocity[0][1] = -wheel_velocity[0][1];
-	wheel_velocity[1][1] = -wheel_velocity[1][1];
-	wheel_velocity[2][1] = -wheel_velocity[2][1];
-	wheel_velocity[3][1] = -wheel_velocity[3][1];
-#endif
-
-	static fp32 last_steer_wheel_angle_target[4];
-	static uint8_t reverse_flag[4];
-	uint8_t i;
-	uint8_t fNoChangeUniversal = (fabs(vy_set) <= STEER_TURN_X_SPEED_DEADZONE) && (fabs(vx_set) < STEER_TURN_X_SPEED_DEADZONE) && (fabs(wz_set) < STEER_TURN_W_SPEED_DEADZONE);
-	uint8_t fNoChangeUnique;
-	for (i = 0; i < 4; i++)
-	{
-		// drive wheel speed
-		wheel_speed[i] = sqrt(pow(wheel_velocity[i][0], 2) + pow(wheel_velocity[i][1], 2));
-
-		// steering wheel angle
-		fNoChangeUnique = (fabs(chassis_move.target_wheel_rot_radii_dot[i]) < STEER_TURN_HIP_RADIUS_SPEED_DEADZONE);
-		if (fNoChangeUniversal && fNoChangeUnique)
-		{
-			steer_wheel_angle[i] = last_steer_wheel_angle_target[i];
-		}
-		else
-		{
-			// (https://en.cppreference.com/w/c/numeric/math/atan2)
-			// steer_wheel_angle: unit rad; range is [-PI, PI]; positive direction is clockwise
-			steer_wheel_angle[i] = atan2f(wheel_velocity[i][1], wheel_velocity[i][0]);
-
-			reverse_flag[i] = (fabs(rad_format(steer_wheel_angle[i] - last_steer_wheel_angle_target[i])) > PI / 2);
-			if (reverse_flag[i])
-			{
-				// if angle between last and target is greater than 90 deg, simply reverse drive wheel reduces time to turn
-				steer_wheel_angle[i] = rad_format(steer_wheel_angle[i] + PI);
-			}
-
-			last_steer_wheel_angle_target[i] = steer_wheel_angle[i];
-		}
-
-		if (reverse_flag[i])
-		{
-			wheel_speed[i] = -wheel_speed[i];
-		}
-	}
-
-	// reverse direction because of special initial direction
-	wheel_speed[0] = -wheel_speed[0];
-	wheel_speed[3] = -wheel_speed[3];
-}
-#endif
-
-/**
- * @brief          control loop, according to control set-point, calculate motor current,
- *                 motor current will be sentto motor
- * @param[out]     chassis_move_control_loop: "chassis_move" valiable point
- * @retval         none
- */
-static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
-{
-	fp32 max_vector = 0.0f, vector_rate = 0.0f;
-	fp32 temp = 0.0f;
-	fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
-	uint8_t i = 0;
-
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
-	// mecanum chassis inverse kinematics
-	chassis_vector_to_mecanum_wheel_speed(chassis_move_control_loop->vx_set,
-	                                      chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, wheel_speed);
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-	// swerve chassis inverse kinematics
-	fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit rad
-	chassis_vector_to_wheel_vector(chassis_move_control_loop->vx_set, chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, wheel_speed, steer_wheel_angle);
-#endif
-
-	if (chassis_move_control_loop->chassis_mode == CHASSIS_VECTOR_RAW)
-	{
-		for (i = 0; i < 4; i++)
-		{
-			chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(wheel_speed[i]);
-		}
-	}
-	else
-	{
-		for (i = 0; i < 4; i++)
-		{
-			// calculate the max speed in four wheels, limit the max speed
-			chassis_move_control_loop->motor_chassis[i].speed_set = wheel_speed[i];
-			temp = fabs(chassis_move_control_loop->motor_chassis[i].speed_set);
-			if (max_vector < temp)
-			{
-				max_vector = temp;
-			}
-
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-			chassis_move_control_loop->steer_motor_chassis[i].target_ecd = motor_angle_to_ecd_change(steer_wheel_angle[i]);
-#endif
-		}
-
-		if (max_vector > MAX_WHEEL_SPEED)
-		{
-			vector_rate = MAX_WHEEL_SPEED / max_vector;
-			for (i = 0; i < 4; i++)
-			{
-				chassis_move_control_loop->motor_chassis[i].speed_set *= vector_rate;
-			}
-		}
-
-		// calculate pid
-		for (i = 0; i < 4; i++)
-		{
-			PID_calc(&chassis_move_control_loop->motor_speed_pid[i], chassis_move_control_loop->motor_chassis[i].speed, chassis_move_control_loop->motor_chassis[i].speed_set, CHASSIS_CONTROL_TIME_S);
-		}
-
-		chassis_power_control(chassis_move_control_loop);
-
-		for (i = 0; i < 4; i++)
-		{
-			chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(chassis_move_control_loop->motor_speed_pid[i].out);
-		}
-	}
-}
-
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-/**
- * @brief Convert motor angle from radian to encoder unit
- * Requirements:
- *    0 rad = 0 ecd
- *    input and output increase in the same clockwise direction
- * @param[in] angle range [-PI, PI]
- * @param[in] ecd range [0, ECD_RANGE-1]
- */
-static uint16_t motor_angle_to_ecd_change(fp32 angle)
-{
-	return (uint16_t)(loop_fp32_constrain(angle, 0.0f, 2 * PI) * MOTOR_RAD_TO_ECD);
-}
-#endif

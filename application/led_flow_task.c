@@ -18,7 +18,6 @@
 #include "bsp_led.h"
 #include "cmsis_os.h"
 #include "main.h"
-#include "cv_usart_task.h" // CvCmder_CheckAndResetUserKeyEdge
 
 #define LED_FLOW_CONTROL_TIME_MS 2
 #define RGB_FLOW_COLOR_CHANGE_TIME  1000
@@ -61,26 +60,10 @@ void led_RGB_flow_task(void const * argument)
             delta_blue /= RGB_FLOW_COLOR_CHANGE_TIME;
             for(j = 0; j < RGB_FLOW_COLOR_CHANGE_TIME; j++)
             {
-#if DEBUG_CV_WITH_USB
-                // turn blue or off
-                if (CvCmder_CheckAndResetUserKeyEdge()){
-                  alpha = (RGB_flow_color[0] & 0xFF000000) >> 24;
-                  red = ((RGB_flow_color[0] & 0x00FF0000) >> 16);
-                  green = ((RGB_flow_color[0] & 0x0000FF00) >> 8);
-                  blue = ((RGB_flow_color[0] & 0x000000FF) >> 0);
-                }
-                else{
-                  alpha = 0;
-                  red = 0;
-                  green = 0;
-                  blue = 0;
-                }
-#else
                 alpha += delta_alpha;
                 red += delta_red;
                 green += delta_green;
                 blue += delta_blue;
-#endif // DEBUG_CV_WITH_USB
 
                 aRGB = ((uint32_t)(alpha)) << 24 | ((uint32_t)(red)) << 16 | ((uint32_t)(green)) << 8 | ((uint32_t)(blue)) << 0;
                 aRGB_led_show(aRGB);

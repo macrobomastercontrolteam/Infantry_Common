@@ -3,12 +3,13 @@
 
 #define INFANTRY_2024_MECANUM 0
 #define INFANTRY_2023_MECANUM 1
-#define INFANTRY_2023_SWERVE 2
+#define INFANTRY_2023_SWERVE 20
+#define INFANTRY_2024_SWERVE_HIP 21
 #define INFANTRY_BIPED 3
 #define SENTRY_2023_MECANUM 4
 
 /********************* Only Modify this area (start) *********************/
-#define ROBOT_TYPE INFANTRY_2024_MECANUM
+#define ROBOT_TYPE INFANTRY_2024_SWERVE_HIP
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define TEST_NO_REF 1
