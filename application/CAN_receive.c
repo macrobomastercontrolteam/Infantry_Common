@@ -24,6 +24,7 @@
 #include "bsp_rng.h"
 
 #include "detect_task.h"
+#include "cv_usart_task.h"
 #include "shoot.h"
 #include "string.h"
 
@@ -142,8 +143,15 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 void decode_lower_head_data(uint8_t *data)
 {
-    shoot_control.heat_limit = (data[1] << 8) | data[0];
-    shoot_control.heat = (data[2] << 8) | data[2];
+	shoot_control.heat_limit = (data[1] << 8) | data[0];
+	shoot_control.heat = (data[3] << 8) | data[2];
+
+	uint8_t game_progress = 1;
+	uint8_t team_color = data[4];
+	// placeholder
+	uint16_t current_HP = 100;
+	uint16_t stage_remain_time = 100;
+	CvCmder_set_ref_status(current_HP, team_color, stage_remain_time, game_progress);
 }
 
 /**
