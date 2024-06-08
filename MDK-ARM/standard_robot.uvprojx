@@ -614,21 +614,6 @@
               <FilePath>..\application\INS_task.c</FilePath>
             </File>
             <File>
-              <FileName>oled_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\oled_task.c</FilePath>
-            </File>
-            <File>
-              <FileName>referee.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\referee.c</FilePath>
-            </File>
-            <File>
-              <FileName>referee_usart_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\referee_usart_task.c</FilePath>
-            </File>
-            <File>
               <FileName>remote_control.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\remote_control.c</FilePath>
@@ -644,19 +629,9 @@
               <FilePath>..\application\usb_task.c</FilePath>
             </File>
             <File>
-              <FileName>voltage_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\voltage_task.c</FilePath>
-            </File>
-            <File>
               <FileName>led_flow_task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\led_flow_task.c</FilePath>
-            </File>
-            <File>
-              <FileName>servo_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\servo_task.c</FilePath>
             </File>
             <File>
               <FileName>cv_usart_task.c</FileName>

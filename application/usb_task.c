@@ -25,7 +25,6 @@
 #include "string.h"
 
 #include "detect_task.h"
-#include "voltage_task.h"
 
 
 void usb_printf(const char *fmt,...);
