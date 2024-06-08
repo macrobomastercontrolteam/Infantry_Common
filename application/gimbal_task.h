@@ -40,7 +40,7 @@
 
 #define int_abs(x) ((x) > 0 ? (x) : (-x))
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED)
 //pitch speed close-loop PID params, max out and max iout
 #define PITCH_SPEED_PID_KP        10000.0f
 #define PITCH_SPEED_PID_KI        100000.0f
