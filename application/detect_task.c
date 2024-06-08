@@ -35,7 +35,6 @@
   
 #include "detect_task.h"
 #include "cmsis_os.h"
-#include "cv_usart_task.h"
 #include "chassis_task.h"
 
 
@@ -252,9 +251,9 @@ static void detect_init(uint32_t time)
 	error_list[REFEREE_TOE].data_is_error = 0;
 #endif
 
-#if CV_INTERFACE
-    error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
-#endif
+// #if CV_INTERFACE
+//     error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
+// #endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
     error_list[SWERVE_CTRL_TOE].solve_lost_fun = chassis_swerve_params_reset;

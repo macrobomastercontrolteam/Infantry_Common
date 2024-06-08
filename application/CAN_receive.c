@@ -17,106 +17,56 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
 #include "CAN_receive.h"
-
-#include "cmsis_os.h"
-
-#include "bsp_rng.h"
-#include "main.h"
-
 #include "chassis_task.h"
+#include "cmsis_os.h"
 #include "detect_task.h"
-#include "referee.h"
+#include "main.h"
 #include "remote_control.h"
 #include "string.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
-#define ENABLE_DRIVE_MOTOR_POWER 0
-#define ENABLE_YAW_MOTOR_POWER 0
-#define ENABLE_PITCH_MOTOR_POWER 0
-#define ENABLE_TRIGGER_MOTOR_POWER 0
-#define ENABLE_FRICTION_1_MOTOR_POWER 0
-#define ENABLE_FRICTION_2_MOTOR_POWER 0
-#define ENABLE_UPPER_HEAD_POWER 0
-// swerve robot specific
 #define ENABLE_STEER_MOTOR_POWER 0
 #define ENABLE_HIP_MOTOR_POWER 0
 
-#define REVERSE_M3508_1 0
-#define REVERSE_M3508_2 0
-#define REVERSE_M3508_3 0
-#define REVERSE_M3508_4 0
+// reverse hip motor direction
+#define REVERSE_1_HIP_MOTOR_DIRECTION 1
+#define REVERSE_2_HIP_MOTOR_DIRECTION 1
+#define REVERSE_3_HIP_MOTOR_DIRECTION 1
+#define REVERSE_4_HIP_MOTOR_DIRECTION 1
+
+#define MOTOR_6012_GEAR_RATIO 36.0f
+#define MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO 0.225146199f
+#define MOTOR_6012_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO 0.212f
+#define MOTOR_6012_CMD_TO_TORQUE_RATIO (1.0f / MOTOR_6012_GEAR_RATIO / MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO / MOTOR_6012_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO / 33.0f * 2048.0f)
+#define MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO (1.0f / MOTOR_6012_GEAR_RATIO / MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO / MOTOR_6012_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO / 32.0f * 2000.0f)
+
+#define MG6012_ECD_DELTA_DEADZONE MG6012_ECD_RANGE_90
+#define MG6012_SPEED_DPS_DELTA_DEADZONE 100
+
+typedef enum
+{
+	CAN_6012_TORQUE_FEEDBACK_ID = 0xA1,
+} can_msg_type_e;
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
-// motor data read
-#define get_motor_measure(ptr, data)                                  \
-	{                                                                 \
-		(ptr)->last_ecd = (ptr)->ecd;                                 \
-		(ptr)->ecd = (uint16_t)((data)[0] << 8 | (data)[1]);          \
-		(ptr)->speed_rpm = (int16_t)((data)[2] << 8 | (data)[3]);     \
-		(ptr)->given_current = (int16_t)((data)[4] << 8 | (data)[5]); \
-		(ptr)->temperate = (data)[6];                                 \
-	}
 
-uint8_t convertCanIdToMotorIndex(uint32_t canId);
-void reverse_motor_feedback(uint8_t bMotorId);
-
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data);
-uint8_t decode_swerve_chassis_feedback(uint8_t *data);
-#endif
-
-/**
- * @brief motor feedback data
- * Chassis CAN:
- * 0:chassis motor1 3508; 1:chassis motor2 3508; 2:chassis motor3 3508; 3:chassis motor4 3508;
- * 6:trigger motor 2006; 4:yaw gimbal motor 6020;
- *
- * Gimbal CAN:
- * 5:pitch gimbal motor 6020;
- */
-motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
-
-static CAN_TxHeaderTypeDef gimbal_tx_message;
-static uint8_t gimbal_can_send_data[8];
-static CAN_TxHeaderTypeDef chassis_tx_message;
-static uint8_t chassis_can_send_data[8];
+motor_info_t motor_info[CHASSIS_ID_LAST];
+static CAN_TxHeaderTypeDef can_tx_msg;
+static uint8_t can_tx_data[8];
+static uint32_t send_mail_box;
 const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-#define SWERVE_METER_PER_SEC_ECD_MAX_LIMIT 1.5f
-#define SWERVE_METER_ECD_MAX_LIMIT 0.5f
-#define SWERVE_ANGLE_ECD_MAX_LIMIT (PI / 12.0f)
-#define SWERVE_WHEEL_ROT_RADIUS_DOT_DEADZONE 0
-const fp32 swerve_speed_encoding_ratio = (1 << 15) / SWERVE_METER_PER_SEC_ECD_MAX_LIMIT;
-const fp32 swerve_meter_encoding_ratio = (1 << 16) / SWERVE_METER_ECD_MAX_LIMIT;
-const fp32 swerve_angle_encoding_ratio = (1 << 15) / SWERVE_ANGLE_ECD_MAX_LIMIT;
+const fp32 speed_encoding_ratio = (1 << 15) / METER_PER_SEC_ECD_MAX_LIMIT;
+const fp32 meter_encoding_ratio = (1 << 16) / METER_ENCODER_MAX_LIMIT;
+const fp32 angle_encoding_ratio = (1 << 15) / ANGLE_ECD_MAX_LIMIT;
 
-const fp32 swerve_meter_encoding_ratio_shrinked = (1 << 8) / SWERVE_METER_ECD_MAX_LIMIT;
-const fp32 swerve_angle_encoding_ratio_shrinked = (1 << 7) / SWERVE_ANGLE_ECD_MAX_LIMIT;
-#endif
+const fp32 meter_encoding_ratio_shrinked = (1 << 8) / METER_ENCODER_MAX_LIMIT;
+const fp32 angle_encoding_ratio_shrinked = (1 << 7) / ANGLE_ECD_MAX_LIMIT;
 
-uint8_t convertCanIdToMotorIndex(uint32_t canId)
-{
-	switch (canId)
-	{
-		case CAN_3508_M1_ID:
-		case CAN_3508_M2_ID:
-		case CAN_3508_M3_ID:
-		case CAN_3508_M4_ID:
-		case CAN_YAW_MOTOR_ID:
-		case CAN_PIT_MOTOR_ID:
-		case CAN_TRIGGER_MOTOR_ID:
-		{
-			return (canId - CAN_3508_M1_ID);
-		}
-		default:
-		{
-			return 0;
-		}
-	}
-}
+void decode_6020_motor_feedback(uint8_t *data, uint8_t bMotorId);
+void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
 
 /**
  * @brief          hal CAN fifo call back, receive motor data
@@ -127,37 +77,33 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	CAN_RxHeaderTypeDef rx_header;
 	uint8_t rx_data[8];
-	uint8_t fIsMotor = 0;
-	uint8_t bMotorId = 0;
-	uint8_t fIdIdentified = 0;
+	uint8_t bMotorId = 0xFF;
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
-	if (hcan == &GIMBAL_CAN)
+	if (hcan == &hcan1)
 	{
 		switch (rx_header.StdId)
 		{
-			case CAN_PIT_MOTOR_ID:
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
-			case CAN_TRIGGER_MOTOR_ID:
-#endif
+			case CAN_STEER1_RX_ID:
+			case CAN_STEER2_RX_ID:
+			case CAN_STEER3_RX_ID:
+			case CAN_STEER4_RX_ID:
 			{
-				fIsMotor = 1;
-				fIdIdentified = 0;
+				bMotorId = rx_header.StdId - CAN_STEER1_RX_ID + CHASSIS_ID_STEER_1;
+				decode_6020_motor_feedback(rx_data, bMotorId);
 				break;
 			}
-			case CAN_FRICTION_MOTOR_LEFT_ID:
+			case CAN_HIP1_RX_ID:
+			case CAN_HIP2_RX_ID:
+			case CAN_HIP3_RX_ID:
+			case CAN_HIP4_RX_ID:
 			{
-				fIsMotor = 1;
-				bMotorId = MOTOR_INDEX_FRICTION_LEFT;
-				fIdIdentified = 1;
-				break;
-			}
-			case CAN_FRICTION_MOTOR_RIGHT_ID:
-			{
-				fIsMotor = 1;
-				bMotorId = MOTOR_INDEX_FRICTION_RIGHT;
-				fIdIdentified = 1;
+				if (rx_data[0] == CAN_6012_TORQUE_FEEDBACK_ID)
+				{
+					bMotorId = rx_header.StdId - CAN_HIP1_RX_ID + CHASSIS_ID_HIP_1;
+					decode_6012_motor_torque_feedback(rx_data, bMotorId);
+				}
 				break;
 			}
 			default:
@@ -166,124 +112,217 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			}
 		}
 	}
-	else if (hcan == &CHASSIS_CAN)
+	else if (hcan == &hcan2)
 	{
+		// Note: filter is enabled for CAN2, so be careful with the mask config
 		switch (rx_header.StdId)
 		{
-			case CAN_3508_M1_ID:
-			case CAN_3508_M2_ID:
-			case CAN_3508_M3_ID:
-			case CAN_3508_M4_ID:
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
-			case CAN_TRIGGER_MOTOR_ID:
-#endif
-			case CAN_YAW_MOTOR_ID:
+			case CAN_STEER_CONTROLLER_RX_ID:
 			{
-				fIsMotor = 1;
-				fIdIdentified = 0;
-				break;
-			}
-			case SUPCAP_RX_ID:
-			{
-				fIsMotor = 0;
-				memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
-				detect_hook(SUPCAP_TOE);
-				break;
-			}
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-			case CAN_SHRINKED_CONTROLLER_RX_ID:
-			{
-				fIsMotor = 0;
-				if (decode_swerve_chassis_feedback(rx_data))
+				chassis_move.fSteerMotorEnabled = (memcmp(rx_data, abAllFF, sizeof(abAllFF)) != 0);
+				if (chassis_move.fSteerMotorEnabled)
 				{
-					detect_hook(SWERVE_CTRL_TOE);
+					for (bMotorId = 0; bMotorId < STEER_MOTOR_COUNT; bMotorId++)
+					{
+						motor_info[bMotorId].target_ecd = ((rx_data[2 * bMotorId] << 8) | rx_data[2 * bMotorId + 1]);
+					}
 				}
 				break;
 			}
-			case CAN_SWERVE_RADII_DOT_RX_ID:
+			case CAN_SWERVE_CONTROLLERE_RX_ID:
 			{
-				fIsMotor = 0;
-				if (decode_swerve_chassis_target_radius_dot(rx_data))
+				chassis_move.fHipMotorEnabled = (memcmp(rx_data, abAllFF, sizeof(abAllFF)) != 0);
+#if (HEADLESS_HIP_TEST == 0)
+				if (chassis_move.fHipMotorEnabled)
 				{
-					detect_hook(SWERVE_CTRL_TOE);
+					chassis_move.target_alpha1 = (int16_t)((rx_data[0] << 8) | rx_data[1]) / angle_encoding_ratio;
+					chassis_move.target_alpha2 = (int16_t)((rx_data[2] << 8) | rx_data[3]) / angle_encoding_ratio;
+					chassis_move.target_height = (uint16_t)((rx_data[4] << 8) | rx_data[5]) / meter_encoding_ratio;
+
+					chassis_move.target_height = fp32_constrain(chassis_move.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
+
+					// calculation for alpha limit: According to the matlab calculation, the available workspace in height-alpha space is triangular, so we assume height target has more priority than alpha target, and calculate alpha limit based on height
+					if (chassis_move.target_height >= CHASSIS_H_WORKSPACE_PEAK)
+					{
+						chassis_move.alpha_upper_limit = (chassis_move.target_height - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
+					}
+					else
+					{
+						chassis_move.alpha_upper_limit = (chassis_move.target_height - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
+					}
+					chassis_move.alpha_lower_limit = -chassis_move.alpha_upper_limit;
+
+					chassis_move.target_alpha1 = fp32_constrain(chassis_move.target_alpha1, chassis_move.alpha_lower_limit, chassis_move.alpha_upper_limit);
+					chassis_move.target_alpha2 = fp32_constrain(chassis_move.target_alpha2, chassis_move.alpha_lower_limit, chassis_move.alpha_upper_limit);
 				}
+#endif
 				break;
 			}
-#endif
 			default:
 			{
 				break;
 			}
 		}
 	}
-
-	if (fIsMotor == 1)
-	{
-		if (fIdIdentified == 0)
-		{
-			bMotorId = convertCanIdToMotorIndex(rx_header.StdId);
-		}
-		get_motor_measure(&motor_chassis[bMotorId], rx_data);
-		reverse_motor_feedback(bMotorId);
-		detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
-	}
 }
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-uint8_t decode_swerve_chassis_feedback(uint8_t *data)
+uint8_t CAN_cmd_hip_motors(float torque1, float torque2, float torque3, float torque4)
 {
-	uint8_t fDataValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
-	if (fDataValid)
+	uint8_t fValidInput = (((torque1 != torque1) || (torque2 != torque2) || (torque3 != torque3) || (torque4 != torque4)) == 0);
+#if ENABLE_HIP_MOTOR
+	// if ((chassis_move.fHipMotorEnabled == 0) || (fValidInput == 0) || (chassis_move.fHipDataIsValid == 0))
+	if ((chassis_move.fHipMotorEnabled == 0) || (fValidInput == 0))
+#endif
 	{
-		for (uint8_t wheel_id = 0; wheel_id < 4; wheel_id++)
-		{
-			chassis_move.wheel_rot_radii[wheel_id] = data[wheel_id] / swerve_meter_encoding_ratio_shrinked;
-		}
-		chassis_move.chassis_platform.feedback_alpha1 = data[4] / swerve_angle_encoding_ratio_shrinked;
-		chassis_move.chassis_platform.feedback_alpha2 = data[5] / swerve_angle_encoding_ratio_shrinked;
-		chassis_move.chassis_platform.feedback_height = data[6] / swerve_meter_encoding_ratio_shrinked;
-		// data[7] reserved
+		torque1 = 0;
+		torque2 = 0;
+		torque3 = 0;
+		torque4 = 0;
 	}
-	return fDataValid;
-}
 
-uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data)
-{
-	uint8_t fDataValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
-	if (fDataValid)
-	{
-		for (uint8_t wheel_id = 0; wheel_id < 4; wheel_id++)
-		{
-			int16_t radius_dot = (data[2 * wheel_id + 1] << 8) | data[2 * wheel_id];
-			chassis_move.target_wheel_rot_radii_dot[wheel_id] = (fp32)radius_dot / swerve_speed_encoding_ratio;
-			fp32_deadzone(&chassis_move.target_wheel_rot_radii_dot[wheel_id], SWERVE_WHEEL_ROT_RADIUS_DOT_DEADZONE);
-			// first_order_filter(chassis_move.wheel_rot_radii_dot[wheel_id], chassis_move.wheel_rot_radii_dot_last[wheel_id], 0.8f);
-		}
-	}
-	return fDataValid;
-}
+#if REVERSE_3_HIP_MOTOR_DIRECTION
+	torque3 *= -1.0f;
 #endif
 
-void reverse_motor_feedback(uint8_t bMotorId)
+#if REVERSE_2_HIP_MOTOR_DIRECTION
+	torque2 *= -1.0f;
+#endif
+
+#if REVERSE_4_HIP_MOTOR_DIRECTION
+	torque4 *= -1.0f;
+#endif
+
+#if REVERSE_1_HIP_MOTOR_DIRECTION
+	torque1 *= -1.0f;
+#endif
+
+	// 6012 motor as hip
+	encode_6012_multi_motor_torque_control(torque1, torque2, torque3, torque4);
+	return fValidInput;
+}
+
+void CAN_send_shrinked_params_to_upper_board(fp32 current_radius1, fp32 current_radius2, fp32 current_radius3, fp32 current_radius4, fp32 current_alpha1, fp32 current_alpha2, fp32 current_height)
 {
-#if (REVERSE_M3508_1 || REVERSE_M3508_2 || REVERSE_M3508_3 || REVERSE_M3508_4)
+	can_tx_msg.StdId = CAN_SHRINKED_CONTROLLER_TX_ID;
+	can_tx_msg.IDE = CAN_ID_STD;
+	can_tx_msg.RTR = CAN_RTR_DATA;
+	can_tx_msg.DLC = 8;
+
+	if (chassis_move.fHipDataIsValid)
+	{
+		uint8_t current_radius1_uint = fp32_constrain(current_radius1, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+		uint8_t current_radius2_uint = fp32_constrain(current_radius2, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+		uint8_t current_radius3_uint = fp32_constrain(current_radius3, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+		uint8_t current_radius4_uint = fp32_constrain(current_radius4, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+
+		int8_t current_alpha1_int = fp32_abs_constrain(current_alpha1, ANGLE_ECD_MAX_LIMIT) * angle_encoding_ratio_shrinked;
+		int8_t current_alpha2_int = fp32_abs_constrain(current_alpha2, ANGLE_ECD_MAX_LIMIT) * angle_encoding_ratio_shrinked;
+		uint8_t current_height_uint = fp32_constrain(current_radius4, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+
+		can_tx_data[0] = current_radius1_uint;
+		can_tx_data[1] = current_radius2_uint;
+		can_tx_data[2] = current_radius3_uint;
+		can_tx_data[3] = current_radius4_uint;
+
+		can_tx_data[4] = current_alpha1_int;
+		can_tx_data[5] = current_alpha2_int;
+		can_tx_data[6] = current_height_uint;
+		// reserved
+		// can_tx_data[7] = rev;
+	}
+	else
+	{
+		memset(can_tx_data, 0xFF, sizeof(can_tx_data));
+	}
+	HAL_CAN_AddTxMessage(&hcan2, &can_tx_msg, can_tx_data, &send_mail_box);
+}
+
+void CAN_send_radius_dot_to_upper_board(fp32 target_radius_dot1, fp32 target_radius_dot2, fp32 target_radius_dot3, fp32 target_radius_dot4)
+{
+	can_tx_msg.StdId = CAN_SWERVE_RADII_DOT_TX_ID;
+	can_tx_msg.IDE = CAN_ID_STD;
+	can_tx_msg.RTR = CAN_RTR_DATA;
+	can_tx_msg.DLC = 8;
+
+	if (chassis_move.fHipDataIsValid)
+	{
+		int16_t target_radius_dot1_int = fp32_abs_constrain(target_radius_dot1, METER_PER_SEC_ECD_MAX_LIMIT) * speed_encoding_ratio;
+		int16_t target_radius_dot2_int = fp32_abs_constrain(target_radius_dot2, METER_PER_SEC_ECD_MAX_LIMIT) * speed_encoding_ratio;
+		int16_t target_radius_dot3_int = fp32_abs_constrain(target_radius_dot3, METER_PER_SEC_ECD_MAX_LIMIT) * speed_encoding_ratio;
+		int16_t target_radius_dot4_int = fp32_abs_constrain(target_radius_dot4, METER_PER_SEC_ECD_MAX_LIMIT) * speed_encoding_ratio;
+
+		can_tx_data[0] = *(uint8_t *)(&target_radius_dot1_int);
+		can_tx_data[1] = *((uint8_t *)(&target_radius_dot1_int) + 1);
+		can_tx_data[2] = *(uint8_t *)(&target_radius_dot2_int);
+		can_tx_data[3] = *((uint8_t *)(&target_radius_dot2_int) + 1);
+		can_tx_data[4] = *(uint8_t *)(&target_radius_dot3_int);
+		can_tx_data[5] = *((uint8_t *)(&target_radius_dot3_int) + 1);
+		can_tx_data[6] = *(uint8_t *)(&target_radius_dot4_int);
+		can_tx_data[7] = *((uint8_t *)(&target_radius_dot4_int) + 1);
+	}
+	else
+	{
+		memset(can_tx_data, 0xFF, sizeof(can_tx_data));
+	}
+	HAL_CAN_AddTxMessage(&hcan2, &can_tx_msg, can_tx_data, &send_mail_box);
+}
+
+void encode_6012_multi_motor_torque_control(float torque1, float torque2, float torque3, float torque4)
+{
+	can_tx_msg.StdId = CAN_HIP_MOTOR_MULTICMD_TX_ID;
+	can_tx_msg.IDE = CAN_ID_STD;
+	can_tx_msg.RTR = CAN_RTR_DATA;
+	can_tx_msg.DLC = 8;
+
+	int16_t iqControl_1 = torque1 * MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO;
+	int16_t iqControl_2 = torque2 * MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO;
+	int16_t iqControl_3 = torque3 * MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO;
+	int16_t iqControl_4 = torque4 * MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO;
+
+	can_tx_data[0] = *(uint8_t *)(&iqControl_1);
+	can_tx_data[1] = *((uint8_t *)(&iqControl_1) + 1);
+	can_tx_data[2] = *(uint8_t *)(&iqControl_2);
+	can_tx_data[3] = *((uint8_t *)(&iqControl_2) + 1);
+	can_tx_data[4] = *(uint8_t *)(&iqControl_3);
+	can_tx_data[5] = *((uint8_t *)(&iqControl_3) + 1);
+	can_tx_data[6] = *(uint8_t *)(&iqControl_4);
+	can_tx_data[7] = *((uint8_t *)(&iqControl_4) + 1);
+
+	HAL_CAN_AddTxMessage(&hcan1, &can_tx_msg, can_tx_data, &send_mail_box);
+}
+
+void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
+{
+	// int16_t iq_int = (data[3] << 8) | data[2];    // A
+	int16_t v_int = (data[5] << 8) | data[4];     // deg/s
+	uint16_t p_uint = ((data[7] << 8) | data[6]); // 16bit abs encoder
+
+	// motor_info[bMotorId].torque = ((float)iq_int) / MOTOR_6012_CMD_TO_TORQUE_RATIO;
+	// motor_info[bMotorId].velocity = ((float)v_int) / 36.0f / 180.0f * PI;
+	int16_t temp_rotor_speed = v_int / 36;
+	uint16_t temp_feedback_raw_ecd = p_uint;
+	// motor_info[bMotorId].temperature = data[1];
+
+#if (REVERSE_1_HIP_MOTOR_DIRECTION || REVERSE_2_HIP_MOTOR_DIRECTION || REVERSE_3_HIP_MOTOR_DIRECTION || REVERSE_4_HIP_MOTOR_DIRECTION)
 	switch (bMotorId)
 	{
-#if REVERSE_M3508_1
-		case MOTOR_INDEX_3508_M1:
+#if REVERSE_1_HIP_MOTOR_DIRECTION
+		case CHASSIS_ID_HIP_1:
 #endif
-#if REVERSE_M3508_2
-		case MOTOR_INDEX_3508_M2:
+#if REVERSE_2_HIP_MOTOR_DIRECTION
+		case CHASSIS_ID_HIP_2:
 #endif
-#if REVERSE_M3508_3
-		case MOTOR_INDEX_3508_M3:
+#if REVERSE_3_HIP_MOTOR_DIRECTION
+		case CHASSIS_ID_HIP_3:
 #endif
-#if REVERSE_M3508_4
-		case MOTOR_INDEX_3508_M4:
+#if REVERSE_4_HIP_MOTOR_DIRECTION
+		case CHASSIS_ID_HIP_4:
 #endif
 		{
-			motor_chassis[bMotorId].ecd = (motor_chassis[bMotorId].ecd + HALF_ECD_RANGE) % ECD_RANGE;
-			motor_chassis[bMotorId].speed_rpm = -motor_chassis[bMotorId].speed_rpm;
+			// motor_info[bMotorId].torque *= -1.0f;
+			// motor_info[bMotorId].velocity *= -1.0f;
+			temp_rotor_speed *= -1;
+			temp_feedback_raw_ecd = MG6012_loop_ecd_constrain(MG6012_ECD_RANGE - temp_feedback_raw_ecd);
 			break;
 		}
 		default:
@@ -292,292 +331,64 @@ void reverse_motor_feedback(uint8_t bMotorId)
 		}
 	}
 #endif
+	// patch for sudden erroneous ecd change as observed from the motor
+	if (MG6012_loop_ecd_constrain(temp_feedback_raw_ecd - motor_info[bMotorId].feedback_raw_ecd) < MG6012_ECD_DELTA_DEADZONE)
+	{
+		motor_info[bMotorId].feedback_raw_ecd = temp_feedback_raw_ecd;
+		motor_info[bMotorId].feedback_abs_ecd_fp32 = MG6012_loop_ecd_constrain((float)motor_info[bMotorId].feedback_raw_ecd - (float)motor_info[bMotorId].offset_ecd);
+		motor_info[bMotorId].feedback_abs_angle = ((float)motor_info[bMotorId].feedback_abs_ecd_fp32) / (1 << 16) * 2.0f * PI;
+
+		if (chassis_move.fFatalError == 0)
+		{
+			chassis_move.fHipDataIsValid = 1;
+		}
+	}
+
+	int32_t speed_diff = motor_info[bMotorId].rotor_speed - temp_rotor_speed;
+	if (abs(speed_diff) < MG6012_SPEED_DPS_DELTA_DEADZONE)
+	{
+		motor_info[bMotorId].rotor_speed = temp_rotor_speed;
+	}
+}
+
+void decode_6020_motor_feedback(uint8_t *data, uint8_t bMotorId)
+{
+	motor_info[bMotorId].feedback_raw_ecd = ((data[0] << 8) | data[1]);
+	motor_info[bMotorId].feedback_abs_ecd_fp32 = M6020_loop_ecd_constrain((float)motor_info[bMotorId].feedback_raw_ecd - (float)motor_info[bMotorId].offset_ecd);
+	motor_info[bMotorId].rotor_speed = ((data[2] << 8) | data[3]);
+	// motor_info[bMotorId].torque_current = ((data[4] << 8) | data[5]);
+	// motor_info[bMotorId].temperature    =   data[6];
 }
 
 /**
- * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
- * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000]
- * @param[in]      pitch: (0x206) 6020 motor control current, range [-30000,30000]
- * @param[in]      trigger: (0x207) 2006 motor control current, range [-10000,10000]
- * @param[in]      fric_left: 3508 motor control current when used as friction motor
- * @param[in]      fric_right: 3508 motor control current when used as friction motor
- * @retval         none
+ * @brief  send motor control message through can bus
+ * @param  motor voltage 1,2,3,4 or 5,6,7
+ * @retval None
  */
-void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_left, int16_t fric_right)
+void CAN_cmd_steer_motors(uint8_t id_range, int16_t voltage1, int16_t voltage2, int16_t voltage3, int16_t voltage4)
 {
-	uint32_t send_mail_box;
-	gimbal_tx_message.StdId = CAN_GIMBAL_ALL_TX_ID;
-	gimbal_tx_message.IDE = CAN_ID_STD;
-	gimbal_tx_message.RTR = CAN_RTR_DATA;
-	gimbal_tx_message.DLC = 0x08;
+	can_tx_msg.StdId = (id_range == 0) ? (CAN_CONTROL_ID_BASE) : (CAN_CONTROL_ID_EXTEND);
+	can_tx_msg.IDE = CAN_ID_STD;
+	can_tx_msg.RTR = CAN_RTR_DATA;
+	can_tx_msg.DLC = 8;
 
-#if (ENABLE_YAW_MOTOR_POWER == 0)
-	yaw = 0;
-#endif
-#if (ENABLE_TRIGGER_MOTOR_POWER == 0)
-	trigger = 0;
-#endif
-#if (ENABLE_PITCH_MOTOR_POWER == 0)
-	pitch = 0;
-#endif
-#if ((ENABLE_FRICTION_1_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
-	fric_left = 0;
-#endif
-#if ((ENABLE_FRICTION_2_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
-	fric_right = 0;
-#endif
-
-	// control yaw motor and trigger motor
-	gimbal_can_send_data[0] = (yaw >> 8);
-	gimbal_can_send_data[1] = yaw;
-	// gimbal_can_send_data[2] = (rev >> 8);
-	// gimbal_can_send_data[3] = rev;
-	gimbal_can_send_data[4] = (trigger >> 8);
-	gimbal_can_send_data[5] = trigger;
-	// gimbal_can_send_data[6] = (rev >> 8);
-	// gimbal_can_send_data[7] = rev;
-	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
-
-	// control pitch motor and fric_left and fric_right
-	gimbal_can_send_data[0] = (fric_left >> 8);
-	gimbal_can_send_data[1] = fric_left;
-	gimbal_can_send_data[2] = (pitch >> 8);
-	gimbal_can_send_data[3] = pitch;
-	// gimbal_can_send_data[4] = (rev >> 8);
-	// gimbal_can_send_data[5] = rev;
-	gimbal_can_send_data[6] = (fric_right >> 8);
-	gimbal_can_send_data[7] = fric_right;
-	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
-}
-
-/**
- * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
- * @param[in]      none
- * @retval         none
- */
-void CAN_cmd_chassis_reset_ID(void)
-{
-	uint32_t send_mail_box;
-	chassis_tx_message.StdId = 0x700;
-	chassis_tx_message.IDE = CAN_ID_STD;
-	chassis_tx_message.RTR = CAN_RTR_DATA;
-	chassis_tx_message.DLC = 0x08;
-	chassis_can_send_data[0] = 0;
-	chassis_can_send_data[1] = 0;
-	chassis_can_send_data[2] = 0;
-	chassis_can_send_data[3] = 0;
-	chassis_can_send_data[4] = 0;
-	chassis_can_send_data[5] = 0;
-	chassis_can_send_data[6] = 0;
-	chassis_can_send_data[7] = 0;
-
-	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
-}
-
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-void CAN_cmd_upper_head(void)
-{
-#if ENABLE_UPPER_HEAD_POWER
-	if (chassis_move.fUpperHeadEnabled)
-	{
-		uint32_t send_mail_box;
-		chassis_tx_message.StdId = CAN_LOWER_HEAD_TX_ID;
-		chassis_tx_message.IDE = CAN_ID_STD;
-		chassis_tx_message.RTR = CAN_RTR_DATA;
-		chassis_tx_message.DLC = 0x08;
-
-		uint16_t shoot_heat_limit = 0;
-		uint16_t shoot_heat1 = 0;
-		get_shoot_heat1_limit_and_heat(&shoot_heat_limit, &shoot_heat1);
-
-		chassis_can_send_data[0] = (shoot_heat_limit >> 8);
-		chassis_can_send_data[1] = shoot_heat_limit;
-		chassis_can_send_data[2] = (shoot_heat1 >> 8);
-		chassis_can_send_data[3] = shoot_heat1;
-		// chassis_can_send_data[4] = rev;
-		// chassis_can_send_data[5] = rev;
-		// chassis_can_send_data[6] = rev;
-		// chassis_can_send_data[7] = rev;
-		HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
-	}
-#endif
-}
-#endif
-
-/**
- * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
- * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384]
- * @param[in]      motor2: (0x202) 3508 motor control current, range [-16384,16384]
- * @param[in]      motor3: (0x203) 3508 motor control current, range [-16384,16384]
- * @param[in]      motor4: (0x204) 3508 motor control current, range [-16384,16384]
- * @param[in]      steer_motor1: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
- * @param[in]      steer_motor2: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
- * @param[in]      steer_motor3: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
- * @param[in]      steer_motor4: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
- * @retval         none
- */
-void CAN_cmd_chassis(void)
-{
-	uint32_t send_mail_box;
-	// driver motors (M3508)
-	chassis_tx_message.StdId = CAN_CHASSIS_M3508_TX_ID;
-	chassis_tx_message.IDE = CAN_ID_STD;
-	chassis_tx_message.RTR = CAN_RTR_DATA;
-	chassis_tx_message.DLC = 0x08;
-
-#if ENABLE_DRIVE_MOTOR_POWER
-	int16_t motor1 = chassis_move.motor_chassis[0].give_current;
-	int16_t motor2 = chassis_move.motor_chassis[1].give_current;
-	int16_t motor3 = chassis_move.motor_chassis[2].give_current;
-	int16_t motor4 = chassis_move.motor_chassis[3].give_current;
-#else
-	int16_t motor1 = 0;
-	int16_t motor2 = 0;
-	int16_t motor3 = 0;
-	int16_t motor4 = 0;
-#endif
-
-#if REVERSE_M3508_1
-	motor1 = -motor1;
-#endif
-
-#if REVERSE_M3508_2
-	motor2 = -motor2;
-#endif
-
-#if REVERSE_M3508_3
-	motor3 = -motor3;
-#endif
-
-#if REVERSE_M3508_4
-	motor4 = -motor4;
-#endif
-
-	chassis_can_send_data[0] = motor1 >> 8;
-	chassis_can_send_data[1] = motor1;
-	chassis_can_send_data[2] = motor2 >> 8;
-	chassis_can_send_data[3] = motor2;
-	chassis_can_send_data[4] = motor3 >> 8;
-	chassis_can_send_data[5] = motor3;
-	chassis_can_send_data[6] = motor4 >> 8;
-	chassis_can_send_data[7] = motor4;
-	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
-}
-
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-void CAN_cmd_swerve_steer(void)
-{
-	uint32_t send_mail_box;
-
-	// Send target encoder value of steering motors (GM6020) to chassis controller
-	chassis_tx_message.StdId = CAN_STEER_CONTROLLER_TX_ID;
-#if ENABLE_STEER_MOTOR_POWER
-	if (chassis_move.chassis_mode != CHASSIS_VECTOR_RAW)
-	{
-		uint16_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
-		uint16_t steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;
-		uint16_t steer_motor3 = chassis_move.steer_motor_chassis[2].target_ecd;
-		uint16_t steer_motor4 = chassis_move.steer_motor_chassis[3].target_ecd;
-
-		chassis_can_send_data[0] = steer_motor1 >> 8;
-		chassis_can_send_data[1] = steer_motor1;
-		chassis_can_send_data[2] = steer_motor2 >> 8;
-		chassis_can_send_data[3] = steer_motor2;
-		chassis_can_send_data[4] = steer_motor3 >> 8;
-		chassis_can_send_data[5] = steer_motor3;
-		chassis_can_send_data[6] = steer_motor4 >> 8;
-		chassis_can_send_data[7] = steer_motor4;
-	}
-	else
+#if ENABLE_STEER_MOTOR
+	if (chassis_move.fSteerMotorEnabled == 0)
 #endif
 	{
-		memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
+		voltage1 = 0;
+		voltage2 = 0;
+		voltage3 = 0;
+		voltage4 = 0;
 	}
-	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
-}
 
-void CAN_cmd_swerve_hip(void)
-{
-	uint32_t send_mail_box;
-
-	chassis_tx_message.StdId = CAN_SWERVE_CONTROLLERE_TX_ID;
-#if ENABLE_HIP_MOTOR_POWER
-	if ((chassis_move.chassis_mode == SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW) || (chassis_move.chassis_mode == SWERVE_CHASSIS_VECTOR_SPINNING))
-	{
-		int16_t target_alpha1_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha1, SWERVE_ANGLE_ECD_MAX_LIMIT) * swerve_angle_encoding_ratio;
-		int16_t target_alpha2_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha2, SWERVE_ANGLE_ECD_MAX_LIMIT) * swerve_angle_encoding_ratio;
-		uint16_t target_height_cmd = fp32_constrain(chassis_move.chassis_platform.target_height, 0, SWERVE_METER_ECD_MAX_LIMIT) * swerve_meter_encoding_ratio;
-
-		chassis_can_send_data[0] = target_alpha1_cmd >> 8;
-		chassis_can_send_data[1] = target_alpha1_cmd;
-		chassis_can_send_data[2] = target_alpha2_cmd >> 8;
-		chassis_can_send_data[3] = target_alpha2_cmd;
-		chassis_can_send_data[4] = target_height_cmd >> 8;
-		chassis_can_send_data[5] = target_height_cmd;
-		// reserved
-		// chassis_can_send_data[6] = rev >> 8;
-		// chassis_can_send_data[7] = rev;
-	}
-	else
-#endif
-	{
-		memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
-	}
-	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
-}
-#endif
-
-#if USE_SERVO_TO_STIR_AMMO
-void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes)
-{
-	// Turn on/off loading servo motor, by commanding Type-A board on chassis
-	uint32_t send_mail_box;
-	chassis_tx_message.StdId = CAN_CHASSIS_LOAD_SERVO_TX_ID;
-	chassis_tx_message.IDE = CAN_ID_STD;
-	chassis_tx_message.RTR = CAN_RTR_DATA;
-	chassis_tx_message.DLC = 0x08;
-	chassis_can_send_data[0] = fServoSwitch;
-	for (uint8_t i = 0; i < bTrialTimes; i++)
-	{
-		HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
-		osDelay(1);
-	}
-}
-#endif
-
-/**
- * @brief          return the yaw 6020 motor data point
- * @param[in]      none
- * @retval         motor data point
- */
-const motor_measure_t *get_yaw_gimbal_motor_measure_point(void)
-{
-	return &motor_chassis[MOTOR_INDEX_YAW];
-}
-
-/**
- * @brief          return the pitch 6020 motor data point
- * @param[in]      none
- * @retval         motor data point
- */
-const motor_measure_t *get_pitch_gimbal_motor_measure_point(void)
-{
-	return &motor_chassis[MOTOR_INDEX_PITCH];
-}
-
-/**
- * @brief          return the chassis 3508 motor data point
- * @param[in]      i: motor number,range [0,3]
- * @retval         motor data point
- */
-const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_index)
-{
-	if (motor_index >= MOTOR_LIST_LENGTH)
-	{
-		return NULL;
-	}
-	else
-	{
-		return &motor_chassis[motor_index];
-	}
+	can_tx_data[0] = voltage1 >> 8;
+	can_tx_data[1] = voltage1;
+	can_tx_data[2] = voltage2 >> 8;
+	can_tx_data[3] = voltage2;
+	can_tx_data[4] = voltage3 >> 8;
+	can_tx_data[5] = voltage3;
+	can_tx_data[6] = voltage4 >> 8;
+	can_tx_data[7] = voltage4;
+	HAL_CAN_AddTxMessage(&hcan1, &can_tx_msg, can_tx_data, &send_mail_box);
 }

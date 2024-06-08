@@ -131,5 +131,6 @@ extern const fp32 *get_accel_data_point(void);
   * @retval         the point of INS_mag
   */
 extern const fp32 *get_mag_data_point(void);
+extern fp32 INS_angle[3];
 
 #endif

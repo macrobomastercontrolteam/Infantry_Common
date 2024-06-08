@@ -216,3 +216,41 @@ uint8_t checkAndResetFlag(uint8_t *pbFlag)
     *pbFlag = 0;
     return temp;
 }
+
+float MG6012_loop_ecd_constrain(float Input)
+{
+	if (Input > MG6012_ECD_RANGE_180)
+	{
+		while (Input > MG6012_ECD_RANGE_180)
+		{
+			Input -= MG6012_ECD_RANGE;
+		}
+	}
+	else if (Input < -MG6012_ECD_RANGE_180)
+	{
+		while (Input < -MG6012_ECD_RANGE_180)
+		{
+			Input += MG6012_ECD_RANGE;
+		}
+	}
+	return Input;
+}
+
+float M6020_loop_ecd_constrain(float Input)
+{
+	if (Input > M6020_ECD_RANGE_180)
+	{
+		while (Input > M6020_ECD_RANGE_180)
+		{
+			Input -= M6020_ECD_RANGE;
+		}
+	}
+	else if (Input < -M6020_ECD_RANGE_180)
+	{
+		while (Input < -M6020_ECD_RANGE_180)
+		{
+			Input += M6020_ECD_RANGE;
+		}
+	}
+	return Input;
+}

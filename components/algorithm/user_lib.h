@@ -32,15 +32,19 @@
 #define _impl_CASSERT_LINE(predicate, line, file) \
     typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 
-#define HALF_ECD_RANGE 4096
-#define ECD_RANGE 8192
-#define MOTOR_RAD_TO_ECD ((fp32)(HALF_ECD_RANGE) / PI)
-#define MOTOR_ECD_TO_RAD (PI / (fp32)(HALF_ECD_RANGE))
+#define M6020_ECD_RANGE 8192                       // 360 degree
+#define M6020_ECD_RANGE_180 (M6020_ECD_RANGE >> 1) // 180 degree
+#define M6020_ECD_RANGE_90 (M6020_ECD_RANGE >> 2)  // 90 degree
+#define M6020_ECD_RANGE_45 (M6020_ECD_RANGE >> 3)  // 45 degree
+#define M6020_MOTOR_ECD_TO_RAD (PI / (fp32)(M6020_ECD_RANGE_180))
+#define M6020_MOTOR_RAD_TO_ECD (1 / M6020_MOTOR_ECD_TO_RAD)
 
-#define HALF_ECD_RANGE_SHRINKED 128
-#define ECD_RANGE_SHRINKED 256
-#define MOTOR_RAD_TO_ECD_SHRINKED ((fp32)(HALF_ECD_RANGE_SHRINKED) / PI)
-#define MOTOR_ECD_TO_RAD_SHRINKED (PI / (fp32)(HALF_ECD_RANGE_SHRINKED))
+#define MG6012_ECD_RANGE (1 << 16)                   // 360 degree
+#define MG6012_ECD_RANGE_180 (MG6012_ECD_RANGE >> 1) // 180 degree
+#define MG6012_ECD_RANGE_90 (MG6012_ECD_RANGE >> 2)  // 90 degree
+#define MG6012_ECD_RANGE_45 (MG6012_ECD_RANGE >> 3)  // 45 degree
+#define MG6012_MOTOR_ECD_TO_RAD (PI / (fp32)(MG6012_ECD_RANGE_180))
+#define MG6012_MOTOR_RAD_TO_ECD (1 / MG6012_MOTOR_ECD_TO_RAD)
 
 #define MOVING_AVERAGE_RESET 1
 #define MOVING_AVERAGE_CALC 0
@@ -116,6 +120,8 @@ void fp32_deadzone(fp32* in, fp32 deadzone);
 extern int16_t int16_constrain(int16_t Value, int16_t minValue, int16_t maxValue);
 uint8_t checkAndResetFlag(uint8_t *pbFlag);
 fp32 first_order_filter(fp32 input, fp32 prev_output, fp32 coeff);
+fp32 MG6012_loop_ecd_constrain(fp32 Input);
+fp32 M6020_loop_ecd_constrain(fp32 Input);
 
 extern fp32 invSqrt(fp32 num);
 extern fp32 loop_fp32_constrain(fp32 Input, fp32 minValue, fp32 maxValue);
