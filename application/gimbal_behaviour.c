@@ -393,15 +393,25 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
     }
 
-    // remote controller logic
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) // remote controller logic
 	if (((gimbal_behaviour == GIMBAL_AUTO_AIM) || (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)) && toe_is_error(DBUS_TOE))
 	{
-		; // CV fully automatic mode without RC: do not switch out of cv state
+        // CV fully automatic mode without RC: do not switch out of cv state
 	}
-	else if(gimbal_emergency_stop())
+    else if (gimbal_emergency_stop())
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
+#else
+    if (gimbal_emergency_stop())
+    {
+        gimbal_behaviour = GIMBAL_ZERO_FORCE;
+    }
+    else if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT))
+    {
+        gimbal_behaviour = GIMBAL_AUTO_AIM;
+    }
+#endif
     else
 	{
 		switch (gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL])
