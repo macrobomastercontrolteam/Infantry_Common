@@ -286,6 +286,39 @@ uint8_t get_robot_id(void)
 	return robot_state.robot_id;
 }
 
+uint8_t get_team_color(void)
+{
+	// blue: 0, red: 1
+	uint8_t team_color = 0;
+	switch (robot_state.robot_id)
+	{
+		case RED_HERO:
+		case RED_ENGINEER:
+		case RED_STANDARD_1:
+		case RED_STANDARD_2:
+		case RED_STANDARD_3:
+		case RED_AERIAL:
+		case RED_SENTRY:
+		{
+			team_color = 1;
+			break;
+		}
+		case BLUE_HERO:
+		case BLUE_ENGINEER:
+		case BLUE_STANDARD_1:
+		case BLUE_STANDARD_2:
+		case BLUE_STANDARD_3:
+		case BLUE_AERIAL:
+		case BLUE_SENTRY:
+		default:
+		{
+			team_color = 0;
+			break;
+		}
+	}
+	return team_color;
+}
+
 void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0)
 {
 	*heat_limit = robot_state.shooter_barrel_heat_limit;
