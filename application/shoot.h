@@ -30,10 +30,9 @@
 // After the shooting is enabled, the bullet is continuously fired for a period of time, used to clear the bullet
 #define RC_S_LONG_TIME              250
 
-#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) 
-#define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  1.0f
-#define TRIGGER_WHEEL_CAPACITY 7.0f
-#elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+// TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO: gear ratio between trigger motor and trigger wheel
+// TRIGGER_WHEEL_CAPACITY: ammo per revolution of trigger wheel
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  1.0f
 #define TRIGGER_WHEEL_CAPACITY 8.0f
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
@@ -47,8 +46,8 @@
 #define TRIGGER_MOTOR_GEAR_RATIO  36.0f
 #define TRIGGER_MOTOR_RPM_TO_SPEED  (2.0f * PI / 60.0f / TRIGGER_MOTOR_GEAR_RATIO)
 #define TRIGGER_MOTOR_ECD_TO_ANGLE  (2.0f * PI / (float)ECD_RANGE / TRIGGER_MOTOR_GEAR_RATIO / TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO)
-#define TRIGGER_MOTOR_ANGLE_THRESHOLD (0.1f * PI)
-#define FULL_COUNT                  18
+#define TRIGGER_MOTOR_ANGLE_THRESHOLD 0.05f
+#define TRIGGER_MULTILOOP_FULL_COUNT 18
 
 #define FRICTION_MOTOR_RADIUS 0.03f
 #define SPEED_COMPENSATION_RATIO 1.0f
@@ -58,20 +57,20 @@
 
 // max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
 #if ENABLE_SHOOT_REDUNDANT_SWITCH
-#define FRICTION_MOTOR_SPEED  20.0f
+#define FRICTION_MOTOR_SPEED  28.0f
 #else
 #define FRICTION_MOTOR_SPEED  1.0f
 #endif
 
-//rounds per minute
-#define SEMI_AUTO_FIRE_RATE 120.0f 
+// Unit: ammo per minute
+#define SEMI_AUTO_FIRE_RATE 120.0f
 #define AUTO_FIRE_RATE     100.0f
+#define READY_TRIGGER_RATE 20.0f
 
-
-//revolutions per minute
-#define SEMI_AUTO_FIRE_TRIGGER_SPEED (TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * SEMI_AUTO_FIRE_RATE / TRIGGER_WHEEL_CAPACITY )
-#define AUTO_FIRE_TRIGGER_SPEED      (TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * SEMI_AUTO_FIRE_RATE / TRIGGER_WHEEL_CAPACITY )
-#define READY_TRIGGER_SPEED          (TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * 5.0f)
+// Speed unit: rpm
+#define SEMI_AUTO_FIRE_TRIGGER_SPEED (TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * SEMI_AUTO_FIRE_RATE / TRIGGER_WHEEL_CAPACITY)
+#define AUTO_FIRE_TRIGGER_SPEED      (TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * AUTO_FIRE_RATE / TRIGGER_WHEEL_CAPACITY)
+#define READY_TRIGGER_SPEED          (TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * READY_TRIGGER_RATE / TRIGGER_WHEEL_CAPACITY)
 
 #define KEY_OFF_JUGUE_TIME          500
 #define SWITCH_TRIGGER_ON           0
@@ -113,10 +112,6 @@
 #define FRICTION_2_SPEED_PID_KD        0.0f
 #define FRICTION_2_SPEED_PID_MAX_OUT   MAX_MOTOR_CAN_CURRENT
 #define FRICTION_2_SPEED_PID_MAX_IOUT  200.0f
-
-//Autoaim Timeout
-#define AUTOAIM_SHOOT_TIMEOUT 500
-#define AUTOAIM_READY_TIMEOUT 4000
 
 typedef enum
 {
@@ -161,11 +156,10 @@ typedef struct
     bool_t press_r;
     bool_t last_press_l;
     bool_t last_press_r;
-    uint16_t shoot_hold_time;
+    uint16_t left_click_hold_time;
 
     uint16_t block_time;
     uint16_t reverse_time;
-    bool_t move_flag;
 
     bool_t key;
     // uint8_t key_time;
@@ -173,9 +167,7 @@ typedef struct
     uint16_t heat_limit;
     uint16_t heat;
 
-    uint32_t autoaim_ready_time;
-
-    uint16_t test_value;
+    uint32_t cv_auto_shoot_start_time;
 } shoot_control_t;
 
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
