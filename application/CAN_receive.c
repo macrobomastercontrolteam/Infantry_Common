@@ -386,6 +386,7 @@ void CAN_cmd_upper_head(void)
 		chassis_tx_message.RTR = CAN_RTR_DATA;
 		chassis_tx_message.DLC = 0x08;
 
+		uint8_t team_color = get_team_color();
 		uint16_t shoot_heat_limit = 0;
 		uint16_t shoot_heat1 = 0;
 		get_shoot_heat1_limit_and_heat(&shoot_heat_limit, &shoot_heat1);
@@ -394,7 +395,7 @@ void CAN_cmd_upper_head(void)
 		chassis_can_send_data[1] = shoot_heat_limit;
 		chassis_can_send_data[2] = (shoot_heat1 >> 8);
 		chassis_can_send_data[3] = shoot_heat1;
-		// chassis_can_send_data[4] = rev;
+		chassis_can_send_data[4] = team_color;
 		// chassis_can_send_data[5] = rev;
 		// chassis_can_send_data[6] = rev;
 		// chassis_can_send_data[7] = rev;

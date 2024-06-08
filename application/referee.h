@@ -377,6 +377,7 @@ extern void referee_data_solve(uint8_t *frame);
 extern void get_chassis_power_and_buffer(fp32 *power, fp32 *buffer);
 
 extern uint8_t get_robot_id(void);
+extern uint8_t get_team_color(void);
 
 extern void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0);
 extern void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1);

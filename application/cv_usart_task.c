@@ -17,6 +17,7 @@
 #include "referee.h"
 #include "string.h"
 #include "usart.h"
+#include "referee.h"
 #if DEBUG_CV_WITH_USB
 #include "usb_task.h"
 #include <stdio.h>
@@ -70,6 +71,7 @@ typedef struct __attribute__((packed))
 {
 	uint8_t infobit;
 	uint8_t game_progress;
+	uint8_t team_color;
 	uint16_t time_remain;
 	uint16_t current_HP;
 } tRefStatusMsgPayload;
@@ -296,6 +298,7 @@ void CvCmder_SendInfoData(eInfoBits InfoBit)
 		case CV_INFO_REF_STATUS_BIT:
 		{
 			CvTxBuffer.tData.RefStatusMsgPayload.game_progress = is_game_started();
+			CvTxBuffer.tData.RefStatusMsgPayload.team_color = get_team_color();
 			CvTxBuffer.tData.RefStatusMsgPayload.time_remain = get_time_remain();
 			CvTxBuffer.tData.RefStatusMsgPayload.current_HP = get_current_HP();
 			break;
