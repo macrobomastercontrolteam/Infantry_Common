@@ -30,7 +30,7 @@
 #define DATA_PACKAGE_HEADLESS_SIZE (DATA_PACKAGE_SIZE - DATA_PACKAGE_HEADER_SIZE)
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_HEADLESS_SIZE - sizeof(uint16_t) - sizeof(uint8_t)) // sizeof(uiTimestamp) and sizeof(bMsgType)
 #define CHAR_UNUSED 0xFF
-#define SHOOT_TIMEOUT_SEC 1000
+#define SHOOT_TIMEOUT_MS 3000
 #define CV_TRANDELTA_FILTER_SIZE 4 // TranDelta means Transmission delay
 
 // Test result with pyserial: Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
@@ -135,7 +135,7 @@ void cv_usart_task(void const *argument)
 	{
 		CvCmder_PollForModeChange();
 		// shoot mode timeout logic
-		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && (osKernelSysTick() - CvCmdHandler.ulShootStartTime > SHOOT_TIMEOUT_SEC))
+		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && (osKernelSysTick() - CvCmdHandler.ulShootStartTime > SHOOT_TIMEOUT_MS))
 		{
 			CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 		}
