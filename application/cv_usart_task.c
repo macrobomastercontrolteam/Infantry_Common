@@ -12,10 +12,10 @@
 #include "cv_usart_task.h"
 #include "cmsis_os.h"
 
-#include "usart.h"
 #include "bsp_usart.h"
-#include "string.h"
 #include "detect_task.h"
+#include "string.h"
+#include "usart.h"
 #if DEBUG_CV_WITH_USB
 #include "usb_task.h"
 #include <stdio.h>
@@ -29,7 +29,7 @@
 #define DATA_PACKAGE_HEADLESS_SIZE (DATA_PACKAGE_SIZE - DATA_PACKAGE_HEADER_SIZE)
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_HEADLESS_SIZE - sizeof(uint16_t) - sizeof(uint8_t)) // sizeof(uiTimestamp) and sizeof(bMsgType)
 #define CHAR_UNUSED 0xFF
-#define SHOOT_TIMEOUT_SEC 2000
+#define SHOOT_TIMEOUT_MS 2000
 #define CV_TRANDELTA_FILTER_SIZE 4 // TranDelta means Transmission delay
 
 // Test result with pyserial: Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
@@ -86,7 +86,7 @@ typedef union __attribute__((packed))
 		{
 			uint8_t abPayload[DATA_PACKAGE_PAYLOAD_SIZE];
 			tCvAckMsgPayload CvAckMsgPayload;
-            tRefStatusMsgPayload RefStatusMsgPayload;
+			tRefStatusMsgPayload RefStatusMsgPayload;
 		};
 	} tData;
 	uint8_t abData[DATA_PACKAGE_SIZE];
@@ -139,7 +139,7 @@ void cv_usart_task(void const *argument)
 	{
 		CvCmder_PollForModeChange();
 		// shoot mode timeout logic
-		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && (osKernelSysTick() - CvCmdHandler.ulShootStartTime > SHOOT_TIMEOUT_SEC))
+		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && (osKernelSysTick() - CvCmdHandler.ulShootStartTime > SHOOT_TIMEOUT_MS))
 		{
 			CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 		}
@@ -270,12 +270,11 @@ void CvCmder_SendSetModeRequest(void)
 {
 	CvTxBuffer.tData.bMsgType = MSG_MODE_CONTROL;
 	// If current timestamp is smaller than sync_time, add 0x10000 to it. It's automatically handled by uint16_t type
-	CvTxBuffer.tData.uiTimestamp = (uint16_t)xTaskGetTickCount() - CvTimestamps.uiCtrlSyncTime;
+	CvTxBuffer.tData.uiTimestamp = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime;
 	memset(CvTxBuffer.tData.abPayload, CHAR_UNUSED, DATA_PACKAGE_PAYLOAD_SIZE);
 	CvTxBuffer.tData.abPayload[0] = CvCmdHandler.fCvMode;
 	HAL_UART_Transmit(&huart1, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
 
-	CvCmdHandler.fCvCmdValid = CvCmdHandler.fCvCmdValid && (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT) || CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT));
 	CvCmder_EchoTxMsgToUsb();
 }
 
@@ -283,7 +282,7 @@ void CvCmder_SendInfoData(eInfoBits InfoBit)
 {
 	CvTxBuffer.tData.bMsgType = MSG_INFO_DATA;
 	// If current timestamp is smaller than sync_time, add 0x10000 to it. It's automatically handled by uint16_t type
-	CvTxBuffer.tData.uiTimestamp = (uint16_t)xTaskGetTickCount() - CvTimestamps.uiCtrlSyncTime;
+	CvTxBuffer.tData.uiTimestamp = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime;
 	memset(CvTxBuffer.tData.abPayload, CHAR_UNUSED, DATA_PACKAGE_PAYLOAD_SIZE);
 	CvTxBuffer.tData.abPayload[0] = InfoBit;
 	switch (InfoBit)
@@ -298,10 +297,10 @@ void CvCmder_SendInfoData(eInfoBits InfoBit)
 			memcpy(&CvTxBuffer.tData.abPayload[1], &CvTimestamps.uiCvSyncTime, sizeof(CvTimestamps.uiCvSyncTime));
 			break;
 		}
-        case CV_INFO_REF_STATUS_BIT:
+		case CV_INFO_REF_STATUS_BIT:
 		{
 			CvTxBuffer.tData.RefStatusMsgPayload.game_progress = is_game_started();
-            CvTxBuffer.tData.RefStatusMsgPayload.team_color = get_team_color();
+			CvTxBuffer.tData.RefStatusMsgPayload.team_color = get_team_color();
 			CvTxBuffer.tData.RefStatusMsgPayload.time_remain = get_time_remain();
 			CvTxBuffer.tData.RefStatusMsgPayload.current_HP = get_current_HP();
 			break;
@@ -323,11 +322,10 @@ void CvCmder_RxParser(void)
 	{
 		case MSG_CV_CMD:
 		{
-			fValid = (CvCmder_GetMode(CV_MODE_AUTO_MOVE_BIT) || CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT));
 			// // Check for ACK is not used, because it may be misaligned in the middle and ignored so that further msgs align
 			// // However, ACK is still helpful because it can help synchronize communication in the beginning
 			// fValid &= CvCmdHandler.fIsWaitingForAck;
-			fValid &= (memcmp(&CvRxBuffer.tData.abPayload[sizeof(tCvCmdMsg)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvCmdMsg)) == 0);
+			fValid = (memcmp(&CvRxBuffer.tData.abPayload[sizeof(tCvCmdMsg)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvCmdMsg)) == 0);
 			if (fValid)
 			{
 				CvCmder_UpdateTranDelta();
@@ -347,7 +345,7 @@ void CvCmder_RxParser(void)
 			if (fValid)
 			{
 				// Synchronize time after ACK
-				uint16_t uiCtrlTimestamp = xTaskGetTickCount();
+				uint16_t uiCtrlTimestamp = osKernelSysTick();
 				int16_t iTranDelta = ((uiCtrlTimestamp - CvTimestamps.uiCtrlSyncTime) - CvRxBuffer.tData.CvAckMsgPayload.uiReqTimestamp - CvRxBuffer.tData.CvAckMsgPayload.uiExecDelta) / 2;
 				CvTimestamps.iTranDeltaMA = moving_average_calc(iTranDelta, &CvTimestamps.TranDeltaFilter, (CvTimestamps.uiCtrlSyncTime == 0) ? MOVING_AVERAGE_RESET : MOVING_AVERAGE_CALC);
 				CvTimestamps.uiCtrlSyncTime = uiCtrlTimestamp - iTranDelta;
@@ -420,7 +418,7 @@ void CvCmder_RxParser(void)
 
 void CvCmder_UpdateTranDelta(void)
 {
-	int16_t iTranDelta = (uint16_t)xTaskGetTickCount() - CvTimestamps.uiCtrlSyncTime - CvRxBuffer.tData.uiTimestamp;
+	int16_t iTranDelta = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime - CvRxBuffer.tData.uiTimestamp;
 	CvTimestamps.iTranDeltaMA = moving_average_calc(iTranDelta, &CvTimestamps.TranDeltaFilter, MOVING_AVERAGE_CALC);
 }
 
@@ -456,10 +454,10 @@ tCvCmdHandler *CvCmder_GetHandler(void)
 
 void CvCmder_set_ref_status(uint16_t _current_HP, uint8_t _team_color, uint16_t _stage_remain_time, uint8_t _game_progress)
 {
-    CvCmdHandler.game_progress = _game_progress;
+	CvCmdHandler.game_progress = _game_progress;
 	CvCmdHandler.team_color = _team_color;
-    CvCmdHandler.stage_remain_time = _stage_remain_time;
-    CvCmdHandler.current_HP = _current_HP;
+	CvCmdHandler.stage_remain_time = _stage_remain_time;
+	CvCmdHandler.current_HP = _current_HP;
 }
 
 uint8_t is_game_started(void)

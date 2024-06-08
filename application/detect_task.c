@@ -213,7 +213,7 @@ static void detect_init(uint32_t time)
             {2, 3, 7},      //board gyro
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag
-            {200, 0, 7},    //cv usart
+            {50, 0, 7},    //cv usart
             {200, 0, 7},    //lower head
         };
 
