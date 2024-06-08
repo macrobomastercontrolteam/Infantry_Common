@@ -28,19 +28,26 @@
 #define SHOOT_CONTROL_TIME_S GIMBAL_CONTROL_TIME_S
 
 // After the shooting is enabled, the bullet is continuously fired for a period of time, used to clear the bullet
-#define RC_S_LONG_TIME              800
+#define RC_S_LONG_TIME              600
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2018_MECANUM) 
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  1.0f
+#define TRIGGER_WHEEL_CAPACITY 7.0f
+#elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  1.0f
+#define TRIGGER_WHEEL_CAPACITY 8.0f
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  (58.0f / 24.0f)
+#define TRIGGER_WHEEL_CAPACITY  12.0f
 #elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  1.0f
+#define TRIGGER_WHEEL_CAPACITY  9.0f
 #endif
 
 #define TRIGGER_MOTOR_GEAR_RATIO  36.0f
 #define TRIGGER_MOTOR_RPM_TO_SPEED  (2.0f * PI / 60.0f / TRIGGER_MOTOR_GEAR_RATIO)
 #define TRIGGER_MOTOR_ECD_TO_ANGLE  (2.0f * PI / (float)ECD_RANGE / TRIGGER_MOTOR_GEAR_RATIO / TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO)
+#define TRIGGER_MOTOR_ANGLE_THRESHOLD (0.1f * PI)
 #define FULL_COUNT                  18
 
 #define FRICTION_MOTOR_RADIUS 0.03f
@@ -56,9 +63,15 @@
 #define FRICTION_MOTOR_SPEED  1.0f
 #endif
 
-#define SEMI_AUTO_FIRE_TRIGGER_SPEED 10.0f
-#define AUTO_FIRE_TRIGGER_SPEED      15.0f
-#define READY_TRIGGER_SPEED         5.0f
+//rounds per minute
+#define SEMI_AUTO_FIRE_RATE 120.0f 
+#define AUTO_FIRE_RATE     120.0f
+
+
+//revolutions per minute
+#define SEMI_AUTO_FIRE_TRIGGER_SPEED (TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * SEMI_AUTO_FIRE_RATE / TRIGGER_WHEEL_CAPACITY )
+#define AUTO_FIRE_TRIGGER_SPEED      (TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * SEMI_AUTO_FIRE_RATE / TRIGGER_WHEEL_CAPACITY )
+#define READY_TRIGGER_SPEED          (TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * 5.0f)
 
 #define KEY_OFF_JUGUE_TIME          500
 #define SWITCH_TRIGGER_ON           0
@@ -70,13 +83,7 @@
 #define REVERSE_TIME                500
 #define REVERSE_SPEED_LIMIT         13.0f
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
-#define TRIGGER_ANGLE_INCREMENT     (PI/8.0f)
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
-#define TRIGGER_ANGLE_INCREMENT     (PI/12.0f)
-#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define TRIGGER_ANGLE_INCREMENT     (PI/9.0f)
-#endif
+#define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / TRIGGER_WHEEL_CAPACITY)
 
 #define TRIGGER_ANGLE_PID_KP        800.0f
 #define TRIGGER_ANGLE_PID_KI        500.0f
@@ -106,6 +113,10 @@
 #define FRICTION_2_SPEED_PID_KD        0.0f
 #define FRICTION_2_SPEED_PID_MAX_OUT   MAX_MOTOR_CAN_CURRENT
 #define FRICTION_2_SPEED_PID_MAX_IOUT  200.0f
+
+//Autoaim Timeout
+#define AUTOAIM_SHOOT_TIMEOUT 500
+#define AUTOAIM_READY_TIMEOUT 4000
 
 typedef enum
 {
@@ -161,6 +172,10 @@ typedef struct
 
     uint16_t heat_limit;
     uint16_t heat;
+
+    uint32_t autoaim_ready_time;
+
+    uint16_t test_value;
 } shoot_control_t;
 
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
