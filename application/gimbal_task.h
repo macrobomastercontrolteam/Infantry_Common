@@ -35,11 +35,7 @@
 //test mode, 0 close, 1 open
 #define GIMBAL_TEST_MODE 0
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define PITCH_TURN  0
-#else
 #define PITCH_TURN  1
-#endif
 #define YAW_TURN    0
 
 #define int_abs(x) ((x) > 0 ? (x) : (-x))
