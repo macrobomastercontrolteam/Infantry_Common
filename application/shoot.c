@@ -91,6 +91,22 @@ void shoot_init(void)
 	shoot_control.speed_set = 0.0f;
 	// shoot_control.key_time = 0;
 	shoot_control.fIsCvControl = 0;
+
+	shoot_control.press_l = 0;
+	shoot_control.press_r = 0;
+	shoot_control.last_press_l = 0;
+	shoot_control.last_press_r = 0;
+	shoot_control.left_click_hold_time = 0;
+
+	shoot_control.block_time = 0;
+	shoot_control.reverse_time = 0;
+
+	shoot_control.heat_limit = 0;
+	shoot_control.heat = 0;
+	shoot_control.cv_auto_shoot_start_time = 0;
+
+	memset(&shoot_control.launching_frequency, 0, sizeof(shoot_control.launching_frequency));
+	memset(&shoot_control.bullet_init_speed, 0, sizeof(shoot_control.bullet_init_speed));
 }
 
 /**

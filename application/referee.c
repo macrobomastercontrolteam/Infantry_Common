@@ -7,6 +7,7 @@
 #include "string.h"
 #include "usart.h"
 #include "detect_task.h"
+#include "shoot.h"
 
 frame_header_struct_t referee_receive_header;
 frame_header_struct_t referee_send_header;
@@ -184,6 +185,20 @@ void referee_data_solve(uint8_t *frame)
 		case SHOOT_DATA_CMD_ID:
 		{
 			memcpy(&shoot_data_t, frame + index, sizeof(shoot_data_t));
+			switch (shoot_data_t.shooter_number)
+			{
+				case 1:
+				case 2:
+				{
+					shoot_control.launching_frequency[shoot_data_t.shooter_number - 1] = shoot_data_t.launching_frequency;
+					shoot_control.bullet_init_speed[shoot_data_t.shooter_number - 1] = shoot_data_t.initial_speed;
+					break;
+				}
+				default:
+				{
+					break;
+				}
+			}
 			break;
 		}
 		case ROBOT_RFID_STATUS_ID:

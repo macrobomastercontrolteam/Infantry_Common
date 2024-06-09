@@ -164,10 +164,15 @@ typedef struct
     bool_t key;
     // uint8_t key_time;
 
+    // shooter of this controller itself
     uint16_t heat_limit;
     uint16_t heat;
 
     uint32_t cv_auto_shoot_start_time;
+
+    // @TODO: automatically adjust SPEED_COMPENSATION_RATIO using ref feedbacks here
+    uint8_t launching_frequency[2];
+	fp32 bullet_init_speed[2];
 } shoot_control_t;
 
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task

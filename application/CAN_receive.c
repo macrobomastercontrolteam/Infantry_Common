@@ -28,6 +28,7 @@
 #include "referee.h"
 #include "remote_control.h"
 #include "string.h"
+#include "shoot.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
@@ -46,6 +47,9 @@
 #define REVERSE_M3508_2 0
 #define REVERSE_M3508_3 0
 #define REVERSE_M3508_4 0
+
+#define BULLET_SPEED_ECD_MAX 40.0f
+#define BULLET_SPEED_RATIO (0xFF / BULLET_SPEED_ECD_MAX)
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
@@ -387,6 +391,19 @@ void CAN_cmd_upper_head(void)
 		chassis_tx_message.RTR = CAN_RTR_DATA;
 		chassis_tx_message.DLC = 0x08;
 
+		uint8_t _bullet_speed = 0;
+		if (shoot_control.bullet_init_speed[1] > 0)
+		{
+			if (shoot_control.bullet_init_speed[1] > BULLET_SPEED_ECD_MAX)
+			{
+				_bullet_speed = BULLET_SPEED_ECD_MAX * BULLET_SPEED_RATIO;
+			}
+			else
+			{
+				_bullet_speed = shoot_control.bullet_init_speed[1] * BULLET_SPEED_RATIO;
+			}
+		}
+
 		uint8_t team_color = get_team_color();
 		uint16_t shoot_heat_limit = 0;
 		uint16_t shoot_heat1 = 0;
@@ -396,10 +413,10 @@ void CAN_cmd_upper_head(void)
 		chassis_can_send_data[1] = shoot_heat_limit;
 		chassis_can_send_data[2] = (shoot_heat1 >> 8);
 		chassis_can_send_data[3] = shoot_heat1;
-		chassis_can_send_data[4] = team_color;
+		chassis_can_send_data[4] = _bullet_speed;
 		// chassis_can_send_data[5] = rev;
 		// chassis_can_send_data[6] = rev;
-		// chassis_can_send_data[7] = rev;
+		chassis_can_send_data[7] = (team_color << 7);
 		HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 	}
 #endif
