@@ -222,11 +222,13 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	chassis_move_init->vx_rc_sen = chassis_move_init->vx_max_speed / JOYSTICK_HALF_RANGE;
 	chassis_move_init->vy_rc_sen = chassis_move_init->vy_max_speed / JOYSTICK_HALF_RANGE;
 
-	chassis_move_init->fRandomSpinOn = 0;
 	chassis_move_init->dial_channel_latched = 0;
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+	chassis_move_init->fRandomSpinOn = 1;
 	chassis_move_init->fUpperHeadEnabled = 0;
+#else
+	chassis_move_init->fRandomSpinOn = 0;
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
