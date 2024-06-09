@@ -60,6 +60,8 @@
 #include "detect_task.h"
 #include "gimbal_behaviour.h"
 
+#define SENTRY_UPPER_HEAD_TEST_WITHOUT_REF 1
+
 // random spin mode parameters
 #define MIN_SPIN_PARAM_CHANGE_PERIOD 1.0f
 #define NORMAL_SPIN_PARAM_CHANGE_PERIOD 5.0f
@@ -209,7 +211,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 	if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
 	{
 		CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, 1);
-#if SENTRY_UPPER_HEAD_TEST
+#if SENTRY_UPPER_HEAD_TEST_WITHOUT_REF
 		chassis_move.fUpperHeadEnabled = 1;
 #else
 		chassis_move.fUpperHeadEnabled = is_game_started();

@@ -14,7 +14,6 @@
 #define TEST_NO_REF 1
 // Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
 #define ENABLE_SHOOT_REDUNDANT_SWITCH 0
-#define SENTRY_UPPER_HEAD_TEST 0
 #define USE_SERVO_TO_STIR_AMMO 0
 
 #if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM))
