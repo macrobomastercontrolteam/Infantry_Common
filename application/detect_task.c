@@ -38,6 +38,7 @@
 #include "cv_usart_task.h"
 #include "chassis_task.h"
 
+#define DETECT_TEST_MODE 0
 
 /**
   * @brief          init error_list, assign  offline_time, online_time, priority.
@@ -51,6 +52,13 @@ static void detect_init(uint32_t time);
 
 error_t error_list[ERROR_LIST_LENGTH + 1];
 
+#if DETECT_TEST_MODE
+uint16_t cv_msg_interval;
+static void J_scope_detect_test(void)
+{
+	cv_msg_interval = ulSystemTime - error_list[CV_TOE].new_time;
+}
+#endif
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t detect_task_stack;
@@ -69,7 +77,7 @@ void detect_task(void const *pvParameters)
     osDelay(DETECT_TASK_INIT_TIME);
 
     while (1)
-    {
+    {        
         static uint8_t error_num_display = 0;
         error_num_display = ERROR_LIST_LENGTH;
         error_list[ERROR_LIST_LENGTH].is_lost = 0;
@@ -132,7 +140,12 @@ void detect_task(void const *pvParameters)
                 }
             }
         }
+#if DETECT_TEST_MODE
+        J_scope_detect_test();
+#endif
+
         osDelayUntil(&ulSystemTime, DETECT_CONTROL_TIME_MS);
+
 #if INCLUDE_uxTaskGetStackHighWaterMark
         detect_task_stack = uxTaskGetStackHighWaterMark(NULL);
 #endif
