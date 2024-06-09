@@ -61,7 +61,7 @@
 
 // max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
 #if ENABLE_SHOOT_REDUNDANT_SWITCH
-#define FRICTION_MOTOR_SPEED  28.0f
+#define FRICTION_MOTOR_SPEED  26.0f
 #else
 #define FRICTION_MOTOR_SPEED  1.0f
 #endif
@@ -90,7 +90,7 @@
 #define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / TRIGGER_WHEEL_CAPACITY)
 
 #define TRIGGER_ANGLE_PID_KP        800.0f
-#define TRIGGER_ANGLE_PID_KI        500.0f
+#define TRIGGER_ANGLE_PID_KI        100.0f
 #define TRIGGER_ANGLE_PID_KD        0.002f
 
 #define TRIGGER_BULLET_PID_MAX_OUT  10000.0f
@@ -149,7 +149,7 @@ typedef struct
     // fp32 friction_motor2_angle;
 
 	pid_type_def trigger_motor_pid;
-    fp32 trigger_speed_set;
+    fp32 trigger_speed_set;    
     fp32 speed; // unit: rad/s
     fp32 speed_set;
     fp32 angle;
