@@ -42,7 +42,7 @@
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 //pitch speed close-loop PID params, max out and max iout
-#define PITCH_SPEED_PID_KP        10000.0f // pitch starts shaking at 2600
+#define PITCH_SPEED_PID_KP        10000.0f
 #define PITCH_SPEED_PID_KI        100000.0f
 #define PITCH_SPEED_PID_KD        0.0f
 #define PITCH_SPEED_PID_MAX_OUT   30000.0f
@@ -72,28 +72,28 @@
 #elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 
 //pitch speed close-loop PID params, max out and max iout
-#define PITCH_SPEED_PID_KP        2500.0f // pitch starts shaking at 2600
-#define PITCH_SPEED_PID_KI        7500.0f
-#define PITCH_SPEED_PID_KD        25.0f
+#define PITCH_SPEED_PID_KP        15000.0f
+#define PITCH_SPEED_PID_KI        15000.0f
+#define PITCH_SPEED_PID_KD        0.0f
 #define PITCH_SPEED_PID_MAX_OUT   30000.0f
 #define PITCH_SPEED_PID_MAX_IOUT  10000.0f
 
 //yaw speed close-loop PID params, max out and max iout
-#define YAW_SPEED_PID_KP        10000.0f
-#define YAW_SPEED_PID_KI        10000.0f
+#define YAW_SPEED_PID_KP        20000.0f
+#define YAW_SPEED_PID_KI        20000.0f
 #define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   30000.0f
 #define YAW_SPEED_PID_MAX_IOUT  10000.0f
 
 //pitch gyro angle close-loop PID params, max out and max iout
-#define PITCH_ANGLE_PID_KP 23.0f
-#define PITCH_ANGLE_PID_KI 50.0f
+#define PITCH_ANGLE_PID_KP 25.0f
+#define PITCH_ANGLE_PID_KI 0.0f
 #define PITCH_ANGLE_PID_KD 0.0f
 #define PITCH_ANGLE_PID_MAX_OUT 10.0f
 #define PITCH_ANGLE_PID_MAX_IOUT 10.0f
 
 //yaw gyro angle close-loop PID params, max out and max iout
-#define YAW_ANGLE_PID_KP        28.0f
+#define YAW_ANGLE_PID_KP        22.5f
 #define YAW_ANGLE_PID_KI        0.0f
 #define YAW_ANGLE_PID_KD        0.0f
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
@@ -102,7 +102,7 @@
 #else
 
 //pitch speed close-loop PID params, max out and max iout
-#define PITCH_SPEED_PID_KP        2250.0f // pitch starts shaking at 2600
+#define PITCH_SPEED_PID_KP        2250.0f
 #define PITCH_SPEED_PID_KI        25000.0f
 #define PITCH_SPEED_PID_KD        0.0f
 #define PITCH_SPEED_PID_MAX_OUT   30000.0f
@@ -130,29 +130,29 @@
 #define YAW_ANGLE_PID_MAX_IOUT  0.0f
 #endif
 
-#define PITCH_CAMERA_SPEED_PID_KP 5000.0f
-#define PITCH_CAMERA_SPEED_PID_KI 50000.0f
+#define PITCH_CAMERA_SPEED_PID_KP 15000.0f
+#define PITCH_CAMERA_SPEED_PID_KI 15000.0f
 #define PITCH_CAMERA_SPEED_PID_KD 0.0f
 #define PITCH_CAMERA_SPEED_PID_MAX_OUT 30000.0f
 #define PITCH_CAMERA_SPEED_PID_MAX_IOUT 10000.0f
 
-#define YAW_CAMERA_SPEED_PID_KP 10000.0f
+#define YAW_CAMERA_SPEED_PID_KP 20000.0f
 #define YAW_CAMERA_SPEED_PID_KI 20000.0f
 #define YAW_CAMERA_SPEED_PID_KD 0.0f
 #define YAW_CAMERA_SPEED_PID_MAX_OUT 30000.0f
-#define YAW_CAMERA_SPEED_PID_MAX_IOUT 5000.0f
+#define YAW_CAMERA_SPEED_PID_MAX_IOUT 10000.0f
 
 #define PITCH_CAMERA_ANGLE_PID_KP 25.0f
 #define PITCH_CAMERA_ANGLE_PID_KI 0.0f
 #define PITCH_CAMERA_ANGLE_PID_KD 0.0f
 #define PITCH_CAMERA_ANGLE_PID_MAX_OUT 10.0f // max speed (rad/s)
-#define PITCH_CAMERA_ANGLE_PID_MAX_IOUT 0.0f
+#define PITCH_CAMERA_ANGLE_PID_MAX_IOUT 10.0f
 
-#define YAW_CAMERA_ANGLE_PID_KP 23.0f
+#define YAW_CAMERA_ANGLE_PID_KP 22.5f
 #define YAW_CAMERA_ANGLE_PID_KI 0.0f
 #define YAW_CAMERA_ANGLE_PID_KD 0.0f
 #define YAW_CAMERA_ANGLE_PID_MAX_OUT 10.0f // max speed (rad/s)
-#define YAW_CAMERA_ANGLE_PID_MAX_IOUT 0.0f
+#define YAW_CAMERA_ANGLE_PID_MAX_IOUT 10.0f
 
 //pitch encode angle close-loop PID params, max out and max iout
 #define PITCH_ENCODE_RELATIVE_PID_KP 15.0f
