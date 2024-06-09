@@ -170,7 +170,6 @@ void decode_lower_head_data(uint8_t *data)
 void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_left, int16_t fric_right)
 {
     uint32_t send_mail_box;
-    gimbal_tx_message.StdId = CAN_RM_LOW_RANGE_TX_ID;
     gimbal_tx_message.IDE = CAN_ID_STD;
     gimbal_tx_message.RTR = CAN_RTR_DATA;
     gimbal_tx_message.DLC = 0x08;
@@ -191,6 +190,9 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
     fric_right = 0;
 #endif
 
+    // GM6020 CAN ID = 0x204 + ID, M2006 and M3508 CAN ID = 0x200 + ID
+    // CAN_6020_LOW_RANGE_TX_ID same as CAN_3508_OR_2006_HIGH_RANGE_TX_ID
+    gimbal_tx_message.StdId = CAN_6020_LOW_RANGE_TX_ID;
     gimbal_can_send_data[0] = (yaw >> 8);
     gimbal_can_send_data[1] = yaw;
     gimbal_can_send_data[2] = (pitch >> 8);
@@ -202,15 +204,15 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
     osDelay(1);
-    gimbal_tx_message.StdId = CAN_RM_HIGH_RANGE_TX_ID;
-    gimbal_can_send_data[0] = (fric_right >> 8);
-    gimbal_can_send_data[1] = fric_right;
+    gimbal_tx_message.StdId = CAN_3508_OR_2006_LOW_RANGE_TX_ID;
+    // gimbal_can_send_data[0] = (rev >> 8);
+    // gimbal_can_send_data[1] = rev;
     // gimbal_can_send_data[2] = (rev >> 8);
     // gimbal_can_send_data[3] = rev;
     // gimbal_can_send_data[4] = (rev >> 8);
     // gimbal_can_send_data[5] = rev;
-    // gimbal_can_send_data[6] = (rev >> 8);
-    // gimbal_can_send_data[7] = rev;
+    gimbal_can_send_data[6] = (fric_right >> 8);
+    gimbal_can_send_data[7] = fric_right;
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 

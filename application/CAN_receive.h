@@ -28,15 +28,18 @@
 /* CAN send and receive ID */
 typedef enum
 {
+    // GM6020 CAN ID = 0x204 + ID, M2006 and M3508 CAN ID = 0x200 + ID
     // gimbal can rx
     CAN_YAW_MOTOR_ID = 0x205,
     CAN_PIT_MOTOR_ID = 0x206,
     CAN_TRIGGER_MOTOR_ID = 0x207,
     CAN_FRICTION_MOTOR_LEFT_ID = 0x208, // friction1
-    CAN_FRICTION_MOTOR_RIGHT_ID = 0x209, // friction2
+    CAN_FRICTION_MOTOR_RIGHT_ID = 0x204, // friction2
     // gimbal can tx
-    CAN_RM_LOW_RANGE_TX_ID = 0x1FF,
-    CAN_RM_HIGH_RANGE_TX_ID = 0x2FF,
+    CAN_3508_OR_2006_LOW_RANGE_TX_ID = 0x200,
+    CAN_3508_OR_2006_HIGH_RANGE_TX_ID = 0x1FF,
+    CAN_6020_LOW_RANGE_TX_ID = 0x1FF,
+    CAN_6020_HIGH_RANGE_TX_ID = 0x2FF,
     // chassis can rx
     CAN_LOWER_HEAD_RX_ID = 0x110,
 } can_msg_id_e;
