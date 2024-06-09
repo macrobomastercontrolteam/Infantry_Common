@@ -581,15 +581,7 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
 		*vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
 		*vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
 
-		// @TODO: add enemy detection (controlled by CV)
-		// if (CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT))
-		// {
-		// 	spinning_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-		// }
-		// else
-		// {
-		// 	spinning_speed = SPINNING_CHASSIS_MED_OMEGA;
-		// }
+		// @TODO: implement CV enemy detection mode
 		*angle_set = chassis_spinning_speed_manager();
 	}
 #endif
