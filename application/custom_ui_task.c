@@ -52,6 +52,7 @@ graphic_data_struct_t crosshair_hori_5;
 graphic_data_struct_t crosshair_hori_6;
 string_data trigger_speed;
 string_data trigger_speed_data;
+string_data rand_spin_str;
 string_data robot_status_str;
 string_data MacRM_logo_str;
 
@@ -242,18 +243,24 @@ void chassis_mode_draw(void)
 		{
 			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "CNFY");
 			update_char(&robot_status_str);
+			char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+			update_char(&rand_spin_str);
 			break;
 		}
 		case CHASSIS_SPINNING:
 		{
 			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
 			update_char(&robot_status_str);
+			char_draw(&rand_spin_str, "rand_spin_str", (chassis_move.fRandomSpinOn ? UI_Graph_Del : UI_Graph_ADD), 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+			update_char(&rand_spin_str);
 			break;
 		}
 		default:
 		{
 			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "STOP");
 			update_char(&robot_status_str);
+			char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+			update_char(&rand_spin_str);
 			break;
 		}
 	}
