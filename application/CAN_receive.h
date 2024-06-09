@@ -28,7 +28,7 @@
 /* CAN send and receive ID */
 typedef enum
 {
-    // LED flashing time: GM6020 counts from 0x204, M2006 and M3508 ID counts from 0x200
+    // GM6020 CAN ID = 0x204 + ID, M2006 and M3508 CAN ID = 0x200 + ID
     /*******Chassis CAN IDs********/
     CAN_3508_M1_ID = 0x201,
     CAN_3508_M2_ID = 0x202,
@@ -67,8 +67,11 @@ typedef enum
 typedef enum
 {
 	/*******Tx CAN IDs********/
-	CAN_CHASSIS_M3508_TX_ID = 0x200,
-	CAN_GIMBAL_ALL_TX_ID = 0x1FF,
+  CAN_3508_OR_2006_LOW_RANGE_TX_ID = 0x200,
+  CAN_3508_OR_2006_HIGH_RANGE_TX_ID = 0x1FF,
+  CAN_6020_LOW_RANGE_TX_ID = 0x1FF,
+  CAN_6020_HIGH_RANGE_TX_ID = 0x2FF,
+
   SUPCAP_RX_ID = 0x301,
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	CAN_STEER_CONTROLLER_TX_ID = 0x112,

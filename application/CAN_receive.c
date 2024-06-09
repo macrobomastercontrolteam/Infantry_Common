@@ -306,7 +306,8 @@ void reverse_motor_feedback(uint8_t bMotorId)
 void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_left, int16_t fric_right)
 {
 	uint32_t send_mail_box;
-	gimbal_tx_message.StdId = CAN_GIMBAL_ALL_TX_ID;
+	// CAN_6020_LOW_RANGE_TX_ID same as CAN_3508_OR_2006_HIGH_RANGE_TX_ID
+	gimbal_tx_message.StdId = CAN_6020_LOW_RANGE_TX_ID;
 	gimbal_tx_message.IDE = CAN_ID_STD;
 	gimbal_tx_message.RTR = CAN_RTR_DATA;
 	gimbal_tx_message.DLC = 0x08;
@@ -421,7 +422,7 @@ void CAN_cmd_chassis(void)
 {
 	uint32_t send_mail_box;
 	// driver motors (M3508)
-	chassis_tx_message.StdId = CAN_CHASSIS_M3508_TX_ID;
+	chassis_tx_message.StdId = CAN_3508_OR_2006_LOW_RANGE_TX_ID;
 	chassis_tx_message.IDE = CAN_ID_STD;
 	chassis_tx_message.RTR = CAN_RTR_DATA;
 	chassis_tx_message.DLC = 0x08;
