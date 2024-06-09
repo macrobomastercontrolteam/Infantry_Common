@@ -54,6 +54,7 @@
 #include "chassis_task.h"
 #include "cmsis_os.h"
 #include "user_lib.h"
+#include "referee.h"
 
 #include "cv_usart_task.h"
 #include "detect_task.h"
