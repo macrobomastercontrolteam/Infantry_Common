@@ -36,6 +36,9 @@
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
 #define ENABLE_FRICTION_2_MOTOR_POWER 0
 
+#define BULLET_SPEED_ECD_MAX 40.0f
+#define BULLET_SPEED_RATIO (0xFF / BULLET_SPEED_ECD_MAX)
+
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 //motor data read
@@ -143,11 +146,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 void decode_lower_head_data(uint8_t *data)
 {
-	shoot_control.heat_limit = (data[1] << 8) | data[0];
-	shoot_control.heat = (data[3] << 8) | data[2];
+	shoot_control.heat_limit = (data[0] << 8) | data[1];
+	shoot_control.heat = (data[2] << 8) | data[3];
+	shoot_control.bullet_init_speed = (fp32) data[4] / BULLET_SPEED_RATIO;
 
 	uint8_t game_progress = 1;
-	uint8_t team_color = data[4];
+	uint8_t team_color = (data[7] & (1 << 7));
 	// placeholder
 	uint16_t current_HP = 100;
 	uint16_t stage_remain_time = 100;

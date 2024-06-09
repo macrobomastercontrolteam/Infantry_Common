@@ -165,6 +165,7 @@ typedef struct
 
     uint16_t heat_limit;
     uint16_t heat;
+    fp32 bullet_init_speed;
 
     uint32_t cv_auto_shoot_start_time;
 } shoot_control_t;
