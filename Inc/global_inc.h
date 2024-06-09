@@ -15,6 +15,7 @@
 // Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
 #define ENABLE_SHOOT_REDUNDANT_SWITCH 0
 #define ENABLE_LASER 1
+#define ROBOT_UPPER_HEAD 1
 
 #if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM))
 #define ROBOT_YAW_HAS_SLIP_RING 1
