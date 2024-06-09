@@ -315,7 +315,7 @@ static void shoot_set_mode(void)
 {
 
 	// normal RC control
-	if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+	if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
 	{
 		shoot_control.shoot_mode = SHOOT_STOP;
 	}
