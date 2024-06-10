@@ -99,6 +99,37 @@
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+
+//pitch speed close-loop PID params, max out and max iout
+// for cv auto-aim: 10000, 10000
+#define PITCH_SPEED_PID_KP        7500.0f
+#define PITCH_SPEED_PID_KI        0.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   30000.0f
+#define PITCH_SPEED_PID_MAX_IOUT  10000.0f
+
+//yaw speed close-loop PID params, max out and max iout
+#define YAW_SPEED_PID_KP        7500.0f
+#define YAW_SPEED_PID_KI        0.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   30000.0f
+#define YAW_SPEED_PID_MAX_IOUT  10000.0f
+
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_ANGLE_PID_KP 25.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.0f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
+
+//yaw gyro angle close-loop PID params, max out and max iout
+#define YAW_ANGLE_PID_KP        25.0f
+#define YAW_ANGLE_PID_KI        0.0f
+#define YAW_ANGLE_PID_KD        0.0f
+#define YAW_ANGLE_PID_MAX_OUT   10.0f
+#define YAW_ANGLE_PID_MAX_IOUT  10.0f
+
 #else
 
 //pitch speed close-loop PID params, max out and max iout
