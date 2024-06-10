@@ -43,7 +43,7 @@
 #include "calibrate_task.h"
 #include "chassis_task.h"
 #include "detect_task.h"
-#include "gimbal_task.h"
+// #include "gimbal_task.h"
 #include "INS_task.h"
 #include "led_flow_task.h"
 // #include "oled_task.h"

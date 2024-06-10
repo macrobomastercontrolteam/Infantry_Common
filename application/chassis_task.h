@@ -19,7 +19,7 @@
 #ifndef CHASSIS_TASK_H
 #define CHASSIS_TASK_H
 #include "CAN_receive.h"
-#include "gimbal_task.h"
+// #include "gimbal_task.h"
 #include "pid.h"
 #include "remote_control.h"
 #include "struct_typedef.h"

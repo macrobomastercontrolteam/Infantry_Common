@@ -6,7 +6,7 @@
 
 #include "biped.h"
 #include "cv_usart_task.h"
-#include "gimbal_behaviour.h"
+// #include "gimbal_behaviour.h"
 
 #define RPM_TO_RADS(_ROUND_PER_MIN) (_ROUND_PER_MIN * 0.10471975511965977f)
 #define SPINNING_CHASSIS_LOW_OMEGA (RPM_TO_RADS(25.0f))
@@ -14,10 +14,9 @@
 #define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(35.0f))
 
 #if CHASSIS_JSCOPE_DEBUG
-int32_t chassis_behaviour_mode_int;
 static void jscope_chassis_behavior_test(void)
 {
-	chassis_behaviour_mode_int = (int32_t)(chassis_behaviour_mode);
+	;
 }
 #endif
 

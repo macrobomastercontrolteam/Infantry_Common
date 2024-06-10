@@ -619,16 +619,6 @@
               <FilePath>..\application\detect_task.c</FilePath>
             </File>
             <File>
-              <FileName>gimbal_behaviour.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\gimbal_behaviour.c</FilePath>
-            </File>
-            <File>
-              <FileName>gimbal_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\gimbal_task.c</FilePath>
-            </File>
-            <File>
               <FileName>INS_task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\INS_task.c</FilePath>
@@ -652,11 +642,6 @@
               <FileName>remote_control.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\remote_control.c</FilePath>
-            </File>
-            <File>
-              <FileName>shoot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\shoot.c</FilePath>
             </File>
             <File>
               <FileName>test_task.c</FileName>

@@ -106,7 +106,7 @@
 #include "can_receive.h"
 #include "remote_control.h"
 #include "INS_task.h"
-#include "gimbal_task.h"
+// #include "gimbal_task.h"
 
 
 //include head,gimbal,gyro,accel,mag. gyro,accel and mag have the same data struct. total 5(CALI_LIST_LENGTH) devices, need data length + 5 * 4 bytes(name[3]+cali)
