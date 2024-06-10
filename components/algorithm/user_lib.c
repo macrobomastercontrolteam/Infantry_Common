@@ -3,12 +3,16 @@
 
 fp32 first_order_filter(fp32 input, fp32 output_prev, fp32 coeff)
 {
-    if (coeff > 1)
+    fp32 output;
+    if (coeff >= 0.99f)
     {
-        return NAN;
+        output = input;
     }
-    fp32 output = (1-coeff)*output_prev + coeff*input;
-    return output;
+    else
+	{
+		output = (1 - coeff) * output_prev + coeff * input;
+	}
+	return output;
 }
 
 fp32 second_order_filter(fp32 input, fp32 output_prev1, fp32 output_prev2, fp32 coeff1, fp32 coeff2)
