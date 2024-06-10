@@ -22,17 +22,8 @@
 #include "detect_task.h"
 #include "chassis_task.h"
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-// @TODO: change limit according to chassis_power_limit field of referee serial data
-#define POWER_LIMIT         40.0f
-#define WARNING_POWER       35.0f
-#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define POWER_LIMIT         95.0f
-#define WARNING_POWER       65.0f
-#else
-#define POWER_LIMIT         80.0f
-#define WARNING_POWER       40.0f   
-#endif
+#define WARNING_POWER_RATIO 0.4f
+#define ALMOST_DEAD_POWER_RATIO 0.5f
 #define WARNING_POWER_BUFF  8.0f
 
 #define NO_JUDGE_TOTAL_CURRENT_LIMIT    64000.0f    //16000 * 4, 
@@ -46,8 +37,6 @@
   */
 void chassis_power_control(chassis_move_t *chassis_power_control)
 {
-    fp32 chassis_power = 0.0f;
-    fp32 chassis_power_buffer = 0.0f;
     fp32 total_current_limit = 0.0f;
     fp32 total_current = 0.0f;
     uint8_t robot_id = get_robot_id();
@@ -55,56 +44,59 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
 	{
         total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
     }
-    else if (toe_is_error(SUPCAP_TOE) || (cap_message_rx.cap_message.cap_voltage <= 10000))
+	else if (toe_is_error(SUPCAP_TOE) || (cap_message_rx.cap_message.cap_voltage <= 10000))
+	{
+		fp32 chassis_power;
+		fp32 chassis_power_buffer;
+		fp32 chassis_power_limit;
+		// no supercap
+		get_chassis_power_data(&chassis_power, &chassis_power_buffer, &chassis_power_limit);
+
+		// power > 80w and buffer < 60j, because buffer < 60 means power has been more than 80w
+		if (chassis_power_buffer < WARNING_POWER_BUFF)
+		{
+			fp32 power_scale;
+			if (chassis_power_buffer > WARNING_POWER_BUFF * ALMOST_DEAD_POWER_RATIO)
+			{
+				power_scale = chassis_power_buffer / WARNING_POWER_BUFF;
+			}
+			else
+			{
+				power_scale = ALMOST_DEAD_POWER_RATIO;
+			}
+			// scale down
+			total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT * power_scale;
+		}
+		else
+		{
+			fp32 chassis_warning_power_limit = chassis_power_limit * WARNING_POWER_RATIO;
+			// power > chassis_warning_power_limit
+			if (chassis_power > chassis_warning_power_limit)
+			{
+				fp32 power_scale;
+				// power < 80w
+				if (chassis_power < chassis_power_limit)
+				{
+					// scale down
+					power_scale = (chassis_power_limit - chassis_power) / (chassis_power_limit - chassis_warning_power_limit);
+				}
+				// power > 80w
+				else
+				{
+					power_scale = 0.0f;
+				}
+				total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT + POWER_TOTAL_CURRENT_LIMIT * power_scale;
+			}
+			// power < chassis_warning_power_limit
+			else
+			{
+				total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT + POWER_TOTAL_CURRENT_LIMIT;
+			}
+		}
+	}
+	else
     {
-        get_chassis_power_and_buffer(&chassis_power, &chassis_power_buffer);
-        // power > 80w and buffer < 60j, because buffer < 60 means power has been more than 80w
-        if(chassis_power_buffer < WARNING_POWER_BUFF)
-        {
-            fp32 power_scale;
-            if(chassis_power_buffer > 5.0f)
-            {
-                //scale down WARNING_POWER_BUFF
-                power_scale = chassis_power_buffer / WARNING_POWER_BUFF;
-            }
-            else
-            {
-                //only left 10% of WARNING_POWER_BUFF
-                power_scale = 5.0f / WARNING_POWER_BUFF;
-            }
-            //scale down
-            total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT * power_scale;
-        }
-        else
-        {
-            //power > WARNING_POWER
-            if(chassis_power > WARNING_POWER)
-            {
-                fp32 power_scale;
-                //power < 80w
-                if(chassis_power < POWER_LIMIT)
-                {
-                    //scale down
-                    power_scale = (POWER_LIMIT - chassis_power) / (POWER_LIMIT - WARNING_POWER);
-                    
-                }
-                //power > 80w
-                else
-                {
-                    power_scale = 0.0f;
-                }
-                
-                total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT + POWER_TOTAL_CURRENT_LIMIT * power_scale;
-            }
-            //power < WARNING_POWER
-            else
-            {
-                total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT + POWER_TOTAL_CURRENT_LIMIT;
-            }
-        }
-    }
-    else
-    {
+        // no supcap nor referee
         total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
     }
 

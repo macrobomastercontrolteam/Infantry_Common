@@ -290,10 +290,18 @@ void referee_data_solve(uint8_t *frame)
 	}
 }
 
-void get_chassis_power_and_buffer(fp32 *power, fp32 *buffer)
+void get_chassis_power_data(fp32 *power, fp32 *buffer, fp32 *power_limit)
 {
 	*power = power_heat_data_t.chassis_power;
 	*buffer = power_heat_data_t.buffer_energy;
+	if (robot_state.chassis_power_limit > 0)
+	{
+		*power_limit = robot_state.chassis_power_limit;
+	}
+	else
+	{
+		*power_limit = 45;
+	}
 }
 
 uint8_t get_robot_id(void)
