@@ -33,8 +33,6 @@
 
 #define STEER_MOTOR_UPSIDE_DOWN_MOUNTING 0
 #define SWERVE_INVALID_HIP_DATA_RESET_TIMEOUT 1000
-// swerve specific: take consideration of hip speed
-#define ENABLE_HIP_MOTOR_CALC 0
 
 /**
  * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
@@ -236,6 +234,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+	swerve_enable_hip(0);
 	chassis_swerve_params_reset();
 #endif
 
@@ -300,15 +299,32 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				break;
 			}
 			case CHASSIS_VECTOR_SPINNING:
-			case SWERVE_CHASSIS_VECTOR_SPINNING:
 			{
 				// Relative angle implementation for chassis spinning mode
 				// chassis_move_transit->chassis_relative_angle_set = chassis_move_transit->chassis_yaw_motor->relative_angle;
 				break;
 			}
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+			case SWERVE_CHASSIS_VECTOR_SPINNING:
+			{
+				swerve_enable_hip(1);
+				break;
+			}
+			case SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW:
+			{
+				swerve_enable_hip(1);
+				chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
+				break;
+			}
+			case CHASSIS_VECTOR_RAW:
+			{
+				swerve_enable_hip(0);
+				chassis_swerve_params_reset();
+				break;
+			}
+#endif
 			case CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW:
 			case CHASSIS_VECTOR_NO_FOLLOW_YAW:
-			case SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW:
 			{
 				chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
 				break;
@@ -318,6 +334,17 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				break;
 			}
 		}
+
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+		if ((chassis_move_transit->last_chassis_mode == SWERVE_CHASSIS_VECTOR_SPINNING) || (chassis_move_transit->last_chassis_mode == SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW))
+		{
+			if ((chassis_move_transit->chassis_mode != SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW) && (chassis_move_transit->chassis_mode != SWERVE_CHASSIS_VECTOR_SPINNING))
+			{
+				swerve_enable_hip(0);
+				chassis_swerve_params_reset();
+			}
+		}
+#endif
 		chassis_move_transit->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA;
 		// chassis_move_transit->wz_min_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
 		chassis_move_transit->dial_channel_latched = 0;
@@ -746,9 +773,10 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
 	vy_by_wz[3] = wz_set_adjusted_rear_wheels * (chassis_move.wheel_rot_radii[2] * cos_gamma); // wz_set * R * sin(gamma)
 
 	// velocity contributed by hip
-#if ENABLE_HIP_MOTOR_CALC
 	fp32 vx_by_hip[4];
 	fp32 vy_by_hip[4];
+	if (chassis_move.fHipEnabled)
+	{
 	// right front
 	vx_by_hip[0] = chassis_move.target_wheel_rot_radii_dot[0] * sin_gamma;
 	vy_by_hip[0] = chassis_move.target_wheel_rot_radii_dot[0] * cos_gamma;
@@ -761,10 +789,12 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
 	// right rear
 	vx_by_hip[3] = -chassis_move.target_wheel_rot_radii_dot[3] * sin_gamma;
 	vy_by_hip[3] = chassis_move.target_wheel_rot_radii_dot[3] * cos_gamma;
-#else
-	fp32 vx_by_hip[4] = {0, 0, 0, 0};
-	fp32 vy_by_hip[4] = {0, 0, 0, 0};
-#endif
+	}
+	else
+	{
+		memset(vx_by_hip, 0, sizeof(vx_by_hip));
+		memset(vy_by_hip, 0, sizeof(vy_by_hip));
+	}
 
 	// pairs of velocities represented by (x,y)
 	fp32 wheel_velocity[4][2] = {
@@ -792,12 +822,8 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
 		wheel_speed[i] = sqrt(pow(wheel_velocity[i][0], 2) + pow(wheel_velocity[i][1], 2));
 
 		// steering wheel angle
-#if ENABLE_HIP_MOTOR_CALC
 		fNoChangeUnique = (fabs(chassis_move.target_wheel_rot_radii_dot[i]) < STEER_TURN_HIP_RADIUS_SPEED_DEADZONE);
-#else
-		fNoChangeUnique = 1;
-#endif
-		if (fNoChangeUniversal && fNoChangeUnique)
+		if (fNoChangeUniversal && ((chassis_move.fHipEnabled == 0) || fNoChangeUnique))
 		{
 			steer_wheel_angle[i] = last_steer_wheel_angle_target[i];
 		}

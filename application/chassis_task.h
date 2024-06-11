@@ -270,6 +270,7 @@ typedef struct
 	fp32 target_wheel_rot_radii_dot[4];
 	chassis_steer_motor_t steer_motor_chassis[4]; // chassis steering motor data
 	chassis_platform_t chassis_platform;
+	uint8_t fHipEnabled;
 #endif
 
 	first_order_filter_type_t chassis_cmd_slow_set_vx; // use first order filter to slow set-point

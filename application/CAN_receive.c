@@ -540,7 +540,7 @@ void CAN_cmd_swerve_hip(void)
 
 	chassis_tx_message.StdId = CAN_SWERVE_CONTROLLERE_TX_ID;
 #if ENABLE_HIP_MOTOR_POWER
-	if ((chassis_move.chassis_mode == SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW) || (chassis_move.chassis_mode == SWERVE_CHASSIS_VECTOR_SPINNING))
+	if (chassis_move.fHipEnabled)
 	{
 		int16_t target_alpha1_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha1, SWERVE_ANGLE_ECD_MAX_LIMIT) * swerve_angle_encoding_ratio;
 		int16_t target_alpha2_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha2, SWERVE_ANGLE_ECD_MAX_LIMIT) * swerve_angle_encoding_ratio;
@@ -562,6 +562,15 @@ void CAN_cmd_swerve_hip(void)
 		memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
 	}
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+void swerve_enable_hip(uint8_t fEnabled)
+{
+#if ENABLE_HIP_MOTOR_POWER
+	chassis_move.fHipEnabled = fEnabled;
+#else
+	chassis_move.fHipEnabled = 0;
+#endif
 }
 #endif
 

@@ -143,6 +143,7 @@ void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes);
 #endif
 void CAN_cmd_swerve_steer(void);
 void CAN_cmd_swerve_hip(void);
+void swerve_enable_hip(uint8_t fEnabled);
 #endif
 
 /**
