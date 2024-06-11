@@ -90,7 +90,6 @@ void shoot_init(void)
 	shoot_control.speed = 0.0f;
 	shoot_control.speed_set = 0.0f;
 	// shoot_control.key_time = 0;
-	shoot_control.fIsCvControl = 0;
 
 	shoot_control.press_l = 0;
 	shoot_control.press_r = 0;
@@ -239,14 +238,6 @@ int16_t shoot_control_loop(void)
 			{
 				shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
 			}
-			//         else if (shoot_control.fIsCvControl == 0)
-			//         {
-			//             // long press mouse to rapid fire
-			//             if ((shoot_control.press_l && shoot_control.last_press_l == 0) || (shoot_control.press_r && shoot_control.last_press_r == 0))
-			//             {
-			//                 shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
-			//             }
-			//         }
 			break;
 		}
 		case SHOOT_SEMI_AUTO_FIRE:

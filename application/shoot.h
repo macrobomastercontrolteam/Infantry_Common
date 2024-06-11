@@ -134,7 +134,6 @@ typedef enum
 typedef struct
 {
     shoot_mode_e shoot_mode;
-    uint8_t fIsCvControl;
     const RC_ctrl_t *shoot_rc;
 
     int16_t fric1_given_current;
