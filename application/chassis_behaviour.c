@@ -192,8 +192,6 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			}
 			case RC_SW_MID:
 			{
-				// can change to CHASSIS_ZERO_FORCE,CHASSIS_NO_MOVE,CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,
-				// CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW,CHASSIS_NO_FOLLOW_YAW,CHASSIS_OPEN
 				// Remember to change gimbal_behaviour logic correspondingly
 				chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
 				break;
@@ -201,7 +199,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			case RC_SW_DOWN:
 			default:
 			{
-				chassis_behaviour_mode = CHASSIS_NO_MOVE;
+				chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
 				break;
 			}
 		}
