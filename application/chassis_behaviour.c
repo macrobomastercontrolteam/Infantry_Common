@@ -130,11 +130,6 @@ static void chassis_engineer_follow_chassis_yaw_control(fp32 *vx_set, fp32 *vy_s
  */
 static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-static void swerve_chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector);
-static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector);
-#endif
-
 /**
  * @brief          when chassis behaviour mode is CHASSIS_OPEN, chassis control mode is raw control mode.
  *                 set value will be sent to can bus.
@@ -193,7 +188,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			case RC_SW_MID:
 			{
 				// Remember to change gimbal_behaviour logic correspondingly
-				chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+                chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
 				break;
 			}
 			case RC_SW_DOWN:
@@ -240,20 +235,10 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
 			break;
 		}
-		case SWERVE_CHASSIS_NO_FOLLOW_YAW:
-		{
-			chassis_move_mode->chassis_mode = SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW;
-			break;
-		}
 		case CHASSIS_SPINNING:
 		case CHASSIS_CV_CONTROL_SPINNING:
 		{
 			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
-			break;
-		}
-		case SWERVE_CHASSIS_SPINNING:
-		{
-			chassis_move_mode->chassis_mode = SWERVE_CHASSIS_VECTOR_SPINNING;
 			break;
 		}
 		case CHASSIS_ZERO_FORCE:
@@ -307,18 +292,6 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 			chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
 			break;
 		}
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-		case SWERVE_CHASSIS_NO_FOLLOW_YAW:
-		{
-			swerve_chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
-		case SWERVE_CHASSIS_SPINNING:
-		{
-			swerve_chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
-#endif
 		case CHASSIS_OPEN:
 		{
 			chassis_open_set_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
@@ -562,23 +535,11 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
 
 	// Convert joystick and keyboard input to commands
 	chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-	*angle_set = chassis_spinning_speed_manager();
-}
-
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-static void swerve_chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
-{
-	if (vx_set == NULL || vy_set == NULL || angle_set == NULL || chassis_move_rc_to_vector == NULL)
-	{
-		return;
-	}
-
-	// Convert joystick and keyboard input to commands
-	fp32 dummy_wz_set;
-	swerve_chassis_rc_to_control_vector(vx_set, vy_set, &dummy_wz_set, chassis_move_rc_to_vector, 0);
+	swerve_platform_rc_mapping();
+#endif
 	*angle_set = chassis_spinning_speed_manager();
 }
-#endif
 
 static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, chassis_move_t *chassis_move_rc_to_vector)
 {
@@ -643,20 +604,18 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
 	}
 
 	chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-	*wz_set = CHASSIS_WZ_RC_SEN * chassis_move.dial_channel_out;
-}
-
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-static void swerve_chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector)
-{
-	if (vx_set == NULL || vy_set == NULL || wz_set == NULL || chassis_move_rc_to_vector == NULL)
-	{
-		return;
-	}
+	// filter for dial
+	fp32 wz_set_channel = chassis_move.dial_channel_out * -CHASSIS_WZ_RC_SEN;
+	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz, wz_set_channel);
+	fp32_deadzone(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out, CHASSIS_WZ_CMD_DEADZONE);
+	*wz_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out;
 
-	swerve_chassis_rc_to_control_vector(vx_set, vy_set, wz_set, chassis_move_rc_to_vector, 1);
-}
+	swerve_platform_rc_mapping();
+#else
+	*wz_set = CHASSIS_WZ_RC_SEN * chassis_move.dial_channel_out;
 #endif
+}
 
 /**
  * @brief          when chassis behaviour mode is CHASSIS_OPEN, chassis control mode is raw control mode.

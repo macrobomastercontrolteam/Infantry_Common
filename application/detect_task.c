@@ -269,9 +269,7 @@ static void detect_init(uint32_t time)
     error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
 #endif
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-    error_list[SWERVE_CTRL_TOE].solve_lost_fun = chassis_swerve_params_reset;
-#endif
+	error_list[SWERVE_CTRL_TOE].solve_lost_fun = swerve_chassis_params_reset;
 
 	// error_list[OLED_TOE].data_is_error_fun = NULL;
     // error_list[OLED_TOE].solve_lost_fun = OLED_com_reset;

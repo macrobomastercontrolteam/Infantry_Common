@@ -75,11 +75,6 @@ extern CAN_HandleTypeDef hcan2;
 uint8_t convertCanIdToMotorIndex(uint32_t canId);
 void reverse_motor_feedback(uint8_t bMotorId);
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data);
-uint8_t decode_swerve_chassis_feedback(uint8_t *data);
-#endif
-
 /**
  * @brief motor feedback data
  * Chassis CAN:
@@ -109,6 +104,9 @@ const fp32 swerve_angle_encoding_ratio = (1 << 15) / SWERVE_ANGLE_ECD_MAX_LIMIT;
 
 const fp32 swerve_meter_encoding_ratio_shrinked = (1 << 8) / SWERVE_METER_ECD_MAX_LIMIT;
 const fp32 swerve_angle_encoding_ratio_shrinked = (1 << 7) / SWERVE_ANGLE_ECD_MAX_LIMIT;
+
+uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data);
+uint8_t decode_swerve_chassis_feedback(uint8_t *data);
 #endif
 
 uint8_t convertCanIdToMotorIndex(uint32_t canId)
@@ -564,16 +562,20 @@ void CAN_cmd_swerve_hip(void)
 	}
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
+#endif
 
 void swerve_enable_hip(uint8_t fEnabled)
 {
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+
 #if ENABLE_HIP_MOTOR_POWER
 	chassis_move.fHipEnabled = fEnabled;
 #else
 	chassis_move.fHipEnabled = 0;
 #endif
-}
+
 #endif
+}
 
 #if USE_SERVO_TO_STIR_AMMO
 void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes)

@@ -78,7 +78,6 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static uint16_t motor_angle_to_ecd_change(fp32 angle);
-void swerve_platform_rc_mapping(void);
 void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle);
 void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32 alpha2, fp32 gimbal_chassis_relative_yaw_angle);
 #endif
@@ -233,18 +232,28 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	chassis_move_init->fRandomSpinOn = 0;
 #endif
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	swerve_enable_hip(0);
-	chassis_swerve_params_reset();
-#endif
+	swerve_chassis_params_reset();
 
 	// update data
 	chassis_feedback_update();
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-void chassis_swerve_params_reset(void)
+void chassis_swerve_back_home(void)
 {
+	// back to middle height, which has the largest workspace for alpha angle
+	chassis_move.chassis_platform.target_roll = 0;
+	chassis_move.chassis_platform.target_pitch = 0;
+	chassis_move.chassis_platform.target_alpha1 = 0;
+	chassis_move.chassis_platform.target_alpha2 = 0;
+	chassis_move.chassis_platform.target_height = CHASSIS_H_WORKSPACE_PEAK;
+}
+#endif
+
+void swerve_chassis_params_reset(void)
+{
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	chassis_move.chassis_platform.target_roll = 0;
 	chassis_move.chassis_platform.target_pitch = 0;
 	chassis_move.chassis_platform.target_alpha1 = 0;
@@ -259,8 +268,8 @@ void chassis_swerve_params_reset(void)
 		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
 		chassis_move.target_wheel_rot_radii_dot[i] = 0;
 	}
-}
 #endif
+}
 
 /**
  * @brief          set chassis control mode, mainly call 'chassis_behaviour_mode_set' function
@@ -302,15 +311,11 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 			{
 				// Relative angle implementation for chassis spinning mode
 				// chassis_move_transit->chassis_relative_angle_set = chassis_move_transit->chassis_yaw_motor->relative_angle;
-				break;
-			}
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-			case SWERVE_CHASSIS_VECTOR_SPINNING:
-			{
 				swerve_enable_hip(1);
 				break;
 			}
-			case SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW:
+			case CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW:
+			case CHASSIS_VECTOR_NO_FOLLOW_YAW:
 			{
 				swerve_enable_hip(1);
 				chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
@@ -319,14 +324,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 			case CHASSIS_VECTOR_RAW:
 			{
 				swerve_enable_hip(0);
-				chassis_swerve_params_reset();
-				break;
-			}
-#endif
-			case CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW:
-			case CHASSIS_VECTOR_NO_FOLLOW_YAW:
-			{
-				chassis_move_transit->chassis_yaw_set = chassis_move_transit->chassis_yaw;
+				swerve_chassis_params_reset();
 				break;
 			}
 			default:
@@ -334,17 +332,6 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				break;
 			}
 		}
-
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-		if ((chassis_move_transit->last_chassis_mode == SWERVE_CHASSIS_VECTOR_SPINNING) || (chassis_move_transit->last_chassis_mode == SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW))
-		{
-			if ((chassis_move_transit->chassis_mode != SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW) && (chassis_move_transit->chassis_mode != SWERVE_CHASSIS_VECTOR_SPINNING))
-			{
-				swerve_enable_hip(0);
-				chassis_swerve_params_reset();
-			}
-		}
-#endif
 		chassis_move_transit->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA;
 		// chassis_move_transit->wz_min_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
 		chassis_move_transit->dial_channel_latched = 0;
@@ -469,152 +456,74 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-void swerve_chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector, uint8_t fEnableWz)
-{
-	if (chassis_move_rc_to_vector == NULL || vx_set == NULL || vy_set == NULL)
-	{
-		return;
-	}
-
-	int16_t vx_channel, vy_channel;
-	fp32 vx_set_channel, vy_set_channel, wz_set_channel;
-	// deadline, because some remote control need be calibrated,  the value of joystick is not zero in middle place,
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], vx_channel, CHASSIS_RC_DEADLINE);
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], vy_channel, CHASSIS_RC_DEADLINE);
-
-	// change max speed
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
-	{
-		chassis_move_rc_to_vector->vx_max_speed = SPRINT_MAX_CHASSIS_SPEED_X;
-		chassis_move_rc_to_vector->vy_max_speed = SPRINT_MAX_CHASSIS_SPEED_Y;
-	}
-	else
-	{
-		chassis_move_rc_to_vector->vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
-		chassis_move_rc_to_vector->vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
-	}
-	chassis_move_rc_to_vector->vx_rc_sen = chassis_move_rc_to_vector->vx_max_speed / JOYSTICK_HALF_RANGE;
-	chassis_move_rc_to_vector->vy_rc_sen = chassis_move_rc_to_vector->vy_max_speed / JOYSTICK_HALF_RANGE;
-
-	vx_set_channel = vx_channel * chassis_move_rc_to_vector->vx_rc_sen;
-	vy_set_channel = vy_channel * -(chassis_move_rc_to_vector->vy_rc_sen);
-	if (fEnableWz)
-	{
-		wz_set_channel = chassis_move.dial_channel_out * -CHASSIS_WZ_RC_SEN;
-	}
-
-	// keyboard set speed set-point
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_FRONT_KEY)
-	{
-		vx_set_channel = chassis_move_rc_to_vector->vx_max_speed;
-	}
-	else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_BACK_KEY)
-	{
-		vx_set_channel = chassis_move_rc_to_vector->vx_min_speed;
-	}
-
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEFT_KEY)
-	{
-		vy_set_channel = chassis_move_rc_to_vector->vy_max_speed;
-	}
-	else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_RIGHT_KEY)
-	{
-		vy_set_channel = chassis_move_rc_to_vector->vy_min_speed;
-	}
-
-	// first order low-pass replace ramp function, calculate chassis speed set-point to improve control performance
-	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_vx, vx_set_channel);
-	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_vy, vy_set_channel);
-	if (fEnableWz)
-	{
-		first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz, wz_set_channel);
-	}
-	// Do not go back to zero immediately for swerve chassis, which would make steer cmd noisy
-	// stop command, need not slow change, set zero derectly
-	// if (fabs(vx_set_channel) < CHASSIS_RC_DEADLINE * chassis_move_rc_to_vector->vx_rc_sen)
-	// {
-	//     chassis_move_rc_to_vector->chassis_cmd_slow_set_vx.out = 0.0f;
-	// }
-
-	// if (fabs(vy_set_channel) < CHASSIS_RC_DEADLINE * chassis_move_rc_to_vector->vy_rc_sen)
-	// {
-	//     chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out = 0.0f;
-	// }
-
-	// wz doesn't need sudden brake
-
-	*vx_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vx.out;
-	*vy_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out;
-	if (fEnableWz)
-	{
-		*wz_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out;
-	}
-
-	// chassis platform command (mainly for hip motors)
-	swerve_platform_rc_mapping();
-}
-
 void swerve_platform_rc_mapping(void)
 {
-	// roll
-	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
+	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) && (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C))
 	{
-		chassis_move.chassis_platform.target_roll += SWERVE_HIP_ROLL_KEYBOARD_SEN_INC;
-	}
-	else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C)
-	{
-		chassis_move.chassis_platform.target_roll -= SWERVE_HIP_ROLL_KEYBOARD_SEN_INC;
-	}
-
-	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
-	{
-		// height
-		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
-		{
-			chassis_move.chassis_platform.target_height += SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
-		}
-		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
-		{
-			chassis_move.chassis_platform.target_height -= SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
-		}
+		chassis_swerve_back_home();
 	}
 	else
 	{
-		// pitch
-		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+		// roll
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
 		{
-			chassis_move.chassis_platform.target_pitch += SWERVE_HIP_PITCH_KEYBOARD_SEN_INC;
+			chassis_move.chassis_platform.target_roll += SWERVE_HIP_ROLL_KEYBOARD_SEN_INC;
 		}
-		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C)
 		{
-			chassis_move.chassis_platform.target_pitch -= SWERVE_HIP_PITCH_KEYBOARD_SEN_INC;
+			chassis_move.chassis_platform.target_roll -= SWERVE_HIP_ROLL_KEYBOARD_SEN_INC;
 		}
+
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
+		{
+			// height
+			if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+			{
+				chassis_move.chassis_platform.target_height += SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
+			}
+			else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+			{
+				chassis_move.chassis_platform.target_height -= SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
+			}
+		}
+		else
+		{
+			// pitch
+			if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+			{
+				chassis_move.chassis_platform.target_pitch += SWERVE_HIP_PITCH_KEYBOARD_SEN_INC;
+			}
+			else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+			{
+				chassis_move.chassis_platform.target_pitch -= SWERVE_HIP_PITCH_KEYBOARD_SEN_INC;
+			}
+		}
+		// constrain target roll, pitch, and height values
+		chassis_move.chassis_platform.target_roll = fp32_constrain(chassis_move.chassis_platform.target_roll, -CHASSIS_ROLL_UPPER_LIMIT, CHASSIS_ROLL_UPPER_LIMIT);
+		chassis_move.chassis_platform.target_pitch = fp32_constrain(chassis_move.chassis_platform.target_pitch, -CHASSIS_PITCH_UPPER_LIMIT, CHASSIS_PITCH_UPPER_LIMIT);
+		chassis_move.chassis_platform.target_height = fp32_constrain(chassis_move.chassis_platform.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
+
+		// chassis platform posture conversion
+		swerve_convert_from_rpy_to_alpha(chassis_move.chassis_platform.target_roll, chassis_move.chassis_platform.target_pitch, &(chassis_move.chassis_platform.target_alpha1), &(chassis_move.chassis_platform.target_alpha2), chassis_move.chassis_yaw_motor->relative_angle);
+
+		// constrain target alpha1 and alpha2 values
+		// calculation for alpha limit: According to the matlab calculation, the available workspace in height-alpha space is triangular, so we assume height target has more priority than alpha target, and calculate alpha limit based on height
+		if (chassis_move.chassis_platform.target_height >= CHASSIS_H_WORKSPACE_PEAK)
+		{
+			chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
+		}
+		else
+		{
+			chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
+		}
+		chassis_move.chassis_platform.alpha_lower_limit = -chassis_move.chassis_platform.alpha_upper_limit;
+
+		chassis_move.chassis_platform.target_alpha1 = fp32_constrain(chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
+		chassis_move.chassis_platform.target_alpha2 = fp32_constrain(chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
+
+		// chassis platform posture inverse conversion to reflect limited alpha values onto the set roll and pitch values
+		swerve_convert_from_alpha_to_rpy(&(chassis_move.chassis_platform.target_roll), &(chassis_move.chassis_platform.target_pitch), chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_yaw_motor->relative_angle);
 	}
-	// constrain target roll, pitch, and height values
-	chassis_move.chassis_platform.target_roll = fp32_constrain(chassis_move.chassis_platform.target_roll, -CHASSIS_ROLL_UPPER_LIMIT, CHASSIS_ROLL_UPPER_LIMIT);
-	chassis_move.chassis_platform.target_pitch = fp32_constrain(chassis_move.chassis_platform.target_pitch, -CHASSIS_PITCH_UPPER_LIMIT, CHASSIS_PITCH_UPPER_LIMIT);
-	chassis_move.chassis_platform.target_height = fp32_constrain(chassis_move.chassis_platform.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
-
-	// chassis platform posture conversion
-	swerve_convert_from_rpy_to_alpha(chassis_move.chassis_platform.target_roll, chassis_move.chassis_platform.target_pitch, &(chassis_move.chassis_platform.target_alpha1), &(chassis_move.chassis_platform.target_alpha2), chassis_move.chassis_yaw_motor->relative_angle);
-
-	// constrain target alpha1 and alpha2 values
-	// calculation for alpha limit: According to the matlab calculation, the available workspace in height-alpha space is triangular, so we assume height target has more priority than alpha target, and calculate alpha limit based on height
-	if (chassis_move.chassis_platform.target_height >= CHASSIS_H_WORKSPACE_PEAK)
-	{
-		chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
-	}
-	else
-	{
-		chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
-	}
-	chassis_move.chassis_platform.alpha_lower_limit = -chassis_move.chassis_platform.alpha_upper_limit;
-
-	chassis_move.chassis_platform.target_alpha1 = fp32_constrain(chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
-	chassis_move.chassis_platform.target_alpha2 = fp32_constrain(chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
-
-	// chassis platform posture inverse conversion to reflect limited alpha values onto the set roll and pitch values
-	swerve_convert_from_alpha_to_rpy(&(chassis_move.chassis_platform.target_roll), &(chassis_move.chassis_platform.target_pitch), chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_yaw_motor->relative_angle);
 }
 
 void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle)
@@ -684,7 +593,7 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
 		chassis_move_control->wz_set = -PID_calc(&chassis_move_control->chassis_angle_pid, chassis_move_control->chassis_yaw_motor->relative_angle, chassis_move_control->chassis_relative_angle_set, CHASSIS_CONTROL_TIME_S);
 	}
 	// spinning mode is no-follow-gimbal mode with non-zero angular speed
-	else if ((chassis_move_control->chassis_mode == CHASSIS_VECTOR_SPINNING) || (chassis_move_control->chassis_mode == SWERVE_CHASSIS_VECTOR_SPINNING) || (chassis_move_control->chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW) || (chassis_move_control->chassis_mode == SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW))
+	else if ((chassis_move_control->chassis_mode == CHASSIS_VECTOR_SPINNING) || (chassis_move_control->chassis_mode == CHASSIS_VECTOR_NO_FOLLOW_YAW))
 	{
 		// rotate chassis direction, make sure vertial direction follow gimbal
 		fp32 sin_yaw = AHRS_sinf(chassis_move_control->chassis_yaw_motor->relative_angle);
@@ -777,18 +686,18 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
 	fp32 vy_by_hip[4];
 	if (chassis_move.fHipEnabled)
 	{
-	// right front
-	vx_by_hip[0] = chassis_move.target_wheel_rot_radii_dot[0] * sin_gamma;
-	vy_by_hip[0] = chassis_move.target_wheel_rot_radii_dot[0] * cos_gamma;
-	// left front
-	vx_by_hip[1] = chassis_move.target_wheel_rot_radii_dot[1] * sin_gamma;
-	vy_by_hip[1] = -chassis_move.target_wheel_rot_radii_dot[1] * cos_gamma;
-	// left rear
-	vx_by_hip[2] = -chassis_move.target_wheel_rot_radii_dot[2] * sin_gamma;
-	vy_by_hip[2] = -chassis_move.target_wheel_rot_radii_dot[2] * cos_gamma;
-	// right rear
-	vx_by_hip[3] = -chassis_move.target_wheel_rot_radii_dot[3] * sin_gamma;
-	vy_by_hip[3] = chassis_move.target_wheel_rot_radii_dot[3] * cos_gamma;
+		// right front
+		vx_by_hip[0] = chassis_move.target_wheel_rot_radii_dot[0] * sin_gamma;
+		vy_by_hip[0] = chassis_move.target_wheel_rot_radii_dot[0] * cos_gamma;
+		// left front
+		vx_by_hip[1] = chassis_move.target_wheel_rot_radii_dot[1] * sin_gamma;
+		vy_by_hip[1] = -chassis_move.target_wheel_rot_radii_dot[1] * cos_gamma;
+		// left rear
+		vx_by_hip[2] = -chassis_move.target_wheel_rot_radii_dot[2] * sin_gamma;
+		vy_by_hip[2] = -chassis_move.target_wheel_rot_radii_dot[2] * cos_gamma;
+		// right rear
+		vx_by_hip[3] = -chassis_move.target_wheel_rot_radii_dot[3] * sin_gamma;
+		vy_by_hip[3] = chassis_move.target_wheel_rot_radii_dot[3] * cos_gamma;
 	}
 	else
 	{

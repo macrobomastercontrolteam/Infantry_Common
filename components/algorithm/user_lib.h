@@ -86,7 +86,7 @@ typedef __packed struct
     fp32 frame_period; // Time interval
 } ramp_function_source_t;
 
-typedef __packed struct
+typedef struct
 {
     fp32 input;        // Input data
     fp32 out;          // Output data after filtering

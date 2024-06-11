@@ -200,11 +200,8 @@ typedef enum
 	CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW,    // chassis will follow yaw gimbal motor relative angle (this mode is not stable nor useful, but it may enlighten you on how to make new modes)
 	CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW,   // chassis will have yaw angle(chassis_yaw) close-looped control
 	CHASSIS_VECTOR_NO_FOLLOW_YAW,        // chassis will have rotation speed control
-	SWERVE_CHASSIS_VECTOR_NO_FOLLOW_YAW, // chassis will have rotation speed control
 	CHASSIS_VECTOR_RAW,                  // control-current will be sent to CAN bus derectly.
 	CHASSIS_VECTOR_SPINNING,             // spinning chassis
-	SWERVE_CHASSIS_VECTOR_SPINNING,
-
 } chassis_mode_e;
 
 typedef struct
@@ -330,9 +327,10 @@ extern void chassis_task(void const *pvParameters);
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-void swerve_chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, chassis_move_t *chassis_move_rc_to_vector, uint8_t fEnableWz);
-void chassis_swerve_params_reset(void);
+void swerve_platform_rc_mapping(void);
+void chassis_swerve_back_home(void);
 #endif
+void swerve_chassis_params_reset(void);
 
 extern chassis_move_t chassis_move;
 
