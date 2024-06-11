@@ -134,7 +134,7 @@
 
 //pitch speed close-loop PID params, max out and max iout
 #define PITCH_SPEED_PID_KP        2250.0f
-#define PITCH_SPEED_PID_KI        25000.0f
+#define PITCH_SPEED_PID_KI        2000.0f
 #define PITCH_SPEED_PID_KD        0.0f
 #define PITCH_SPEED_PID_MAX_OUT   30000.0f
 #define PITCH_SPEED_PID_MAX_IOUT  10000.0f
