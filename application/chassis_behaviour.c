@@ -347,10 +347,29 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 
 void dial_channel_manager(void)
 {
+	int16_t dial_channel_raw;
+	deadband_limit(chassis_move.chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel_raw, CHASSIS_RC_DEADLINE);
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+	if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
+	{
+		if (toe_is_error(DBUS_TOE))
+		{
+			// CV fully automatic mode without RC
+			chassis_move.dial_channel_out = chassis_move.dial_channel_latched;
+		}
+		else
+		{
+			chassis_move.dial_channel_latched = dial_channel_raw;
+			chassis_move.dial_channel_out = dial_channel_raw;
+		}
+	}
+	else
+	{
+		chassis_move.dial_channel_out = dial_channel_raw;
+	}
+#else
 	if (toe_is_error(DBUS_TOE) == 0)
 	{
-		int16_t dial_channel_raw;
-		deadband_limit(chassis_move.chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel_raw, CHASSIS_RC_DEADLINE);
 		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
 		{
 			chassis_move.dial_channel_latched = dial_channel_raw;
@@ -371,6 +390,7 @@ void dial_channel_manager(void)
 	}
 	// Add mouse scroll input
 	chassis_move.dial_channel_out += chassis_move.chassis_RC->mouse.z * MOUSE_SCROLL_TO_DIAL_SEN_INC;
+#endif
 }
 
 /**
