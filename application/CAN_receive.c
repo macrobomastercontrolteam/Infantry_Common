@@ -355,7 +355,7 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
 	uint8_t blocking_call = 0;
 	// According to test, CAN_JOINT_MOTOR_0_4310_TX_ID starts diverging with kd>1.5
 	// fp32 joint_0_angle_tune = PID_calc(&robot_arm.joint_0_4310_angle_pid, motor_measure[JOINT_ID_0_4310].output_angle, joint_angle_target_ptr[0], dt);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, joint_angle_target_ptr[0], 0, 10, 1.5f, 0, blocking_call, DM_4310, &LOWER_MOTORS_CAN);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, joint_angle_target_ptr[0], 0, 20, 0.75f, 0, blocking_call, DM_4310, &LOWER_MOTORS_CAN);
 	osDelay(2);
 
 	encode_6012_motor_position_control(CAN_JOINT_MOTOR_1_6012_TX_ID, 5.0f, joint_angle_target_ptr[1], blocking_call, &LOWER_MOTORS_CAN);
