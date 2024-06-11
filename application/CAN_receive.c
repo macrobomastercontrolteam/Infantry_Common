@@ -38,6 +38,7 @@
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
 #define ENABLE_FRICTION_2_MOTOR_POWER 0
+// sentry robot specific
 #define ENABLE_UPPER_HEAD_POWER 0
 // swerve robot specific
 #define ENABLE_STEER_MOTOR_POWER 0
