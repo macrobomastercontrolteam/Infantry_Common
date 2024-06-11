@@ -32,7 +32,6 @@
 #define GIMBAL_CONTROL_TIME_MS 3.0f
 #define GIMBAL_CONTROL_TIME_S (GIMBAL_CONTROL_TIME_MS / 1000.0f)
 
-//test mode, 0 close, 1 open
 #define GIMBAL_TEST_MODE 0
 
 #define PITCH_TURN  1

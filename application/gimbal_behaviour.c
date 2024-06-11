@@ -168,10 +168,8 @@ static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *
 gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
 
 #if GIMBAL_TEST_MODE
-uint8_t gimbal_behaviour_global;
 static void J_scope_gimbal_behavior_test(void)
 {
-    gimbal_behaviour_global = gimbal_behaviour;
 }
 #endif
 
