@@ -250,7 +250,7 @@ def WriteJsonFile(list, path):
 def WriteParseKeilProjectBatchFile(KeilProjectPath, KeilProjectFilename):
     text = "@echo off\n"
     text += "\n"
-    text += "call Scripts\_errorlevel_handler.bat"
+    text += "call Scripts\\_errorlevel_handler.bat"
     text += "\n"
     if KeilProjectPath is None:
         text += f'SET KEIL_PROJECT_PATH={KeilProjectFilename}\n'
