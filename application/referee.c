@@ -1,4 +1,4 @@
-// @TODO: This file follows the serial protocol released in 2019, update it to latest protocol
+// Last updated to Ref Serial Protocol V1.6.3 (2024/05/27)
 
 #include "referee.h"
 #include "CRC8_CRC16.h"
