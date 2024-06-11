@@ -1001,9 +1001,9 @@ bool_t gimbal_emergency_stop(void)
     {
         fFatalError = 1;
     }
-    else
-    {
-        fEStop = toe_is_error(DBUS_TOE);
-    }
-    return fEStop;
+	else
+	{
+		fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL) && toe_is_error(DBUS_TOE));
+	}
+	return fEStop;
 }
