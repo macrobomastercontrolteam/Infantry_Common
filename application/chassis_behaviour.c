@@ -532,7 +532,7 @@ fp32 chassis_spinning_speed_manager(void)
 			if (param_change_counter >= param_change_period)
 			{
 				param_change_period = RNG_get_random_range_int32(MIN_SPIN_PARAM_CHANGE_PERIOD, roundf(NORMAL_SPIN_PARAM_CHANGE_PERIOD + dial_ratio * DELTA_SPIN_PARAM_CHANGE_PERIOD));
-				chassis_move.wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA * (-dial_ratio / 2 + 1);
+				chassis_move.wz_max_speed = SPINNING_CHASSIS_RANDOM_OMEGA_PARAM_A * (-dial_ratio) + SPINNING_CHASSIS_RANDOM_OMEGA_PARAM_B;
 				fp32 param_change_period_max = MID_SPIN_SPEED_CHANGE_PERIOD + dial_ratio * DELTA_SPIN_SPEED_CHANGE_PERIOD;
 				speed_change_period = RNG_get_random_range_fp32(MIN_SPIN_SPEED_CHANGE_PERIOD, param_change_period_max);
 				spinning_sign = RNG_get_random_range_int32(0, 1) ? -1 : 1;
