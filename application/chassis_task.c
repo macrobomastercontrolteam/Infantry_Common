@@ -425,8 +425,8 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
 	int16_t vx_channel, vy_channel;
 	fp32 vx_set_channel, vy_set_channel;
 	// deadline, because some remote control need be calibrated,  the value of joystick is not zero in middle place,
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], vx_channel, CHASSIS_RC_DEADLINE);
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], vy_channel, CHASSIS_RC_DEADLINE);
+	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], vx_channel, CHASSIS_RC_DEADLINE);
+	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], vy_channel, CHASSIS_RC_DEADLINE);
 
 	vx_set_channel = vx_channel * chassis_move_rc_to_vector->vx_rc_sen;
 	vy_set_channel = vy_channel * -(chassis_move_rc_to_vector->vy_rc_sen);
