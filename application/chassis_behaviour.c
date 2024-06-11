@@ -70,6 +70,10 @@
 #define MID_SPIN_SPEED_CHANGE_PERIOD 1000.0f
 #define DELTA_SPIN_SPEED_CHANGE_PERIOD (MID_SPIN_SPEED_CHANGE_PERIOD / 2.0f)
 
+#define MOUSE_SCROLL_TO_DIAL_SEN_INC -(JOYSTICK_HALF_RANGE / MOUSE_X_EFFECTIVE_SPEED * 30)
+#define MOUSE_SCROLL_FILTER_COEFF 0.6f
+#define CHASSIS_WZ_CMD_DEADZONE 0.15f
+
 /**
  * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
  *                 and chassis control mode is raw. The raw chassis control mode means set value
@@ -360,7 +364,9 @@ void dial_channel_manager(void)
 		chassis_move.dial_channel_out = 0;
 	}
 	// Add mouse scroll input
-	chassis_move.dial_channel_out += chassis_move.chassis_RC->mouse.z * MOUSE_SCROLL_TO_DIAL_SEN_INC;
+	static fp32 last_mouse_z_ch = 0;
+	fp32 mouse_z_ch = first_order_filter(chassis_move.chassis_RC->mouse.z, last_mouse_z_ch, MOUSE_SCROLL_FILTER_COEFF);
+	chassis_move.dial_channel_out += mouse_z_ch * MOUSE_SCROLL_TO_DIAL_SEN_INC;
 #endif
 }
 
