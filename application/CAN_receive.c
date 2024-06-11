@@ -101,7 +101,8 @@ const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #define SWERVE_METER_PER_SEC_ECD_MAX_LIMIT 1.5f
 #define SWERVE_METER_ECD_MAX_LIMIT 0.5f
 #define SWERVE_ANGLE_ECD_MAX_LIMIT (PI / 12.0f)
-#define SWERVE_WHEEL_ROT_RADIUS_DOT_DEADZONE 0
+#define SWERVE_WHEEL_ROT_RADIUS_DOT_DEADZONE 0.0015f
+
 const fp32 swerve_speed_encoding_ratio = (1 << 15) / SWERVE_METER_PER_SEC_ECD_MAX_LIMIT;
 const fp32 swerve_meter_encoding_ratio = (1 << 16) / SWERVE_METER_ECD_MAX_LIMIT;
 const fp32 swerve_angle_encoding_ratio = (1 << 15) / SWERVE_ANGLE_ECD_MAX_LIMIT;
