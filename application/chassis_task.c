@@ -628,8 +628,8 @@ void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 
 	// *alpha1 = (roll + pitch) / 2.0f;
 	// *alpha2 = (roll - pitch) / 2.0f;
 
-	fp32 cos_total = AHRS_cosf(PI / 4.0f - gimbal_chassis_relative_yaw_angle);
-	fp32 sin_total = AHRS_sinf(PI / 4.0f - gimbal_chassis_relative_yaw_angle);
+	fp32 cos_total = AHRS_cosf(PI / 4.0f + gimbal_chassis_relative_yaw_angle);
+	fp32 sin_total = AHRS_sinf(PI / 4.0f + gimbal_chassis_relative_yaw_angle);
 	*alpha2 = cos_total * roll - sin_total * pitch;
 	*alpha1 = sin_total * roll + cos_total * pitch;
 
@@ -646,8 +646,8 @@ void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32
 	// *roll = alpha1 + alpha2;
 	// *pitch = alpha1 - alpha2;
 
-	fp32 cos_total = AHRS_cosf(PI / 4.0f - gimbal_chassis_relative_yaw_angle);
-	fp32 sin_total = AHRS_sinf(PI / 4.0f - gimbal_chassis_relative_yaw_angle);
+	fp32 cos_total = AHRS_cosf(PI / 4.0f + gimbal_chassis_relative_yaw_angle);
+	fp32 sin_total = AHRS_sinf(PI / 4.0f + gimbal_chassis_relative_yaw_angle);
 	*roll = cos_total * alpha2 + sin_total * alpha1;
 	*pitch = -sin_total * alpha2 + cos_total * alpha1;
 }
