@@ -49,6 +49,14 @@
 #define REVERSE_M3508_3 0
 #define REVERSE_M3508_4 0
 
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#define IS_TRIGGER_ON_GIMBAL 1
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
+#define IS_TRIGGER_ON_GIMBAL 0
+#else
+#define IS_TRIGGER_ON_GIMBAL 0
+#endif
+
 #define BULLET_SPEED_ECD_MAX 40.0f
 #define BULLET_SPEED_RATIO (0xFF / BULLET_SPEED_ECD_MAX)
 
@@ -143,7 +151,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		switch (rx_header.StdId)
 		{
 			case CAN_PIT_MOTOR_ID:
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#if IS_TRIGGER_ON_GIMBAL
 			case CAN_TRIGGER_MOTOR_ID:
 #endif
 			{
@@ -179,7 +187,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			case CAN_3508_M2_ID:
 			case CAN_3508_M3_ID:
 			case CAN_3508_M4_ID:
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM)
+#if (IS_TRIGGER_ON_GIMBAL == 0)
 			case CAN_TRIGGER_MOTOR_ID:
 #endif
 			case CAN_YAW_MOTOR_ID:
@@ -338,8 +346,13 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
 	gimbal_can_send_data[1] = yaw;
 	// gimbal_can_send_data[2] = (rev >> 8);
 	// gimbal_can_send_data[3] = rev;
+#if IS_TRIGGER_ON_GIMBAL
+	// gimbal_can_send_data[4] = (rev >> 8);
+	// gimbal_can_send_data[5] = rev;
+#else
 	gimbal_can_send_data[4] = (trigger >> 8);
 	gimbal_can_send_data[5] = trigger;
+#endif
 	// gimbal_can_send_data[6] = (rev >> 8);
 	// gimbal_can_send_data[7] = rev;
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
@@ -349,8 +362,13 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
 	gimbal_can_send_data[1] = fric_left;
 	gimbal_can_send_data[2] = (pitch >> 8);
 	gimbal_can_send_data[3] = pitch;
+#if IS_TRIGGER_ON_GIMBAL
+	gimbal_can_send_data[4] = (trigger >> 8);
+	gimbal_can_send_data[5] = trigger;
+#else
 	// gimbal_can_send_data[4] = (rev >> 8);
 	// gimbal_can_send_data[5] = rev;
+#endif
 	gimbal_can_send_data[6] = (fric_right >> 8);
 	gimbal_can_send_data[7] = fric_right;
 	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);

@@ -40,6 +40,7 @@ typedef enum
     CAN_PIT_MOTOR_ID = 0x206,
 
     /********Other CAN IDs: Location depends on Model********/
+    // By default: On chassis
     // INFANTRY_2023_MECANUM: On gimbal
     // INFANTRY_2024_MECANUM: On chassis
     // INFANTRY_2023_SWERVE: On chassis
