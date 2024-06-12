@@ -57,7 +57,7 @@ osThreadId buzzer_handle;
 // osThreadId oled_handle;
 osThreadId referee_usart_task_handle;
 osThreadId usb_task_handle;
-// osThreadId battery_voltage_handle;
+osThreadId battery_voltage_handle;
 // osThreadId servo_task_handle;
 osThreadId cv_usart_task_handle;
 osThreadId custom_ui_task_handle;
@@ -191,8 +191,8 @@ void MX_FREERTOS_Init(void) {
     // osThreadDef(USBTask, usb_task, osPriorityNormal, 0, 128);
     // usb_task_handle = osThreadCreate(osThread(USBTask), NULL);
 
-    // osThreadDef(BATTERY_VOLTAGE, battery_voltage_task, osPriorityNormal, 0, 128);
-    // battery_voltage_handle = osThreadCreate(osThread(BATTERY_VOLTAGE), NULL);
+    osThreadDef(BATTERY_VOLTAGE, battery_voltage_task, osPriorityNormal, 0, 128);
+    battery_voltage_handle = osThreadCreate(osThread(BATTERY_VOLTAGE), NULL);
 
     // osThreadDef(SERVO, servo_task, osPriorityNormal, 0, 128);
     // servo_task_handle = osThreadCreate(osThread(SERVO), NULL);
