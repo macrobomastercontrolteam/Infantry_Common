@@ -186,6 +186,7 @@
             <RvdsVP>2</RvdsVP>
             <RvdsMve>0</RvdsMve>
             <RvdsCdeCp>0</RvdsCdeCp>
+            <nBranchProt>0</nBranchProt>
             <hadIRAM2>1</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -588,6 +589,11 @@
               <FileType>5</FileType>
               <FilePath>..\bsp\boards\bsp_gpio.h</FilePath>
             </File>
+            <File>
+              <FileName>bsp_buzzer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\boards\bsp_buzzer.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -712,6 +718,16 @@
               <FileName>referee_can_task.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\application\referee_can_task.h</FilePath>
+            </File>
+            <File>
+              <FileName>buzzer_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\buzzer_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>buzzer_task.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\application\buzzer_task.h</FilePath>
             </File>
           </Files>
         </Group>
