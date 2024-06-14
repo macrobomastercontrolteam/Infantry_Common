@@ -222,21 +222,21 @@ static void detect_init(uint32_t time)
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
-            {10, 10, 11},   //motor1
-            {10, 10, 10},   //motor2
-            {10, 10, 9},    //motor3
-            {10, 10, 8},    //motor4
-            {2, 3, 14},     //yaw
-            {2, 3, 13},     //pitch
-            {10, 10, 12},   //trigger
-            {10, 10, 16},   //fric 1
-            {10, 10, 17},   //fric 2
-            {2, 3, 7},      //board gyro
+            {20, 10, 11},   //motor1
+            {20, 10, 10},   //motor2
+            {20, 10, 9},    //motor3
+            {20, 10, 8},    //motor4
+            {20, 3, 14},     //yaw
+            {20, 3, 13},     //pitch
+            {20, 10, 12},   //trigger
+            {20, 10, 16},   //fric 1
+            {20, 10, 17},   //fric 2
+            {5, 3, 7},      //board gyro
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag
             {100, 100, 5},  //referee
             {100, 0, 7},    //cv usart
-            {40, 0, 11},    // super capacitor
+            {100, 0, 11},    // super capacitor
             {50, 0, 8},    // swerve controller
             // {100, 100, 1},  //oled
         };
