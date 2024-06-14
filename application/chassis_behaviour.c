@@ -14,35 +14,35 @@
   1. in chassis_behaviour.h , add a new behaviour name in chassis_behaviour
   erum
   {
-      ...
-      ...
-      CHASSIS_XXX_XXX, // new add
+	  ...
+	  ...
+	  CHASSIS_XXX_XXX, // new add
   }chassis_behaviour_e,
   2. implement new function. chassis_xxx_xxx_control(fp32 *vx, fp32 *vy, fp32 *wz, chassis_move_t * chassis )
-      "vx, vy, wz" param is chassis movement control input.
-      first param: 'vx' usually means  vertical speed,
-          positive value means forward speed, negative value means backward speed.
-      second param: 'vy' usually means horizotal speed,
-          positive value means letf speed, negative value means right speed
-      third param: 'wz' can be rotation speed set or angle set,
+	  "vx, vy, wz" param is chassis movement control input.
+	  first param: 'vx' usually means  vertical speed,
+		  positive value means forward speed, negative value means backward speed.
+	  second param: 'vy' usually means horizotal speed,
+		  positive value means letf speed, negative value means right speed
+	  third param: 'wz' can be rotation speed set or angle set,
 
-      in this new function, you can assign speed to "vx","vy",and "wz",as your wish
+	  in this new function, you can assign speed to "vx","vy",and "wz",as your wish
   3.  in "chassis_behaviour_mode_set" function, add new logical judgement to assign CHASSIS_XXX_XXX to  "chassis_behaviour_mode" variable,
-      and in the last of the function, add "else if(chassis_behaviour_mode == CHASSIS_XXX_XXX)"
-      choose a chassis control mode.
-      four mode:
-      CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW : 'vx' and 'vy' are speed control, 'wz' is angle set to control relative angle
-          between chassis and gimbal. you can name third param to 'xxx_angle_set' other than 'wz'
-      CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW : 'vx' and 'vy' are speed control, 'wz' is angle set to control absolute angle calculated by gyro
-          you can name third param to 'xxx_angle_set.
-      CHASSIS_VECTOR_NO_FOLLOW_YAW : 'vx' and 'vy' are speed control, 'wz' is rotation speed control.
-      CHASSIS_VECTOR_RAW : will use 'vx' 'vy' and 'wz'  to linearly calculate four wheel current set,
-          current set will be derectly sent to can bus.
+	  and in the last of the function, add "else if(chassis_behaviour_mode == CHASSIS_XXX_XXX)"
+	  choose a chassis control mode.
+	  four mode:
+	  CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW : 'vx' and 'vy' are speed control, 'wz' is angle set to control relative angle
+		  between chassis and gimbal. you can name third param to 'xxx_angle_set' other than 'wz'
+	  CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW : 'vx' and 'vy' are speed control, 'wz' is angle set to control absolute angle calculated by gyro
+		  you can name third param to 'xxx_angle_set.
+	  CHASSIS_VECTOR_NO_FOLLOW_YAW : 'vx' and 'vy' are speed control, 'wz' is rotation speed control.
+	  CHASSIS_VECTOR_RAW : will use 'vx' 'vy' and 'wz'  to linearly calculate four wheel current set,
+		  current set will be derectly sent to can bus.
   4. in the last of "chassis_behaviour_control_set" function, add
-      else if(chassis_behaviour_mode == CHASSIS_XXX_XXX)
-      {
-          chassis_xxx_xxx_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-      }
+	  else if(chassis_behaviour_mode == CHASSIS_XXX_XXX)
+	  {
+		  chassis_xxx_xxx_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+	  }
 ==============================================================================
 @endverbatim
 ****************************(C) COPYRIGHT 2019 DJI****************************
@@ -71,6 +71,10 @@
 #define MOUSE_SCROLL_TO_DIAL_SEN_INC -(JOYSTICK_HALF_RANGE / MOUSE_X_EFFECTIVE_SPEED * 30)
 #define MOUSE_SCROLL_FILTER_COEFF 0.6f
 #define CHASSIS_WZ_CMD_DEADZONE 0.15f
+
+#define GIMBAL_ALIGN_ANGLE_DEADZONE DEG_TO_RAD(3.5f)
+#define GIMBAL_ALIGN_SPEED_MIN SPINNING_CHASSIS_LOW_OMEGA
+#define GIMBAL_ALIGN_SPEED_MAX NORMAL_MAX_CHASSIS_SPEED_WZ
 
 /**
  * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
@@ -178,27 +182,27 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 	{
 		switch (chassis_move_mode->chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL])
 		{
-			case RC_SW_UP:
-			{
+		case RC_SW_UP:
+		{
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-				chassis_behaviour_mode = CHASSIS_CV_CONTROL_SPINNING;
+			chassis_behaviour_mode = CHASSIS_CV_CONTROL_SPINNING;
 #else
-				chassis_behaviour_mode = CHASSIS_SPINNING;
+			chassis_behaviour_mode = CHASSIS_SPINNING;
 #endif
-				break;
-			}
-			case RC_SW_MID:
-			{
-				// Remember to change gimbal_behaviour logic correspondingly
-                chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
-				break;
-			}
-			case RC_SW_DOWN:
-			default:
-			{
-				chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
-				break;
-			}
+			break;
+		}
+		case RC_SW_MID:
+		{
+			// Remember to change gimbal_behaviour logic correspondingly
+			chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
+			break;
+		}
+		case RC_SW_DOWN:
+		default:
+		{
+			chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+			break;
+		}
 		}
 	}
 
@@ -217,35 +221,35 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 
 	switch (chassis_behaviour_mode)
 	{
-		case CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW:
-		{
-			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW;
-			break;
-		}
-		case CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW:
-		{
-			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW;
-			break;
-		}
-		case CHASSIS_NO_MOVE:
-		case CHASSIS_NO_FOLLOW_YAW:
-		{
-			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
-			break;
-		}
-		case CHASSIS_SPINNING:
-		case CHASSIS_CV_CONTROL_SPINNING:
-		{
-			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
-			break;
-		}
-		case CHASSIS_ZERO_FORCE:
-		case CHASSIS_OPEN:
-		default:
-		{
-			chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
-			break;
-		}
+	case CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW:
+	{
+		chassis_move_mode->chassis_mode = CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW;
+		break;
+	}
+	case CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW:
+	{
+		chassis_move_mode->chassis_mode = CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW;
+		break;
+	}
+	case CHASSIS_NO_MOVE:
+	case CHASSIS_NO_FOLLOW_YAW:
+	{
+		chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
+		break;
+	}
+	case CHASSIS_SPINNING:
+	case CHASSIS_CV_CONTROL_SPINNING:
+	{
+		chassis_move_mode->chassis_mode = CHASSIS_VECTOR_SPINNING;
+		break;
+	}
+	case CHASSIS_ZERO_FORCE:
+	case CHASSIS_OPEN:
+	default:
+	{
+		chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
+		break;
+	}
 	}
 }
 
@@ -270,47 +274,47 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set, 
 
 	switch (chassis_behaviour_mode)
 	{
-		case CHASSIS_NO_MOVE:
-		{
-			chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
-		case CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW:
-		{
-			chassis_infantry_follow_gimbal_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
-		case CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW:
-		{
-			chassis_engineer_follow_chassis_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
-		case CHASSIS_NO_FOLLOW_YAW:
-		{
-			chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
-		case CHASSIS_OPEN:
-		{
-			chassis_open_set_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
-		case CHASSIS_SPINNING:
-		{
-			chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
-		case CHASSIS_CV_CONTROL_SPINNING:
-		{
-			chassis_cv_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
-		case CHASSIS_ZERO_FORCE:
-		default:
-		{
-			chassis_zero_force_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
-			break;
-		}
+	case CHASSIS_NO_MOVE:
+	{
+		chassis_no_move_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+		break;
+	}
+	case CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW:
+	{
+		chassis_infantry_follow_gimbal_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+		break;
+	}
+	case CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW:
+	{
+		chassis_engineer_follow_chassis_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+		break;
+	}
+	case CHASSIS_NO_FOLLOW_YAW:
+	{
+		chassis_no_follow_yaw_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+		break;
+	}
+	case CHASSIS_OPEN:
+	{
+		chassis_open_set_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+		break;
+	}
+	case CHASSIS_SPINNING:
+	{
+		chassis_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+		break;
+	}
+	case CHASSIS_CV_CONTROL_SPINNING:
+	{
+		chassis_cv_spinning_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+		break;
+	}
+	case CHASSIS_ZERO_FORCE:
+	default:
+	{
+		chassis_zero_force_control(vx_set, vy_set, angle_set, chassis_move_rc_to_vector);
+		break;
+	}
 	}
 }
 
@@ -612,16 +616,29 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
 	}
 
 	chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-	// filter for dial
-	fp32 wz_set_channel = CHASSIS_WZ_RC_SEN * chassis_move.dial_channel_out;
-	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz, wz_set_channel);
-	// fp32_deadzone(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out, CHASSIS_WZ_CMD_DEADZONE);
-	*wz_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out;
 
+	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) && ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) == 0))
+	{
+		// Keep rotating until chassis align with gimbal
+		if (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) > GIMBAL_ALIGN_ANGLE_DEADZONE)
+		{
+			*wz_set = (GIMBAL_ALIGN_SPEED_MAX - GIMBAL_ALIGN_SPEED_MIN) * (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) / (PI / 2.0f)) + GIMBAL_ALIGN_SPEED_MIN;
+			if (gimbal_control.gimbal_yaw_motor.relative_angle < 0)
+			{
+				*wz_set *= -1;
+			}
+		}
+		else
+		{
+			*wz_set = 0;
+		}
+	}
+	else
+	{
+		*wz_set = CHASSIS_WZ_RC_SEN * chassis_move.dial_channel_out;
+	}
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	swerve_platform_rc_mapping();
-#else
-	*wz_set = CHASSIS_WZ_RC_SEN * chassis_move.dial_channel_out;
 #endif
 }
 

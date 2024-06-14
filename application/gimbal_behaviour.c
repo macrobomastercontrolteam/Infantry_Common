@@ -588,14 +588,17 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
         return;
     }
 
-    // KEY_PRESSED_OFFSET_R centers gimbal
+    // Ctrl+R centers gimbal
 	// no need to debounce because keyboard signal is clean
 	uint8_t fCenterGimbal = 0;
 	static uint8_t fLastKeyRSignal = 0;
 	uint8_t fIsKeyRPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) != 0);
 	if (fLastKeyRSignal != fIsKeyRPressed)
 	{
-		fCenterGimbal = fIsKeyRPressed;
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
+		{
+			fCenterGimbal = fIsKeyRPressed;
+		}
 		fLastKeyRSignal = fIsKeyRPressed;
 	}
 
@@ -728,14 +731,17 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
         return;
     }
 
-    // KEY_PRESSED_OFFSET_R centers gimbal
+    // Ctrl+R centers gimbal
 	// no need to debounce because keyboard signal is clean
 	uint8_t fCenterGimbal = 0;
 	static uint8_t fLastKeyRSignal = 0;
 	uint8_t fIsKeyRPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) != 0);
 	if (fLastKeyRSignal != fIsKeyRPressed)
 	{
-		fCenterGimbal = fIsKeyRPressed;
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
+		{
+			fCenterGimbal = fIsKeyRPressed;
+		}
 		fLastKeyRSignal = fIsKeyRPressed;
 	}
 
