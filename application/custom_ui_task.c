@@ -55,10 +55,16 @@ string_data trigger_speed_data;
 string_data rand_spin_str;
 string_data robot_status_str;
 string_data MacRM_logo_str;
+string_data swerve_alpha1_str;
+string_data swerve_alpha1_data;
+string_data swerve_alpha2_str;
+string_data swerve_alpha2_data;
+string_data swerve_height_str;
+string_data swerve_height_data;
 
 void static_elements_init(void);
 void super_cap_status_draw(void);
-void chassis_direction_draw(float yaw_relative_angle);
+void chassis_behaviours_draw(float yaw_relative_angle);
 void gimbal_pitch_direction_draw(float pitch_relative_angle);
 void armor_damage_draw(float yaw_relative_angle);
 void chassis_mode_draw(void);
@@ -75,7 +81,7 @@ void custom_ui_task(void const *argument)
 	while (1)
 	{
 		trigger_motor_state_draw(shoot_control.speed);
-		chassis_direction_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
+		chassis_behaviours_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
 		gimbal_pitch_direction_draw(gimbal_control.gimbal_pitch_motor.absolute_angle);
 		armor_damage_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
 		super_cap_status_draw();
@@ -114,9 +120,23 @@ void static_elements_init(void)
 	update_ui(&crosshair_hori_5);
 	line_draw(&crosshair_hori_6, "096", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 920, 370, 1000, 370);
 	update_ui(&crosshair_hori_6);
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+	char_draw(&swerve_alpha1_str, "swerveAlpha1Data", UI_Graph_ADD, 6, UI_Color_Cyan, 20, 4, 2, 588, 628, "A1");
+	update_char(&swerve_alpha1_str);
+	chart_draw(&swerve_alpha2_str, "swerveAlpha2Data", UI_Graph_ADD, 6, UI_Color_Cyan, 20, 4, 1, 588, 588, "A2");
+	update_char(&swerve_alpha2_str);
+	char_draw(&swerve_height_str, "swerveHeightData", UI_Graph_ADD, 6, UI_Color_Cyan, 20, 4, 1, 618, 548, "H");
+	update_char(&swerve_height_str);
+	float_draw(&swerve_alpha1_data, "swerveAlpha1Data", UI_Graph_ADD, 6, UI_Color_Cyan, 20, 4, 3, 618, 628, chassis_move.chassis_platform.feedback_alpha1);
+	update_char(&swerve_alpha1_data);
+	float_draw(&swerve_alpha2_data, "swerveAlpha2Data", UI_Graph_ADD, 6, UI_Color_Cyan, 20, 4, 3, 618, 588, chassis_move.chassis_platform.feedback_alpha2);
+	update_char(&swerve_alpha2_data);
+	float_draw(&swerve_height_data, "swerveHeightData", UI_Graph_ADD, 6, UI_Color_Cyan, 20, 4, 3, 618, 548, chassis_move.chassis_platform.feedback_height);
+	update_char(&swerve_height_data);
+#endif
 }
 
-void chassis_direction_draw(float yaw_relative_angle)
+void chassis_behaviours_draw(float yaw_relative_angle)
 {
 	char_draw(&chassis_front_dir, "pitch_direction_icon", UI_Graph_ADD, 3, UI_Color_Orange, 30, 1, 5, 960 - AHRS_cosf(yaw_relative_angle + PI / 2) * 100, 560 + AHRS_sinf(yaw_relative_angle + PI / 2) * 100, "X");
 	update_char(&chassis_front_dir);
@@ -126,6 +146,14 @@ void chassis_direction_draw(float yaw_relative_angle)
 	update_char(&chassis_relative_angle);
 	char_draw(&chassis_front_dir, "pitch_direction_icon", UI_Graph_Change, 3, UI_Color_Orange, 30, 1, 5, 960 - AHRS_cosf(yaw_relative_angle + PI / 2) * 100, 560 + AHRS_sinf(yaw_relative_angle + PI / 2) * 100, "X");
 	update_char(&chassis_front_dir);
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+	float_draw(&swerve_alpha1_data, "swerveAlpha1Data", UI_Graph_ADD, 6, UI_Color_Cyan, 20, 4, 3, 618, 628, chassis_move.chassis_platform.feedback_alpha1);
+	update_char(&swerve_alpha1_data);
+	float_draw(&swerve_alpha2_data, "swerveAlpha2Data", UI_Graph_ADD, 6, UI_Color_Cyan, 20, 4, 3, 618, 588, chassis_move.chassis_platform.feedback_alpha2);
+	update_char(&swerve_alpha2_data);
+	float_draw(&swerve_height_data, "swerveHeightData", UI_Graph_ADD, 6, UI_Color_Cyan, 20, 4, 3, 618, 548, chassis_move.chassis_platform.feedback_height);
+	update_char(&swerve_height_data);
+#endif
 }
 
 void gimbal_pitch_direction_draw(float pitch_relative_angle)
@@ -145,56 +173,56 @@ void armor_damage_draw(float yaw_relative_angle)
 	uint8_t i;
 	switch (get_armor_hurt())
 	{
-		case ARMOR_ZERO:
+	case ARMOR_ZERO:
+	{
+		for (i = 0; i <= 30; i++)
 		{
-			for (i = 0; i <= 30; i++)
-			{
-				circle_draw(&armor_0, "front_armor", UI_Graph_ADD, 2, UI_Color_Purplish_red, 7, 960 + AHRS_cosf(yaw_relative_angle + PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + PI / 2) * 110, 20);
-				update_ui(&armor_0);
-			}
-			break;
-		}
-		case ARMOR_ONE:
-		{
-			for (i = 0; i <= 30; i++)
-			{
-				circle_draw(&armor_1, "right_armor", UI_Graph_ADD, 2, UI_Color_Purplish_red, 7, 960 + AHRS_cosf(yaw_relative_angle + 2 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 2 * PI / 2) * 110, 20);
-				update_ui(&armor_1);
-			}
-			break;
-		}
-		case ARMOR_TWO:
-		{
-			for (i = 0; i <= 30; i++)
-			{
-				circle_draw(&armor_2, "back_armor", UI_Graph_ADD, 2, UI_Color_Purplish_red, 7, 960 + AHRS_cosf(yaw_relative_angle + 3 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 3 * PI / 2) * 110, 20);
-				update_ui(&armor_2);
-			}
-			break;
-		}
-		case ARMOR_THREE:
-		{
-			for (i = 0; i <= 30; i++)
-			{
-				circle_draw(&armor_3, "left_armor", UI_Graph_ADD, 2, UI_Color_Purplish_red, 7, 960 + AHRS_cosf(yaw_relative_angle + 4 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 4 * PI / 2) * 110, 20);
-				update_ui(&armor_3);
-			}
-			break;
-		}
-		case ARMOR_NONE:
-		default:
-		{
-			osDelay(3);
-			circle_draw(&armor_3, "left_armor", UI_Graph_Del, 2, UI_Color_Cyan, 7, 960 + AHRS_cosf(yaw_relative_angle + 4 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 4 * PI / 2) * 110, 20);
-			update_ui(&armor_3);
-			circle_draw(&armor_2, "back_armor", UI_Graph_Del, 2, UI_Color_Cyan, 7, 960 + AHRS_cosf(yaw_relative_angle + 3 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 3 * PI / 2) * 110, 20);
-			update_ui(&armor_2);
-			circle_draw(&armor_1, "right_armor", UI_Graph_Del, 2, UI_Color_Cyan, 7, 960 + AHRS_cosf(yaw_relative_angle + 2 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 2 * PI / 2) * 110, 20);
-			update_ui(&armor_1);
-			circle_draw(&armor_0, "front_armor", UI_Graph_Del, 2, UI_Color_Cyan, 7, 960 + AHRS_cosf(yaw_relative_angle + PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + PI / 2) * 110, 20);
+			circle_draw(&armor_0, "front_armor", UI_Graph_ADD, 2, UI_Color_Purplish_red, 7, 960 + AHRS_cosf(yaw_relative_angle + PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + PI / 2) * 110, 20);
 			update_ui(&armor_0);
-			break;
 		}
+		break;
+	}
+	case ARMOR_ONE:
+	{
+		for (i = 0; i <= 30; i++)
+		{
+			circle_draw(&armor_1, "right_armor", UI_Graph_ADD, 2, UI_Color_Purplish_red, 7, 960 + AHRS_cosf(yaw_relative_angle + 2 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 2 * PI / 2) * 110, 20);
+			update_ui(&armor_1);
+		}
+		break;
+	}
+	case ARMOR_TWO:
+	{
+		for (i = 0; i <= 30; i++)
+		{
+			circle_draw(&armor_2, "back_armor", UI_Graph_ADD, 2, UI_Color_Purplish_red, 7, 960 + AHRS_cosf(yaw_relative_angle + 3 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 3 * PI / 2) * 110, 20);
+			update_ui(&armor_2);
+		}
+		break;
+	}
+	case ARMOR_THREE:
+	{
+		for (i = 0; i <= 30; i++)
+		{
+			circle_draw(&armor_3, "left_armor", UI_Graph_ADD, 2, UI_Color_Purplish_red, 7, 960 + AHRS_cosf(yaw_relative_angle + 4 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 4 * PI / 2) * 110, 20);
+			update_ui(&armor_3);
+		}
+		break;
+	}
+	case ARMOR_NONE:
+	default:
+	{
+		osDelay(3);
+		circle_draw(&armor_3, "left_armor", UI_Graph_Del, 2, UI_Color_Cyan, 7, 960 + AHRS_cosf(yaw_relative_angle + 4 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 4 * PI / 2) * 110, 20);
+		update_ui(&armor_3);
+		circle_draw(&armor_2, "back_armor", UI_Graph_Del, 2, UI_Color_Cyan, 7, 960 + AHRS_cosf(yaw_relative_angle + 3 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 3 * PI / 2) * 110, 20);
+		update_ui(&armor_2);
+		circle_draw(&armor_1, "right_armor", UI_Graph_Del, 2, UI_Color_Cyan, 7, 960 + AHRS_cosf(yaw_relative_angle + 2 * PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + 2 * PI / 2) * 110, 20);
+		update_ui(&armor_1);
+		circle_draw(&armor_0, "front_armor", UI_Graph_Del, 2, UI_Color_Cyan, 7, 960 + AHRS_cosf(yaw_relative_angle + PI / 2) * 110, 560 + AHRS_sinf(yaw_relative_angle + PI / 2) * 110, 20);
+		update_ui(&armor_0);
+		break;
+	}
 	}
 }
 
@@ -239,29 +267,29 @@ void chassis_mode_draw(void)
 {
 	switch (chassis_behaviour_mode)
 	{
-		case CHASSIS_NO_FOLLOW_YAW:
-		{
-			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "CNFY");
-			update_char(&robot_status_str);
-			char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
-			update_char(&rand_spin_str);
-			break;
-		}
-		case CHASSIS_SPINNING:
-		{
-			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
-			update_char(&robot_status_str);
-			char_draw(&rand_spin_str, "rand_spin_str", (chassis_move.fRandomSpinOn ? UI_Graph_Del : UI_Graph_ADD), 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
-			update_char(&rand_spin_str);
-			break;
-		}
-		default:
-		{
-			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "STOP");
-			update_char(&robot_status_str);
-			char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
-			update_char(&rand_spin_str);
-			break;
-		}
+	case CHASSIS_NO_FOLLOW_YAW:
+	{
+		char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "CNFY");
+		update_char(&robot_status_str);
+		char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+		update_char(&rand_spin_str);
+		break;
+	}
+	case CHASSIS_SPINNING:
+	{
+		char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
+		update_char(&robot_status_str);
+		char_draw(&rand_spin_str, "rand_spin_str", (chassis_move.fRandomSpinOn ? UI_Graph_Del : UI_Graph_ADD), 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+		update_char(&rand_spin_str);
+		break;
+	}
+	default:
+	{
+		char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "STOP");
+		update_char(&robot_status_str);
+		char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+		update_char(&rand_spin_str);
+		break;
+	}
 	}
 }
