@@ -53,10 +53,13 @@ static void detect_init(uint32_t time);
 error_t error_list[ERROR_LIST_LENGTH + 1];
 
 #if DETECT_TEST_MODE
-uint16_t cv_msg_interval;
-static void J_scope_detect_test(void)
+uint16_t detect_intervals[ERROR_LIST_LENGTH];
+static void J_scope_detect_test(uint16_t ulSystemTime)
 {
-	cv_msg_interval = ulSystemTime - error_list[CV_TOE].new_time;
+    for (int i = 0; i < ERROR_LIST_LENGTH; i++)
+    {
+        detect_intervals[i] = ulSystemTime - error_list[i].new_time;
+    }
 }
 #endif
 
@@ -141,7 +144,7 @@ void detect_task(void const *pvParameters)
             }
         }
 #if DETECT_TEST_MODE
-        J_scope_detect_test();
+        J_scope_detect_test(ulSystemTime);
 #endif
 
         osDelayUntil(&ulSystemTime, DETECT_CONTROL_TIME_MS);
