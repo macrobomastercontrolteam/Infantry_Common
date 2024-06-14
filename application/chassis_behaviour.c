@@ -616,7 +616,7 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
 	// filter for dial
 	fp32 wz_set_channel = CHASSIS_WZ_RC_SEN * chassis_move.dial_channel_out;
 	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz, wz_set_channel);
-	fp32_deadzone(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out, CHASSIS_WZ_CMD_DEADZONE);
+	// fp32_deadzone(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out, CHASSIS_WZ_CMD_DEADZONE);
 	*wz_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out;
 
 	swerve_platform_rc_mapping();
