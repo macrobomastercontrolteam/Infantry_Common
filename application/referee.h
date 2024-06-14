@@ -270,7 +270,7 @@ typedef __packed struct // 0x0301
 	uint16_t data_cmd_id;
 	uint16_t sender_id;
 	uint16_t receiver_id;
-	// uint8_t user_data[x]; //x <= 113
+	// uint8_t user_data[x]; //x <= 112
 } ext_student_interactive_data_t;
 
 // typedef __packed struct //0x0110
