@@ -14,8 +14,8 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
 
-#ifndef SHOOT_H
-#define SHOOT_H
+#ifndef _SHOOT_H
+#define _SHOOT_H
 #include "global_inc.h"
 
 #include "CAN_receive.h"
