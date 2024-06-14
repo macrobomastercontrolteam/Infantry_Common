@@ -60,11 +60,7 @@ void test_task(void const * argument)
         // error exist
         if(error)
         {
-#if TEST_NO_REF
-            UNUSED(buzzer_warn_error);
-#else
             buzzer_warn_error(error_num+1);
-#endif
         }
 
         last_error = error;

@@ -185,9 +185,7 @@ void USART6_IRQHandler(void)
             huart6.hdmarx->Instance->CR |= DMA_SxCR_CT;
             __HAL_DMA_ENABLE(huart6.hdmarx);
             fifo_s_puts(&referee_fifo, (char*)usart6_buf[0], this_time_rx_len);
-#if !TEST_NO_REF
             detect_hook(REFEREE_TOE);
-#endif
         }
         else
         {
@@ -197,9 +195,7 @@ void USART6_IRQHandler(void)
             huart6.hdmarx->Instance->CR &= ~(DMA_SxCR_CT);
             __HAL_DMA_ENABLE(huart6.hdmarx);
             fifo_s_puts(&referee_fifo, (char*)usart6_buf[1], this_time_rx_len);
-#if !TEST_NO_REF
             detect_hook(REFEREE_TOE);
-#endif
         }
     }
 }

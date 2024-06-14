@@ -11,7 +11,6 @@
 #define ROBOT_TYPE INFANTRY_2024_MECANUM
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
-#define TEST_NO_REF 1
 // Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
 #define ENABLE_SHOOT_REDUNDANT_SWITCH 0
 #define USE_SERVO_TO_STIR_AMMO 0

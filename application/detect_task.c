@@ -261,13 +261,6 @@ static void detect_init(uint32_t time)
         error_list[i].lost_time = time;
         error_list[i].work_time = time;
     }
-#if TEST_NO_REF
-	error_list[REFEREE_TOE].enable = 0;
-	error_list[REFEREE_TOE].error_exist = 0;
-	error_list[REFEREE_TOE].is_lost = 0;
-	error_list[REFEREE_TOE].data_is_error = 0;
-#endif
-
 #if CV_INTERFACE
     error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
 #endif
