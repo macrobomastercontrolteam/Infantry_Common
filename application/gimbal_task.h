@@ -161,6 +161,7 @@
 
 #else
 
+#warning "Gimbal pid not defined for this robot type, using default values. If you're sure about this, temporarily uncomment this line."
 //pitch speed close-loop PID params, max out and max iout
 #define PITCH_SPEED_PID_KP        2250.0f
 #define PITCH_SPEED_PID_KI        2000.0f
