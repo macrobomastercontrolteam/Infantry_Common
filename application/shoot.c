@@ -31,8 +31,6 @@
 #include "gimbal_behaviour.h"
 #include "pid.h"
 
-#define SHOOT_WITH_REF_DATA 0
-
 // microswitch
 #define BUTTEN_TRIG_PIN HAL_GPIO_ReadPin(BUTTON_TRIG_GPIO_Port, BUTTON_TRIG_Pin)
 #define AUTOAIM_READY_TIMEOUT 4000
@@ -496,13 +494,11 @@ static void trigger_motor_stall_handler(void)
 
 bool_t isOverheated(void)
 {
-#if SHOOT_WITH_REF_DATA
 	if ((toe_is_error(REFEREE_TOE) == 0) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
 	{
 		return 1;
 	}
 	else
-#endif
 	{
 		return 0;
 	}
