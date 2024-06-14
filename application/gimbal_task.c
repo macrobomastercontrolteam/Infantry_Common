@@ -201,7 +201,7 @@ void gimbal_task(void const *pvParameters)
         gimbal_control_loop(&gimbal_control);
         trigger_set_current = shoot_control_loop();
         gimbal_safety_manager(&yaw_can_set_current, &pitch_can_set_current, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
-            CAN_cmd_gimbal(yaw_can_set_current, pitch_can_set_current, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
+        CAN_cmd_gimbal(yaw_can_set_current, pitch_can_set_current, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
 
 #if GIMBAL_TEST_MODE
         J_scope_gimbal_test();
@@ -980,6 +980,8 @@ fp32 yaw_ins_set_fp32, pitch_ins_set_fp32;
 fp32 pitch_relative_set_fp32, pitch_relative_angle_fp32;
 fp32 yaw_speed_fp32, pitch_speed_fp32;
 fp32 yaw_speed_set_fp32, pitch_speed_set_fp32;
+uint32_t gimbal_last_update_time;
+uint32_t gimbal_update_interval;
 static void J_scope_gimbal_test(void)
 {
 #if CV_INTERFACE
@@ -996,6 +998,9 @@ static void J_scope_gimbal_test(void)
     pitch_speed_set_fp32 = gimbal_control.gimbal_pitch_motor.motor_gyro_set * 180.0f / PI;
     pitch_relative_angle_fp32 = gimbal_control.gimbal_pitch_motor.relative_angle * 180.0f / PI;
     pitch_relative_set_fp32 = gimbal_control.gimbal_pitch_motor.relative_angle_set * 180.0f / PI;
+
+    gimbal_update_interval = osKernelSysTick() - gimbal_last_update_time;
+    gimbal_last_update_time = osKernelSysTick();
 }
 #endif
 
