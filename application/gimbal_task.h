@@ -29,7 +29,7 @@
 #include "remote_control.h"
 #include "user_lib.h"
 
-#define GIMBAL_CONTROL_TIME_MS 3.0f
+#define GIMBAL_CONTROL_TIME_MS 4.0f
 #define GIMBAL_CONTROL_TIME_S (GIMBAL_CONTROL_TIME_MS / 1000.0f)
 
 #define GIMBAL_TEST_MODE 0
