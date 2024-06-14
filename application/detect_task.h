@@ -51,18 +51,18 @@ enum errorList
     CHASSIS_MOTOR2_TOE,
     CHASSIS_MOTOR3_TOE,
     CHASSIS_MOTOR4_TOE,
-    // // Currently, there's no ACK implemented in controller
-    // // GM6020 control angle
-    // CHASSIS_STEER_MOTOR_CONTROLLER_TOE,
-
+    // "gimbal" motors
     YAW_GIMBAL_MOTOR_TOE,
     PITCH_GIMBAL_MOTOR_TOE,
+    // shoot motors
     TRIGGER_MOTOR_TOE,
     FRIC1_MOTOR_TOE,
     FRIC2_MOTOR_TOE,
+    // on-board IMU
     BOARD_GYRO_TOE,
     BOARD_ACCEL_TOE,
     BOARD_MAG_TOE,
+    // others
     REFEREE_TOE,
     CV_TOE,
     SUPCAP_TOE,
