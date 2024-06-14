@@ -614,7 +614,7 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
 	chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	// filter for dial
-	fp32 wz_set_channel = chassis_move.dial_channel_out * -CHASSIS_WZ_RC_SEN;
+	fp32 wz_set_channel = CHASSIS_WZ_RC_SEN * chassis_move.dial_channel_out;
 	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz, wz_set_channel);
 	fp32_deadzone(&chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out, CHASSIS_WZ_CMD_DEADZONE);
 	*wz_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_wz.out;
