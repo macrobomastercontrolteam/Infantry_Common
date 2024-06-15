@@ -317,16 +317,18 @@ void dial_channel_manager(void)
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
 	{
-		if (toe_is_error(DBUS_TOE))
-		{
-			// CV fully automatic mode without RC
-			chassis_move.dial_channel_out = chassis_move.dial_channel_latched;
-		}
-		else
-		{
-			chassis_move.dial_channel_latched = dial_channel_raw;
-			chassis_move.dial_channel_out = dial_channel_raw;
-		}
+		// if (toe_is_error(DBUS_TOE))
+		// {
+		// 	// CV fully automatic mode without RC
+		// 	chassis_move.dial_channel_out = chassis_move.dial_channel_latched;
+		// }
+		// else
+		// {
+		// 	chassis_move.dial_channel_latched = dial_channel_raw;
+		// 	chassis_move.dial_channel_out = dial_channel_raw;
+		// }
+		// hardcode fastest spinning
+		chassis_move.dial_channel_out = JOYSTICK_HALF_RANGE;
 	}
 	else
 	{
