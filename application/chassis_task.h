@@ -87,7 +87,7 @@
 #define CHASSIS_CONTROL_FREQUENCE (1.0f / CHASSIS_CONTROL_TIME_S)
 
 // chassis 3508 max motor control current
-#define MAX_MOTOR_CAN_CURRENT 16000.0f
+#define MAX_3508_MOTOR_CAN_CURRENT 16000.0f
 // chassis 6020 max motor control voltage
 #define MAX_MOTOR_CAN_VOLTAGE 20000.0f
 // // press the key, chassis will swing
@@ -169,21 +169,22 @@
 #define M3508_MOTOR_SPEED_PID_KP 35000.0f
 #define M3508_MOTOR_SPEED_PID_KI 1000.0f
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
-#define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
+#define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
 #elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define M3508_MOTOR_SPEED_PID_KP 30000.0f
 #define M3508_MOTOR_SPEED_PID_KI 500.0f
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
-#define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
+#define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
 #else
 // @TODO: tune pid for other robots
+// @TODO: fix drift in spinning mode when power is limited
 #define M3508_MOTOR_SPEED_PID_KP 35000.0f
-#define M3508_MOTOR_SPEED_PID_KI 1000.0f
+#define M3508_MOTOR_SPEED_PID_KI 0.0f
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
-#define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
-#define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
+#define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
+#define M3508_MOTOR_SPEED_PID_MAX_IOUT 0.0f
 #endif
 
 // chassis follow angle PID
@@ -233,9 +234,11 @@ typedef union
 	uint8_t can_buf[8];
 	struct
 	{
+		// 0: not provide power
+		// 1: provide power
 		uint8_t cap_state;
 		uint8_t reserve;
-		uint16_t cap_voltage;
+		uint16_t cap_milivoltage;
 		float cap_power;
 	} cap_message;
 } supcap_t;

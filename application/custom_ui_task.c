@@ -92,7 +92,7 @@ void static_elements_init(void)
 	update_char(&MacRM_logo_str);
 	char_draw(&cap_power, "capPowerStr", UI_Graph_ADD, 0, UI_Color_Pink, 20, 4, 3, 1473, 428, "CAPP");
 	update_char(&cap_power);
-	float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_ADD, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_voltage / 1000.0f);
+	float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_ADD, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
 	update_char(&cap_voltage_data);
 	float_draw(&cap_power_data, "capPower", UI_Graph_ADD, 0, UI_Color_Cyan, 20, 3, 1, 1590, 3888, cap_message_rx.cap_message.cap_power);
 	update_char(&cap_power_data);
@@ -200,13 +200,13 @@ void armor_damage_draw(float yaw_relative_angle)
 
 void super_cap_status_draw(void)
 {
-	if (cap_message_rx.cap_message.cap_voltage >= 10000)
+	if (cap_message_rx.cap_message.cap_milivoltage >= SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD)
 	{
-		float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_Change, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_voltage / 1000.0f);
+		float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_Change, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
 	}
-	else if (cap_message_rx.cap_message.cap_voltage < 1000)
+	else if (cap_message_rx.cap_message.cap_milivoltage < 1000)
 	{
-		float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_Change, 0, UI_Color_Purplish_red, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_voltage / 1000.0f);
+		float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_Change, 0, UI_Color_Purplish_red, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
 	}
 	update_char(&cap_voltage_data);
 
