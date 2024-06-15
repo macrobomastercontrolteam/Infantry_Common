@@ -60,7 +60,7 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
         {
             capAvailEnergy = 0;
         }
-        else if (chassis_power_control->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
+        else // if (chassis_power_control->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
         {
             capAvailEnergy = 0.5f * SUPCAP_CAPACITANCE * (cap_voltage * cap_voltage - SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD * SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD);
         }
