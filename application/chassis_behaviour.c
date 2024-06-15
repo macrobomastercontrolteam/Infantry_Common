@@ -558,16 +558,16 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
 		// chassis_task should maintain previous speed if cv is offline for a short time
 		*vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
 		*vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
+	}
 
-		// @TODO: implement CV enemy detection mode
-		if (is_game_started())
-		{
-			*angle_set = chassis_spinning_speed_manager();
-		}
-		else
-		{
-			*angle_set = 0;
-		}
+	// @TODO: implement CV enemy detection mode
+	if (is_game_started())
+	{
+		*angle_set = chassis_spinning_speed_manager();
+	}
+	else
+	{
+		*angle_set = 0;
 	}
 #endif
 }
