@@ -207,16 +207,8 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 	}
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-	if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING)
-	{
-		CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, 1);
-		chassis_move.fUpperHeadEnabled = 1;
-	}
-	else
-	{
-		CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, 0);
-		chassis_move.fUpperHeadEnabled = 0;
-	}
+	CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING));
+	chassis_move.fUpperHeadEnabled = (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING);
 #endif
 
 	switch (chassis_behaviour_mode)
