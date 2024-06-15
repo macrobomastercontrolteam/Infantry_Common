@@ -70,6 +70,7 @@ uint32_t gimbal_high_water;
 
 static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init);
 static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init);
+static void gimbal_safety_manager(int16_t *yaw_can_set_current_ptr, int16_t *pitch_can_set_current_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr);
 
 /**
   * @brief          "gimbal_control" valiable initialization, include pid initialization, remote control data point initialization, gimbal motors
@@ -198,26 +199,8 @@ void gimbal_task(void const *pvParameters)
         gimbal_set_control(&gimbal_control);
         gimbal_control_loop(&gimbal_control);
         trigger_set_current = shoot_control_loop();
-#if YAW_TURN
-        yaw_can_set_current = -gimbal_control.gimbal_yaw_motor.given_current;
-#else
-        yaw_can_set_current = gimbal_control.gimbal_yaw_motor.given_current;
-#endif
-
-#if PITCH_TURN
-        pitch_can_set_current = -gimbal_control.gimbal_pitch_motor.given_current;
-#else
-        pitch_can_set_current = gimbal_control.gimbal_pitch_motor.given_current;
-#endif
-
-        if (gimbal_emergency_stop() || toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
-        {
-            CAN_cmd_gimbal(0, 0, 0, 0, 0);
-        }
-        else
-        {
-            CAN_cmd_gimbal(yaw_can_set_current, pitch_can_set_current, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
-        }
+        gimbal_safety_manager(&yaw_can_set_current, &pitch_can_set_current, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
+        CAN_cmd_gimbal(yaw_can_set_current, pitch_can_set_current, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
 
 #if GIMBAL_TEST_MODE
         J_scope_gimbal_test();
@@ -231,6 +214,37 @@ void gimbal_task(void const *pvParameters)
     }
 }
 
+void gimbal_safety_manager(int16_t *yaw_can_set_current_ptr, int16_t *pitch_can_set_current_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr)
+{
+    // safety for gimbal
+    if (gimbal_emergency_stop() || toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
+    {
+        *yaw_can_set_current_ptr = 0;
+        *pitch_can_set_current_ptr = 0;
+    }
+    else
+    {
+#if YAW_TURN
+        *yaw_can_set_current_ptr = -gimbal_control.gimbal_yaw_motor.given_current;
+#else
+        *yaw_can_set_current_ptr = gimbal_control.gimbal_yaw_motor.given_current;
+#endif
+
+#if PITCH_TURN
+        *pitch_can_set_current_ptr = -gimbal_control.gimbal_pitch_motor.given_current;
+#else
+        *pitch_can_set_current_ptr = gimbal_control.gimbal_pitch_motor.given_current;
+#endif
+    }
+
+    // safety for shoot
+    if (toe_is_error(TRIGGER_MOTOR_TOE) || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+    {
+        *fric1_set_current_ptr = 0;
+        *fric1_set_current_ptr = 0;
+        *trigger_set_current_ptr = 0;
+    }
+}
 
 /**
   * @brief          gimbal cali data, set motor offset encode, max and min relative angle

@@ -14,8 +14,8 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
 
-#ifndef SHOOT_H
-#define SHOOT_H
+#ifndef _SHOOT_H
+#define _SHOOT_H
 #include "global_inc.h"
 
 #include "CAN_receive.h"
@@ -60,6 +60,7 @@
 #define SPEED_COMPENSATION_RATIO 1.22f
 #endif
 #else
+#warning "SPEED_COMPENSATION_RATIO not defined for this robot type, using default value 1.0. If you're sure about this, temporarily uncomment this line."
 #define SPEED_COMPENSATION_RATIO 1.0f
 #endif
 #define FRICTION_MOTOR_RPM_TO_SPEED (2.0f * PI / 60.0f * (FRICTION_MOTOR_RADIUS * SPEED_COMPENSATION_RATIO))
@@ -68,15 +69,15 @@
 
 // max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
 #if ENABLE_SHOOT_REDUNDANT_SWITCH
-#define FRICTION_MOTOR_SPEED  25.0f
+#define FRICTION_MOTOR_SPEED  25.5f
 #else
 #define FRICTION_MOTOR_SPEED  1.0f
 #endif
 
 // Unit: ammo per minute
-#define SEMI_AUTO_FIRE_RATE 1300.0f
-#define AUTO_FIRE_RATE     1300.0f
-#define READY_TRIGGER_RATE 300.0f
+#define SEMI_AUTO_FIRE_RATE 1200.0f
+#define AUTO_FIRE_RATE     1200.0f
+#define READY_TRIGGER_RATE 400.0f
 
 // Speed unit: rpm
 // tested approx max spinning speed: 19 rad/s, corresponding to 1632 rpm
