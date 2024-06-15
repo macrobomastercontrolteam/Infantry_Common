@@ -498,12 +498,20 @@ static void trigger_motor_stall_handler(void)
 
 bool_t isOverheated(void)
 {
-	if ((toe_is_error(REFEREE_TOE) == 0) && (shoot_control.heat + SHOOT_HEAT_REMAIN_VALUE > shoot_control.heat_limit))
+	bool_t out = 0;
+	if (toe_is_error(REFEREE_TOE) == 0)
 	{
-		return 1;
+		if (SHOOT_HEAT_LIMIT_CLEARANCE > shoot_control.heat_limit)
+		{
+			if (shoot_control.heat + SHOOT_HEAT_LIMIT_CLEARANCE / 2 > shoot_control.heat_limit)
+			{
+				out = 1;
+			}
+		}
+		else if (shoot_control.heat + SHOOT_HEAT_LIMIT_CLEARANCE > shoot_control.heat_limit)
+		{
+			out = 1;
+		}
 	}
-	else
-	{
-		return 0;
-	}
+	return out;
 }

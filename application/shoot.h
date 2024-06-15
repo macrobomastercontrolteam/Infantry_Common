@@ -107,7 +107,7 @@
 #define REVERSE_TRIGGER_DIRECTION 0
 #endif
 
-#define SHOOT_HEAT_REMAIN_VALUE     50
+#define SHOOT_HEAT_LIMIT_CLEARANCE     60
 
 //Frictional wheel 1 PID
 #define FRICTION_1_SPEED_PID_KP        20.0f
