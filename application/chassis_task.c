@@ -232,7 +232,11 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	chassis_move_init->fRandomSpinOn = 0;
 #endif
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+	// special assignment to ensure fHipDisabledEdge not being miscalculated by the garbage data
+	chassis_move.fHipEnabled = 0;
 	swerve_chassis_params_reset();
+#endif
 
 	// update data
 	chassis_feedback_update();
@@ -700,8 +704,19 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
 	}
 	else
 	{
-		memset(vx_by_hip, 0, sizeof(vx_by_hip));
-		memset(vy_by_hip, 0, sizeof(vy_by_hip));
+		fp32 temp_wheel_rot_radii_dot = STEER_TURN_HIP_RADIUS_SPEED_DEADZONE * 0.9f;
+		// right front
+		vx_by_hip[0] = temp_wheel_rot_radii_dot * sin_gamma;
+		vy_by_hip[0] = temp_wheel_rot_radii_dot * cos_gamma;
+		// left front
+		vx_by_hip[1] = temp_wheel_rot_radii_dot * sin_gamma;
+		vy_by_hip[1] = -temp_wheel_rot_radii_dot * cos_gamma;
+		// left rear
+		vx_by_hip[2] = -temp_wheel_rot_radii_dot * sin_gamma;
+		vy_by_hip[2] = -temp_wheel_rot_radii_dot * cos_gamma;
+		// right rear
+		vx_by_hip[3] = -temp_wheel_rot_radii_dot * sin_gamma;
+		vy_by_hip[3] = temp_wheel_rot_radii_dot * cos_gamma;
 	}
 
 	// pairs of velocities represented by (x,y)
@@ -722,16 +737,34 @@ void chassis_vector_to_wheel_vector(fp32 vx_set, fp32 vy_set, fp32 wz_set, fp32 
 	static fp32 last_steer_wheel_angle_target[4];
 	static uint8_t reverse_flag[4];
 	uint8_t i;
-	uint8_t fNoChangeUniversal = (fabs(vy_set) <= STEER_TURN_X_SPEED_DEADZONE) && (fabs(vx_set) < STEER_TURN_X_SPEED_DEADZONE) && (fabs(wz_set) < STEER_TURN_W_SPEED_DEADZONE);
+	// On the edge of turning off, vx,vy,vz are all zero yet 6020 still needs to turn
+	uint8_t fNoChangeUniversal = ((chassis_move.fHipDisabledEdge == 0) && (fabs(vy_set) <= STEER_TURN_X_SPEED_DEADZONE) && (fabs(vx_set) < STEER_TURN_X_SPEED_DEADZONE) && (fabs(wz_set) < STEER_TURN_W_SPEED_DEADZONE));
 	uint8_t fNoChangeUnique;
 	for (i = 0; i < 4; i++)
 	{
 		// drive wheel speed
 		wheel_speed[i] = sqrt(pow(wheel_velocity[i][0], 2) + pow(wheel_velocity[i][1], 2));
 
-		// steering wheel angle
-		fNoChangeUnique = (fabs(chassis_move.target_wheel_rot_radii_dot[i]) < STEER_TURN_HIP_RADIUS_SPEED_DEADZONE);
-		if (fNoChangeUniversal && ((chassis_move.fHipEnabled == 0) || fNoChangeUnique))
+		// determine whether to calculate steering wheel angle again
+		if (chassis_move.fHipEnabled)
+		{
+			fNoChangeUnique = (fabs(chassis_move.target_wheel_rot_radii_dot[i]) < STEER_TURN_HIP_RADIUS_SPEED_DEADZONE);
+		}
+		else
+		{
+			if (chassis_move.fHipDisabledEdge)
+			{
+				// do change steer to release tension at the edge of reset
+				fNoChangeUnique = 0;
+			}
+			else
+			{
+				// do not change steer after reset
+				fNoChangeUnique = 1;
+			}
+		}
+
+		if (fNoChangeUniversal && fNoChangeUnique)
 		{
 			steer_wheel_angle[i] = last_steer_wheel_angle_target[i];
 		}
@@ -791,6 +824,9 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 		for (i = 0; i < 4; i++)
 		{
 			chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(wheel_speed[i]);
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+			chassis_move_control_loop->steer_motor_chassis[i].target_ecd = motor_angle_to_ecd_change(steer_wheel_angle[i]);
+#endif
 		}
 	}
 	else

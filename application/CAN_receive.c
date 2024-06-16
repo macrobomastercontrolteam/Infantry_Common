@@ -512,7 +512,7 @@ void CAN_cmd_swerve_steer(void)
 	// Send target encoder value of steering motors (GM6020) to chassis controller
 	chassis_tx_message.StdId = CAN_STEER_CONTROLLER_TX_ID;
 #if ENABLE_STEER_MOTOR_POWER
-	if (chassis_move.chassis_mode != CHASSIS_VECTOR_RAW)
+	if ((chassis_move.chassis_mode != CHASSIS_VECTOR_RAW) || chassis_move.fHipDisabledEdge)
 	{
 		uint16_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
 		uint16_t steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;
@@ -572,8 +572,10 @@ void swerve_enable_hip(uint8_t fEnabled)
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 
 #if ENABLE_HIP_MOTOR_POWER
+	chassis_move.fHipDisabledEdge = ((fEnabled == 0) && chassis_move.fHipEnabled);
 	chassis_move.fHipEnabled = fEnabled;
 #else
+	chassis_move.fHipDisabledEdge = 0;
 	chassis_move.fHipEnabled = 0;
 #endif
 
