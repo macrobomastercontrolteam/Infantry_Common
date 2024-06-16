@@ -200,7 +200,7 @@ void armor_damage_draw(float yaw_relative_angle)
 
 void super_cap_status_draw(void)
 {
-	if (cap_message_rx.cap_message.cap_milivoltage >= SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD)
+	if (cap_message_rx.cap_message.cap_milivoltage >= (SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD * 1000.0f))
 	{
 		float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_Change, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
 	}
