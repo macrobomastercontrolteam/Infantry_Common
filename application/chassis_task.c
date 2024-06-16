@@ -232,7 +232,6 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	chassis_move_init->fRandomSpinOn = 0;
 #endif
 
-	swerve_enable_hip(0);
 	swerve_chassis_params_reset();
 
 	// update data
@@ -268,6 +267,7 @@ void swerve_chassis_params_reset(void)
 		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
 		chassis_move.target_wheel_rot_radii_dot[i] = 0;
 	}
+	swerve_enable_hip(0);
 #endif
 }
 
@@ -323,7 +323,6 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 			}
 			case CHASSIS_VECTOR_RAW:
 			{
-				swerve_enable_hip(0);
 				swerve_chassis_params_reset();
 				break;
 			}
