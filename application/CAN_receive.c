@@ -150,9 +150,10 @@ void decode_lower_head_data(uint8_t *data)
 	shoot_control.heat = (data[2] << 8) | data[3];
 	shoot_control.bullet_init_speed = (fp32) data[4] / BULLET_SPEED_RATIO;
 
-	uint8_t game_progress = 1;
-	uint8_t team_color = (data[7] & (1 << 7));
-	// placeholder
+	uint8_t team_color = ((data[7] & (1 << 7)) != 0);
+	// placeholders
+	// 4 represents game start
+    uint8_t game_progress = 4;
 	uint16_t current_HP = 100;
 	uint16_t stage_remain_time = 100;
 	CvCmder_set_ref_status(current_HP, team_color, stage_remain_time, game_progress);

@@ -108,7 +108,6 @@ void CvCmder_EchoTxMsgToUsb(void);
 void CvCmder_SendSetModeRequest(void);
 void CvCmder_SendInfoData(eInfoBits InfoBit);
 void CvCmder_UpdateTranDelta(void);
-uint8_t is_game_started(void);
 uint8_t get_time_remain(void);
 uint16_t get_current_HP(void);
 uint8_t get_team_color(void);

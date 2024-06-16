@@ -61,6 +61,7 @@ tCvCmdHandler* CvCmder_GetHandler(void);
 void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd);
 void CvCmder_toe_solve_lost_fun(void);
 void CvCmder_set_ref_status(uint16_t _current_HP, uint8_t _team_color, uint16_t _stage_remain_time, uint8_t _game_progress);
+uint8_t is_game_started(void);
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void);
 #endif // DEBUG_CV_WITH_USB
