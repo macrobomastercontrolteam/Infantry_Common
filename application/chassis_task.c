@@ -31,6 +31,8 @@
 #include "remote_control.h"
 #include "cv_usart_task.h"
 
+#define MANUAL_TUNE_PITCHSETADJ 0
+
 static void wait_until_motors_online(void);
 static void chassis_init(chassis_move_t *chassis_move_init);
 static void chassis_set_mode(chassis_move_t *chassis_move_mode);
@@ -365,7 +367,6 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 
 				biped.pitch.set = 0.0f;
 				biped.roll.set = 0.0f;
-				// @TODO: biped.balance_angle
 
 				// biped.velocity.set = 0;
 				// biped.velocity.last = biped.velocity.now;
@@ -373,6 +374,13 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				biped.leg_L.dis.now = 0;
 				biped.leg_R.dis.now = 0;
 				biped.leg_simplified.dis.now = 0;
+
+#if MANUAL_TUNE_PITCHSETADJ
+				// biped.dis_set_adj = 0;
+				// PID_clear(&biped.disSetAdj_pid);
+				biped.balance_angle = 0;
+				PID_clear(&biped.pitchSetAdj_pid);
+#endif
 
 				biped_set_dis(biped.leg_simplified.dis.now, (biped.pitch.now < 0));
 
@@ -410,6 +418,12 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				biped.leg_R.fResetMultiAngleOffset = 1;
 
 				biped.leg_simplified.dis.now = 0;
+				// biped.dis_set_adj = 0;
+				// PID_clear(&biped.disSetAdj_pid);
+#if MANUAL_TUNE_PITCHSETADJ
+				biped.balance_angle = 0;
+				PID_clear(&biped.pitchSetAdj_pid);
+#endif
 				biped_set_dis(biped.leg_simplified.dis.now, (biped.pitch.now < 0));
 				break;
 			}

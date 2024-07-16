@@ -33,6 +33,8 @@ typedef struct
 	pid_type_def invPendulumInAir_pid;
 	pid_type_def wheelBrakeInAirL_pid;
 	pid_type_def wheelBrakeInAirR_pid;
+	// pid_type_def disSetAdj_pid;
+	pid_type_def pitchSetAdj_pid;
 
 	fp32 K_coeff[12][4];
 	fp32 K_coeff_inAir[12][4];
@@ -40,6 +42,7 @@ typedef struct
 	// fp32 acc_up_max, acc_down_max, acc_now;
 	fp32 balance_angle;
 	fp32 dis_offset;
+	// fp32 dis_set_adj;
 	fp32 HipTorque_MaxLimit;
 	fp32 DriveTorque_MaxLimit;
 	// fp32 yaw_dot_last;

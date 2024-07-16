@@ -76,10 +76,9 @@ void biped_init(void)
 
 	// biped.yaw_dot_last = 0;
 	biped.yaw.last = 0;
-	// @TODO
-	// biped.balance_angle = -0.02f;
-	biped.balance_angle = 0.0f;
-	biped.dis_offset = 0.0f;
+	biped.balance_angle = 0;
+	biped.dis_offset = 0;
+	// biped.dis_set_adj = 0;
 	biped.jumpState = JUMP_IDLE;
 	biped.brakeState = BRAKE_IDLE;
 	biped.isJumpInTheAir = 0;
@@ -116,6 +115,12 @@ void biped_init(void)
 	const fp32 wheelBrakeInAir_pid_param[3] = {7, 1, 0};
 	PID_init(&biped.wheelBrakeInAirL_pid, PID_POSITION, wheelBrakeInAir_pid_param, DRIVE_TORQUE_MAX, DRIVE_TORQUE_MAX, 0.9f, &rad_err_handler);
 	PID_init(&biped.wheelBrakeInAirR_pid, PID_POSITION, wheelBrakeInAir_pid_param, DRIVE_TORQUE_MAX, DRIVE_TORQUE_MAX, 0.9f, &rad_err_handler);
+
+	// const fp32 disSetAdj_pid_param[3] = {0, 0.5, 0.1};
+	// PID_init(&biped.disSetAdj_pid, PID_POSITION, disSetAdj_pid_param, DIS_SET_ADJ_MAX, DIS_SET_ADJ_MAX, 0.0f, &rad_err_handler);
+
+	const fp32 pitchSetAdj_pid_param[3] = {0, 0.1175, 0};
+	PID_init(&biped.pitchSetAdj_pid, PID_POSITION, pitchSetAdj_pid_param, PITCH_SET_ADJ_MAX, PITCH_SET_ADJ_MAX, 0.0f, &rad_err_handler);
 
 #if (MODEL_ORIG_RM_CAP == 0)
 	const fp32 K_coeff_init[12][4] = {
@@ -291,8 +296,8 @@ void biped_set_dis(fp32 dis_set, uint8_t moving_direction)
 	if (moving_direction == 1)
 	{
 		// forward
-		biped.dis_offset = -0.25f;
-		// biped.dis_offset = 0.0f;
+		// biped.dis_offset = -0.25f;
+		biped.dis_offset = 0.0f;
 	}
 	else
 	{
@@ -349,6 +354,7 @@ void inv_pendulum_ctrl(void)
 
 		memset(biped.leg_simplified.Xd, 0, sizeof(biped.leg_simplified.Xd));
 		biped.leg_simplified.Xd[2][0] = biped.leg_simplified.dis.set;
+		// biped.leg_simplified.Xd[2][0] = biped.leg_simplified.dis.set + biped.dis_set_adj;
 
 		biped.leg_simplified.X[0][0] = biped.leg_simplified.angle0.now;
 		biped.leg_simplified.X[1][0] = biped.leg_simplified.angle0.dot;
@@ -378,7 +384,15 @@ void inv_pendulum_ctrl(void)
 		// const fp32 brakezone_order[6] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
 		// const fp32 brakezone_threshold[6] = {0.1875f, 5.0f, 0.0f, 1.25f, 0.1875f, 5.0f};
 
-		// oscillation amplitude at LEG_L0_MIN with hip: 0.1, 3, 0,
+		// oscillation amplitude at LEG_L0_MIN with hip: 0, 3.5, 0, 1, 0, 0
+		// for LQR_ADJUST_COEFF = 1, gain = 40%
+		// const fp32 brakezone_order[6] = {0.0f, 1.0f, 0.0f, 0.85f, 0.0f, 0.0f};
+		// const fp32 brakezone_threshold[6] = {0.46f, 8.8f, 0.0f, 3.03f, 0.46f, 12.1f};
+		// const fp32 brakezone_order[6] = {0.0f, 1.25f, 0.0f, 1.25f, 0.0f, 0.0f};
+		// const fp32 brakezone_threshold[6] = {0.46f, 7.3f, 0.0f, 2.07f, 0.46f, 12.1f};
+		// for LQR_ADJUST_COEFF = 1, gain = 35%
+		// const fp32 brakezone_order[6] = {0.0f, 1.25f, 0.0f, 1.25f, 0.0f, 0.0f};
+		// const fp32 brakezone_threshold[6] = {0.46f, 8.1f, 0.0f, 2.9f, 0.46f, 12.1f};
 		for (uint8_t row = 0; row < 6; row++)
 		{
 			matrix_Xd_minus_X[row][0] = biped.leg_simplified.Xd[row][0] - biped.leg_simplified.X[row][0];
@@ -601,6 +615,23 @@ void biped_brakeManager(fp32 distanceDelta)
 		}
 	}
 	fBrakeCmdLast = fBrakeCmd;
+
+	// // Eliminate distance static error
+	// fp32 dis_diff_abs = fabs(biped_get_dis_diff());
+	// if ((dis_diff_abs > DIS_SET_ADJ_ENABLEZONE_MIN) && (dis_diff_abs < DIS_SET_ADJ_ENABLEZONE_MAX) && (biped.isJumpInTheAir == 0))
+	// {
+	// 	biped.dis_set_adj = PID_calc(&biped.disSetAdj_pid, biped_get_dis_diff(), 0, biped.time_step_s);
+	// 	// biped.dis_set_adj += -biped_get_dis_diff() * DIS_DIFF_INTEGRAL_ADJ_GAIN * biped.time_step_s;
+	// }
+	// biped.dis_set_adj = fp32_constrain(biped.dis_set_adj, -DIS_SET_ADJ_MAX, DIS_SET_ADJ_MAX);
+
+	fp32 dis_diff_abs = fabs(biped_get_dis_diff());
+	if ((dis_diff_abs > DIS_SET_ADJ_ENABLEZONE_MIN) && (dis_diff_abs < DIS_SET_ADJ_ENABLEZONE_MAX) && (biped.isJumpInTheAir == 0))
+	{
+		biped.balance_angle = PID_calc(&biped.pitchSetAdj_pid, biped_get_dis_diff(), 0, biped.time_step_s);
+		// biped.balance_angle += -biped_get_dis_diff() * DIS_DIFF_INTEGRAL_ADJ_GAIN * biped.time_step_s;
+	}
+	biped.balance_angle = fp32_constrain(biped.balance_angle, -PITCH_SET_ADJ_MAX, PITCH_SET_ADJ_MAX);
 }
 
 /**
@@ -709,6 +740,8 @@ void biped_jumpManager(void)
 					PID_clear(&biped.leg_L.supportF_pid);
 					PID_clear(&biped.leg_R.supportF_pid);
 					PID_clear(&biped.turn_pid);
+					PID_clear(&biped.pitchSetAdj_pid);
+					// PID_clear(&biped.disSetAdj_pid);
 					biped.jumpState = JUMP_IDLE;
 					biped.HipTorque_MaxLimit = HIP_TORQUE_MAX;
 				}
