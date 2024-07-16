@@ -164,17 +164,17 @@ fp32 roll_dot_fp32, pitch_dot_fp32, yaw_dot_fp32;
 fp32 accel_x_fp32, accel_y_fp32, accel_z_fp32;
 static void jscope_imu_test(void)
 {
-	roll_fp32 = INS_angle[INS_ROLL_ADDRESS_OFFSET];
-  pitch_fp32 = INS_angle[INS_PITCH_ADDRESS_OFFSET];
-  yaw_fp32 = INS_angle[INS_YAW_ADDRESS_OFFSET];
+	roll_fp32 = INS_angle[INS_ROLL_ADDRESS_OFFSET] * 180.0f / PI;
+  pitch_fp32 = INS_angle[INS_PITCH_ADDRESS_OFFSET] * 180.0f / PI;;
+  yaw_fp32 = INS_angle[INS_YAW_ADDRESS_OFFSET] * 180.0f / PI;
 
-	roll_dot_fp32 = INS_gyro[INS_GYRO_X_ADDRESS_OFFSET];
-  pitch_dot_fp32 = INS_gyro[INS_GYRO_Y_ADDRESS_OFFSET];
-  yaw_dot_fp32 = INS_gyro[INS_GYRO_Z_ADDRESS_OFFSET];
+	roll_dot_fp32 = INS_gyro[INS_GYRO_X_ADDRESS_OFFSET] * 180.0f / PI;;
+  pitch_dot_fp32 = INS_gyro[INS_GYRO_Y_ADDRESS_OFFSET] * 180.0f / PI;;
+  yaw_dot_fp32 = INS_gyro[INS_GYRO_Z_ADDRESS_OFFSET] * 180.0f / PI;;
 
-	accel_x_fp32 = INS_gyro[INS_ACCEL_X_ADDRESS_OFFSET];
-  accel_y_fp32 = INS_gyro[INS_ACCEL_Y_ADDRESS_OFFSET];
-  accel_z_fp32 = INS_gyro[INS_ACCEL_Z_ADDRESS_OFFSET];
+	accel_x_fp32 = INS_gyro[INS_ACCEL_X_ADDRESS_OFFSET] * 1000;
+  accel_y_fp32 = INS_gyro[INS_ACCEL_Y_ADDRESS_OFFSET] * 1000;
+  accel_z_fp32 = INS_gyro[INS_ACCEL_Z_ADDRESS_OFFSET] * 1000;
 }
 #endif
 

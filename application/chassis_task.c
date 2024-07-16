@@ -71,6 +71,8 @@ fp32 chassis_task_loop_delay;
 // fp32 leg_R_TWheel_set = 0;
 fp32 leg_l_l0_set = 0;
 fp32 leg_r_l0_set = 0;
+fp32 leg_l_l0_now = 0;
+fp32 leg_r_l0_now = 0;
 fp32 leg_sim_angle0_now = 0;
 fp32 leg_sim_angle0_dot = 0;
 fp32 leg_sim_dis_diff = 0;
@@ -82,9 +84,9 @@ fp32 biped_yaw_set = 0;
 fp32 biped_roll_now = 0;
 fp32 biped_roll_set = 0;
 uint32_t loop_delay = 0;
-uint8_t error_Toe = 0;
 uint8_t jump_state;
 uint8_t brake_state;
+// int32_t cvDisDelta_int = 0;
 static void jscope_chassis_test(void)
 {
 	// leg_L_drive_input_angle = motor_measure[CHASSIS_ID_DRIVE_LEFT].input_angle;
@@ -93,10 +95,10 @@ static void jscope_chassis_test(void)
 	// leg_L_drive_multiangle = motor_measure[CHASSIS_ID_DRIVE_LEFT].output_angle;
 	// leg_R_drive_multiangle = motor_measure[CHASSIS_ID_DRIVE_RIGHT].output_angle;
 
-	// out_LF = motor_measure[CHASSIS_ID_HIP_LF].output_angle;
-	// out_LB = motor_measure[CHASSIS_ID_HIP_LB].output_angle;
-	// out_RF = motor_measure[CHASSIS_ID_HIP_RF].output_angle;
-	// out_RB = motor_measure[CHASSIS_ID_HIP_RB].output_angle;
+	// out_LF = motor_measure[CHASSIS_ID_HIP_LF].output_angle * 180.0f / PI;
+	// out_LB = motor_measure[CHASSIS_ID_HIP_LB].output_angle * 180.0f / PI;
+	// out_RF = motor_measure[CHASSIS_ID_HIP_RF].output_angle * 180.0f / PI;
+	// out_RB = motor_measure[CHASSIS_ID_HIP_RB].output_angle * 180.0f / PI;
 
 	// angle_L1 = biped.leg_L.angle1*180.0f/PI;
 	// angle_L4 = biped.leg_L.angle4*180.0f/PI;
@@ -110,11 +112,13 @@ static void jscope_chassis_test(void)
 
 	// leg_L_TWheel_set = biped.leg_L.TWheel_set;
 	// leg_R_TWheel_set = biped.leg_R.TWheel_set;
-	leg_l_l0_set = biped.leg_L.L0.now;
-	leg_r_l0_set = biped.leg_R.L0.now;
+	leg_l_l0_set = biped.leg_L.L0.set * 1000.0f;
+	leg_r_l0_set = biped.leg_R.L0.set * 1000.0f;
+	leg_l_l0_now = biped.leg_L.L0.now * 1000.0f;
+	leg_r_l0_now = biped.leg_R.L0.now * 1000.0f;
 
 	leg_sim_angle0_now = biped.leg_simplified.angle0.now * 180.0f / PI;
-	leg_sim_angle0_dot = biped.leg_simplified.angle0.dot * 1000.0f;
+	leg_sim_angle0_dot = biped.leg_simplified.angle0.dot * 180.0f / PI;
 	leg_sim_dis_diff = biped_get_dis_diff() * 1000.0f;
 	leg_sim_dis_dot = biped.leg_simplified.dis.dot * 1000.0f;
 
@@ -131,6 +135,8 @@ static void jscope_chassis_test(void)
 
 	jump_state = biped.jumpState;
 	brake_state = biped.brakeState;
+
+	// cvDisDelta_int = CvCmdHandler.CvCmdMsg.disDelta * 1000;
 }
 #endif
 
@@ -164,9 +170,6 @@ void chassis_task(void const *pvParameters)
 			{
 				if (toe_is_error(bToeIndex))
 				{
-#if CHASSIS_JSCOPE_DEBUG
-					error_Toe = bToeIndex;
-#endif
 					biped.fBipedEnable = 0;
 					break;
 				}

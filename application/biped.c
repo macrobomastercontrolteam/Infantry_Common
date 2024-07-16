@@ -19,6 +19,22 @@
 #define REVERSE_PITCH_ANGLE 1
 #define REVERSE_YAW_ANGLE 0
 
+#if CHASSIS_JSCOPE_DEBUG
+fp32 lqr_Tp_by_angle0_now;
+fp32 lqr_Tp_by_angle0_dot;
+fp32 lqr_Tp_by_dis_now;
+fp32 lqr_Tp_by_dis_dot;
+fp32 lqr_Tp_by_pitch_now;
+fp32 lqr_Tp_by_pitch_dot;
+
+fp32 lqr_Tw_by_angle0_now;
+fp32 lqr_Tw_by_angle0_dot;
+fp32 lqr_Tw_by_dis_now;
+fp32 lqr_Tw_by_dis_dot;
+fp32 lqr_Tw_by_pitch_now;
+fp32 lqr_Tw_by_pitch_dot;
+#endif
+
 biped_t biped;
 
 // Jump parameters
@@ -331,6 +347,22 @@ void inv_pendulum_ctrl(void)
 		matrixMultiplication(2, 6, 6, 1, biped.leg_simplified.K, matrix_Xd_minus_X, Matrix_u);
 		biped.leg_simplified.TWheel_set = Matrix_u[0][0];
 		biped.leg_simplified.Tp_set = Matrix_u[1][0];
+
+#if CHASSIS_JSCOPE_DEBUG
+		lqr_Tp_by_angle0_now = biped.leg_simplified.K[0][0] * matrix_Xd_minus_X[0][0];
+		lqr_Tp_by_angle0_dot = biped.leg_simplified.K[0][1] * matrix_Xd_minus_X[1][0];
+		lqr_Tp_by_dis_now = biped.leg_simplified.K[0][2] * matrix_Xd_minus_X[2][0];
+		lqr_Tp_by_dis_dot = biped.leg_simplified.K[0][3] * matrix_Xd_minus_X[3][0];
+		lqr_Tp_by_pitch_now = biped.leg_simplified.K[0][4] * matrix_Xd_minus_X[4][0];
+		lqr_Tp_by_pitch_dot = biped.leg_simplified.K[0][5] * matrix_Xd_minus_X[5][0];
+
+		lqr_Tw_by_angle0_now = biped.leg_simplified.K[1][0] * matrix_Xd_minus_X[0][1];
+		lqr_Tw_by_angle0_dot = biped.leg_simplified.K[1][1] * matrix_Xd_minus_X[1][1];
+		lqr_Tw_by_dis_now = biped.leg_simplified.K[1][2] * matrix_Xd_minus_X[2][1];
+		lqr_Tw_by_dis_dot = biped.leg_simplified.K[1][3] * matrix_Xd_minus_X[3][1];
+		lqr_Tw_by_pitch_now = biped.leg_simplified.K[1][4] * matrix_Xd_minus_X[4][1];
+		lqr_Tw_by_pitch_dot = biped.leg_simplified.K[1][5] * matrix_Xd_minus_X[5][1];
+#endif
 
 		// reduction = 22.5% at 0.8
 		// const fp32 TWheel_brakezone_threshold = 3.6f;
