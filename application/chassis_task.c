@@ -147,6 +147,8 @@ static void jscope_chassis_test(void)
  */
 void chassis_task(void const *pvParameters)
 {
+	static uint32_t ulPreviousOsWakeTime;
+	ulPreviousOsWakeTime = osKernelSysTick();
 	osDelay(BIPED_CHASSIS_TASK_INIT_TIME);
 
 	chassis_init(&chassis_move);
@@ -207,11 +209,7 @@ void chassis_task(void const *pvParameters)
 		fValidCmd &= drive_motor_set_torque(biped.leg_R.TWheel_set, biped.leg_L.TWheel_set, blocking_call);
 		fValidCmd &= hip_motor_set_torque(biped.leg_R.TR_set, biped.leg_L.TR_set, biped.leg_L.TL_set, biped.leg_R.TL_set, blocking_call);
 
-		chassis_task_loop_delay = xTaskGetTickCount() - biped.time_ms;
-		if (chassis_task_loop_delay < CHASSIS_CONTROL_TIME_MS)
-		{
-			osDelay(CHASSIS_CONTROL_TIME_MS - chassis_task_loop_delay);
-		}
+		osDelayUntil(&ulPreviousOsWakeTime, CHASSIS_CONTROL_TIME_MS);
 
 #if CHASSIS_JSCOPE_DEBUG
 		jscope_chassis_test();
