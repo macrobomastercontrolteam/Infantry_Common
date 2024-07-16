@@ -645,7 +645,7 @@ void biped_jumpManager(void)
 		case JUMP_CHARGE:
 		{
 			if ((fabs(biped.roll.now) < 0.1f) &&
-			    (fabs(biped.pitch.now - biped.balance_angle) < 0.1f) &&
+			    (fabs(*(chassis_move.chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET)) < 0.1f) &&
 			    (fabs(biped.pitch.dot) < 0.1f) &&
 			    (MIN(biped.leg_L.L0.now, biped.leg_R.L0.now) <= LEG_L0_MIN_THRESHOLD) &&
 			    (biped.time_ms - state_entry_time_ms > JUMP_CHARGE_WAIT_MS))
