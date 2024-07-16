@@ -199,14 +199,15 @@ void biped_status_update(void)
 {
 	biped.time_ms = xTaskGetTickCount();
 
+	biped.roll.last = biped.roll.now;
 	biped.roll.now = *(chassis_move.chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
 	biped.roll.dot = *(chassis_move.chassis_INS_speed + INS_GYRO_X_ADDRESS_OFFSET);
 #if REVERSE_ROLL_ANGLE
 	biped.roll.now *= -1;
 	biped.roll.dot *= -1;
 #endif
-	biped.roll.last = biped.roll.now;
 
+	biped.pitch.last = biped.pitch.now;
 	biped.pitch.now = *(chassis_move.chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET);
 	biped.pitch.dot = *(chassis_move.chassis_INS_speed + INS_GYRO_Y_ADDRESS_OFFSET);
 	// biped.pitch.dot = first_order_filter(*(chassis_move.chassis_INS_speed + INS_GYRO_Y_ADDRESS_OFFSET), biped.pitch.dot, 1.000f);
@@ -217,28 +218,29 @@ void biped_status_update(void)
 #else
 	biped.pitch.now -= biped.balance_angle; // the angle relative to the balanced pitch
 #endif
-	biped.pitch.last = biped.pitch.now;
 
+	biped.yaw.last = biped.yaw.now;
 	biped.yaw.now = *(chassis_move.chassis_INS_angle + INS_YAW_ADDRESS_OFFSET);
+	// biped.yaw_dot_last = biped.yaw.dot;
 	biped.yaw.dot = *(chassis_move.chassis_INS_speed + INS_GYRO_Z_ADDRESS_OFFSET);
 #if REVERSE_YAW_ANGLE
 	biped.yaw.now *= -1;
 	biped.yaw.dot *= -1;
 #endif
-	biped.yaw.last = biped.yaw.now;
+	// biped.yaw.ddot = (biped.yaw.dot - biped.yaw_dot_last) / (biped.time_step_s);
 
 	// biped.accel_x = *(chassis_move.chassis_INS_accel + INS_ACCEL_X_ADDRESS_OFFSET);
 	// biped.accel_y = *(chassis_move.chassis_INS_accel + INS_ACCEL_Y_ADDRESS_OFFSET);
 	// biped.accel_z = *(chassis_move.chassis_INS_accel + INS_ACCEL_Z_ADDRESS_OFFSET);
 
-	// biped.yaw.ddot = (biped.yaw.dot - biped.yaw_dot_last) / (biped.time_step_s);
-	// biped.yaw_dot_last = biped.yaw.dot;
-
 	// @TODO: take care of overflow event
 	// @TODO: try to use input angle encoder, which doesn't require additional request
+	biped.leg_L.dis.last = biped.leg_L.dis.now;
+	biped.leg_R.dis.last = biped.leg_R.dis.now;
 	biped.leg_L.dis.now = motor_measure[CHASSIS_ID_DRIVE_LEFT].output_angle * DRIVE_WHEEL_RADIUS;
 	biped.leg_R.dis.now = motor_measure[CHASSIS_ID_DRIVE_RIGHT].output_angle * DRIVE_WHEEL_RADIUS;
 
+	biped.leg_simplified.dis.last = biped.leg_simplified.dis.now;
 	biped.leg_simplified.dis.now = (biped.leg_L.dis.now + biped.leg_R.dis.now) / 2.0f;
 
 	biped.leg_L.dis.dot = (biped.leg_L.dis.now - biped.leg_L.dis.last) / biped.time_step_s;
@@ -258,10 +260,6 @@ void biped_status_update(void)
 	// biped.leg_simplified.dis.set += biped.velocity.set * biped.time_step_s;
 	// }
 
-	biped.leg_L.dis.last = biped.leg_L.dis.now;
-	biped.leg_R.dis.last = biped.leg_R.dis.now;
-	biped.leg_simplified.dis.last = biped.leg_simplified.dis.now;
-
 	// hip motor
 	biped.leg_L.angle1 = loop_fp32_constrain(PI - motor_measure[CHASSIS_ID_HIP_LF].output_angle, 0, 2 * PI);
 	biped.leg_L.angle4 = rad_format(motor_measure[CHASSIS_ID_HIP_LB].output_angle);
@@ -280,8 +278,10 @@ void biped_status_update(void)
 	biped.leg_simplified.angle0.dot = first_order_filter((biped.leg_simplified.angle0.now - biped.leg_simplified.angle0.last) / biped.time_step_s, biped.leg_simplified.angle0.dot, biped_leg_angle0_dot_filter_coeff);
 
 	biped.leg_L.L0.dot = (biped.leg_L.L0.now - biped.leg_L.L0.last) / biped.time_step_s;
+	// L0.now is updated somewhere else, so L0.last must be updated after L0.now being updated to ensure update interval is biped.time_step_s
 	biped.leg_L.L0.last = biped.leg_L.L0.now;
 	biped.leg_R.L0.dot = (biped.leg_R.L0.now - biped.leg_R.L0.last) / biped.time_step_s;
+	// L0.now is updated somewhere else, so L0.last must be updated after L0.now being updated to ensure update interval is biped.time_step_s
 	biped.leg_R.L0.last = biped.leg_R.L0.now;
 }
 
