@@ -270,7 +270,7 @@ static void detect_init(uint32_t time)
     //设置离线时间，上线稳定工作时间，优先级 offlineTime onlinetime priority
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
-            {30, 20, 15},   //SBUS
+            {30, 10, 15},   //SBUS
             {50, 0, 11},   //hip motor1
             {50, 0, 11},   //hip motor2
             {50, 0, 11},    //hip motor3
@@ -285,7 +285,7 @@ static void detect_init(uint32_t time)
             {40, 200, 7},   //board mag
             {100, 100, 5},  //referee
             {10, 10, 7},    //rm imu
-            {1000, 10, 7},    //cv usart
+            {50, 0, 7},    //cv usart
             // {100, 100, 1},  //oled
         };
 
