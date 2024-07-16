@@ -54,6 +54,7 @@ typedef enum
     // INFANTRY_2024_MECANUM: On chassis
     // INFANTRY_2023_SWERVE: On chassis
     // SENTRY_2023_MECANUM: On chassis
+    // INFANTRY_2024_BIPED: On chassis
     CAN_TRIGGER_MOTOR_ID = 0x207,
 
     CAN_FRICTION_MOTOR_LEFT_ID = 0x205, // friction1

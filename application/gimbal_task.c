@@ -985,6 +985,8 @@ fp32 yaw_ins_set_fp32, pitch_ins_set_fp32;
 fp32 pitch_relative_set_fp32, pitch_relative_angle_fp32;
 fp32 yaw_speed_fp32, pitch_speed_fp32;
 fp32 yaw_speed_set_fp32, pitch_speed_set_fp32;
+fp32 yaw_speed_pid_err;
+fp32 pitch_speed_pid_err;
 uint32_t gimbal_last_update_time;
 uint32_t gimbal_update_interval;
 fp32 fric_diff_fp32;
@@ -1005,6 +1007,9 @@ static void J_scope_gimbal_test(void)
     pitch_speed_set_fp32 = gimbal_control.gimbal_pitch_motor.motor_gyro_set * 180.0f / PI;
     pitch_relative_angle_fp32 = gimbal_control.gimbal_pitch_motor.relative_angle * 180.0f / PI;
     pitch_relative_set_fp32 = gimbal_control.gimbal_pitch_motor.relative_angle_set * 180.0f / PI;
+
+    yaw_speed_pid_err = gimbal_control.gimbal_yaw_motor.gimbal_motor_speed_pid.error[0] * 180.0f / PI;
+    pitch_speed_pid_err = gimbal_control.gimbal_pitch_motor.gimbal_motor_speed_pid.error[0] * 180.0f / PI;
 
     gimbal_update_interval = osKernelSysTick() - gimbal_last_update_time;
     gimbal_last_update_time = osKernelSysTick();

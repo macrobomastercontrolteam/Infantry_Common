@@ -348,7 +348,7 @@ static void chassis_feedback_update(void)
 		chassis_move.motor_chassis[i].accel = chassis_move.motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
 	}
 
-#if (ROBOT_TYPE != INFANTRY_2023_SWERVE)
+#if ((ROBOT_TYPE != INFANTRY_2023_SWERVE) && (ROBOT_TYPE != INFANTRY_2024_BIPED))
 	// update chassis parameters: vertical speed x, horizontal speed y, rotation speed wz, right hand rule
 	chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
 	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
