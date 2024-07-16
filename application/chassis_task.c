@@ -630,7 +630,7 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
 	chassis_move_control->vy_set = fp32_constrain(chassis_move_control->vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
 }
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if ROBOT_CHASSIS_USE_MECANUM
 /**
  * @brief          four mecanum wheels speed is calculated by three param.
  * @param[in]      vx_set: vertial speed
@@ -809,7 +809,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 	fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
 	uint8_t i = 0;
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if ROBOT_CHASSIS_USE_MECANUM
 	// mecanum chassis inverse kinematics
 	chassis_vector_to_mecanum_wheel_speed(chassis_move_control_loop->vx_set,
 	                                      chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, wheel_speed);

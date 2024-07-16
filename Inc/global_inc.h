@@ -18,6 +18,12 @@
 #else
 #define ROBOT_YAW_HAS_SLIP_RING 0
 #endif
+
+#if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM))
+#define ROBOT_CHASSIS_USE_MECANUM 1
+#else
+#define ROBOT_CHASSIS_USE_MECANUM 0
+#endif
 /********************* Only Modify this area (end) *********************/
 
 #if DEBUG_CV_WITH_USB && !CV_INTERFACE
