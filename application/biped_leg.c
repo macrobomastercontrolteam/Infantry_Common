@@ -29,6 +29,7 @@
 #endif
 
 fp32 sqrtf_wrapper(fp32 x);
+const fp32 biped_leg_angle0_now_filter_coeff = 1.0f;
 
 void LegClass_t_Init(LegClass_t *leg)
 {
@@ -128,7 +129,7 @@ void LegClass_t_ForwardKinematics(LegClass_t *leg, const fp32 pitch)
 	matrixMultiplication(2, 2, 2, 1, matrix_R, cor_XY, cor_XY_then);
 	leg->angle0.last = leg->angle0.now;
 	// zero angle corresponds to center position
-	leg->angle0.now = atan2f(cor_XY_then[0][0], cor_XY_then[1][0]);
+	leg->angle0.now = first_order_filter(atan2f(cor_XY_then[0][0], cor_XY_then[1][0]), leg->angle0.now, biped_leg_angle0_now_filter_coeff);
 }
 
 void LegClass_t_VMC(LegClass_t *leg, const fp32 F, const fp32 Tp, fp32 ActualF[2][1])

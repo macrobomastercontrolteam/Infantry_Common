@@ -6,18 +6,42 @@
 #include "stdio.h"
 #include "string.h"
 
-#define JUMP_CHARGE_WAIT_MS 100.0f
-#define JUMP_CHARGE_TIMEOUT_MS 1000.0f
-#define JUMP_LAUNCH_TIMEOUT_MS 1000.0f
-#define JUMP_SUPPORT_FORCE_IGNORE_TIMEOUT_MS 300.0f
-#define JUMP_SHRINK_TIMEOUT_MS 1000.0f
-
-#define LQR_ADJUST_COEFF 0.3f
-#define LQR_ADJUST_DIS_COEFF 0.3f
+#define ENABLE_ROLL_PID 1
+#define ENABLE_SPLIT_PID 1
+#define ENABLE_LENGTH_PID 1
 
 #define REVERSE_ROLL_ANGLE 0
 #define REVERSE_PITCH_ANGLE 1
 #define REVERSE_YAW_ANGLE 0
+
+const fp32 JUMP_CHARGE_WAIT_MS = 100.0f;
+const fp32 JUMP_CHARGE_TIMEOUT_MS = 1000.0f;
+const fp32 JUMP_LAUNCH_TIMEOUT_MS = 1000.0f;
+const fp32 JUMP_SUPPORT_FORCE_IGNORE_TIMEOUT_MS = 300.0f;
+const fp32 JUMP_SHRINK_TIMEOUT_MS = 1000.0f;
+
+// #define DIS_SET_ADJ_MAX 0.5f
+const fp32 DIS_SET_ADJ_ENABLEZONE_MIN = 0.09f;
+const fp32 DIS_SET_ADJ_ENABLEZONE_MAX = 0.225f;
+const fp32 PITCH_SET_ADJ_MAX = (PI / 6.0f);
+
+const fp32 biped_leg_dis_dot_filter_coeff = 1.0f;
+const fp32 biped_leg_angle0_dot_filter_coeff = 1.0f;
+const fp32 biped_Tp_filter_coeff = 1.0f;
+const fp32 BRAKE_STOP_SPEED_THRESHOLD = 0.1f;
+const fp32 BRAKE_ENGAGE_TIMEOUT = 1000.0f;
+
+const fp32 LQR_ADJUST_COEFF = 0.4f;
+// bigger for less static error
+const fp32 LQR_ADJUST_DIS_COEFF = 0.4f;
+// smaller for less oscillation
+const fp32 LQR_ADJUST_DIS_DOT_COEFF = 0.4f;
+
+// const fp32 LQR_ADJUST_COEFF = 0.25f;
+// // bigger for less static error
+// const fp32 LQR_ADJUST_DIS_COEFF = 0.25f;
+// // smaller for less oscillation
+// const fp32 LQR_ADJUST_DIS_DOT_COEFF = 0.25f;
 
 #if CHASSIS_JSCOPE_DEBUG
 fp32 lqr_Tp_by_angle0_now;
@@ -125,18 +149,25 @@ void biped_init(void)
 
 	memcpy(biped.K_coeff, K_coeff_init, sizeof(biped.K_coeff));
 
-	for (uint8_t row = 0; row < 12; row++)
+	if ((LQR_ADJUST_DIS_COEFF != 1) || (LQR_ADJUST_DIS_DOT_COEFF != 1) || (LQR_ADJUST_COEFF != 1))
 	{
-		for (uint8_t col = 0; col < 4; col++)
+		for (uint8_t row = 0; row < 12; row++)
 		{
-			// higher gain for dis
-			if ((row == 2 * 2 + 0) || (row == 2 * 2 + 1))
+			for (uint8_t col = 0; col < 4; col++)
 			{
-				biped.K_coeff[row][col] *= LQR_ADJUST_DIS_COEFF;
-			}
-			else
-			{
-				biped.K_coeff[row][col] *= LQR_ADJUST_COEFF;
+				// higher gain for dis
+				if ((row == 2 * 2 + 0) || (row == 2 * 2 + 1))
+				{
+					biped.K_coeff[row][col] *= LQR_ADJUST_DIS_COEFF;
+				}
+				else if ((row == 2 * 3 + 0) || (row == 2 * 3 + 1))
+				{
+					biped.K_coeff[row][col] *= LQR_ADJUST_DIS_DOT_COEFF;
+				}
+				else
+				{
+					biped.K_coeff[row][col] *= LQR_ADJUST_COEFF;
+				}
 			}
 		}
 	}
@@ -210,7 +241,7 @@ void biped_status_update(void)
 	// third order Taylor series
 	// fp32 dis_dot_now = (biped.leg_simplified.dis.lastlast - 4.0f * biped.leg_simplified.dis.last + 3.0f * biped.leg_simplified.dis.now) / 2.0f / biped.time_step_s;
 	fp32 dis_dot_now = (biped.leg_simplified.dis.now - biped.leg_simplified.dis.last) / biped.time_step_s;
-	biped.leg_simplified.dis.dot = first_order_filter(dis_dot_now, biped.leg_simplified.dis.dot, 0.5f);
+	biped.leg_simplified.dis.dot = first_order_filter(dis_dot_now, biped.leg_simplified.dis.dot, biped_leg_dis_dot_filter_coeff);
 	// biped.leg_simplified.dis.dot = dis_dot_now;
 
 	if (biped.leg_L.fResetMultiAngleOffset || biped.leg_R.fResetMultiAngleOffset)
@@ -241,8 +272,7 @@ void biped_status_update(void)
 	biped.leg_simplified.angle1 = (biped.leg_L.angle1 + biped.leg_R.angle1) / 2.0f;
 	biped.leg_simplified.angle4 = (biped.leg_L.angle4 + biped.leg_R.angle4) / 2.0f;
 	LegClass_t_ForwardKinematics(&biped.leg_simplified, biped.pitch.now);
-	biped.leg_simplified.angle0.dot = (biped.leg_simplified.angle0.now - biped.leg_simplified.angle0.last) / biped.time_step_s;
-	// biped.leg_simplified.angle0.dot = first_order_filter((biped.leg_simplified.angle0.now - biped.leg_simplified.angle0.last) / biped.time_step_s, biped.leg_simplified.angle0.dot, 1.000f);
+	biped.leg_simplified.angle0.dot = first_order_filter((biped.leg_simplified.angle0.now - biped.leg_simplified.angle0.last) / biped.time_step_s, biped.leg_simplified.angle0.dot, biped_leg_angle0_dot_filter_coeff);
 
 	biped.leg_L.L0.dot = (biped.leg_L.L0.now - biped.leg_L.L0.last) / biped.time_step_s;
 	biped.leg_L.L0.last = biped.leg_L.L0.now;
@@ -301,6 +331,19 @@ void inv_pendulum_ctrl(void)
 				                                   biped.K_coeff[num][1] * pow(biped.leg_simplified.L0.now, 2) +
 				                                   biped.K_coeff[num][2] * biped.leg_simplified.L0.now +
 				                                   biped.K_coeff[num][3];
+
+				if (col == 2)
+				{
+					biped.leg_simplified.K[row][col] *= LQR_ADJUST_DIS_COEFF;
+				}
+				else if (col == 3)
+				{
+					biped.leg_simplified.K[row][col] *= LQR_ADJUST_DIS_DOT_COEFF;
+				}
+				else
+				{
+					biped.leg_simplified.K[row][col] *= LQR_ADJUST_COEFF;
+				}
 			}
 		}
 
@@ -346,7 +389,7 @@ void inv_pendulum_ctrl(void)
 		fp32 Matrix_u[2][1];
 		matrixMultiplication(2, 6, 6, 1, biped.leg_simplified.K, matrix_Xd_minus_X, Matrix_u);
 		biped.leg_simplified.TWheel_set = Matrix_u[0][0];
-		biped.leg_simplified.Tp_set = Matrix_u[1][0];
+		biped.leg_simplified.Tp_set = first_order_filter(Matrix_u[1][0], biped.leg_simplified.Tp_set, biped_Tp_filter_coeff);
 
 #if CHASSIS_JSCOPE_DEBUG
 		lqr_Tp_by_angle0_now = biped.leg_simplified.K[0][0] * matrix_Xd_minus_X[0][0];
@@ -411,17 +454,22 @@ void torque_ctrl()
 	}
 
 	/****************** Hip joint torque adjustment by PID ******************/
+#if ENABLE_SPLIT_PID
 	fp32 out_spilt = PID_calc(&biped.split_pid, biped.leg_L.angle0.now - biped.leg_R.angle0.now, 0, biped.time_step_s);
 	biped.leg_L.Tp_set -= out_spilt; // sign is determined based on simulation
 	biped.leg_R.Tp_set += out_spilt;
+#endif
 
+#if ENABLE_ROLL_PID
 	if (biped.isJumpInTheAir == 0)
 	{
 		fp32 out_roll = PID_calc(&biped.roll_pid, biped.roll.now, biped.roll.set, biped.time_step_s);
 		biped.leg_L.F_set -= out_roll;
 		biped.leg_R.F_set += out_roll;
 	}
+#endif
 
+#if ENABLE_LENGTH_PID
 	// leg length adjustment
 	if (biped.jumpState == JUMP_LAUNCH)
 	{
@@ -452,6 +500,7 @@ void torque_ctrl()
 		biped.leg_L.F_set -= out_L;
 		biped.leg_R.F_set -= out_R;
 	}
+#endif
 
 	if ((biped.jumpState != JUMP_LAUNCH) && (biped.isJumpInTheAir == 0))
 	{
@@ -543,7 +592,7 @@ void biped_brakeManager(fp32 distanceDelta)
 				biped.brakeState = BRAKE_IDLE;
 				biped.leg_simplified.dis.set += distanceDelta;
 			}
-			else if ((fabs(biped.leg_simplified.dis.dot) < 0.1f) || (biped.time_ms - brake_state_entry_time_ms > 2000.0f))
+			else if ((fabs(biped.leg_simplified.dis.dot) < BRAKE_STOP_SPEED_THRESHOLD) || (biped.time_ms - brake_state_entry_time_ms > BRAKE_ENGAGE_TIMEOUT))
 			{
 				biped.brakeState = BRAKE_IDLE;
 				biped_set_dis(biped.leg_simplified.dis.now, fBrakingForward);
