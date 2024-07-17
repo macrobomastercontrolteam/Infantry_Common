@@ -608,12 +608,17 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
 	}
 	else if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW)
 	{
-		fp32 delat_angle = 0.0f;
+		// vx, vy vector is set within world frame
+		fp32 sin_yaw = AHRS_sinf(-chassis_move_control->chassis_yaw);
+		fp32 cos_yaw = AHRS_cosf(-chassis_move_control->chassis_yaw);
+		chassis_move_control->vx_set = cos_yaw * vx_set + (-sin_yaw) * vy_set;
+		chassis_move_control->vy_set = sin_yaw * vx_set + cos_yaw * vy_set;
+
 		// set chassis yaw angle set-point
 		chassis_move_control->chassis_yaw_set = rad_format(angle_set);
-		delat_angle = rad_format(chassis_move_control->chassis_yaw_set - chassis_move_control->chassis_yaw);
 		// calculate rotation speed
-		chassis_move_control->wz_set = PID_calc(&chassis_move_control->chassis_angle_pid, 0.0f, delat_angle, CHASSIS_CONTROL_TIME_S);
+		fp32 delta_angle = rad_format(chassis_move_control->chassis_yaw_set - chassis_move_control->chassis_yaw);
+		chassis_move_control->wz_set = PID_calc(&chassis_move_control->chassis_angle_pid, 0.0f, delta_angle, CHASSIS_CONTROL_TIME_S);
 	}
 	else if (chassis_move_control->chassis_mode == CHASSIS_VECTOR_RAW)
 	{
