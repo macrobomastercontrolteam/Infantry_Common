@@ -477,4 +477,7 @@ extern void set_cali_gimbal_hook(const uint16_t yaw_offset, const uint16_t pitch
 extern fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 
 extern bool_t gimbal_emergency_stop(void);
+
+fp32 get_gimbal_yaw_angle(void);
+fp32 get_gimbal_pitch_angle(void);
 #endif
