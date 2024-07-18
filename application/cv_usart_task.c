@@ -18,6 +18,7 @@
 #include "string.h"
 #include "usart.h"
 #include "referee.h"
+#include "gimbal_task.h"
 #if DEBUG_CV_WITH_USB
 #include "usb_task.h"
 #include <stdio.h>
@@ -53,7 +54,8 @@ typedef enum
 	CV_INFO_TRANDELTA_BIT = 1 << 0,
 	CV_INFO_CVSYNCTIME_BIT = 1 << 1,
 	CV_INFO_REF_STATUS_BIT = 1 << 2,
-	CV_INFO_LAST_BIT = 1 << 3,
+	CV_INFO_GIMBAL_ANGLE_BIT = 1 << 3,
+	CV_INFO_LAST_BIT = 1 << 4,
 } eInfoBits;
 STATIC_ASSERT(CV_INFO_LAST_BIT <= (1 << 8));
 
@@ -77,6 +79,14 @@ typedef struct __attribute__((packed))
 } tRefStatusMsgPayload;
 STATIC_ASSERT(sizeof(tRefStatusMsgPayload) <= DATA_PACKAGE_PAYLOAD_SIZE);
 
+typedef struct __attribute__((packed))
+{
+	uint8_t infobit;
+	fp32 gimbal_yaw_angle;
+	fp32 gimbal_pitch_angle;
+} tGimbalAngleMsgPayload;
+STATIC_ASSERT(sizeof(tGimbalAngleMsgPayload) <= DATA_PACKAGE_PAYLOAD_SIZE);
+
 typedef union __attribute__((packed))
 {
 	struct __attribute__((packed))
@@ -89,6 +99,7 @@ typedef union __attribute__((packed))
 			uint8_t abPayload[DATA_PACKAGE_PAYLOAD_SIZE];
 			tCvAckMsgPayload CvAckMsgPayload;
 			tRefStatusMsgPayload RefStatusMsgPayload;
+			tGimbalAngleMsgPayload GimbalAngleMsgPayload;
 		};
 	} tData;
 	uint8_t abData[DATA_PACKAGE_SIZE];
@@ -301,6 +312,12 @@ void CvCmder_SendInfoData(eInfoBits InfoBit)
 			CvTxBuffer.tData.RefStatusMsgPayload.team_color = get_team_color();
 			CvTxBuffer.tData.RefStatusMsgPayload.time_remain = get_time_remain();
 			CvTxBuffer.tData.RefStatusMsgPayload.current_HP = get_current_HP();
+			break;
+		}
+		case CV_INFO_GIMBAL_ANGLE_BIT:
+		{
+			CvTxBuffer.tData.GimbalAngleMsgPayload.gimbal_yaw_angle = get_gimbal_yaw_angle();
+			CvTxBuffer.tData.GimbalAngleMsgPayload.gimbal_pitch_angle = get_gimbal_pitch_angle();
 			break;
 		}
 		default:
