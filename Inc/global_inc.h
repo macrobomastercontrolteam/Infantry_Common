@@ -4,7 +4,7 @@
 #define INFANTRY_2024_MECANUM 0
 #define INFANTRY_2023_MECANUM 1
 #define INFANTRY_2023_SWERVE 2
-#define INFANTRY_BIPED 3
+#define INFANTRY_2024_BIPED 3
 #define SENTRY_2023_MECANUM 4
 
 /********************* Only Modify this area (start) *********************/
@@ -12,6 +12,14 @@
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define USE_SERVO_TO_STIR_AMMO 0
+/********************* Only Modify this area (end) *********************/
+
+#if (ROBOT_TYPE == INFANTRY_2024_BIPED)
+// Yaw use DaMiao 4310
+#define ROBOT_YAW_IS_4310 1
+#else
+#define ROBOT_YAW_IS_4310 0
+#endif
 
 #if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM))
 #define ROBOT_YAW_HAS_SLIP_RING 1
@@ -24,7 +32,6 @@
 #else
 #define ROBOT_CHASSIS_USE_MECANUM 0
 #endif
-/********************* Only Modify this area (end) *********************/
 
 #if DEBUG_CV_WITH_USB && !CV_INTERFACE
 #error "DEBUG_CV_WITH_USB is only for CV_INTERFACE"

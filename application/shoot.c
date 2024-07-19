@@ -83,7 +83,7 @@ void shoot_init(void)
 	shoot_control.friction_motor2_rpm_set = 0.0f;
 	shoot_control.ecd_count = 0;
 	shoot_control.angle = motor_chassis[MOTOR_INDEX_TRIGGER].ecd * TRIGGER_MOTOR_ECD_TO_ANGLE;
-	shoot_control.given_current = 0;
+	shoot_control.cmd_value = 0;
 	shoot_control.set_angle = shoot_control.angle;
 	shoot_control.speed = 0.0f;
 	shoot_control.speed_set = 0.0f;
@@ -306,9 +306,9 @@ int16_t shoot_control_loop(void)
 	shoot_control.fric2_given_current = (int16_t)(shoot_control.friction_motor2_pid.out);
 
 	PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set, SHOOT_CONTROL_TIME_S);
-	shoot_control.given_current = (int16_t)(shoot_control.trigger_motor_pid.out);
+	shoot_control.cmd_value = (int16_t)(shoot_control.trigger_motor_pid.out);
 
-	return shoot_control.given_current;
+	return shoot_control.cmd_value;
 }
 
 /**

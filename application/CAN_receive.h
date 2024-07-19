@@ -20,6 +20,7 @@
 #ifndef CAN_RECEIVE_H
 #define CAN_RECEIVE_H
 
+#include "stm32f4xx_hal.h"
 #include "global_inc.h"
 
 // Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
@@ -37,7 +38,12 @@ typedef enum
     CAN_3508_M2_ID = 0x202,
     CAN_3508_M3_ID = 0x203,
     CAN_3508_M4_ID = 0x204,
-    CAN_YAW_MOTOR_ID = 0x205,
+#if ROBOT_YAW_IS_4310
+    CAN_YAW_MOTOR_4310_TX_ID = 0x005,
+    CAN_DAMIAO_RX_ID = 0x0FF,
+#else
+    CAN_YAW_MOTOR_6020_RX_ID = 0x205,
+#endif
 
     /********Gimbal CAN IDs********/
     CAN_PIT_MOTOR_ID = 0x206,
@@ -93,14 +99,25 @@ typedef enum
 #endif
 } can_other_msg_id_e;
 
+typedef enum
+{
+    DM_8006 = 0,
+    MA_9015 = 1,
+    DM_4310 = 2,
+    LAST_MIT_CONTROLLED_MOTOR_TYPE,
+} MIT_controlled_motor_type_e;
+
 //rm motor data
 typedef struct
 {
     uint16_t ecd;
     int16_t speed_rpm;
-    int16_t given_current;
+    int16_t feedback_current;
     uint8_t temperate;
     int16_t last_ecd;
+    fp32 output_angle; // rad
+    fp32 velocity;     // rad/s
+    fp32 torque;       // Nm
 } motor_measure_t;
 
 
@@ -112,7 +129,7 @@ typedef struct
   * @param[in]      rev: (0x208) reserve motor control current
   * @retval         none
   */
-extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric1, int16_t fric2);
+extern void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric1, int16_t fric2);
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 void CAN_cmd_upper_head(void);
@@ -169,6 +186,7 @@ extern const motor_measure_t *get_pitch_gimbal_motor_measure_point(void);
   * @retval         motor data point
   */
 extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_index);
+HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr);
 
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 

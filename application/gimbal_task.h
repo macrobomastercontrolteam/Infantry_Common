@@ -159,6 +159,37 @@
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+
+//pitch speed close-loop PID params, max out and max iout
+// for cv auto-aim: 10000, 10000
+#define PITCH_SPEED_PID_KP        7500.0f
+#define PITCH_SPEED_PID_KI        0.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   30000.0f
+#define PITCH_SPEED_PID_MAX_IOUT  10000.0f
+
+//yaw speed close-loop PID params, max out and max iout
+#define YAW_SPEED_PID_KP        0.7f
+#define YAW_SPEED_PID_KI        1.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   7.0f
+#define YAW_SPEED_PID_MAX_IOUT  2.33f
+
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_ANGLE_PID_KP 25.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.0f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
+
+//yaw gyro angle close-loop PID params, max out and max iout
+#define YAW_ANGLE_PID_KP        25.0f
+#define YAW_ANGLE_PID_KI        0.0f
+#define YAW_ANGLE_PID_KD        0.0f
+#define YAW_ANGLE_PID_MAX_OUT   10.0f
+#define YAW_ANGLE_PID_MAX_IOUT  10.0f
+
 #else
 
 #warning "Gimbal pid not defined for this robot type, using default values. If you're sure about this, temporarily uncomment this line."
@@ -170,11 +201,19 @@
 #define PITCH_SPEED_PID_MAX_IOUT  10000.0f
 
 //yaw speed close-loop PID params, max out and max iout
+#if ROBOT_YAW_IS_4310
+#define YAW_SPEED_PID_KP        0.7f
+#define YAW_SPEED_PID_KI        1.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   7.0f
+#define YAW_SPEED_PID_MAX_IOUT  2.33f
+#else
 #define YAW_SPEED_PID_KP        3600.0f
 #define YAW_SPEED_PID_KI        20000.0f
 #define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   30000.0f
 #define YAW_SPEED_PID_MAX_IOUT  5000.0f
+#endif
 
 //pitch gyro angle close-loop PID params, max out and max iout
 #define PITCH_ANGLE_PID_KP 20.0f
@@ -197,11 +236,19 @@
 #define PITCH_CAMERA_SPEED_PID_MAX_OUT 30000.0f
 #define PITCH_CAMERA_SPEED_PID_MAX_IOUT 10000.0f
 
+#if ROBOT_YAW_IS_4310
+#define YAW_CAMERA_SPEED_PID_KP        0.7f
+#define YAW_CAMERA_SPEED_PID_KI        1.0f
+#define YAW_CAMERA_SPEED_PID_KD        0.0f
+#define YAW_CAMERA_SPEED_PID_MAX_OUT   7.0f
+#define YAW_CAMERA_SPEED_PID_MAX_IOUT  2.33f
+#else
 #define YAW_CAMERA_SPEED_PID_KP 20000.0f
 #define YAW_CAMERA_SPEED_PID_KI 20000.0f
 #define YAW_CAMERA_SPEED_PID_KD 0.0f
 #define YAW_CAMERA_SPEED_PID_MAX_OUT 30000.0f
 #define YAW_CAMERA_SPEED_PID_MAX_IOUT 10000.0f
+#endif
 
 #define PITCH_CAMERA_ANGLE_PID_KP 25.0f
 #define PITCH_CAMERA_ANGLE_PID_KI 0.0f
@@ -231,7 +278,9 @@
 #define YAW_ENCODE_RELATIVE_PID_MAX_IOUT  0.0f
 
 #define PITCH_MOTOR_CURRENT_LIMIT  30000
-#define YAW_MOTOR_CURRENT_LIMIT  30000
+// @TODO: tune YAW_4310_MOTOR_TORQUE_LIMIT
+#define YAW_4310_MOTOR_TORQUE_LIMIT  7.0f
+#define YAW_6020_MOTOR_CURRENT_LIMIT  30000
 
 #define GIMBAL_TASK_INIT_TIME 201
 
@@ -345,10 +394,9 @@ typedef struct
     fp32 absolute_angle_offset; //rad
     fp32 motor_gyro;         //rad/s
     fp32 motor_gyro_set;
-    // fp32 motor_speed;
+
     fp32 raw_cmd_current;
-    fp32 current_set;
-    int16_t given_current;
+    fp32 cmd_value;
 
 #if CV_INTERFACE
     moving_average_type_t CvCmdAngleFilter;

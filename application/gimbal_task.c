@@ -23,6 +23,7 @@
 
 #include "gimbal_task.h"
 
+#include "can.h"
 #include "main.h"
 
 #include "cmsis_os.h"
@@ -71,7 +72,7 @@ uint32_t gimbal_high_water;
 
 static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init);
 static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init);
-static void gimbal_safety_manager(int16_t *yaw_can_set_current_ptr, int16_t *pitch_can_set_current_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr);
+static void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_value_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr);
 
 /**
   * @brief          "gimbal_control" valiable initialization, include pid initialization, remote control data point initialization, gimbal motors
@@ -172,7 +173,9 @@ static void J_scope_gimbal_test(void);
 #endif
 
 gimbal_control_t gimbal_control;
-static int16_t yaw_can_set_current = 0, pitch_can_set_current = 0, trigger_set_current = 0;
+static fp32 yaw_can_set_value = 0;
+static fp32 pitch_can_set_value = 0;
+static int16_t trigger_set_current = 0;
 
 /**
   * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME_MS (1ms) 
@@ -186,11 +189,16 @@ void gimbal_task(void const *pvParameters)
     gimbal_init(&gimbal_control);
     shoot_init();
     //wait until all motors are online
-    while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
+
+    do
     {
+#if ROBOT_YAW_IS_4310
+        enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN);
+#endif
+        CAN_cmd_gimbal(0, 0, 0, 0, 0);
         osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
-    }
+    } while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE));
 
     while (1)
     {
@@ -200,8 +208,8 @@ void gimbal_task(void const *pvParameters)
         gimbal_set_control(&gimbal_control);
         gimbal_control_loop(&gimbal_control);
         trigger_set_current = shoot_control_loop();
-        gimbal_safety_manager(&yaw_can_set_current, &pitch_can_set_current, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
-        CAN_cmd_gimbal(yaw_can_set_current, pitch_can_set_current, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
+        gimbal_safety_manager(&yaw_can_set_value, &pitch_can_set_value, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
+        CAN_cmd_gimbal(yaw_can_set_value, pitch_can_set_value, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
 
 #if GIMBAL_TEST_MODE
         J_scope_gimbal_test();
@@ -215,26 +223,26 @@ void gimbal_task(void const *pvParameters)
     }
 }
 
-void gimbal_safety_manager(int16_t *yaw_can_set_current_ptr, int16_t *pitch_can_set_current_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr)
+void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_value_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr)
 {
     // safety for gimbal
     if (gimbal_emergency_stop() || toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
     {
-        *yaw_can_set_current_ptr = 0;
-        *pitch_can_set_current_ptr = 0;
+        *yaw_can_set_value_ptr = 0;
+        *pitch_can_set_value_ptr = 0;
     }
     else
     {
 #if YAW_TURN
-        *yaw_can_set_current_ptr = -gimbal_control.gimbal_yaw_motor.given_current;
+        *yaw_can_set_value_ptr = -gimbal_control.gimbal_yaw_motor.cmd_value;
 #else
-        *yaw_can_set_current_ptr = gimbal_control.gimbal_yaw_motor.given_current;
+        *yaw_can_set_value_ptr = gimbal_control.gimbal_yaw_motor.cmd_value;
 #endif
 
 #if PITCH_TURN
-        *pitch_can_set_current_ptr = -gimbal_control.gimbal_pitch_motor.given_current;
+        *pitch_can_set_value_ptr = -gimbal_control.gimbal_pitch_motor.cmd_value;
 #else
-        *pitch_can_set_current_ptr = gimbal_control.gimbal_pitch_motor.given_current;
+        *pitch_can_set_value_ptr = gimbal_control.gimbal_pitch_motor.cmd_value;
 #endif
     }
 
@@ -696,7 +704,7 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
         {
         case GIMBAL_MOTOR_RAW:
         {
-            gimbal_mode_change->gimbal_yaw_motor.raw_cmd_current = gimbal_mode_change->gimbal_yaw_motor.current_set = gimbal_mode_change->gimbal_yaw_motor.given_current;
+            gimbal_mode_change->gimbal_yaw_motor.raw_cmd_current = gimbal_mode_change->gimbal_yaw_motor.cmd_value;
             break;
         }
         case GIMBAL_MOTOR_GYRO:
@@ -732,7 +740,7 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
         {
         case GIMBAL_MOTOR_RAW:
         {
-            gimbal_mode_change->gimbal_pitch_motor.raw_cmd_current = gimbal_mode_change->gimbal_pitch_motor.current_set = gimbal_mode_change->gimbal_pitch_motor.given_current;
+            gimbal_mode_change->gimbal_pitch_motor.raw_cmd_current = gimbal_mode_change->gimbal_pitch_motor.cmd_value;
             break;
         }
         case GIMBAL_MOTOR_GYRO:
@@ -935,9 +943,7 @@ static void gimbal_motor_absolute_angle_control(gimbal_motor_t *gimbal_motor)
     }
     // cascade pid: angle loop & speed loop
     gimbal_motor->motor_gyro_set = PID_calc_with_dot(&gimbal_motor->gimbal_motor_absolute_angle_pid, gimbal_motor->absolute_angle, gimbal_motor->absolute_angle_set, GIMBAL_CONTROL_TIME_S, gimbal_motor->motor_gyro);
-    gimbal_motor->current_set = PID_calc(&gimbal_motor->gimbal_motor_speed_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set, GIMBAL_CONTROL_TIME_S);
-
-    gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
+    gimbal_motor->cmd_value = PID_calc(&gimbal_motor->gimbal_motor_speed_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set, GIMBAL_CONTROL_TIME_S);
 }
 /**
   * @brief          gimbal control mode :GIMBAL_MOTOR_ENCODER, use the encode relative angle  to control. 
@@ -953,9 +959,7 @@ static void gimbal_motor_relative_angle_control(gimbal_motor_t *gimbal_motor)
 
     // cascade pid: angle loop & speed loop
     gimbal_motor->motor_gyro_set = PID_calc_with_dot(&gimbal_motor->gimbal_motor_relative_angle_pid, gimbal_motor->relative_angle, gimbal_motor->relative_angle_set, GIMBAL_CONTROL_TIME_S, gimbal_motor->motor_gyro);
-    gimbal_motor->current_set = PID_calc(&gimbal_motor->gimbal_motor_speed_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set, GIMBAL_CONTROL_TIME_S);
-
-    gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
+    gimbal_motor->cmd_value = PID_calc(&gimbal_motor->gimbal_motor_speed_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set, GIMBAL_CONTROL_TIME_S);
 }
 
 /**
@@ -969,8 +973,7 @@ static void gimbal_motor_raw_angle_control(gimbal_motor_t *gimbal_motor)
     {
         return;
     }
-    gimbal_motor->current_set = gimbal_motor->raw_cmd_current;
-    gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
+    gimbal_motor->cmd_value = gimbal_motor->raw_cmd_current;
 }
 
 #if GIMBAL_TEST_MODE
@@ -1019,7 +1022,11 @@ bool_t gimbal_emergency_stop(void)
     {
         // do nothing
     }
-    else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->given_current) >= YAW_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->given_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+#if ROBOT_YAW_IS_4310
+    else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+#else
+    else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->feedback_current) >= YAW_6020_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+#endif
     {
         fFatalError = 1;
     }

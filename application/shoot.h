@@ -158,7 +158,7 @@ typedef struct
     fp32 speed_set;
     fp32 angle;
     fp32 set_angle;
-    int16_t given_current;
+    int16_t cmd_value;
     int8_t ecd_count;
     
     bool_t press_l;

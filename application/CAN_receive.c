@@ -71,12 +71,16 @@ extern CAN_HandleTypeDef hcan2;
 		(ptr)->last_ecd = (ptr)->ecd;                                 \
 		(ptr)->ecd = (uint16_t)((data)[0] << 8 | (data)[1]);          \
 		(ptr)->speed_rpm = (int16_t)((data)[2] << 8 | (data)[3]);     \
-		(ptr)->given_current = (int16_t)((data)[4] << 8 | (data)[5]); \
+		(ptr)->feedback_current = (int16_t)((data)[4] << 8 | (data)[5]); \
 		(ptr)->temperate = (data)[6];                                 \
 	}
 
 uint8_t convertCanIdToMotorIndex(uint32_t canId);
 void reverse_motor_feedback(uint8_t bMotorId);
+fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits);
+int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits);
+HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
+HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
 
 /**
  * @brief motor feedback data
@@ -94,6 +98,17 @@ static uint8_t gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef chassis_tx_message;
 static uint8_t chassis_can_send_data[8];
 const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 12.5f};
+const fp32 MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -12.5f};
+const fp32 MIT_CONTROL_V_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {25.0f, 45.0f, 30.0f};
+const fp32 MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-25.0f, -45.0f, -30.0f};
+const fp32 MIT_CONTROL_T_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {20.0f, 24.0f, 10.0f};
+const fp32 MIT_CONTROL_T_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-20.0f, -24.0f, -10.0f};
+const fp32 MIT_CONTROL_KP_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {500.0f, 500.0f, 500.0f};
+const fp32 MIT_CONTROL_KP_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f};
+const fp32 MIT_CONTROL_KD_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {5.0f, 5.0f, 5.0f};
+const fp32 MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f};
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define SWERVE_METER_PER_SEC_ECD_MAX_LIMIT 1.5f
@@ -117,14 +132,34 @@ uint8_t convertCanIdToMotorIndex(uint32_t canId)
 	switch (canId)
 	{
 		case CAN_3508_M1_ID:
+		{
+			return MOTOR_INDEX_3508_M1;
+		}
 		case CAN_3508_M2_ID:
+		{
+			return MOTOR_INDEX_3508_M2;
+		}
 		case CAN_3508_M3_ID:
+		{
+			return MOTOR_INDEX_3508_M3;
+		}
 		case CAN_3508_M4_ID:
-		case CAN_YAW_MOTOR_ID:
+		{
+			return MOTOR_INDEX_3508_M4;
+		}
+#if (ROBOT_YAW_IS_4310 == 0)
+		case CAN_YAW_MOTOR_6020_RX_ID:
+		{
+			return MOTOR_INDEX_YAW;
+		}
+#endif
 		case CAN_PIT_MOTOR_ID:
+		{
+			return MOTOR_INDEX_PITCH;
+		}
 		case CAN_TRIGGER_MOTOR_ID:
 		{
-			return (canId - CAN_3508_M1_ID);
+			return MOTOR_INDEX_TRIGGER;
 		}
 		default:
 		{
@@ -145,6 +180,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	uint8_t fIsMotor = 0;
 	uint8_t bMotorId = 0;
 	uint8_t fIdIdentified = 0;
+	uint8_t fIsRmMotor = 0;
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
@@ -159,6 +195,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			{
 				fIsMotor = 1;
 				fIdIdentified = 0;
+				fIsRmMotor = 1;
 				break;
 			}
 			case CAN_FRICTION_MOTOR_LEFT_ID:
@@ -166,6 +203,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				fIsMotor = 1;
 				bMotorId = MOTOR_INDEX_FRICTION_LEFT;
 				fIdIdentified = 1;
+				fIsRmMotor = 1;
 				break;
 			}
 			case CAN_FRICTION_MOTOR_RIGHT_ID:
@@ -173,6 +211,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				fIsMotor = 1;
 				bMotorId = MOTOR_INDEX_FRICTION_RIGHT;
 				fIdIdentified = 1;
+				fIsRmMotor = 1;
 				break;
 			}
 			default:
@@ -192,12 +231,27 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 #if (IS_TRIGGER_ON_GIMBAL == 0)
 			case CAN_TRIGGER_MOTOR_ID:
 #endif
-			case CAN_YAW_MOTOR_ID:
+#if (ROBOT_YAW_IS_4310 == 0)
+			case CAN_YAW_MOTOR_6020_RX_ID:
+#endif
 			{
 				fIsMotor = 1;
 				fIdIdentified = 0;
+				fIsRmMotor = 1;
 				break;
 			}
+#if ROBOT_YAW_IS_4310
+			case CAN_DAMIAO_RX_ID:
+			{
+				fIsRmMotor = 0;
+				if (decode_4310_motor_feedback(rx_data, &bMotorId) == HAL_OK)
+				{
+					fIsMotor = 1;
+					fIdIdentified = 1;
+				}
+				break;
+			}
+#endif
 			case SUPCAP_RX_ID:
 			{
 				fIsMotor = 0;
@@ -238,10 +292,104 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		{
 			bMotorId = convertCanIdToMotorIndex(rx_header.StdId);
 		}
-		get_motor_measure(&motor_chassis[bMotorId], rx_data);
+
+		if (fIsRmMotor)
+		{
+			get_motor_measure(&motor_chassis[bMotorId], rx_data);
+		}
 		reverse_motor_feedback(bMotorId);
 		detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
 	}
+}
+
+fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits)
+{
+	/// converts unsigned int to fp32, given range and number of bits ///
+	fp32 span = x_max - x_min;
+	fp32 offset = x_min;
+	return ((fp32)x_int) * span / ((fp32)((1 << bits) - 1)) + offset;
+}
+
+int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits)
+{
+	/// Converts a fp32 to an unsigned int, given range and number of bits///
+	fp32 span = x_max - x_min;
+	fp32 offset = x_min;
+	if (x >= x_max)
+	{
+		return ((1 << bits) - 1);
+	}
+	else if (x <= x_min)
+	{
+		return 0;
+	}
+	else
+	{
+		return (int)((x - offset) * ((fp32)((1 << bits) - 1)) / span);
+	}
+}
+
+HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr)
+{
+	uint32_t send_mail_box;
+	gimbal_tx_message.StdId = id;
+	gimbal_tx_message.IDE = CAN_ID_STD;
+	gimbal_tx_message.RTR = CAN_RTR_DATA;
+	gimbal_tx_message.DLC = 0x08;
+
+#if DISABLE_ARM_MOTOR_POWER
+	_pos = 0;
+	_vel = 0;
+	_KP = 0;
+	_KD = 0;
+	_torq = 0;
+#endif
+
+	uint16_t pos_tmp, vel_tmp, kp_tmp, kd_tmp, tor_tmp;
+	pos_tmp = fp32_to_uint_motor(_pos, MIT_CONTROL_P_MIN[motor_type], MIT_CONTROL_P_MAX[motor_type], 16);
+	vel_tmp = fp32_to_uint_motor(_vel, MIT_CONTROL_V_MIN[motor_type], MIT_CONTROL_V_MAX[motor_type], 12);
+	kp_tmp = fp32_to_uint_motor(_KP, MIT_CONTROL_KP_MIN[motor_type], MIT_CONTROL_KP_MAX[motor_type], 12);
+	kd_tmp = fp32_to_uint_motor(_KD, MIT_CONTROL_KD_MIN[motor_type], MIT_CONTROL_KD_MAX[motor_type], 12);
+	tor_tmp = fp32_to_uint_motor(_torq, MIT_CONTROL_T_MIN[motor_type], MIT_CONTROL_T_MAX[motor_type], 12);
+
+	gimbal_can_send_data[0] = (pos_tmp >> 8);
+	gimbal_can_send_data[1] = pos_tmp;
+	gimbal_can_send_data[2] = (vel_tmp >> 4);
+	gimbal_can_send_data[3] = ((vel_tmp & 0xF) << 4) | (kp_tmp >> 8);
+	gimbal_can_send_data[4] = kp_tmp;
+	gimbal_can_send_data[5] = (kd_tmp >> 4);
+	gimbal_can_send_data[6] = ((kd_tmp & 0xF) << 4) | (tor_tmp >> 8);
+	gimbal_can_send_data[7] = tor_tmp;
+
+	return HAL_CAN_AddTxMessage(hcan_ptr, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+}
+
+HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
+{
+	HAL_StatusTypeDef ret_value = HAL_ERROR;
+	// Note: error_id = 0， 1 means motor power is disabled/enabled
+	uint8_t error_id = data[0] >> 4;
+	if ((error_id != 0) && (error_id != 1))
+	{
+		ret_value = HAL_ERROR;
+	}
+	else
+	{
+		uint16_t p_int = (data[1] << 8) | data[2];         // rad
+		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
+		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
+
+		// Currently, yaw motor is the only DaMiao motor on the robot
+		*bMotorIdPtr = MOTOR_INDEX_YAW;
+		motor_chassis[*bMotorIdPtr].output_angle = uint_to_fp32_motor(p_int, MIT_CONTROL_P_MIN[DM_4310], MIT_CONTROL_P_MAX[DM_4310], 16);
+		motor_chassis[*bMotorIdPtr].ecd = loop_fp32_constrain(motor_chassis[*bMotorIdPtr].output_angle, 0, 2*PI) * MOTOR_RAD_TO_ECD;
+		motor_chassis[*bMotorIdPtr].velocity = uint_to_fp32_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
+		motor_chassis[*bMotorIdPtr].torque = uint_to_fp32_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
+		motor_chassis[*bMotorIdPtr].temperate = data[6];
+
+		ret_value = HAL_OK;
+	}
+	return ret_value;
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
@@ -318,7 +466,7 @@ void reverse_motor_feedback(uint8_t bMotorId)
  * @param[in]      fric_right: 3508 motor control current when used as friction motor
  * @retval         none
  */
-void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_left, int16_t fric_right)
+void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, int16_t fric_right)
 {
 	uint32_t send_mail_box;
 	// CAN_6020_LOW_RANGE_TX_ID same as CAN_3508_OR_2006_HIGH_RANGE_TX_ID
@@ -344,8 +492,13 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
 #endif
 
 	// control yaw motor and trigger motor
-	gimbal_can_send_data[0] = (yaw >> 8);
-	gimbal_can_send_data[1] = yaw;
+#if ROBOT_YAW_IS_4310
+	// gimbal_can_send_data[0] = (rev >> 8);
+	// gimbal_can_send_data[1] = rev;
+#else
+	gimbal_can_send_data[0] = ((int16_t)yaw >> 8);
+	gimbal_can_send_data[1] = (int16_t)yaw;
+#endif
 	// gimbal_can_send_data[2] = (rev >> 8);
 	// gimbal_can_send_data[3] = rev;
 #if IS_TRIGGER_ON_GIMBAL
@@ -358,12 +511,15 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
 	// gimbal_can_send_data[6] = (rev >> 8);
 	// gimbal_can_send_data[7] = rev;
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+#if ROBOT_YAW_IS_4310
+	osDelay(1);
+#endif
 
 	// control pitch motor and fric_left and fric_right
 	gimbal_can_send_data[0] = (fric_left >> 8);
 	gimbal_can_send_data[1] = fric_left;
-	gimbal_can_send_data[2] = (pitch >> 8);
-	gimbal_can_send_data[3] = pitch;
+	gimbal_can_send_data[2] = ((int16_t)pitch >> 8);
+	gimbal_can_send_data[3] = (int16_t)pitch;
 #if IS_TRIGGER_ON_GIMBAL
 	gimbal_can_send_data[4] = (trigger >> 8);
 	gimbal_can_send_data[5] = trigger;
@@ -374,6 +530,32 @@ void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t fric_le
 	gimbal_can_send_data[6] = (fric_right >> 8);
 	gimbal_can_send_data[7] = fric_right;
 	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+
+#if ROBOT_YAW_IS_4310
+	encode_MIT_motor_control(CAN_YAW_MOTOR_4310_TX_ID, 0, 0, 0, 0, yaw, DM_4310, &CHASSIS_CAN);
+#endif
+}
+
+HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr)
+{
+	uint32_t send_mail_box;
+	gimbal_tx_message.StdId = id;
+	gimbal_tx_message.IDE = CAN_ID_STD;
+	gimbal_tx_message.RTR = CAN_RTR_DATA;
+	gimbal_tx_message.DLC = 0x08;
+
+	memset(gimbal_can_send_data, 0xFF, sizeof(gimbal_can_send_data));
+
+	if (_enable)
+	{
+		gimbal_can_send_data[7] = 0xFC;
+	}
+	else
+	{
+		// disable
+		gimbal_can_send_data[7] = 0xFD;
+	}
+	return HAL_CAN_AddTxMessage(hcan_ptr, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
 /**
