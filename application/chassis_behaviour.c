@@ -561,7 +561,7 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
 	}
 
 	// @TODO: implement CV enemy detection mode
-	if (is_game_started())
+	if (is_game_started() && CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT))
 	{
 		*angle_set = chassis_spinning_speed_manager();
 	}
