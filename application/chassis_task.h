@@ -294,7 +294,7 @@ typedef struct
 	fp32 vx_rc_sen;    // map joystick value to vertical speed
 	fp32 vy_rc_sen;    // map joystick value to horizontal speed
 
-	// @TODO: Currently wz limits are only enforced in CHASSIS_DYNAMIC_SPINNING, extend that to other modes
+	// @TODO: Currently wz limits are only enforced in CHASSIS_SPINNING, extend that to other modes
 	fp32 wz_max_speed; // max spinning speed, unit rad/s.
 	fp32 wz_min_speed; // min spinning speed, unit rad/s.
 
