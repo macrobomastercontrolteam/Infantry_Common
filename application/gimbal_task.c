@@ -986,6 +986,7 @@ fp32 yaw_speed_set_fp32, pitch_speed_set_fp32;
 uint32_t gimbal_last_update_time;
 uint32_t gimbal_update_interval;
 fp32 fric_diff_fp32;
+uint8_t fChassisSpinning;
 static void J_scope_gimbal_test(void)
 {
 #if CV_INTERFACE
@@ -1007,6 +1008,8 @@ static void J_scope_gimbal_test(void)
     gimbal_last_update_time = osKernelSysTick();
 
     fric_diff_fp32 = shoot_control.friction_motor1_rpm + shoot_control.friction_motor2_rpm;
+
+    fChassisSpinning = CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT);
 }
 #endif
 

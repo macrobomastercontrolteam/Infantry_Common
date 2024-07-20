@@ -355,18 +355,21 @@ void CvCmder_RxParser(void)
 		}
 		case MSG_MODE_CONTROL:
 		{
-			// Mode bits in set-mode message cv should be all zeros except for CV_MODE_SHOOT_BIT, which is controlled by cv
 			fValid = ((CvRxBuffer.tData.abPayload[0] & (~(CV_MODE_LAST_BIT - 1))) == 0);
 			fValid &= (memcmp(&CvRxBuffer.tData.abPayload[1], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - 1) == 0);
 			if (fValid)
 			{
 				CvCmder_UpdateTranDelta();
+				// Mode bits in set-mode message cv should be all zeros except for CV_MODE_SHOOT_BIT and CV_MODE_CHASSIS_SPINNING_BIT, which is controlled by cv
 				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_SHOOT_BIT);
 				CvCmdHandler.ulShootStartTime = osKernelSysTick();
+
+				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_CHASSIS_SPINNING_BIT);
 			}
 			else
 			{
 				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
+				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
 			}
 			break;
 		}
