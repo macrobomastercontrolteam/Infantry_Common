@@ -76,7 +76,6 @@
 #define GIMBAL_ALIGN_SPEED_MIN SPINNING_CHASSIS_LOW_OMEGA
 #define GIMBAL_ALIGN_SPEED_MAX NORMAL_MAX_CHASSIS_SPEED_WZ
 
-fp32 angle_set_test;
 /**
  * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
  *                 and chassis control mode is raw. The raw chassis control mode means set value
@@ -563,7 +562,6 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
 
 	// @TODO: implement CV enemy detection mode
 	if (is_game_started() && CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT) && (!toe_is_error(CV_TOE)))
-	//if (CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT))
 	{
 		*angle_set = chassis_spinning_speed_manager();
 	}
@@ -571,7 +569,6 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
 	{
 		*angle_set = 0;
 	}
-	angle_set_test = *angle_set;
 #endif
 }
 
