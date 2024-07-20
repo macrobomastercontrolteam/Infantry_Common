@@ -68,13 +68,15 @@
 #include "remote_control.h"
 #include "INS_task.h"
 #include "gimbal_task.h"
+#include "chassis_task.h"
 
 
 //include head,gimbal,gyro,accel,mag. gyro,accel and mag have the same data struct. total 5(CALI_LIST_LENGTH) devices, need data length + 5 * 4 bytes(name[3]+cali)
 #define FLASH_WRITE_BUF_LENGTH  (sizeof(head_cali_t) + sizeof(gimbal_cali_t) + sizeof(imu_cali_t) * 3  + CALI_LIST_LENGTH * 4)
 
 
-
+uint8_t fPreinspection;
+fp32 height = 0;
 
 /**
   * @brief          use remote control to begin a calibrate,such as gyro, gimbal, chassis
@@ -267,6 +269,9 @@ static void RC_cmd_to_calibrate(void)
     static uint16_t buzzer_time       = 0;
     static uint16_t rc_cmd_time       = 0;
     static uint8_t  rc_action_flag    = 0;
+    static uint8_t rc_preinspection_flag = 0;
+    static uint8_t fSwerveStandUp = 0;
+
 
     //if something is calibrating, return
     for (i = 0; i < CALI_LIST_LENGTH; i++)
@@ -346,6 +351,44 @@ static void RC_cmd_to_calibrate(void)
     else
     {
         rc_cmd_time = 0;
+    }
+
+    if (calibrate_RC->rc.ch[0] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[1] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[2] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[3] < -RC_CALI_VALUE_HOLE && switch_is_down(calibrate_RC->rc.s[0]) && switch_is_down(calibrate_RC->rc.s[1]) && rc_preinspection_flag == 0)
+    {
+        //two joysticks set to  ./\., hold for 2 seconds,
+        rc_preinspection_flag = 1;
+        rc_cali_buzzer_start_on();
+        buzzer_time++;
+        fPreinspection = 1;
+    }
+
+    else if (calibrate_RC->rc.ch[0] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[1] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[2] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[3] > RC_CALI_VALUE_HOLE && switch_is_down(calibrate_RC->rc.s[0]) && switch_is_down(calibrate_RC->rc.s[1]) && rc_preinspection_flag != 0)
+    {
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+        fSwerveStandUp ^= 1;
+        if(fSwerveStandUp){
+            rc_cali_buzzer_start_on();
+            fPreinspection = 2;
+            buzzer_time++;
+            while(chassis_move.chassis_platform.target_height < CHASSIS_H_WORKSPACE_PEAK){
+                chassis_move.chassis_platform.target_height += SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
+                height = chassis_move.chassis_platform.target_height;
+                osDelay(100);
+            }
+        }
+        else{
+            buzzer_time++;
+            while(chassis_move.chassis_platform.target_height > CHASSIS_H_LOWER_LIMIT){
+                chassis_move.chassis_platform.target_height -= SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
+                height = chassis_move.chassis_platform.target_height;
+                cali_buzzer_off();
+                osDelay(100);
+            }
+        }
+
+#endif
+        rc_preinspection_flag = 0;
+        cali_buzzer_off();
     }
 
     calibrate_systemTick = xTaskGetTickCount();
