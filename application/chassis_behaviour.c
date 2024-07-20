@@ -551,7 +551,6 @@ static void chassis_cv_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_
 	{
 		*vx_set = 0;
 		*vy_set = 0;
-		*angle_set = 0;
 	}
 	else
 	{
