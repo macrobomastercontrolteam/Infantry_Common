@@ -73,10 +73,6 @@ enum errorList
     // // Currently, there's no ACK implemented in controller
     // // GM6020 control angle
     // CHASSIS_STEER_MOTOR_CONTROLLER_TOE,
-
-    YAW_GIMBAL_MOTOR_TOE,
-    PITCH_GIMBAL_MOTOR_TOE,
-    TRIGGER_MOTOR_TOE,
     BOARD_GYRO_TOE,
     BOARD_ACCEL_TOE,
     BOARD_MAG_TOE,

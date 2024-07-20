@@ -88,32 +88,6 @@ void request_9015_multiangle_data(uint8_t blocking_call);
 void decode_9015_motor_multiangle_feedback(uint8_t *data, const uint8_t bMotorId);
 HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data);
 
-uint8_t get_motor_array_index(can_msg_id_e _SINGLE_CAN_ID)
-{
-	switch (_SINGLE_CAN_ID)
-	{
-		// case CAN_HIP1_FEEDBACK_ID:
-		// case CAN_HIP2_FEEDBACK_ID:
-		// case CAN_HIP3_FEEDBACK_ID:
-		// case CAN_HIP4_FEEDBACK_ID:
-		// 	return (_SINGLE_CAN_ID - CAN_HIP1_FEEDBACK_ID + CHASSIS_ID_HIP_RF);
-		case CAN_HIP1_TX_ID:
-		case CAN_HIP2_TX_ID:
-		case CAN_HIP3_TX_ID:
-		case CAN_HIP4_TX_ID:
-			return (_SINGLE_CAN_ID - CAN_HIP1_TX_ID + CHASSIS_ID_HIP_RF);
-		case CAN_DRIVE1_PVT_TX_ID:
-		case CAN_DRIVE2_PVT_TX_ID:
-			return (_SINGLE_CAN_ID - CAN_DRIVE1_PVT_TX_ID + CHASSIS_ID_DRIVE_RIGHT);
-		case CAN_YAW_MOTOR_FEEDBACK_ID:
-		case CAN_PIT_MOTOR_FEEDBACK_ID:
-		case CAN_TRIGGER_MOTOR_FEEDBACK_ID:
-			return (_SINGLE_CAN_ID - CAN_YAW_MOTOR_FEEDBACK_ID + CHASSIS_ID_YAW);
-		default:
-			return 0;
-	}
-}
-
 /**
  * @brief          hal CAN fifo call back, receive motor data
  * @param[in]      hcan, the point to CAN handle
@@ -141,9 +115,18 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		// 	}
 		// 	break;
 		// }
-		case CAN_HIP_FEEDBACK_ID:
+		case CAN_DAMIAO_FEEDBACK_ID:
 		{
-			decode_8006_motor_feedback(rx_data, &bMotorId);
+			// Ignore DaMiao 4310 yaw motor feedback
+			bMotorId = (rx_data[0] & 0xF) - 1 + CHASSIS_ID_HIP_RF;
+			if (bMotorId <= CHASSIS_ID_HIP_RB)
+			{
+				decode_8006_motor_feedback(rx_data, &bMotorId);
+			}
+			else
+			{
+				bMotorId = 0xFF;
+			}
 			break;
 		}
 		case CAN_DRIVE_MOTOR_PVT_FEEDBACK_ID1:
@@ -160,14 +143,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				bMotorId = rx_header.StdId - CAN_DRIVE_MOTOR_CMD_FEEDBACK_ID1 + CHASSIS_ID_DRIVE_RIGHT;
 				decode_9015_motor_multiangle_feedback(rx_data, bMotorId);
 			}
-			break;
-		}
-		case CAN_YAW_MOTOR_FEEDBACK_ID:
-		case CAN_PIT_MOTOR_FEEDBACK_ID:
-		case CAN_TRIGGER_MOTOR_FEEDBACK_ID:
-		{
-			bMotorId = get_motor_array_index((can_msg_id_e)rx_header.StdId);
-			get_rm_motor_measure(&motor_measure[bMotorId], rx_data);
 			break;
 		}
 		default:
@@ -304,6 +279,7 @@ void decode_9015_motor_multiangle_feedback(uint8_t *data, const uint8_t bMotorId
 
 HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
 {
+	HAL_StatusTypeDef decode_result = HAL_ERROR;
 	uint8_t error_id = data[0] >> 4;
 	if (error_id > 1)
 	{
@@ -311,7 +287,8 @@ HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr
 		// error_id == 1: motor enabled
 		// error_id >= 8: motor errors
 		biped.fBipedEnable = 0;
-		return HAL_ERROR;
+		*bMotorIdPtr = 0xFF;
+		decode_result = HAL_ERROR;
 	}
 	else
 	{
@@ -369,8 +346,9 @@ HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr
 				break;
 			}
 		}
+		decode_result = HAL_OK;
 	}
-	return HAL_OK;
+	return decode_result;
 }
 
 void decode_9015_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)

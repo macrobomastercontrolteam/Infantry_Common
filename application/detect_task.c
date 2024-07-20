@@ -277,9 +277,6 @@ static void detect_init(uint32_t time)
             {50, 0, 11},    //hip motor4
             {50, 0, 10},   //drive motor1
             {50, 0, 10},   //drive motor2
-            {2, 3, 14},     //yaw
-            {2, 3, 13},     //pitch
-            {10, 10, 12},   //trigger
             {2, 3, 7},      //board gyro
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag

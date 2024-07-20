@@ -44,9 +44,6 @@ typedef enum
 
 	CAN_DRIVE1_PVT_TX_ID = 0x405,
 	CAN_DRIVE2_PVT_TX_ID = 0x406,
-	CAN_YAW_MOTOR_FEEDBACK_ID = 0x205,
-	CAN_PIT_MOTOR_FEEDBACK_ID = 0x206,
-	CAN_TRIGGER_MOTOR_FEEDBACK_ID = 0x207,
 } can_msg_id_e;
 
 // Corresponding continuous indices for can_msg_id_e
@@ -61,15 +58,13 @@ typedef enum
 	CHASSIS_ID_YAW = 6,
 	CHASSIS_ID_PIT = 7,
 	CHASSIS_ID_TRIGGER = 8,
-	CHASSIS_ID_LAST = CHASSIS_ID_TRIGGER + 1,
+	CHASSIS_ID_LAST,
 } chassis_motor_ID_e;
 
 typedef enum
 {
-	CAN_GIMBAL_ALL_TX_ID = 0x1FF,
-
 	// 8006 motor as hip
-	CAN_HIP_FEEDBACK_ID = 0x0FF,
+	CAN_DAMIAO_FEEDBACK_ID = 0x0FF,
 
 	// 6012 motor as hip
 	CAN_HIP_MOTOR_SINGLECMD_TX_ID = 0x140,
@@ -83,6 +78,12 @@ typedef enum
 	CAN_DRIVE_MOTOR_MULTICMD_TX_ID = 0x280,
 	CAN_DRIVE_MOTOR_CMD_FEEDBACK_ID1 = 0x245,
 	CAN_DRIVE_MOTOR_CMD_FEEDBACK_ID2 = 0x246,
+
+	// The following IDs are on the same chassis CAN but are to be ignored/used by this board
+	CAN_YAW_MOTOR_4310_TX_ID = 0x005,
+	CAN_YAW_MOTOR_6020_RX_ID = 0x205,
+	CAN_TRIGGER_MOTOR_RX_ID = 0x207,
+	CAN_3508_OR_2006_HIGH_RANGE_TX_ID = 0x1FF,
 } can_other_msg_id_e;
 
 typedef enum
@@ -133,18 +134,6 @@ extern const float MOTOR_KP_MAX[LAST_MOTOR_TYPE];
 extern const float MOTOR_KP_MIN[LAST_MOTOR_TYPE];
 extern const float MOTOR_KD_MAX[LAST_MOTOR_TYPE];
 extern const float MOTOR_KD_MIN[LAST_MOTOR_TYPE];
-
-/**
- * @brief          return the chassis 3508 motor data point
- * @param[in]      i: motor number,range [0,3]
- * @retval         motor data point
- */
-/**
- * @brief          返回底盘电机 3508电机数据指针
- * @param[in]      i: 电机编号,范围[0,3]
- * @retval         电机数据指针
- */
-uint8_t get_motor_array_index(can_msg_id_e _SINGLE_CAN_ID);
 
 extern void request_9015_multiangle_data(uint8_t blocking_call);
 extern HAL_StatusTypeDef encode_motor_control(uint16_t id, float _pos, float _vel, float _KP, float _KD, float _torq, uint8_t blocking_call, motor_type_e motor_type);
