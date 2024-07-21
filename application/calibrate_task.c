@@ -169,6 +169,7 @@ static uint8_t cali_sensor_size[CALI_LIST_LENGTH] =
 void *cali_hook_fun[CALI_LIST_LENGTH] = {cali_head_hook, cali_gimbal_hook, cali_gyro_hook, NULL, NULL};
 
 static uint32_t calibrate_systemTick;
+static uint32_t preinspection_systemTick;
 
 
 /**
@@ -353,9 +354,19 @@ static void RC_cmd_to_calibrate(void)
         rc_cmd_time = 0;
     }
 
+    preinspection_systemTick = xTaskGetTickCount();
+
+    if (preinspection_systemTick - rc_cmd_systemTick > PREINSPECTION_END_TIME)
+    {
+        // 20 seconds timed out
+        rc_preinspection_flag = 0;
+        return;
+    }
+
     if (calibrate_RC->rc.ch[0] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[1] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[2] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[3] < -RC_CALI_VALUE_HOLE && switch_is_down(calibrate_RC->rc.s[0]) && switch_is_down(calibrate_RC->rc.s[1]) && rc_preinspection_flag == 0)
     {
         //two joysticks set to  ./\., hold for 2 seconds,
+        rc_cmd_systemTick = xTaskGetTickCount();
         rc_preinspection_flag = 1;
         rc_cali_buzzer_start_on();
         buzzer_time++;
