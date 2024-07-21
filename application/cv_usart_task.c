@@ -451,6 +451,11 @@ void CvCmder_ToggleMode(uint8_t bCvModeBit)
 	CvCmdHandler.fIsModeChanged = 1;
 }
 
+/**
+ * @brief Change specific mode bit within mode byte. Cannot change multiple bits at once.
+ * @param bCvModeBit: type is eModeControlBits
+ * @param fFlag: 1 or 0
+ */
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag)
 {
 	uint8_t fLastMode = CvCmder_GetMode(bCvModeBit);
