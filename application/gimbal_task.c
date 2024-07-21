@@ -38,6 +38,7 @@
 #include "chassis_behaviour.h"
 #include "INS_task.h"
 #include "shoot.h"
+#include "bsp_laser.h"
 #include "pid.h"
 #include "cv_usart_task.h"
 
@@ -609,8 +610,9 @@ static void gimbal_init(gimbal_control_t *init)
     init->gimbal_pitch_motor.absolute_angle_offset = 0;
     init->gimbal_pitch_motor.relative_angle_set = init->gimbal_pitch_motor.relative_angle;
     init->gimbal_pitch_motor.motor_gyro_set = init->gimbal_pitch_motor.motor_gyro;
-
-
+#if ENABLE_LASER
+    laser_enable(1);
+#endif
 }
 
 /**
