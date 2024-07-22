@@ -418,8 +418,17 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
 	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], vx_channel, CHASSIS_RC_DEADLINE);
 	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], vy_channel, CHASSIS_RC_DEADLINE);
 
-	vx_set_channel = vx_channel * chassis_move_rc_to_vector->vx_rc_sen;
-	vy_set_channel = vy_channel * -(chassis_move_rc_to_vector->vy_rc_sen);
+	if(fPreinspChassis)
+	{
+		vx_set_channel = 0;
+		vy_set_channel = 0;
+	}
+
+	else if(!fPreinspChassis)
+	{
+		vx_set_channel = vx_channel * chassis_move_rc_to_vector->vx_rc_sen;
+		vy_set_channel = vy_channel * -(chassis_move_rc_to_vector->vy_rc_sen);
+	}
 
 	// keyboard set speed set-point
 	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_FRONT_KEY)
@@ -464,6 +473,14 @@ void swerve_platform_rc_mapping(void)
 	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) && (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C))
 	{
 		chassis_swerve_back_home();
+	}
+
+	else if(fSwerveStandUp){
+        chassis_move.chassis_platform.target_height = CHASSIS_H_PREINSPTION_LIMIT;
+	}
+	else if(!fSwerveStandUp)
+	{
+        chassis_move.chassis_platform.target_height = CHASSIS_H_LOWER_LIMIT;
 	}
 	else
 	{

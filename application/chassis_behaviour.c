@@ -59,6 +59,7 @@
 #include "cv_usart_task.h"
 #include "detect_task.h"
 #include "gimbal_behaviour.h"
+#include "calibrate_task.h"
 
 // random spin mode parameters
 #define MIN_SPIN_PARAM_CHANGE_PERIOD 1.0f
@@ -177,6 +178,11 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 	else if (gimbal_cmd_to_chassis_stop())
 	{
 		chassis_behaviour_mode = CHASSIS_NO_MOVE;
+	}
+
+	else if(fPreinspOn)
+	{
+			chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
 	}
 	else
 	{

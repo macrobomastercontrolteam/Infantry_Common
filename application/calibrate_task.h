@@ -103,7 +103,6 @@
 #define CALIED_FLAG             0x55                // means it has been calibrated
 //you have 20 seconds to calibrate by remote control
 #define CALIBRATE_END_TIME          20000
-#define PREINSPECTION_END_TIME      10000
 //when 10 second, buzzer frequency change to high frequency of gimbal calibration.
 #define RC_CALI_BUZZER_MIDDLE_TIME  10000
 //in the beginning, buzzer frequency change to low frequency of imu calibration.
@@ -120,6 +119,11 @@
 
 
 #define GYRO_CALIBRATE_TIME         20000   //gyro calibrate time
+
+
+extern uint8_t fPreinspOn;
+extern uint8_t fPreinspChassis;
+extern uint8_t fSwerveStandUp;
 
 //cali device name
 typedef enum

@@ -23,6 +23,7 @@
 #include "pid.h"
 #include "remote_control.h"
 #include "user_lib.h"
+#include "calibrate_task.h"
 
 #define SPINNING_CHASSIS_MAX_OMEGA RPM_TO_RADS(60.0f)
 #define SPINNING_CHASSIS_HIGH_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.833f)
@@ -61,6 +62,7 @@
 // calculated by Matlab offline
 #define CHASSIS_H_LOWER_LIMIT 0.213246f
 #define CHASSIS_H_UPPER_LIMIT 0.28699f
+#define CHASSIS_H_PREINSPTION_LIMIT 0.276f
 #define CHASSIS_H_WORKSPACE_PEAK 0.2518985f
 #define CHASSIS_ALPHA_WORKSPACE_PEAK 0.156f
 #define CHASSIS_H_WORKSPACE_SLOPE1 0.247767f
