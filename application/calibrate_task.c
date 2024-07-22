@@ -372,18 +372,18 @@ static void RC_cmd_to_calibrate(void)
     else if (calibrate_RC->rc.ch[0] < -RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[1] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[2] > RC_CALI_VALUE_HOLE && calibrate_RC->rc.ch[3] > RC_CALI_VALUE_HOLE && switch_is_down(calibrate_RC->rc.s[0]) && switch_is_down(calibrate_RC->rc.s[1]) && rc_action_flag == 0 && fPreinspOn)
     {
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-            fSwerveStandUp ^= 1;
-            rc_preinspection_time_count = 0;
-            fPreinspChassis = 0;
-            fPreinspOn = 0;
-            cali_buzzer_off();
-            return;
+        fSwerveStandUp ^= 1;
+        rc_preinspection_time_count = 0;
+        fPreinspChassis = 0;
+        fPreinspOn = 0;
+        cali_buzzer_off();
+        return;
 
 #else
-            fPreinspChassis = 0;
-            fPreinspOn = 0;
-            cali_buzzer_off();
-            return;
+        fPreinspChassis = 0;
+        fPreinspOn = 0;
+        cali_buzzer_off();
+        return;
 #endif
     }
 
