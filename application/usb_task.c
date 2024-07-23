@@ -58,14 +58,10 @@ chassis hip motor3:%s\r\n\
 chassis hip motor4:%s\r\n\
 chassis drive motor1:%s\r\n\
 chassis drive motor2:%s\r\n\
-yaw motor:%s\r\n\
-pitch motor:%s\r\n\
-trigger motor:%s\r\n\
 gyro sensor:%s\r\n\
 accel sensor:%s\r\n\
 mag sensor:%s\r\n\
-referee usart:%s\r\n\
-cv usart:%s\r\n\
+biped upper controller:%s\r\n\
 ******************************\r\n",
             get_battery_percentage(), 
             status[error_list_usb_local[DBUS_TOE].error_exist],
@@ -75,14 +71,12 @@ cv usart:%s\r\n\
             status[error_list_usb_local[CHASSIS_HIP_MOTOR4_TOE].error_exist],
             status[error_list_usb_local[CHASSIS_DRIVE_MOTOR1_TOE].error_exist],
             status[error_list_usb_local[CHASSIS_DRIVE_MOTOR2_TOE].error_exist],
-            status[error_list_usb_local[YAW_GIMBAL_MOTOR_TOE].error_exist],
-            status[error_list_usb_local[PITCH_GIMBAL_MOTOR_TOE].error_exist],
-            status[error_list_usb_local[TRIGGER_MOTOR_TOE].error_exist],
             status[error_list_usb_local[BOARD_GYRO_TOE].error_exist],
             status[error_list_usb_local[BOARD_ACCEL_TOE].error_exist],
             status[error_list_usb_local[BOARD_MAG_TOE].error_exist],
-            status[error_list_usb_local[REFEREE_TOE].error_exist],
-            status[error_list_usb_local[CV_TOE].error_exist]);
+            status[error_list_usb_local[BIPED_UPPER_TOE].error_exist]);
+            // status[error_list_usb_local[REFEREE_TOE].error_exist],
+            // status[error_list_usb_local[CV_TOE].error_exist]);
 #endif // defined(DEBUG_CV)
     }
 

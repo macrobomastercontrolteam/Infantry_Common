@@ -280,9 +280,9 @@ static void detect_init(uint32_t time)
             {2, 3, 7},      //board gyro
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag
-            {100, 100, 5},  //referee
-            {10, 10, 7},    //rm imu
-            {50, 0, 7},    //cv usart
+            // {100, 100, 5},  //referee
+            // {10, 10, 7},    //rm imu
+            // {50, 0, 7},    //cv usart
             // {100, 100, 1},  //oled
         };
 
@@ -295,17 +295,17 @@ static void detect_init(uint32_t time)
         error_list[i].solve_lost_fun = NULL;
         error_list[i].solve_data_error_fun = NULL;
 
-#if defined(TEST_NO_REF)
-        if (i == REFEREE_TOE)
-        {
-            // test_no_ref branch setup
-            error_list[i].enable = 0;
-            error_list[i].error_exist = 0;
-            error_list[i].is_lost = 0;
-            error_list[i].data_is_error = 0;
-        }
-        else
-#endif
+// #if defined(TEST_NO_REF)
+//         if (i == REFEREE_TOE)
+//         {
+//             // test_no_ref branch setup
+//             error_list[i].enable = 0;
+//             error_list[i].error_exist = 0;
+//             error_list[i].is_lost = 0;
+//             error_list[i].data_is_error = 0;
+//         }
+//         else
+// #endif
         {
             error_list[i].enable = 1;
             error_list[i].error_exist = 1;

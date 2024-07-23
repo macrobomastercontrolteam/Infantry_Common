@@ -449,9 +449,12 @@ void chassis_cv_to_control_vector(chassis_move_t *chassis_move_ptr, fp32* pDista
 	}
 	else if (CvCmder_CheckAndResetFlag(&CvCmdHandler.fCvCmdValid))
 	{
-		*pDistanceDelta = CvCmdHandler.CvCmdMsg.disDelta;
-		biped.yaw.set = CvCmdHandler.CvCmdMsg.yawSet;
-		biped.fCvBrakeEnable = 1;
+		if (biped.fBipedIsStable)
+		{
+			*pDistanceDelta = CvCmdHandler.CvCmdMsg.disDelta;
+			biped.yaw.set = CvCmdHandler.CvCmdMsg.yawSet;
+			biped.fCvBrakeEnable = 1;
+		}
 	}
 	else
 	{

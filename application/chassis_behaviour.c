@@ -90,27 +90,12 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 	uint8_t left_rc_switch = chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL];
 	switch (right_rc_switch)
 	{
+		// chassis spinning mode
 		case RC_SW_UP:
-		{
-			if (last_right_rc_switch != right_rc_switch)
-			{
-				biped_jumpStart();
-			}
-			break;
-		}
+		// normal moving mode
 		case RC_SW_MID:
 		{
-			if ((last_right_rc_switch != right_rc_switch) || (last_left_rc_switch != left_rc_switch))
-			{
-				if ((left_rc_switch == RC_SW_DOWN) && (toe_is_error(CV_TOE) == 0))
-				{					
-					chassis_behaviour_mode = CHASSIS_CV_NO_FOLLOW_YAW;
-				}
-				else
-				{
-					chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
-				}
-			}
+			chassis_behaviour_mode = CHASSIS_NO_FOLLOW_YAW;
 			break;
 		}
 		case RC_SW_DOWN:
