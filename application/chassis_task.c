@@ -77,6 +77,7 @@ fp32 leg_l_l0_set = 0;
 fp32 leg_r_l0_set = 0;
 fp32 leg_l_l0_now = 0;
 fp32 leg_r_l0_now = 0;
+fp32 leg_angle_split = 0;
 fp32 leg_sim_angle0_now = 0;
 fp32 leg_sim_angle0_dot = 0;
 fp32 leg_sim_dis_diff = 0;
@@ -120,6 +121,8 @@ static void jscope_chassis_test(void)
 	leg_r_l0_set = biped.leg_R.L0.set * 1000.0f;
 	leg_l_l0_now = biped.leg_L.L0.now * 1000.0f;
 	leg_r_l0_now = biped.leg_R.L0.now * 1000.0f;
+
+	leg_angle_split = (biped.leg_L.angle0.now - biped.leg_R.angle0.now) * 180.0f / PI;
 
 	leg_sim_angle0_now = biped.leg_simplified.angle0.now * 180.0f / PI;
 	leg_sim_angle0_dot = biped.leg_simplified.angle0.dot * 180.0f / PI;
