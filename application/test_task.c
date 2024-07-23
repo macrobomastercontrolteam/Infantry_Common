@@ -21,7 +21,7 @@
 #include "bsp_buzzer.h"
 #include "detect_task.h"
 
-static void buzzer_warn_error(uint8_t num);
+// static void buzzer_warn_error(uint8_t num);
 
 const error_t *error_list_test_local;
 
@@ -39,45 +39,45 @@ const error_t *error_list_test_local;
   */
 void test_task(void const * argument)
 {
-    static uint8_t error, last_error;
-    static uint8_t error_num;
-    error_list_test_local = get_error_list_point();
+//     static uint8_t error, last_error;
+//     static uint8_t error_num;
+//     error_list_test_local = get_error_list_point();
 
-    while(1)
-    {
-        error = 0;
+//     while(1)
+//     {
+//         error = 0;
 
-        //find error
-        //∑¢œ÷¥ÌŒÛ
-        for(error_num = 0; error_num < REFEREE_TOE; error_num++)
-        {
-            if(error_list_test_local[error_num].error_exist)
-            {
-                error = 1;
-                break;
-            }
-        }
+//         //find error
+//         //∑¢œ÷¥ÌŒÛ
+//         for(error_num = 0; error_num < REFEREE_TOE; error_num++)
+//         {
+//             if(error_list_test_local[error_num].error_exist)
+//             {
+//                 error = 1;
+//                 break;
+//             }
+//         }
 
-        //no error, stop buzzer
-        //√ª”–¥ÌŒÛ, Õ£÷π∑‰√˘∆˜
-        if(error == 0 && last_error != 0)
-        {
-            buzzer_off();
-        }
-        //have error
-        //”–¥ÌŒÛ
-        if(error)
-        {
-#if defined(TEST_NO_REF)
-            UNUSED(buzzer_warn_error);
-#else
-            buzzer_warn_error(error_num+1);
-#endif
-        }
+//         //no error, stop buzzer
+//         //√ª”–¥ÌŒÛ, Õ£÷π∑‰√˘∆˜
+//         if(error == 0 && last_error != 0)
+//         {
+//             buzzer_off();
+//         }
+//         //have error
+//         //”–¥ÌŒÛ
+//         if(error)
+//         {
+// #if defined(TEST_NO_REF)
+//             UNUSED(buzzer_warn_error);
+// #else
+//             buzzer_warn_error(error_num+1);
+// #endif
+//         }
 
-        last_error = error;
-        osDelay(10);
-    }
+//         last_error = error;
+//         osDelay(10);
+//     }
 }
 
 
@@ -91,38 +91,38 @@ void test_task(void const * argument)
   * @param[in]      num:œÏ…˘¥Œ ˝
   * @retval         none
   */
-static void buzzer_warn_error(uint8_t num)
-{
-    static uint8_t show_num = 0;
-    static uint8_t stop_num = 100;
-    if(show_num == 0 && stop_num == 0)
-    {
-        show_num = num;
-        stop_num = 100;
-    }
-    else if(show_num == 0)
-    {
-        stop_num--;
-        buzzer_off();
-    }
-    else
-    {
-        static uint8_t tick = 0;
-        tick++;
-        if(tick < 50)
-        {
-            buzzer_off();
-        }
-        else if(tick < 100)
-        {
-            buzzer_on(1, 30000);
-        }
-        else
-        {
-            tick = 0;
-            show_num--;
-        }
-    }
-}
+// static void buzzer_warn_error(uint8_t num)
+// {
+//     static uint8_t show_num = 0;
+//     static uint8_t stop_num = 100;
+//     if(show_num == 0 && stop_num == 0)
+//     {
+//         show_num = num;
+//         stop_num = 100;
+//     }
+//     else if(show_num == 0)
+//     {
+//         stop_num--;
+//         buzzer_off();
+//     }
+//     else
+//     {
+//         static uint8_t tick = 0;
+//         tick++;
+//         if(tick < 50)
+//         {
+//             buzzer_off();
+//         }
+//         else if(tick < 100)
+//         {
+//             buzzer_on(1, 30000);
+//         }
+//         else
+//         {
+//             tick = 0;
+//             show_num--;
+//         }
+//     }
+// }
 
 

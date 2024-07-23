@@ -58,83 +58,83 @@
   */
 void chassis_power_control(chassis_move_t *chassis_power_control)
 {
-    fp32 chassis_power = 0.0f;
-    fp32 chassis_power_buffer = 0.0f;
-    fp32 total_current_limit = 0.0f;
-    fp32 total_current = 0.0f;
-    uint8_t robot_id = get_robot_id();
-    if(toe_is_error(REFEREE_TOE))
-    {
-        total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
-    }
-    else if(robot_id == RED_ENGINEER || robot_id == BLUE_ENGINEER || robot_id == 0)
-    {
-        total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
-    }
-    else
-    {
-        get_chassis_power_and_buffer(&chassis_power, &chassis_power_buffer);
-        // power > 80w and buffer < 60j, because buffer < 60 means power has been more than 80w
-        //功率超过80w 和缓冲能量小于60j,因为缓冲能量小于60意味着功率超过80w
-        if(chassis_power_buffer < WARNING_POWER_BUFF)
-        {
-            fp32 power_scale;
-            if(chassis_power_buffer > 5.0f)
-            {
-                //scale down WARNING_POWER_BUFF
-                //缩小WARNING_POWER_BUFF
-                power_scale = chassis_power_buffer / WARNING_POWER_BUFF;
-            }
-            else
-            {
-                //only left 10% of WARNING_POWER_BUFF
-                power_scale = 5.0f / WARNING_POWER_BUFF;
-            }
-            //scale down
-            //缩小
-            total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT * power_scale;
-        }
-        else
-        {
-            //power > WARNING_POWER
-            //功率大于WARNING_POWER
-            if(chassis_power > WARNING_POWER)
-            {
-                fp32 power_scale;
-                //power < 80w
-                //功率小于80w
-                if(chassis_power < POWER_LIMIT)
-                {
-                    //scale down
-                    //缩小
-                    power_scale = (POWER_LIMIT - chassis_power) / (POWER_LIMIT - WARNING_POWER);
+    // fp32 chassis_power = 0.0f;
+    // fp32 chassis_power_buffer = 0.0f;
+    // fp32 total_current_limit = 0.0f;
+    // fp32 total_current = 0.0f;
+    // uint8_t robot_id = get_robot_id();
+    // if(toe_is_error(REFEREE_TOE))
+    // {
+    //     total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
+    // }
+    // else if(robot_id == RED_ENGINEER || robot_id == BLUE_ENGINEER || robot_id == 0)
+    // {
+    //     total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
+    // }
+    // else
+    // {
+    //     get_chassis_power_and_buffer(&chassis_power, &chassis_power_buffer);
+    //     // power > 80w and buffer < 60j, because buffer < 60 means power has been more than 80w
+    //     //功率超过80w 和缓冲能量小于60j,因为缓冲能量小于60意味着功率超过80w
+    //     if(chassis_power_buffer < WARNING_POWER_BUFF)
+    //     {
+    //         fp32 power_scale;
+    //         if(chassis_power_buffer > 5.0f)
+    //         {
+    //             //scale down WARNING_POWER_BUFF
+    //             //缩小WARNING_POWER_BUFF
+    //             power_scale = chassis_power_buffer / WARNING_POWER_BUFF;
+    //         }
+    //         else
+    //         {
+    //             //only left 10% of WARNING_POWER_BUFF
+    //             power_scale = 5.0f / WARNING_POWER_BUFF;
+    //         }
+    //         //scale down
+    //         //缩小
+    //         total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT * power_scale;
+    //     }
+    //     else
+    //     {
+    //         //power > WARNING_POWER
+    //         //功率大于WARNING_POWER
+    //         if(chassis_power > WARNING_POWER)
+    //         {
+    //             fp32 power_scale;
+    //             //power < 80w
+    //             //功率小于80w
+    //             if(chassis_power < POWER_LIMIT)
+    //             {
+    //                 //scale down
+    //                 //缩小
+    //                 power_scale = (POWER_LIMIT - chassis_power) / (POWER_LIMIT - WARNING_POWER);
                     
-                }
-                //power > 80w
-                //功率大于80w
-                else
-                {
-                    power_scale = 0.0f;
-                }
+    //             }
+    //             //power > 80w
+    //             //功率大于80w
+    //             else
+    //             {
+    //                 power_scale = 0.0f;
+    //             }
                 
-                total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT + POWER_TOTAL_CURRENT_LIMIT * power_scale;
-            }
-            //power < WARNING_POWER
-            //功率小于WARNING_POWER
-            else
-            {
-                total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT + POWER_TOTAL_CURRENT_LIMIT;
-            }
-        }
-    }
+    //             total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT + POWER_TOTAL_CURRENT_LIMIT * power_scale;
+    //         }
+    //         //power < WARNING_POWER
+    //         //功率小于WARNING_POWER
+    //         else
+    //         {
+    //             total_current_limit = BUFFER_TOTAL_CURRENT_LIMIT + POWER_TOTAL_CURRENT_LIMIT;
+    //         }
+    //     }
+    // }
 
-	total_current = (fabs(biped.leg_L.TWheel_set) + fabs(biped.leg_R.TWheel_set)) * DRIVE_MOTOR_TORQUE_TO_CURRENT_RATIO;
+	// total_current = (fabs(biped.leg_L.TWheel_set) + fabs(biped.leg_R.TWheel_set)) * DRIVE_MOTOR_TORQUE_TO_CURRENT_RATIO;
 
-	if (total_current > total_current_limit)
-	{
-		// only limit current of driver motors, because power usage by steering motors is small and difficult to estimate. Because we control voltage input to steering motor (GM6020), not current
-		fp32 current_scale = total_current_limit / total_current;
-        biped.leg_L.TWheel_set *= current_scale;
-        biped.leg_R.TWheel_set *= current_scale;
-	}
+	// if (total_current > total_current_limit)
+	// {
+	// 	// only limit current of driver motors, because power usage by steering motors is small and difficult to estimate. Because we control voltage input to steering motor (GM6020), not current
+	// 	fp32 current_scale = total_current_limit / total_current;
+    //     biped.leg_L.TWheel_set *= current_scale;
+    //     biped.leg_R.TWheel_set *= current_scale;
+	// }
 }
