@@ -238,6 +238,7 @@ static void detect_init(uint32_t time)
             {100, 0, 7},    //cv usart
             {100, 0, 11},    // super capacitor
             {50, 0, 8},    // swerve controller
+            {25, 0, 8},    // biped controller feedback (normally < 3)
             // {100, 100, 1},  //oled
         };
 
@@ -265,7 +266,11 @@ static void detect_init(uint32_t time)
     error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
 #endif
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	error_list[SWERVE_CTRL_TOE].solve_lost_fun = swerve_chassis_params_reset;
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+	error_list[BIPED_CTRL_TOE].solve_lost_fun = biped_chassis_params_reset;
+#endif
 
 	// error_list[OLED_TOE].data_is_error_fun = NULL;
     // error_list[OLED_TOE].solve_lost_fun = OLED_com_reset;

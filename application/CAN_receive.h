@@ -93,10 +93,12 @@ typedef enum
 	CAN_SWERVE_RADII_DOT_RX_ID = 0x115,
   // receives current chassis platform params: alpha1, alpha2, center height, rotational radius of each wheels
 	CAN_SHRINKED_CONTROLLER_RX_ID = 0x116,
-#endif
-
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+	CAN_BIPED_CONTROLLER_TX_ID = 0x117,
+	CAN_BIPED_CONTROLLER_RX_ID = 0x118,
+	CAN_BIPED_CONTROLLER_MODE_TX_ID = 0x119,
 #endif
 } can_other_msg_id_e;
 
@@ -165,7 +167,11 @@ void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes);
 void CAN_cmd_swerve_steer(void);
 void CAN_cmd_swerve_hip(void);
 #endif
-void swerve_enable_hip(uint8_t fEnabled);
+
+#if (ROBOT_TYPE == INFANTRY_2024_BIPED)
+void CAN_cmd_biped_chassis(void);
+void CAN_cmd_biped_chassis_mode(void);
+#endif
 
 /**
   * @brief          return the yaw 6020 motor data point

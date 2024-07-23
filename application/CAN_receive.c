@@ -45,8 +45,6 @@
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define ENABLE_STEER_MOTOR_POWER 0
 #define ENABLE_HIP_MOTOR_POWER 0
-#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
-#define ENABLE_HIP_MOTOR_POWER 0
 #endif
 
 #define REVERSE_M3508_1 0
@@ -77,6 +75,7 @@ extern CAN_HandleTypeDef hcan2;
 		(ptr)->temperate = (data)[6];                                 \
 	}
 
+void CAN_cmd_3508_chassis(void);
 uint8_t convertCanIdToMotorIndex(uint32_t canId);
 void reverse_motor_feedback(uint8_t bMotorId);
 fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits);
@@ -127,6 +126,19 @@ const fp32 swerve_angle_encoding_ratio_shrinked = (1 << 7) / SWERVE_ANGLE_ECD_MA
 
 uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data);
 uint8_t decode_swerve_chassis_feedback(uint8_t *data);
+
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+#define BIPED_METER_PER_SEC_ECD_MAX_LIMIT 3.5f
+#define BIPED_METER_ECD_MAX_LIMIT 0.5f
+#define BIPED_RAD_ECD_MAX_LIMIT PI
+#define BIPED_RAD_PER_SEC_ECD_MAX_LIMIT 2.5f
+
+const fp32 biped_speed_encoding_ratio = (1 << 15) / BIPED_METER_PER_SEC_ECD_MAX_LIMIT;
+const fp32 biped_meter_encoding_ratio = (1 << 16) / BIPED_METER_ECD_MAX_LIMIT;
+const fp32 biped_angle_encoding_ratio = (1 << 15) / BIPED_RAD_ECD_MAX_LIMIT;
+const fp32 biped_angle_speed_encoding_ratio = (1 << 15) / BIPED_RAD_PER_SEC_ECD_MAX_LIMIT;
+
+uint8_t decode_biped_chassis_feedback(uint8_t *data);
 #endif
 
 uint8_t convertCanIdToMotorIndex(uint32_t canId)
@@ -281,6 +293,17 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				break;
 			}
 #endif
+#if (ROBOT_TYPE == INFANTRY_2024_BIPED)
+			case CAN_BIPED_CONTROLLER_RX_ID:
+			{
+				fIsMotor = 0;
+				if (decode_biped_chassis_feedback(rx_data))
+				{
+					detect_hook(BIPED_CTRL_TOE);
+				}
+				break;
+			}
+#endif
 			default:
 			{
 				break;
@@ -429,6 +452,125 @@ uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data)
 }
 #endif
 
+#if (ROBOT_TYPE == INFANTRY_2024_BIPED)
+void CAN_cmd_biped_chassis(void)
+{
+	uint32_t send_mail_box;
+	chassis_tx_message.StdId = CAN_BIPED_CONTROLLER_TX_ID;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
+
+	// hip and drive power has to be enabled together for biped
+#if ENABLE_DRIVE_MOTOR_POWER
+	if (chassis_move.fLegEnabled)
+	{
+		if (chassis_move.chassis_platform.fBackToHome)
+		{
+			memset(chassis_can_send_data, 0, sizeof(chassis_can_send_data));
+		}
+		else
+		{
+			int16_t yaw_int = rad_format(chassis_move.chassis_platform.target_yaw) * biped_angle_encoding_ratio;
+			int16_t L0_dot_int = fp32_constrain(chassis_move.chassis_platform.target_simplified_L0_dot, -BIPED_METER_PER_SEC_ECD_MAX_LIMIT, BIPED_METER_PER_SEC_ECD_MAX_LIMIT) * biped_speed_encoding_ratio;
+			int16_t roll_dot_int = fp32_constrain(chassis_move.chassis_platform.target_roll_dot, -BIPED_RAD_PER_SEC_ECD_MAX_LIMIT, BIPED_RAD_PER_SEC_ECD_MAX_LIMIT) * biped_angle_speed_encoding_ratio;
+			int16_t dis_dot_int = fp32_constrain(chassis_move.chassis_platform.target_dis_dot, -BIPED_METER_PER_SEC_ECD_MAX_LIMIT, BIPED_METER_PER_SEC_ECD_MAX_LIMIT) * biped_speed_encoding_ratio;
+
+			chassis_can_send_data[0] = *(uint8_t *)(&yaw_int);
+			chassis_can_send_data[1] = *((uint8_t *)(&yaw_int) + 1);
+			chassis_can_send_data[2] = *(uint8_t *)(&L0_dot_int);
+			chassis_can_send_data[3] = *((uint8_t *)(&L0_dot_int) + 1);
+			chassis_can_send_data[4] = *(uint8_t *)(&roll_dot_int);
+			chassis_can_send_data[5] = *((uint8_t *)(&roll_dot_int) + 1);
+			chassis_can_send_data[6] = *(uint8_t *)(&dis_dot_int);
+			chassis_can_send_data[7] = *((uint8_t *)(&dis_dot_int) + 1);
+
+			// reset speeds for safety, they will be reassigned in chassis_task immediately before next call of this function
+			// chassis_move.chassis_platform.target_yaw_dot = 0;
+			chassis_move.chassis_platform.target_simplified_L0_dot = 0;
+			chassis_move.chassis_platform.target_roll_dot = 0;
+			chassis_move.chassis_platform.target_dis_dot = 0;
+		}
+	}
+	else
+#endif
+	{
+		memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
+	}
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+void CAN_cmd_biped_chassis_mode(void)
+{
+	// determine whether to send mode control msg
+	static uint8_t bBipedModeTxCounter = 0;
+	static uint8_t fLastJumpSignal = 0;
+	static uint8_t fLastBackToChairPosture = 0;
+	static uint8_t bLastRcLeftSw = RC_SW_DOWN;
+	static uint8_t bLastRcRightSw = RC_SW_DOWN;
+	uint8_t bRcLeftSw = RC_SW_DOWN;
+	uint8_t bRcRightSw = RC_SW_DOWN;
+	if (toe_is_error(DBUS_TOE) == 0)
+	{
+		bRcLeftSw = rc_ctrl.rc.s[RC_LEFT_LEVER_CHANNEL];
+		bRcRightSw = rc_ctrl.rc.s[RC_RIGHT_LEVER_CHANNEL];
+	}
+	
+	if ((bLastRcLeftSw != bRcLeftSw) || (bLastRcRightSw != bRcRightSw) || (fLastJumpSignal != chassis_move.chassis_platform.fJumpStart))
+	{
+		bBipedModeTxCounter = 0;
+		bLastRcLeftSw = bRcLeftSw;
+		bLastRcRightSw = bRcRightSw;
+		fLastJumpSignal = chassis_move.chassis_platform.fJumpStart;
+	}
+	
+	if (fLastBackToChairPosture != chassis_move.chassis_platform.fBackToHome)
+	{
+		// do not trigger mode control msg on falling edge of fBackToHome
+		if (chassis_move.chassis_platform.fBackToHome)
+		{
+			bBipedModeTxCounter = 0;
+		}
+		fLastBackToChairPosture = chassis_move.chassis_platform.fBackToHome;
+	}
+
+	if (bBipedModeTxCounter < 3)
+	{
+		// send mode control msg for 3 times to make sure that biped controller receives it
+		osDelay(1);
+
+		uint32_t send_mail_box;
+		chassis_tx_message.StdId = CAN_BIPED_CONTROLLER_MODE_TX_ID;
+		chassis_tx_message.IDE = CAN_ID_STD;
+		chassis_tx_message.RTR = CAN_RTR_DATA;
+		chassis_tx_message.DLC = 0x08;
+
+		chassis_can_send_data[0] = bRcLeftSw;
+		chassis_can_send_data[1] = bRcRightSw;
+		chassis_can_send_data[2] = chassis_move.chassis_platform.fBackToHome;
+		chassis_can_send_data[3] = chassis_move.chassis_platform.fJumpStart;
+		HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+		
+		bBipedModeTxCounter++;
+	}
+	else
+	{
+		chassis_move.chassis_platform.fBackToHome = 0;
+		// Do not reset fJumpStart to avoid noise in the input signal. Note that jumping action of biped lower board will only be trigger upon rising edge 
+	}
+}
+
+uint8_t decode_biped_chassis_feedback(uint8_t *data)
+{
+	uint8_t fDataValid = 1;
+	chassis_move.chassis_platform.feedback_yaw = fp32_constrain((int16_t)((data[1] << 8) | data[0]) / biped_angle_encoding_ratio, -PI, PI);
+	chassis_move.chassis_platform.feedback_simplified_L0 = (int16_t)((data[3] << 8) | data[2]) / biped_meter_encoding_ratio;
+	chassis_move.chassis_platform.feedback_roll = (int16_t)((data[5] << 8) | data[4]) / biped_angle_encoding_ratio;
+	chassis_move.chassis_platform.feedback_pitch = (int16_t)((data[7] << 8) | data[6]) / biped_angle_encoding_ratio;
+	return fDataValid;
+}
+#endif
+
 void reverse_motor_feedback(uint8_t bMotorId)
 {
 #if (REVERSE_M3508_1 || REVERSE_M3508_2 || REVERSE_M3508_3 || REVERSE_M3508_4)
@@ -567,6 +709,7 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
  */
 void CAN_cmd_chassis_reset_ID(void)
 {
+#if ROBOT_CHASSIS_USE_MECANUM || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	uint32_t send_mail_box;
 	chassis_tx_message.StdId = 0x700;
 	chassis_tx_message.IDE = CAN_ID_STD;
@@ -582,6 +725,7 @@ void CAN_cmd_chassis_reset_ID(void)
 	chassis_can_send_data[7] = 0;
 
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+#endif
 }
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
@@ -628,6 +772,26 @@ void CAN_cmd_upper_head(void)
 }
 #endif
 
+void CAN_cmd_chassis(void)
+{
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+	CAN_cmd_3508_chassis();
+	osDelay(1);
+	CAN_cmd_swerve_steer();
+	osDelay(1);
+	CAN_cmd_swerve_hip();
+#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
+	CAN_cmd_3508_chassis();
+	osDelay(1);
+	CAN_cmd_upper_head();
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+	CAN_cmd_biped_chassis();
+	CAN_cmd_biped_chassis_mode();
+#else
+	CAN_cmd_3508_chassis();
+#endif
+}
+
 /**
  * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
  * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384]
@@ -640,8 +804,9 @@ void CAN_cmd_upper_head(void)
  * @param[in]      steer_motor4: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
  * @retval         none
  */
-void CAN_cmd_chassis(void)
+void CAN_cmd_3508_chassis(void)
 {
+#if (ROBOT_TYPE != INFANTRY_2024_BIPED)
 	uint32_t send_mail_box;
 	// driver motors (M3508)
 	chassis_tx_message.StdId = CAN_3508_OR_2006_LOW_RANGE_TX_ID;
@@ -686,6 +851,7 @@ void CAN_cmd_chassis(void)
 	chassis_can_send_data[6] = motor4 >> 8;
 	chassis_can_send_data[7] = motor4;
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+#endif
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
@@ -750,21 +916,6 @@ void CAN_cmd_swerve_hip(void)
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
 #endif
-
-void swerve_enable_hip(uint8_t fEnabled)
-{
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-
-#if ENABLE_HIP_MOTOR_POWER
-	chassis_move.fHipDisabledEdge = ((fEnabled == 0) && chassis_move.fHipEnabled);
-	chassis_move.fHipEnabled = fEnabled;
-#else
-	chassis_move.fHipDisabledEdge = 0;
-	chassis_move.fHipEnabled = 0;
-#endif
-
-#endif
-}
 
 #if USE_SERVO_TO_STIR_AMMO
 void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes)
