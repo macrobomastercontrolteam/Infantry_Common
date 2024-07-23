@@ -194,7 +194,7 @@ fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type,
 //¸¡µãËÀÇø
 fp32 fp32_deadline(fp32 Value, fp32 minValue, fp32 maxValue)
 {
-    if (Value < maxValue && Value > minValue)
+    if ((Value < maxValue) && (Value > minValue))
     {
         Value = 0.0f;
     }
@@ -204,7 +204,7 @@ fp32 fp32_deadline(fp32 Value, fp32 minValue, fp32 maxValue)
 //int26ËÀÇø
 int16_t int16_deadline(int16_t Value, int16_t minValue, int16_t maxValue)
 {
-    if (Value < maxValue && Value > minValue)
+    if ((Value < maxValue) && (Value > minValue))
     {
         Value = 0;
     }
