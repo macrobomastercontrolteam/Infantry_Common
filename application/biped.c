@@ -81,7 +81,6 @@ void biped_init(void)
 	// biped.dis_set_adj = 0;
 	biped.jumpState = JUMP_IDLE;
 	biped.brakeState = BRAKE_IDLE;
-	biped.isJumpInTheAir = 0;
 
 	biped.roll.set = 0;
 	biped.yaw.set = 0;
@@ -90,7 +89,7 @@ void biped_init(void)
 	// biped.acc_up_max = 1.0;
 	// biped.acc_down_max = 1.0;
 
-	biped.fBipedEnable = 0;
+	biped_switchPower(0);
 	biped.fCvBrakeEnable = 1;
 	biped.HipTorque_MaxLimit = 0;
 	biped.DriveTorque_MaxLimit = 0;
@@ -197,7 +196,8 @@ void biped_init(void)
 
 void biped_status_update(void)
 {
-	biped.time_ms = xTaskGetTickCount();
+	biped.time_step_s = fp32_constrain(osKernelSysTick() - biped.time_ms, 1, 20) / 1000.0f;
+	biped.time_ms = osKernelSysTick();
 
 	biped.roll.last = biped.roll.now;
 	biped.roll.now = *(chassis_move.chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
@@ -574,6 +574,43 @@ void torque_ctrl()
 	// }
 }
 
+void biped_stableness_judger(void)
+{
+	static uint32_t stableStartTimeMs = 0;
+	// disable fBipedEnable to avoid fBipedIsStable being turned on again
+	if (biped.fBipedEnable && (biped.fBipedIsStable == 0) && (biped.isJumpInTheAir == 0))
+	{
+		const fp32 STABLENESS_TORQUE_SQUARED_THRESHOLD = 0.2f;
+		const uint32_t STABLENESS_JUDGE_HOLD_TIME_MS = 75;
+		fp32 stablenessIndicator = biped.leg_L.TWheel_set * biped.leg_L.TWheel_set + biped.leg_R.TWheel_set * biped.leg_R.TWheel_set;
+		uint8_t fIsPossiblyStable = (stablenessIndicator < STABLENESS_TORQUE_SQUARED_THRESHOLD);
+		if (fIsPossiblyStable)
+		{
+			if (stableStartTimeMs == 0)
+			{
+				// start counting stable time
+				stableStartTimeMs = osKernelSysTick();
+			}
+			else
+			{
+				if (osKernelSysTick() - stableStartTimeMs >= STABLENESS_JUDGE_HOLD_TIME_MS)
+				{
+					biped.fBipedIsStable = 1;
+					stableStartTimeMs = 0;
+				}
+			}
+		}
+		else
+		{
+			stableStartTimeMs = 0;
+		}
+	}
+	else
+	{
+		stableStartTimeMs = 0;
+	}
+}
+
 void biped_brakeManager(fp32 distanceDelta)
 {
 	static uint32_t brake_state_entry_time_ms = 0;
@@ -747,8 +784,7 @@ void biped_jumpManager(void)
 				}
 				else if (biped.time_ms - state_entry_time_ms > JUMP_SHRINK_TIMEOUT_MS)
 				{
-					biped.isJumpInTheAir = 0;
-					biped.fBipedEnable = 0;
+					biped_switchPower(0);
 					biped.jumpState = JUMP_IDLE;
 				}
 			}
@@ -757,8 +793,7 @@ void biped_jumpManager(void)
 		default:
 		{
 			// should not reach here
-			biped.fBipedEnable = 0;
-			biped.isJumpInTheAir = 0;
+			biped_switchPower(0);
 			break;
 		}
 	}
@@ -793,4 +828,18 @@ fp32 biped_limitVelocity(fp32 speed_set, fp32 L0)
 		speed_max = 0;
 	}
 	return (speed_set > speed_max) ? speed_max : speed_set;
+}
+
+void biped_switchPower(uint8_t fEnable)
+{
+	if (fEnable)
+	{
+		biped.fBipedEnable = 1;
+	}
+	else
+	{
+		biped.fBipedEnable = 0;
+		biped.fBipedIsStable = 0;
+		biped.isJumpInTheAir = 0;
+	}
 }

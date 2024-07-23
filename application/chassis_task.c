@@ -174,7 +174,7 @@ void chassis_task(void const *pvParameters)
 			{
 				if (toe_is_error(bToeIndex))
 				{
-					biped.fBipedEnable = 0;
+					biped_switchPower(0);
 					break;
 				}
 			}
@@ -182,7 +182,7 @@ void chassis_task(void const *pvParameters)
 			// flipped over
 			// if (fabs(biped.pitch.now) >= 80.0f / 180.0f * PI)
 			// {
-			// 	biped.fBipedEnable = 0;
+			// 	biped_switchPower(0);
 			// }
 
 			// switching edge
@@ -357,7 +357,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				enable_all_8006_motors(1);
 				
 				// biped_init();
-				biped.fBipedEnable = 1;
+				biped_switchPower(1);
 				biped.fCvBrakeEnable = 1;
 				biped.isJumpInTheAir = 0;
 				biped.jumpState = JUMP_IDLE;
@@ -405,10 +405,9 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 			}
 			default:
 			{
-				biped.fBipedEnable = 0;
+				biped_switchPower(0);
 				biped.fCvBrakeEnable = 1;
 
-				biped.isJumpInTheAir = 0;
 				biped.jumpState = JUMP_IDLE;
 				biped.brakeState = BRAKE_IDLE;
 
@@ -574,6 +573,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 			// 1ms processing time
 			inv_pendulum_ctrl();
 			torque_ctrl();
+			biped_stableness_judger();
 
 			if (biped.leg_L.fResetMultiAngleOffset || biped.leg_R.fResetMultiAngleOffset)
 			{

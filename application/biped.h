@@ -50,11 +50,14 @@ typedef struct
 	// fp32 accel_x, accel_y, accel_z;
 
 	LegClass_t leg_L, leg_R, leg_simplified;
+
 	uint8_t isJumpInTheAir;
-	uint8_t fBipedEnable;	
+	uint8_t fBipedEnable;
 	uint8_t fCvBrakeEnable;
 	jumpState_e jumpState;
 	brakeState_e brakeState;
+
+	uint8_t fBipedIsStable;
 } biped_t;
 
 extern biped_t biped;
@@ -62,6 +65,7 @@ extern biped_t biped;
 void biped_init(void);
 void inv_pendulum_ctrl(void);
 void torque_ctrl(void);
+void biped_stableness_judger(void);
 void biped_status_update(void);
 uint8_t biped_jumpStart(void);
 void biped_brakeManager(fp32 distanceDelta);
@@ -69,5 +73,6 @@ void biped_jumpManager(void);
 fp32 biped_limitVelocity(fp32 speed_set, fp32 L0);
 fp32 biped_get_dis_diff(void);
 void biped_set_dis(fp32 dis_set, uint8_t moving_direction);
+void biped_switchPower(uint8_t fEnable);
 
 #endif /* _BIPED_H */

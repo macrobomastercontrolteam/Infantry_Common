@@ -297,7 +297,7 @@ HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr
 		// error_id == 0: motor disabled
 		// error_id == 1: motor enabled
 		// error_id >= 8: motor errors
-		biped.fBipedEnable = 0;
+		biped_switchPower(0);
 		fDecodeResult = HAL_ERROR;
 	}
 	else
