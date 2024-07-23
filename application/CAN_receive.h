@@ -144,6 +144,7 @@ extern HAL_StatusTypeDef encode_motor_control(uint16_t id, float _pos, float _ve
 HAL_StatusTypeDef encode_biped_ctrl_feedback(uint8_t blocking_call);
 extern HAL_StatusTypeDef enable_motor_control_8006(uint32_t id, uint8_t _enable);
 extern HAL_StatusTypeDef enable_all_8006_motors(uint8_t _enable);
+extern uint8_t hip_drive_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float RB_torq, float R_torq, float L_torq, uint8_t blocking_call);
 extern uint8_t hip_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float RB_torq, uint8_t blocking_call);
 // extern uint8_t hip_motor_set_position(float RF_pos, float LF_pos, float LB_pos, float RB_pos, float pos_Kp, float pos_Kd);
 extern uint8_t drive_motor_set_torque(float R_torq, float L_torq, uint8_t blocking_call);

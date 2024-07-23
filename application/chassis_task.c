@@ -225,9 +225,7 @@ void chassis_task(void const *pvParameters)
 		biped.leg_R.TWheel_set = fp32_constrain(biped.leg_R.TWheel_set, -biped.DriveTorque_MaxLimit, biped.DriveTorque_MaxLimit);
 
 		uint8_t blocking_call = 1;
-		uint8_t fValidCmd = 1;
-		fValidCmd &= drive_motor_set_torque(biped.leg_R.TWheel_set, biped.leg_L.TWheel_set, blocking_call);
-		fValidCmd &= hip_motor_set_torque(biped.leg_R.TR_set, biped.leg_L.TR_set, biped.leg_L.TL_set, biped.leg_R.TL_set, blocking_call);
+		hip_drive_motor_set_torque(biped.leg_R.TR_set, biped.leg_L.TR_set, biped.leg_L.TL_set, biped.leg_R.TL_set, biped.leg_R.TWheel_set, biped.leg_L.TWheel_set, blocking_call);
 		encode_biped_ctrl_feedback(blocking_call);
 
 		osDelayUntil(&ulPreviousOsWakeTime, CHASSIS_CONTROL_TIME_MS);

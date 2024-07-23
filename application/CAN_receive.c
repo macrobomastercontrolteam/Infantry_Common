@@ -555,6 +555,76 @@ HAL_StatusTypeDef decode_9015_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr
 // 	return fValidInput;
 // }
 
+uint8_t hip_drive_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float RB_torq, float R_torq, float L_torq, uint8_t blocking_call)
+{
+	uint8_t fValidInput = 0;
+	if ((RF_torq != RF_torq) || (LF_torq != LF_torq) || (LB_torq != LB_torq) || (RB_torq != RB_torq) || (R_torq != R_torq) || (L_torq != L_torq))
+	{
+		RF_torq = 0;
+		LF_torq = 0;
+		LB_torq = 0;
+		RB_torq = 0;
+		R_torq = 0;
+		L_torq = 0;
+		fValidInput = 0;
+	}
+	else
+	{
+		fValidInput = 1;
+	}
+
+#if (ENABLE_HIP_MOTOR_POWER == 0)
+	RF_torq = 0;
+	LF_torq = 0;
+	LB_torq = 0;
+	RB_torq = 0;
+#endif
+
+#if (ENABLE_DRIVE_MOTOR_POWER == 0)
+	R_torq = 0;
+	L_torq = 0;
+#endif
+
+#if REVERSE_LB_HIP_MOTOR_DIRECTION
+	LB_torq *= -1.0f;
+#endif
+
+#if REVERSE_LF_HIP_MOTOR_DIRECTION
+	LF_torq *= -1.0f;
+#endif
+
+#if REVERSE_RB_HIP_MOTOR_DIRECTION
+	RB_torq *= -1.0f;
+#endif
+
+#if REVERSE_RF_HIP_MOTOR_DIRECTION
+	RF_torq *= -1.0f;
+#endif
+
+#if REVERSE_LEFT_DRIVE_MOTOR_DIRECTION
+	L_torq *= -1.0f;
+#endif
+
+#if REVERSE_RIGHT_DRIVE_MOTOR_DIRECTION
+	R_torq *= -1.0f;
+#endif
+
+	// 8006 motor as hip, 9015 motor as drive
+	// Intervals are fine tuned so that all motor feedback msgs are returned in stable intervals. Interval for 9015 must be greater than 2, that for 8006 must be greater than 1
+	// Note that drive1 tx msg is less stable to be received, so remember to leave larger delay before sending it
+	encode_motor_control(CAN_HIP1_TX_ID, 0, 0, 0, 0, RF_torq, blocking_call, DM_8006);
+	osDelay(1);
+	encode_motor_control(CAN_DRIVE1_PVT_TX_ID, 0, 0, 0, 0, R_torq, blocking_call, MA_9015);
+	encode_motor_control(CAN_HIP2_TX_ID, 0, 0, 0, 0, LF_torq, blocking_call, DM_8006);
+	osDelay(1);
+	encode_motor_control(CAN_HIP3_TX_ID, 0, 0, 0, 0, LB_torq, blocking_call, DM_8006);
+	encode_motor_control(CAN_DRIVE2_PVT_TX_ID, 0, 0, 0, 0, L_torq, blocking_call, MA_9015);
+	osDelay(1);
+	encode_motor_control(CAN_HIP4_TX_ID, 0, 0, 0, 0, RB_torq, blocking_call, DM_8006);
+	osDelay(1);
+	return fValidInput;
+}
+
 uint8_t hip_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float RB_torq, uint8_t blocking_call)
 {
 	uint8_t fValidInput = 0;
