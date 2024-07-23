@@ -376,15 +376,9 @@ static void shoot_set_mode(void)
 				break;
 			}
 			case RC_SW_DOWN:
+			default:
 			{
-				if (last_s != RC_SW_DOWN)
-				{
-					if (shoot_control.shoot_mode == SHOOT_READY)
-					{
-						// burst fire
-						shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
-					}
-				}
+				shoot_control.shoot_mode = SHOOT_STOP;
 				break;
 			}
 		}
