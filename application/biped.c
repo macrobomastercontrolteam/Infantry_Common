@@ -9,6 +9,7 @@
 #define ENABLE_ROLL_PID 1
 #define ENABLE_SPLIT_PID 1
 #define ENABLE_LENGTH_PID 1
+#define ENABLE_BALANCE_ADJUST 1
 
 #define REVERSE_ROLL_ANGLE 0
 #define REVERSE_PITCH_ANGLE 1
@@ -653,6 +654,7 @@ void biped_brakeManager(fp32 distanceDelta)
 	}
 	fBrakeCmdLast = fBrakeCmd;
 
+#if ENABLE_BALANCE_ADJUST
 	// // Eliminate distance static error
 	// fp32 dis_diff_abs = fabs(biped_get_dis_diff());
 	// if ((dis_diff_abs > DIS_SET_ADJ_ENABLEZONE_MIN) && (dis_diff_abs < DIS_SET_ADJ_ENABLEZONE_MAX) && (biped.isJumpInTheAir == 0))
@@ -669,6 +671,7 @@ void biped_brakeManager(fp32 distanceDelta)
 		// biped.balance_angle += -biped_get_dis_diff() * DIS_DIFF_INTEGRAL_ADJ_GAIN * biped.time_step_s;
 	}
 	biped.balance_angle = fp32_constrain(biped.balance_angle, -PITCH_SET_ADJ_MAX, PITCH_SET_ADJ_MAX);
+#endif
 }
 
 /**
