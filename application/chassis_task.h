@@ -43,7 +43,7 @@
 
 #define CHASSIS_TEST_MODE 0
 
-// swerve chassis platform parameters
+// chassis platform parameters
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define CHASSIS_A_LENGTH 0.322815f
 #define CHASSIS_HALF_A_LENGTH (CHASSIS_A_LENGTH / 2.0f)
@@ -64,6 +64,9 @@
 // @TODO: calculate for roll and pitch limits
 #define CHASSIS_ROLL_UPPER_LIMIT (PI / 4.0f)
 #define CHASSIS_PITCH_UPPER_LIMIT (PI / 4.0f)
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+#define BIPED_LEG_L0_MIN 0.15f
+#define BIPED_LEG_L0_MAX 0.34f
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
@@ -111,12 +114,21 @@
 
 // single chassis motor max speed
 #define MAX_WHEEL_SPEED 4.0f
+#if (ROBOT_TYPE == INFANTRY_2024_BIPED)
+// chassis forward or back max speed
+#define NORMAL_MAX_CHASSIS_SPEED_X 2.475f
+#define SPRINT_MAX_CHASSIS_SPEED_X 2.475f
+// chassis left or right max speed
+#define NORMAL_MAX_CHASSIS_SPEED_Y NORMAL_MAX_CHASSIS_SPEED_X
+#define SPRINT_MAX_CHASSIS_SPEED_Y SPRINT_MAX_CHASSIS_SPEED_X
+#else
 // chassis forward or back max speed
 #define NORMAL_MAX_CHASSIS_SPEED_X 2.0f
 #define SPRINT_MAX_CHASSIS_SPEED_X 2.45f
 // chassis left or right max speed
 #define NORMAL_MAX_CHASSIS_SPEED_Y 1.45f
 #define SPRINT_MAX_CHASSIS_SPEED_Y 2.0f
+#endif
 #define NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO 1.5f
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
@@ -130,6 +142,10 @@
 #define STEER_TURN_W_SPEED_DEADZONE 0.01f
 // Measured approx max in normal mode: 0.159f
 #define STEER_TURN_HIP_RADIUS_SPEED_DEADZONE 0.01f
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+#define BIPED_W_SPEED_DEADZONE 0.01f
+#define BIPED_X_SPEED_DEADZONE 0.01f
+#define BIPED_Y_SPEED_DEADZONE 0.01f
 #endif
 
 // In follow-yaw mode, map joystick value to increment in target yaw angle
@@ -208,6 +224,7 @@ typedef struct
 	int16_t give_current;
 } chassis_motor_t;
 
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 typedef struct
 {
 	fp32 target_roll;
@@ -224,6 +241,23 @@ typedef struct
 	fp32 feedback_alpha2;
 	fp32 feedback_height;
 } chassis_platform_t;
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+typedef struct
+{
+	fp32 target_roll_dot;
+	fp32 target_yaw;
+	fp32 target_simplified_L0_dot;
+	fp32 target_dis_dot;
+
+	fp32 feedback_roll;
+	fp32 feedback_pitch;
+	fp32 feedback_yaw;
+	fp32 feedback_simplified_L0;
+
+	uint8_t fBackToHome;
+	uint8_t fJumpStart;
+} chassis_platform_t;
+#endif
 
 typedef union
 {
@@ -256,16 +290,26 @@ typedef struct
 	const fp32 *chassis_INS_angle;             // the point to the euler angle of gyro sensor
 	chassis_mode_e chassis_mode;               // state machine
 	chassis_mode_e last_chassis_mode;          // last state machine
+	pid_type_def chassis_angle_pid;            // follow angle PID
+
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+	fp32 wheel_rot_radii[4];
 	chassis_motor_t motor_chassis[4];          // chassis motor data
 	pid_type_def motor_speed_pid[4];           // motor speed PID
-	pid_type_def chassis_angle_pid;            // follow angle PID
-	fp32 wheel_rot_radii[4];
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+
 	fp32 target_wheel_rot_radii_dot[4];
 	chassis_steer_motor_t steer_motor_chassis[4]; // chassis steering motor data
 	chassis_platform_t chassis_platform;
 	uint8_t fHipEnabled;
 	uint8_t fHipDisabledEdge;
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+	fp32 wheel_rot_radii[2];
+	chassis_platform_t chassis_platform;
+	uint8_t fLegEnabled;
+#else
+	fp32 wheel_rot_radii[4];
+	chassis_motor_t motor_chassis[4];          // chassis motor data
+	pid_type_def motor_speed_pid[4];           // motor speed PID
 #endif
 
 	first_order_filter_type_t chassis_cmd_slow_set_vx; // use first order filter to slow set-point
@@ -319,14 +363,19 @@ extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_mov
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_platform_rc_mapping(void);
-void chassis_swerve_back_home(void);
-#endif
+void swerve_chassis_back_home(void);
 void swerve_chassis_params_reset(void);
 
 fp32 chassis_get_high_wz_limit(void);
 fp32 chassis_get_med_wz_limit(void);
 fp32 chassis_get_low_wz_limit(void);
 fp32 chassis_get_ultra_low_wz_limit(void);
+#endif
+
+#if (ROBOT_TYPE == INFANTRY_2024_BIPED)
+void biped_chassis_back_home(void);
+void biped_chassis_params_reset(void);
+#endif
 
 extern chassis_move_t chassis_move;
 
