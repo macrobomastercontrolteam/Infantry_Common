@@ -84,10 +84,24 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 		return;
 	}
 
-	static uint8_t last_right_rc_switch = RC_SW_DOWN;
-	static uint8_t last_left_rc_switch = RC_SW_DOWN;
-	uint8_t right_rc_switch = chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL];
-	uint8_t left_rc_switch = chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL];
+	uint8_t right_rc_switch = RC_SW_DOWN;
+	// uint8_t left_rc_switch = RC_SW_DOWN;
+	if (toe_is_error(BIPED_UPPER_TOE) == 0)
+	{
+		right_rc_switch = chassis_move_mode->upper_board_cmd.bRcRightSw;
+		// left_rc_switch = chassis_move_mode->upper_board_cmd.bRcLeftSw;
+	}
+	else if (toe_is_error(DBUS_TOE) == 0)
+	{
+		right_rc_switch = chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL];
+		// left_rc_switch = chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL];
+	}
+	else
+	{
+		right_rc_switch = RC_SW_DOWN;
+		// left_rc_switch = RC_SW_DOWN;
+	}
+
 	switch (right_rc_switch)
 	{
 		// chassis spinning mode
@@ -105,15 +119,6 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 			break;
 		}
 	}
-	last_right_rc_switch = right_rc_switch;
-	last_left_rc_switch = left_rc_switch;
-
-	// //when gimbal in some mode, such as init mode, chassis must's move
-	// //当云台在某些模式下，像初始化， 底盘不动
-	// if (gimbal_cmd_to_chassis_stop())
-	// {
-	//     chassis_behaviour_mode = CHASSIS_NO_MOVE;
-	// }
 
 	// accord to beheviour mode, choose chassis control mode
 	// 根据行为模式选择一个底盘控制模式

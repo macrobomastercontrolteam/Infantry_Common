@@ -84,6 +84,10 @@ typedef enum
 	CAN_YAW_MOTOR_6020_RX_ID = 0x205,
 	CAN_TRIGGER_MOTOR_RX_ID = 0x207,
 	CAN_3508_OR_2006_HIGH_RANGE_TX_ID = 0x1FF,
+
+	CAN_BIPED_CONTROLLER_RX_ID = 0x117,
+	CAN_BIPED_CONTROLLER_TX_ID = 0x118,
+	CAN_BIPED_CONTROLLER_MODE_RX_ID = 0x119,
 } can_other_msg_id_e;
 
 typedef enum
@@ -137,6 +141,7 @@ extern const float MOTOR_KD_MIN[LAST_MOTOR_TYPE];
 
 extern void request_9015_multiangle_data(uint8_t blocking_call);
 extern HAL_StatusTypeDef encode_motor_control(uint16_t id, float _pos, float _vel, float _KP, float _KD, float _torq, uint8_t blocking_call, motor_type_e motor_type);
+HAL_StatusTypeDef encode_biped_ctrl_feedback(uint8_t blocking_call);
 extern HAL_StatusTypeDef enable_motor_control_8006(uint32_t id, uint8_t _enable);
 extern HAL_StatusTypeDef enable_all_8006_motors(uint8_t _enable);
 extern uint8_t hip_motor_set_torque(float RF_torq, float LF_torq, float LB_torq, float RB_torq, uint8_t blocking_call);

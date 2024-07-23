@@ -30,11 +30,16 @@
 #define CHASSIS_TASK_INIT_TIME 357.0f
 #define BIPED_CHASSIS_TASK_INIT_TIME 500.0f
 
+#define METER_PER_SEC_ECD_MAX_LIMIT 3.5f
+#define METER_ECD_MAX_LIMIT 0.5f
+#define ANGLE_ECD_MAX_LIMIT PI
+#define RAD_PER_SEC_ECD_MAX_LIMIT 2.5f
+
 // rocker value deadline
 // 摇杆死区
 #define CHASSIS_RC_DEADLINE 10.0f
 
-#define CHASSIS_JSCOPE_DEBUG 1
+#define CHASSIS_JSCOPE_DEBUG 0
 
 // chassis task loop delay time: small value causes noise in derivative calculation
 #define CHASSIS_CONTROL_TIME_MS 5.0f
@@ -55,8 +60,9 @@
 #define LEG_L0_RC_SEN_INC (LEG_L0_RANGE / LEG_L0_RC_RISE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_FULL_RANGE)
 
 #define CHASSIS_ROLL_RC_CHANGE_TIME_S 0.25f
-#define CHASSIS_ROLL_KEYBOARD_INC (MAX_CHASSIS_ROLL / CHASSIS_ROLL_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S)
-#define CHASSIS_ROLL_RC_SEN_INC (MAX_CHASSIS_ROLL / CHASSIS_ROLL_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
+#define NORMAL_MAX_CHASSIS_SPEED_ROLL (MAX_CHASSIS_ROLL / CHASSIS_ROLL_RC_CHANGE_TIME_S)
+#define CHASSIS_ROLL_KEYBOARD_INC (NORMAL_MAX_CHASSIS_SPEED_ROLL * CHASSIS_CONTROL_TIME_S)
+#define CHASSIS_ROLL_RC_SEN_INC (NORMAL_MAX_CHASSIS_SPEED_ROLL * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
 
 // press the key, chassis will swing
 // 底盘摇摆按键
@@ -94,6 +100,21 @@ typedef struct
 
 typedef struct
 {
+	fp32 yawSet;
+	fp32 l0Speed;
+	fp32 rollSpeed;
+	// pseudo moving speed
+	fp32 moveSpeed;
+	// integral interval for speeds
+	uint32_t ulLastCmdUpdateTime;
+	uint8_t bRcLeftSw;
+	uint8_t bRcRightSw;
+	uint8_t fBackToHome;
+	uint8_t fJumpStart;
+} upper_board_cmd_t;
+
+typedef struct
+{
 	const RC_ctrl_t *chassis_RC; // 底盘使用的遥控器指针, the point to remote control
 	// const gimbal_motor_t *chassis_yaw_motor;   //will use the relative angle of yaw gimbal motor to calculate the euler angle.底盘使用到yaw云台电机的相对角度来计算底盘的欧拉角.
 	// const gimbal_motor_t *chassis_pitch_motor; //will use the relative angle of pitch gimbal motor to calculate the euler angle.底盘使用到pitch云台电机的相对角度来计算底盘的欧拉角
@@ -118,6 +139,7 @@ typedef struct
 	// fp32 vy_max_speed;  //max letf speed, unit m/s.左方向最大速度 单位m/s
 	// fp32 vy_min_speed;  //max right speed, unit m/s.右方向最大速度 单位m/s
 
+	upper_board_cmd_t upper_board_cmd;
 } chassis_move_t;
 
 extern void chassis_task(void const *pvParameters);
@@ -140,6 +162,7 @@ extern void chassis_task(void const *pvParameters);
  */
 extern void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector, fp32* pDistanceDelta);
 extern void chassis_cv_to_control_vector(chassis_move_t *chassis_move_ptr, fp32* pDistanceDelta);
+extern void biped_chassis_params_reset(void);
 
 extern chassis_move_t chassis_move;
 

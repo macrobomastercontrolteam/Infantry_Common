@@ -30,6 +30,7 @@
 #include "pid.h"
 #include "remote_control.h"
 #include "cv_usart_task.h"
+#include <assert.h>
 
 #define MANUAL_TUNE_PITCHSETADJ 0
 
@@ -39,6 +40,7 @@ static void chassis_set_mode(chassis_move_t *chassis_move_mode);
 void chassis_mode_change_control_transit(chassis_move_t *chassis_move_transit);
 static void chassis_rc_parse(chassis_move_t *chassis_move_control);
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
+void param_asserts(void);
 
 #if defined(INFANTRY_3)
 static uint16_t motor_angle_to_ecd_change(fp32 angle);
@@ -142,6 +144,13 @@ static void jscope_chassis_test(void)
 }
 #endif
 
+void param_asserts(void)
+{
+	assert(METER_PER_SEC_ECD_MAX_LIMIT >= NORMAL_MAX_CHASSIS_SPEED_X);
+	assert(METER_ECD_MAX_LIMIT >= LEG_L0_MAX);
+	assert((RAD_PER_SEC_ECD_MAX_LIMIT >= NORMAL_MAX_CHASSIS_SPEED_YAW) && (RAD_PER_SEC_ECD_MAX_LIMIT >= NORMAL_MAX_CHASSIS_SPEED_ROLL));
+}
+
 /**
  * @brief          chassis task, osDelay CHASSIS_CONTROL_TIME_MS
  * @param[in]      pvParameters: null
@@ -149,6 +158,8 @@ static void jscope_chassis_test(void)
  */
 void chassis_task(void const *pvParameters)
 {
+	param_asserts();
+
 	static uint32_t ulPreviousOsWakeTime;
 	ulPreviousOsWakeTime = osKernelSysTick();
 	osDelay(BIPED_CHASSIS_TASK_INIT_TIME);
@@ -169,13 +180,20 @@ void chassis_task(void const *pvParameters)
 
 		if (biped.fBipedEnable)
 		{
-			uint8_t bToeIndex;
-			for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_DRIVE_MOTOR2_TOE; bToeIndex++)
+			if (toe_is_error(DBUS_TOE) && toe_is_error(BIPED_UPPER_TOE))
 			{
-				if (toe_is_error(bToeIndex))
+				biped_switchPower(0);
+			}
+			else
+			{
+				uint8_t bToeIndex;
+				for (bToeIndex = CHASSIS_HIP_MOTOR1_TOE; bToeIndex <= CHASSIS_DRIVE_MOTOR2_TOE; bToeIndex++)
 				{
-					biped_switchPower(0);
-					break;
+					if (toe_is_error(bToeIndex))
+					{
+						biped_switchPower(0);
+						break;
+					}
 				}
 			}
 
@@ -210,6 +228,7 @@ void chassis_task(void const *pvParameters)
 		uint8_t fValidCmd = 1;
 		fValidCmd &= drive_motor_set_torque(biped.leg_R.TWheel_set, biped.leg_L.TWheel_set, blocking_call);
 		fValidCmd &= hip_motor_set_torque(biped.leg_R.TR_set, biped.leg_L.TR_set, biped.leg_L.TL_set, biped.leg_R.TL_set, blocking_call);
+		encode_biped_ctrl_feedback(blocking_call);
 
 		osDelayUntil(&ulPreviousOsWakeTime, CHASSIS_CONTROL_TIME_MS);
 
@@ -231,7 +250,7 @@ static void wait_until_motors_online(void)
 	hip_motor_set_torque(0, 0, 0, 0, blocking_call);
 	drive_motor_set_torque(0, 0, blocking_call);
 	osDelay(2);
-	for (bToeIndex = DBUS_TOE; bToeIndex <= CHASSIS_DRIVE_MOTOR2_TOE; bToeIndex++)
+	for (bToeIndex = CHASSIS_HIP_MOTOR1_TOE; bToeIndex <= CHASSIS_DRIVE_MOTOR2_TOE; bToeIndex++)
 	{
 		while (toe_is_error(bToeIndex))
 		{
@@ -256,7 +275,7 @@ static void wait_until_motors_online(void)
 					encode_motor_control(CAN_DRIVE2_PVT_TX_ID, 0, 0, 0, 0, 0, blocking_call, MA_9015);
 					break;
 				}
-				case DBUS_TOE:
+				default:
 				{
 					break;
 				}
@@ -308,6 +327,8 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	// chassis_move_init->chassis_INS_accel = get_accel_data_point();
 	// chassis_move_init->chassis_yaw_motor = get_yaw_motor_point();
 	// chassis_move_init->chassis_pitch_motor = get_pitch_motor_point();
+
+	biped_chassis_params_reset();
 }
 
 /**
@@ -354,6 +375,14 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 			case CHASSIS_VECTOR_NO_FOLLOW_YAW:
 			case CHASSIS_VECTOR_CV_NO_FOLLOW_YAW:
 			{
+				// chassis_move_transit->upper_board_cmd.yawSet = biped.yaw.now;
+				chassis_move_transit->upper_board_cmd.l0Speed = 0;
+				chassis_move_transit->upper_board_cmd.rollSpeed = 0;
+				chassis_move_transit->upper_board_cmd.moveSpeed = 0;
+				chassis_move_transit->upper_board_cmd.ulLastCmdUpdateTime = osKernelSysTick();
+				chassis_move_transit->upper_board_cmd.fBackToHome = 1;
+				chassis_move_transit->upper_board_cmd.fJumpStart = 0;
+
 				enable_all_8006_motors(1);
 				
 				// biped_init();
@@ -487,46 +516,86 @@ void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector, fp3
 		return;
 	}
 
-	int16_t dis_channel_int16, yaw_channel_int16, l0_channel_int16, roll_channel_int16;
-	fp32 dis_channel_fp32, yaw_channel_fp32, l0_channel_fp32, roll_channel_fp32;
-	// deadline, because some remote control need be calibrated,  the value of rocker is not zero in middle place,
-	// 死区限制，因为遥控器可能存在差异 摇杆在中间，其值不为0
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], dis_channel_int16, CHASSIS_RC_DEADLINE);
-	// for biped, Y channel is for rotation
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], yaw_channel_int16, CHASSIS_RC_DEADLINE);
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], l0_channel_int16, CHASSIS_RC_DEADLINE);
-	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], roll_channel_int16, CHASSIS_RC_DEADLINE);
+	fp32 dis_channel_fp32 = 0;
+	fp32 yaw_channel_fp32 = 0;
+	fp32 l0_channel_fp32 = 0;
+	fp32 roll_channel_fp32 = 0;
+	if (toe_is_error(DBUS_TOE) == 0)
+	{
+		int16_t dis_channel_int16, yaw_channel_int16, l0_channel_int16, roll_channel_int16;
+		// deadline, because some remote control need be calibrated,  the value of rocker is not zero in middle place,
+		// 死区限制，因为遥控器可能存在差异 摇杆在中间，其值不为0
+		deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], dis_channel_int16, CHASSIS_RC_DEADLINE);
+		// for biped, Y channel is for rotation
+		deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], yaw_channel_int16, CHASSIS_RC_DEADLINE);
+		deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], l0_channel_int16, CHASSIS_RC_DEADLINE);
+		deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], roll_channel_int16, CHASSIS_RC_DEADLINE);
 
-	dis_channel_fp32 = dis_channel_int16 * CHASSIS_DIS_RC_SEN_INC * biped_limitVelocity(NORMAL_MAX_CHASSIS_SPEED_X, biped.leg_simplified.L0.now);
-	yaw_channel_fp32 = yaw_channel_int16 * -CHASSIS_YAW_RC_SEN_INC;
-	l0_channel_fp32 = l0_channel_int16 * LEG_L0_RC_SEN_INC;
-	roll_channel_fp32 = roll_channel_int16 * CHASSIS_ROLL_RC_SEN_INC;
+		dis_channel_fp32 = dis_channel_int16 * CHASSIS_DIS_RC_SEN_INC * biped_limitVelocity(NORMAL_MAX_CHASSIS_SPEED_X, biped.leg_simplified.L0.now);
+		yaw_channel_fp32 = yaw_channel_int16 * -CHASSIS_YAW_RC_SEN_INC;
+		l0_channel_fp32 = l0_channel_int16 * LEG_L0_RC_SEN_INC;
+		roll_channel_fp32 = roll_channel_int16 * CHASSIS_ROLL_RC_SEN_INC;
 
-	// keyboard set speed set-point
-	// 键盘控制
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_RISE_PLATFORM_KEY)
-	{
-		biped.leg_L.L0.set += LEG_L0_KEYBOARD_INC;
-		biped.leg_R.L0.set += LEG_L0_KEYBOARD_INC;
-	}
-	else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LOWER_PLATFORM_KEY)
-	{
-		biped.leg_L.L0.set -= LEG_L0_KEYBOARD_INC;
-		biped.leg_R.L0.set -= LEG_L0_KEYBOARD_INC;
-	}
+		// keyboard set speed set-point
+		// 键盘控制
+		if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_RISE_PLATFORM_KEY)
+		{
+			biped.leg_L.L0.set += LEG_L0_KEYBOARD_INC;
+			biped.leg_R.L0.set += LEG_L0_KEYBOARD_INC;
+		}
+		else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LOWER_PLATFORM_KEY)
+		{
+			biped.leg_L.L0.set -= LEG_L0_KEYBOARD_INC;
+			biped.leg_R.L0.set -= LEG_L0_KEYBOARD_INC;
+		}
 
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEAN_LEFT_KEY)
-	{
-		biped.roll.set -= CHASSIS_ROLL_KEYBOARD_INC;
+		if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEAN_LEFT_KEY)
+		{
+			biped.roll.set -= CHASSIS_ROLL_KEYBOARD_INC;
+		}
+		else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEAN_RIGHT_KEY)
+		{
+			biped.roll.set += CHASSIS_ROLL_KEYBOARD_INC;
+		}
 	}
-	else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEAN_RIGHT_KEY)
+	else if (toe_is_error(BIPED_UPPER_TOE) == 0)
 	{
-		biped.roll.set += CHASSIS_ROLL_KEYBOARD_INC;
+		// reset timestamp at online edge
+		fp32 cmdUpdateInterval = osKernelSysTick() - chassis_move_rc_to_vector->upper_board_cmd.ulLastCmdUpdateTime;
+		chassis_move_rc_to_vector->upper_board_cmd.ulLastCmdUpdateTime = osKernelSysTick();
+		if ((cmdUpdateInterval < 0) || (cmdUpdateInterval >= error_list[BIPED_UPPER_TOE].set_offline_time))
+		{
+			cmdUpdateInterval = 0;
+		}
+		else
+		{
+			// convert to second
+			cmdUpdateInterval /= 1000.0f;
+		}
+		
+		dis_channel_fp32 = chassis_move_rc_to_vector->upper_board_cmd.moveSpeed * cmdUpdateInterval;
+		if (biped.fBipedIsStable)
+		{
+			// yaw_channel_fp32 = chassis_move_rc_to_vector->upper_board_cmd.yawSpeed * cmdUpdateInterval;
+			biped.yaw.set = chassis_move_rc_to_vector->upper_board_cmd.yawSet;
+		}
+
+		if (chassis_move_rc_to_vector->upper_board_cmd.fBackToHome)
+		{
+			biped.leg_L.L0.set = LEG_L0_MIN;
+			biped.leg_R.L0.set = LEG_L0_MIN;
+			biped.roll.set = 0;
+			chassis_move_rc_to_vector->upper_board_cmd.fBackToHome = 0;
+		}
+		else
+		{
+			l0_channel_fp32 = chassis_move_rc_to_vector->upper_board_cmd.l0Speed * cmdUpdateInterval;
+			roll_channel_fp32 = chassis_move_rc_to_vector->upper_board_cmd.rollSpeed * cmdUpdateInterval;
+		}
 	}
 
 	*pDistanceDelta = dis_channel_fp32;
-	biped.yaw.set += yaw_channel_fp32;
-	biped.yaw.set = rad_format(biped.yaw.set);
+	biped.yaw.set = rad_format(biped.yaw.set + yaw_channel_fp32);
 
 	biped.leg_L.L0.set += l0_channel_fp32;
 	biped.leg_R.L0.set += l0_channel_fp32;
@@ -563,8 +632,8 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 		case CHASSIS_VECTOR_RAW:
 		{
 			// safety guard
-			biped.HipTorque_MaxLimit = 0.0f;
-			biped.DriveTorque_MaxLimit = 0.0f;
+			biped.HipTorque_MaxLimit = 0;
+			biped.DriveTorque_MaxLimit = 0;
 			break;
 		}
 		case CHASSIS_VECTOR_NO_FOLLOW_YAW:
@@ -596,4 +665,19 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 
 	// @TODO: power control according to ref
 	// chassis_power_control(chassis_move_control_loop);
+}
+
+void biped_chassis_params_reset(void)
+{
+	biped_switchPower(0);
+
+	chassis_move.upper_board_cmd.yawSet = biped.yaw.now;
+	chassis_move.upper_board_cmd.l0Speed = 0;
+	chassis_move.upper_board_cmd.rollSpeed = 0;
+	chassis_move.upper_board_cmd.moveSpeed = 0;
+	chassis_move.upper_board_cmd.ulLastCmdUpdateTime = osKernelSysTick();
+	chassis_move.upper_board_cmd.bRcLeftSw = RC_SW_DOWN;
+	chassis_move.upper_board_cmd.bRcRightSw = RC_SW_DOWN;
+	chassis_move.upper_board_cmd.fBackToHome = 1;
+	chassis_move.upper_board_cmd.fJumpStart = 0;
 }

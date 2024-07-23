@@ -52,6 +52,7 @@
   
 #include "detect_task.h"
 #include "cmsis_os.h"
+#include "chassis_task.h"
 
 #define DETECT_JSCOPE_DEBUG 1
 
@@ -283,6 +284,7 @@ static void detect_init(uint32_t time)
             // {100, 100, 5},  //referee
             // {10, 10, 7},    //rm imu
             // {50, 0, 7},    //cv usart
+            {25, 0, 12},    //biped upper board
             // {100, 100, 1},  //oled
         };
 
@@ -318,6 +320,7 @@ static void detect_init(uint32_t time)
         error_list[i].lost_time = time;
         error_list[i].work_time = time;
     }
+    error_list[BIPED_UPPER_TOE].solve_lost_fun = biped_chassis_params_reset;
 
     // error_list[OLED_TOE].data_is_error_fun = NULL;
     // error_list[OLED_TOE].solve_lost_fun = OLED_com_reset;

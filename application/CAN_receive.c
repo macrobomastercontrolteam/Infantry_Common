@@ -25,6 +25,7 @@
 #include "bsp_rng.h"
 #include "cmsis_os.h"
 #include "detect_task.h"
+#include "chassis_task.h"
 #include "main.h"
 #include "user_lib.h"
 
@@ -77,6 +78,13 @@ const float MOTOR_KP_MIN[LAST_MOTOR_TYPE] = {0.0f, 0.0f};
 const float MOTOR_KD_MAX[LAST_MOTOR_TYPE] = {5.0f, 5.0f};
 const float MOTOR_KD_MIN[LAST_MOTOR_TYPE] = {0.0f, 0.0f};
 
+const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+const fp32 speed_encoding_ratio = (1 << 15) / METER_PER_SEC_ECD_MAX_LIMIT;
+const fp32 meter_encoding_ratio = (1 << 16) / METER_ECD_MAX_LIMIT;
+const fp32 angle_encoding_ratio = (1 << 15) / ANGLE_ECD_MAX_LIMIT;
+const fp32 angle_speed_encoding_ratio = (1 << 15) / RAD_PER_SEC_ECD_MAX_LIMIT;
+
 HAL_StatusTypeDef encode_6012_multi_motor_torque_control(float torque1, float torque2, float torque3, float torque4, uint8_t blocking_call);
 HAL_StatusTypeDef encode_6012_single_motor_torque_control(uint16_t id, float torque, uint8_t blocking_call);
 HAL_StatusTypeDef decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
@@ -88,6 +96,9 @@ void request_9015_multiangle_data(uint8_t blocking_call);
 HAL_StatusTypeDef decode_9015_motor_multiangle_feedback(uint8_t *data, const uint8_t bMotorId);
 HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data);
 
+HAL_StatusTypeDef decode_biped_ctrl_cmd(uint8_t *data);
+HAL_StatusTypeDef decode_biped_ctrl_mode_cmd(uint8_t *data);
+
 /**
  * @brief          hal CAN fifo call back, receive motor data
  * @param[in]      hcan, the point to CAN handle
@@ -97,6 +108,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	CAN_RxHeaderTypeDef rx_header;
 	uint8_t rx_data[8];
+	// 0xFF means not a motor
 	uint8_t bMotorId = 0xFF;
 	HAL_StatusTypeDef fDecodeResult = HAL_ERROR;
 
@@ -116,6 +128,24 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		// 	}
 		// 	break;
 		// }
+		case CAN_BIPED_CONTROLLER_RX_ID:
+		{
+			fDecodeResult = decode_biped_ctrl_cmd(rx_data);
+			if (fDecodeResult == HAL_OK)
+			{
+				detect_hook(BIPED_UPPER_TOE);
+			}
+			break;
+		}
+		case CAN_BIPED_CONTROLLER_MODE_RX_ID:
+		{
+			fDecodeResult = decode_biped_ctrl_mode_cmd(rx_data);
+			if (fDecodeResult == HAL_OK)
+			{
+				detect_hook(BIPED_UPPER_TOE);
+			}
+			break;
+		}
 		case CAN_DAMIAO_FEEDBACK_ID:
 		{
 			// Ignore DaMiao 4310 yaw motor feedback
@@ -148,7 +178,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		}
 	}
 
-	if (fDecodeResult == HAL_OK)
+	if ((fDecodeResult == HAL_OK) && (bMotorId != 0xFF))
 	{
 		detect_hook(bMotorId + CHASSIS_HIP_MOTOR1_TOE);
 	}
@@ -359,6 +389,87 @@ HAL_StatusTypeDef decode_8006_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr
 		fDecodeResult = HAL_OK;
 	}
 	return fDecodeResult;
+}
+
+HAL_StatusTypeDef decode_biped_ctrl_cmd(uint8_t *data)
+{
+	HAL_StatusTypeDef fDecodeResult = HAL_OK;
+	// only change enable flag at edge, because biped.fBipedEnable can be changed elsewhere internally
+	static uint8_t fLastEnableCmd = 0;
+	uint8_t fEnableCmd = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
+	if (fEnableCmd != fLastEnableCmd)
+	{
+		biped_switchPower(fEnableCmd);
+		fLastEnableCmd = fEnableCmd;
+	}
+
+	if (biped.fBipedEnable && fEnableCmd && (chassis_move.upper_board_cmd.fBackToHome == 0))
+	{
+		chassis_move.upper_board_cmd.yawSet = fp32_constrain((int16_t)((data[1] << 8) | data[0]) / angle_encoding_ratio, -PI, PI);
+		chassis_move.upper_board_cmd.l0Speed = fp32_deadline((int16_t)((data[3] << 8) | data[2]) / speed_encoding_ratio, -0.001f, 0.001f);
+		chassis_move.upper_board_cmd.rollSpeed = fp32_deadline((int16_t)((data[5] << 8) | data[4]) / angle_speed_encoding_ratio, -0.001f, 0.001f);;
+		chassis_move.upper_board_cmd.moveSpeed = fp32_deadline((int16_t)((data[7] << 8) | data[6]) / speed_encoding_ratio, -0.001f, 0.001f);
+	}
+	else
+	{
+		chassis_move.upper_board_cmd.l0Speed = 0;
+		chassis_move.upper_board_cmd.rollSpeed = 0;
+		chassis_move.upper_board_cmd.moveSpeed = 0;
+	}
+	return fDecodeResult;
+}
+
+HAL_StatusTypeDef decode_biped_ctrl_mode_cmd(uint8_t *data)
+{
+	HAL_StatusTypeDef fDecodeResult = HAL_OK;
+	chassis_move.upper_board_cmd.bRcLeftSw = data[0];
+	chassis_move.upper_board_cmd.bRcRightSw = data[1];
+	if (data[2])
+	{
+		chassis_move.upper_board_cmd.fBackToHome = 1;
+	}
+
+	if (chassis_move.upper_board_cmd.fJumpStart != data[3])
+	{
+		if (data[3] && (chassis_move.upper_board_cmd.bRcRightSw == RC_SW_MID))
+		{
+			biped_jumpStart();
+		}
+		chassis_move.upper_board_cmd.fJumpStart = data[3];
+	}
+	return fDecodeResult;
+}
+
+HAL_StatusTypeDef encode_biped_ctrl_feedback(uint8_t blocking_call)
+{
+	chassis_tx_message.StdId = CAN_BIPED_CONTROLLER_TX_ID;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 8;
+
+	// Warning: remember to always constrain before commanding to avoid error behavior
+	int16_t yaw_int = fp32_constrain(biped.yaw.now, -ANGLE_ECD_MAX_LIMIT, ANGLE_ECD_MAX_LIMIT) * angle_encoding_ratio;
+	int16_t L0_int = fp32_constrain(biped.leg_simplified.L0.now, 0, METER_ECD_MAX_LIMIT) * meter_encoding_ratio;
+	int16_t roll_int = fp32_constrain(biped.roll.now, -ANGLE_ECD_MAX_LIMIT, ANGLE_ECD_MAX_LIMIT) * angle_encoding_ratio;
+	int16_t pitch_int = fp32_constrain(biped.pitch.now, -ANGLE_ECD_MAX_LIMIT, ANGLE_ECD_MAX_LIMIT) * angle_encoding_ratio;
+
+	chassis_can_send_data[0] = *(uint8_t *)(&yaw_int);
+	chassis_can_send_data[1] = *((uint8_t *)(&yaw_int) + 1);
+	chassis_can_send_data[2] = *(uint8_t *)(&L0_int);
+	chassis_can_send_data[3] = *((uint8_t *)(&L0_int) + 1);
+	chassis_can_send_data[4] = *(uint8_t *)(&roll_int);
+	chassis_can_send_data[5] = *((uint8_t *)(&roll_int) + 1);
+	chassis_can_send_data[6] = *(uint8_t *)(&pitch_int);
+	chassis_can_send_data[7] = *((uint8_t *)(&pitch_int) + 1);
+
+	if (blocking_call)
+	{
+		return blocking_can_send(&hcan1, &chassis_tx_message, chassis_can_send_data);
+	}
+	else
+	{
+		return HAL_CAN_AddTxMessage(&hcan1, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+	}
 }
 
 HAL_StatusTypeDef decode_9015_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)

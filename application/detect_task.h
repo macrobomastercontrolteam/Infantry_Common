@@ -76,6 +76,7 @@ enum errorList
     BOARD_GYRO_TOE,
     BOARD_ACCEL_TOE,
     BOARD_MAG_TOE,
+    BIPED_UPPER_TOE,
     // REFEREE_TOE,
     // RM_IMU_TOE,
     // CV_TOE,
@@ -151,5 +152,7 @@ extern void detect_hook(uint8_t toe);
   * @retval         error_listµÄÖ¸Õë
   */
 extern const error_t *get_error_list_point(void);
+
+extern error_t error_list[ERROR_LIST_LENGTH + 1];
 
 #endif
