@@ -34,6 +34,7 @@
 // microswitch
 #define BUTTEN_TRIG_PIN HAL_GPIO_ReadPin(BUTTON_TRIG_GPIO_Port, BUTTON_TRIG_Pin)
 #define AUTOAIM_READY_TIMEOUT 4000
+#define TRIGGER_ANTI_STALL_BY_WAIT 1
 
 /**
  * @brief          Set the mode of the shoot control state machine. Corresponding states for left lever of remote controller: up - fast shooting, middle - idle, down - disabled
@@ -477,7 +478,11 @@ static void trigger_motor_stall_handler(void)
 
 		if (shoot_control.block_time >= BLOCK_TIME)
 		{
+#if TRIGGER_ANTI_STALL_BY_WAIT
+			shoot_control.speed_set = 0;
+#else
 			shoot_control.speed_set = -shoot_control.speed_set;
+#endif
 		}
 		// jam detection
 		if ((fabs(shoot_control.speed) < BLOCK_TRIGGER_SPEED) && (shoot_control.block_time < BLOCK_TIME))
