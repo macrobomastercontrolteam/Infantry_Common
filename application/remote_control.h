@@ -81,7 +81,7 @@
 #define MOUSE_Y_EFFECTIVE_SPEED (MOUSE_Y_HANDSPACE_PER_S / 5.0f)
 
 // toggle auto-aim mode
-#define AUTO_AIM_TOGGLE_KEYBOARD KEY_PRESSED_OFFSET_G
+#define AUTO_AIM_TOGGLE_KEYBOARD KEY_PRESSED_OFFSET_Z
 /* ----------------------- Data Struct ------------------------------------- */
 typedef __packed struct
 {
