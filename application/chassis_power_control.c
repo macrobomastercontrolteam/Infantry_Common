@@ -46,7 +46,7 @@
   */
 void chassis_power_control(chassis_move_t *chassis_power_control)
 {
-    fp32 total_current_limit = 0;
+    static fp32 total_current_limit = 0;
     if (toe_is_error(REFEREE_TOE) || (get_robot_id() == 0))
     {
         total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
