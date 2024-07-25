@@ -24,16 +24,12 @@
 #include "remote_control.h"
 #include "user_lib.h"
 
+// default values
 #define SPINNING_CHASSIS_MAX_OMEGA RPM_TO_RADS(60.0f)
 #define SPINNING_CHASSIS_HIGH_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.833f)
 #define SPINNING_CHASSIS_MED_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.667f)
 #define SPINNING_CHASSIS_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.583f)
 #define SPINNING_CHASSIS_ULTRA_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.167f)
-
-#define SPINNING_CHASSIS_RANDOM_OMEGA_MIN SPINNING_CHASSIS_MED_OMEGA
-#define SPINNING_CHASSIS_RANDOM_OMEGA_MAX SPINNING_CHASSIS_MAX_OMEGA
-#define SPINNING_CHASSIS_RANDOM_OMEGA_PARAM_A ((SPINNING_CHASSIS_RANDOM_OMEGA_MAX - SPINNING_CHASSIS_RANDOM_OMEGA_MIN) / 2.0f)
-#define SPINNING_CHASSIS_RANDOM_OMEGA_PARAM_B ((SPINNING_CHASSIS_RANDOM_OMEGA_MAX + SPINNING_CHASSIS_RANDOM_OMEGA_MIN) / 2.0f)
 
 // in the beginning of task ,wait a time
 #define CHASSIS_TASK_INIT_TIME 357
@@ -112,12 +108,12 @@
 // single chassis motor max speed
 #define MAX_WHEEL_SPEED 4.0f
 // chassis forward or back max speed
-#define NORMAL_MAX_CHASSIS_SPEED_X 3.0f
-#define SPRINT_MAX_CHASSIS_SPEED_X 5.0f
+#define NORMAL_MAX_CHASSIS_SPEED_X 2.0f
+#define SPRINT_MAX_CHASSIS_SPEED_X 2.45f
 // chassis left or right max speed
-#define NORMAL_MAX_CHASSIS_SPEED_Y 3.0f
-#define SPRINT_MAX_CHASSIS_SPEED_Y 5.0f
-#define NORMAL_MAX_CHASSIS_SPEED_WZ SPINNING_CHASSIS_MAX_OMEGA
+#define NORMAL_MAX_CHASSIS_SPEED_Y 1.45f
+#define SPRINT_MAX_CHASSIS_SPEED_Y 2.0f
+#define NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO 1.5f
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
@@ -135,12 +131,6 @@
 // In follow-yaw mode, map joystick value to increment in target yaw angle
 #define CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S 1.0f
 #define CHASSIS_ANGLE_Z_RC_SEN_INC (PI / 2.0f / CHASSIS_ANGLE_Z_RC_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
-// In not-follow-yaw mode, map joystick value to target yaw speed
-#define CHASSIS_WZ_RC_SEN (NORMAL_MAX_CHASSIS_SPEED_WZ / JOYSTICK_HALF_RANGE)
-// map rc dial value (max 660) to spinning speed (rad/s)
-#define CHASSIS_SPIN_RC_OFFSET SPINNING_CHASSIS_LOW_OMEGA
-#define CHASSIS_SPIN_RC_SEN_POSITIVE_INPUT ((NORMAL_MAX_CHASSIS_SPEED_WZ - CHASSIS_SPIN_RC_OFFSET) / JOYSTICK_HALF_RANGE)
-#define CHASSIS_SPIN_RC_SEN_NEGATIVE_INPUT ((NORMAL_MAX_CHASSIS_SPEED_WZ + CHASSIS_SPIN_RC_OFFSET) / JOYSTICK_HALF_RANGE)
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // configuration for pseudo RPY-to-tilt conversion
@@ -290,15 +280,12 @@ typedef struct
 	fp32 chassis_yaw_set;
 
 	fp32 vx_max_speed; // max forward speed, unit m/s
-	fp32 vx_min_speed; // max backward speed, unit m/s
 	fp32 vy_max_speed; // max letf speed, unit m/s
-	fp32 vy_min_speed; // max right speed, unit m/s
 	fp32 vx_rc_sen;    // map joystick value to vertical speed
 	fp32 vy_rc_sen;    // map joystick value to horizontal speed
 
 	// @TODO: Currently wz limits are only enforced in CHASSIS_SPINNING, extend that to other modes
 	fp32 wz_max_speed; // max spinning speed, unit rad/s.
-	fp32 wz_min_speed; // min spinning speed, unit rad/s.
 
 	fp32 chassis_yaw;   // the yaw angle calculated by gyro sensor and gimbal motor
 	fp32 chassis_pitch; // the pitch angle calculated by gyro sensor and gimbal motor
@@ -335,6 +322,11 @@ void swerve_platform_rc_mapping(void);
 void chassis_swerve_back_home(void);
 #endif
 void swerve_chassis_params_reset(void);
+
+fp32 chassis_get_high_wz_limit(void);
+fp32 chassis_get_med_wz_limit(void);
+fp32 chassis_get_low_wz_limit(void);
+fp32 chassis_get_ultra_low_wz_limit(void);
 
 extern chassis_move_t chassis_move;
 
