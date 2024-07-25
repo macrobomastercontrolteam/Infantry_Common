@@ -20,6 +20,7 @@
 #include "AHRS_middleware.h"
 #include "chassis_behaviour.h"
 #include "chassis_power_control.h"
+#include "chassis_task.h"
 #include "cmsis_os.h"
 #include "gimbal_behaviour.h"
 #include "gimbal_task.h"
@@ -249,18 +250,26 @@ void chassis_mode_draw(void)
 		}
 		case CHASSIS_SPINNING:
 		{
-			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
-			update_char(&robot_status_str);
-			char_draw(&rand_spin_str, "rand_spin_str", (chassis_move.fRandomSpinOn ? UI_Graph_Del : UI_Graph_ADD), 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
-			update_char(&rand_spin_str);
+			if(chassis_move.fRandomSpinOn)
+			{
+				char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
+				update_char(&robot_status_str);
+				char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_ADD, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+				update_char(&rand_spin_str);
+			}
+			else
+			{
+				char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
+				update_char(&robot_status_str);
+				char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+				update_char(&rand_spin_str);
+			}
 			break;
+			
 		}
 		default:
 		{
-			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "STOP");
-			update_char(&robot_status_str);
-			char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
-			update_char(&rand_spin_str);
+			
 			break;
 		}
 	}
