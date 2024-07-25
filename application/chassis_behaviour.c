@@ -72,10 +72,6 @@
 #define MOUSE_SCROLL_FILTER_COEFF 0.6f
 #define CHASSIS_WZ_CMD_DEADZONE 0.15f
 
-#define GIMBAL_ALIGN_ANGLE_DEADZONE DEG_TO_RAD(3.5f)
-#define GIMBAL_ALIGN_SPEED_MIN SPINNING_CHASSIS_LOW_OMEGA
-#define GIMBAL_ALIGN_SPEED_MAX NORMAL_MAX_CHASSIS_SPEED_WZ
-
 /**
  * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
  *                 and chassis control mode is raw. The raw chassis control mode means set value
@@ -484,41 +480,55 @@ fp32 chassis_spinning_speed_manager(void)
 	{
 		// Dial changes: range of possible speed and interval to change speed; positive dial value more rapid, negative less rapid
 		static uint32_t ulLastUpdateTime = 0;
+		static fp32 random_wz_max_speed = SPINNING_CHASSIS_MED_OMEGA;
+		static fp32 random_wz_min_speed = SPINNING_CHASSIS_LOW_OMEGA;
 		static uint8_t param_change_counter = 0;
 		static uint32_t speed_change_period = MID_SPIN_SPEED_CHANGE_PERIOD;
 		static uint8_t param_change_period = NORMAL_SPIN_PARAM_CHANGE_PERIOD;
 		static fp32 spinning_sign = 1;
 		fp32 dial_ratio = chassis_move.dial_channel_out / JOYSTICK_HALF_RANGE;
 
-		// once per speed_change_period, update spinning speed to a random number in between wz_min_speed and wz_max_speed
+		// once per speed_change_period, update spinning speed to a random number in between random_wz_min_speed and random_wz_max_speed
 		if (osKernelSysTick() - ulLastUpdateTime >= speed_change_period)
 		{
-			spinning_speed = spinning_sign * RNG_get_random_range_fp32(chassis_move.wz_min_speed, chassis_move.wz_max_speed);
+			spinning_speed = spinning_sign * RNG_get_random_range_fp32(random_wz_min_speed, random_wz_max_speed);
 			ulLastUpdateTime = osKernelSysTick();
 			param_change_counter++;
 
 			// change the speed changing period after certain number of changes
 			if (param_change_counter >= param_change_period)
 			{
+				// calc random_wz_max_speed
+				random_wz_min_speed = chassis_get_med_wz_limit();
+				fp32 random_wz_param_a = ((chassis_move.wz_max_speed - random_wz_min_speed) / 2.0f);
+				fp32 random_wz_param_b = ((chassis_move.wz_max_speed + random_wz_min_speed) / 2.0f);
+				random_wz_max_speed = random_wz_param_a * (-dial_ratio) + random_wz_param_b;
+
+				// change direction
+				spinning_sign = RNG_get_random_range_int32(0, 1) ? -1 : 1;
+
+				// calc periods
 				param_change_period = RNG_get_random_range_int32(MIN_SPIN_PARAM_CHANGE_PERIOD, roundf(NORMAL_SPIN_PARAM_CHANGE_PERIOD + dial_ratio * DELTA_SPIN_PARAM_CHANGE_PERIOD));
-				chassis_move.wz_max_speed = SPINNING_CHASSIS_RANDOM_OMEGA_PARAM_A * (-dial_ratio) + SPINNING_CHASSIS_RANDOM_OMEGA_PARAM_B;
 				fp32 param_change_period_max = MID_SPIN_SPEED_CHANGE_PERIOD + dial_ratio * DELTA_SPIN_SPEED_CHANGE_PERIOD;
 				speed_change_period = RNG_get_random_range_fp32(MIN_SPIN_SPEED_CHANGE_PERIOD, param_change_period_max);
-				spinning_sign = RNG_get_random_range_int32(0, 1) ? -1 : 1;
+
 				param_change_counter = 0;
 			}
 		}
 	}
 	else
 	{
+		fp32 spin_rc_offset = chassis_get_low_wz_limit();
 		// piecewise linear mapping
 		if (chassis_move.dial_channel_out > 0)
 		{
-			spinning_speed = chassis_move.dial_channel_out * CHASSIS_SPIN_RC_SEN_POSITIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
+			fp32 spin_rc_sen_positive = ((chassis_move.wz_max_speed - spin_rc_offset) / JOYSTICK_HALF_RANGE);
+			spinning_speed = chassis_move.dial_channel_out * spin_rc_sen_positive + spin_rc_offset;
 		}
 		else
 		{
-			spinning_speed = chassis_move.dial_channel_out * CHASSIS_SPIN_RC_SEN_NEGATIVE_INPUT + CHASSIS_SPIN_RC_OFFSET;
+			fp32 spin_rc_sen_negative = ((chassis_move.wz_max_speed + spin_rc_offset) / JOYSTICK_HALF_RANGE);
+			spinning_speed = chassis_move.dial_channel_out * spin_rc_sen_negative + spin_rc_offset;
 		}
 	}
 	return spinning_speed;
@@ -613,9 +623,10 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
 	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) && ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) == 0))
 	{
 		// Keep rotating until chassis align with gimbal
-		if (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) > GIMBAL_ALIGN_ANGLE_DEADZONE)
+		const fp32 gimbal_align_angle_deadzone = DEG_TO_RAD(3.5f);
+		if (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) > gimbal_align_angle_deadzone)
 		{
-			*wz_set = (GIMBAL_ALIGN_SPEED_MAX - GIMBAL_ALIGN_SPEED_MIN) * (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) / (PI / 2.0f)) + GIMBAL_ALIGN_SPEED_MIN;
+			*wz_set = (chassis_move.wz_max_speed - chassis_get_low_wz_limit()) * (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) / (PI / 2.0f)) + chassis_get_low_wz_limit();
 			if (gimbal_control.gimbal_yaw_motor.relative_angle < 0)
 			{
 				*wz_set *= -1;
@@ -628,7 +639,7 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
 	}
 	else
 	{
-		*wz_set = CHASSIS_WZ_RC_SEN * chassis_move.dial_channel_out;
+		*wz_set = (chassis_move.wz_max_speed / JOYSTICK_HALF_RANGE) * chassis_move.dial_channel_out;
 	}
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	swerve_platform_rc_mapping();

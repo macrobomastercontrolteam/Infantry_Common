@@ -30,6 +30,7 @@
 #include "remote_control.h"
 #include "user_lib.h"
 #include <assert.h>
+#include "referee.h"
 
 #define STEER_MOTOR_UPSIDE_DOWN_MOUNTING 0
 #define SWERVE_INVALID_HIP_DATA_RESET_TIMEOUT 1000
@@ -61,6 +62,7 @@ void chassis_mode_change_control_transit(chassis_move_t *chassis_move_transit);
  * @retval         none
  */
 static void chassis_feedback_update(void);
+void chassis_speed_max_adj(void);
 /**
  * @brief          set chassis control set-point, three movement control value is set by "chassis_behaviour_control_set".
  *
@@ -211,14 +213,8 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	first_order_filter_init(&chassis_move_init->chassis_cmd_slow_set_wz, CHASSIS_CONTROL_TIME_S, chassis_wz_order_filter);
 
 	chassis_move_init->vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
-	chassis_move_init->vx_min_speed = -NORMAL_MAX_CHASSIS_SPEED_X;
-
 	chassis_move_init->vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
-	chassis_move_init->vy_min_speed = -NORMAL_MAX_CHASSIS_SPEED_Y;
-
-	chassis_move_init->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-	chassis_move_init->wz_min_speed = SPINNING_CHASSIS_LOW_OMEGA;
-	assert((SPINNING_CHASSIS_RANDOM_OMEGA_MIN >= (chassis_move_init->wz_min_speed)) && (SPINNING_CHASSIS_RANDOM_OMEGA_MAX > SPINNING_CHASSIS_RANDOM_OMEGA_MIN));
+	chassis_move_init->wz_max_speed = SPINNING_CHASSIS_MAX_OMEGA;
 
 	chassis_move_init->vx_rc_sen = chassis_move_init->vx_max_speed / JOYSTICK_HALF_RANGE;
 	chassis_move_init->vy_rc_sen = chassis_move_init->vy_max_speed / JOYSTICK_HALF_RANGE;
@@ -335,10 +331,7 @@ static void chassis_mode_change_control_transit(chassis_move_t *chassis_move_tra
 				break;
 			}
 		}
-		chassis_move_transit->wz_max_speed = SPINNING_CHASSIS_HIGH_OMEGA;
-		// chassis_move_transit->wz_min_speed = SPINNING_CHASSIS_ULTRA_LOW_OMEGA;
 		chassis_move_transit->dial_channel_latched = 0;
-
 		chassis_move_transit->last_chassis_mode = chassis_move_transit->chassis_mode;
 	}
 }
@@ -383,6 +376,120 @@ static void chassis_feedback_update(void)
 		fLastKeyESignal = fIsKeyEPressed;
 	}
 }
+
+void chassis_speed_max_adj(void)
+{
+	fp32 ref_chassis_power = 0;
+	fp32 ref_chassis_power_buffer = 0;
+	fp32 ref_chassis_power_limit = 0;
+	get_chassis_power_data(&ref_chassis_power, &ref_chassis_power_buffer, &ref_chassis_power_limit);
+
+	// Tuning guide: normal mode only uses 10% power buffer; sprint mode only use 75%
+	fp32 vx_speed_limit = 0;
+	fp32 vy_speed_limit = 0;
+	uint16_t uiPowerLevel = fp32_constrain(ref_chassis_power_limit - 40, 0, 100) / 5;
+	switch (uiPowerLevel)
+	{
+		case 0:
+		case 1:
+		{
+			// 0-49
+			vx_speed_limit = 1.41;
+			vy_speed_limit = 0.84;
+			break;
+		}
+		case 2:
+		{
+			// 50-54
+			vx_speed_limit = 1.58;
+			vy_speed_limit = 0.92;
+			break;
+		}
+		case 3:
+		{
+			// 55-59
+			// low: 1.6
+			// high: 1.8
+			vx_speed_limit = 1.71;
+			vy_speed_limit = 0.9371;
+			break;
+		}
+		case 4:
+		{
+			// 60-64
+			vx_speed_limit = 1.75;
+			vy_speed_limit = 1.1;
+			break;
+		}
+		case 5:
+		{
+			// 65-69
+			vx_speed_limit = 1.775;
+			vy_speed_limit = 1.15;
+			break;
+		}
+		case 6:
+		{
+			// 70-74
+			vx_speed_limit = 1.85;
+			vy_speed_limit = 1.2;
+			break;
+		}
+		case 7:
+		{
+			// 75-79
+			vx_speed_limit = 1.9;
+			vy_speed_limit = 1.275;
+			break;
+		}
+		case 8:
+		{
+			// 80-84
+			vx_speed_limit = 1.925;
+			vy_speed_limit = 1.35;
+			break;
+		}
+		case 9:
+		{
+			// 85-89
+			vx_speed_limit = 2.0;
+			vy_speed_limit = 1.45;
+			break;
+		}
+		case 10:
+		default:
+		{
+			// 90-94
+			vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X;
+			vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y;
+			break;
+		}
+	}
+	
+	if ((chassis_behaviour_mode == CHASSIS_SPINNING) && (chassis_behaviour_mode == CHASSIS_CV_CONTROL_SPINNING))
+	{
+		chassis_move.vx_max_speed = vy_speed_limit;
+	}
+	else
+	{
+		chassis_move.vx_max_speed = vx_speed_limit;
+	}
+	chassis_move.vy_max_speed = vy_speed_limit;
+
+	const fp32 vx_to_wz_limit_coeff = 1.5f / NORMAL_MAX_CHASSIS_SPEED_X * SPINNING_CHASSIS_MAX_OMEGA;
+	fp32 wz_decay_by_v_coeff = fp32_constrain(1 - sqrtf(chassis_move.vx_set * chassis_move.vx_set + chassis_move.vy_set * chassis_move.vy_set) / chassis_move.vx_max_speed, 0, 1);
+	chassis_move.wz_max_speed = vx_speed_limit * vx_to_wz_limit_coeff * wz_decay_by_v_coeff;
+
+	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
+	{
+		chassis_move.vx_max_speed = fp32_abs_constrain(chassis_move.vx_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPRINT_MAX_CHASSIS_SPEED_X);
+		chassis_move.vy_max_speed = fp32_abs_constrain(chassis_move.vy_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPRINT_MAX_CHASSIS_SPEED_Y);
+		chassis_move.wz_max_speed = fp32_abs_constrain(chassis_move.wz_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPINNING_CHASSIS_MAX_OMEGA);
+	}
+	chassis_move.vx_rc_sen = chassis_move.vx_max_speed / JOYSTICK_HALF_RANGE;
+	chassis_move.vy_rc_sen = chassis_move.vy_max_speed / JOYSTICK_HALF_RANGE;
+}
+
 /**
  * @brief          accroding to the channel value of remote control, calculate chassis vertical and horizontal speed set-point
  *
@@ -398,19 +505,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
 		return;
 	}
 
-	// change max speed
-	if (chassis_move_rc_to_vector->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
-	{
-		chassis_move_rc_to_vector->vx_max_speed = SPRINT_MAX_CHASSIS_SPEED_X;
-		chassis_move_rc_to_vector->vy_max_speed = SPRINT_MAX_CHASSIS_SPEED_Y;
-	}
-	else
-	{
-		chassis_move_rc_to_vector->vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
-		chassis_move_rc_to_vector->vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
-	}
-	chassis_move_rc_to_vector->vx_rc_sen = chassis_move_rc_to_vector->vx_max_speed / JOYSTICK_HALF_RANGE;
-	chassis_move_rc_to_vector->vy_rc_sen = chassis_move_rc_to_vector->vy_max_speed / JOYSTICK_HALF_RANGE;
+	chassis_speed_max_adj();
 
 	int16_t vx_channel, vy_channel;
 	fp32 vx_set_channel, vy_set_channel;
@@ -428,7 +523,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
 	}
 	else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_BACK_KEY)
 	{
-		vx_set_channel = chassis_move_rc_to_vector->vx_min_speed;
+		vx_set_channel = -chassis_move_rc_to_vector->vx_max_speed;
 	}
 
 	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEFT_KEY)
@@ -437,7 +532,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
 	}
 	else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_RIGHT_KEY)
 	{
-		vy_set_channel = chassis_move_rc_to_vector->vy_min_speed;
+		vy_set_channel = -chassis_move_rc_to_vector->vy_max_speed;
 	}
 
 	// first order low-pass replace ramp function, calculate chassis speed set-point to improve control performance
@@ -631,8 +726,8 @@ static void chassis_set_control(chassis_move_t *chassis_move_control)
 		chassis_move_control->chassis_cmd_slow_set_wz.out = 0.0f;
 	}
 	// speed limit
-	chassis_move_control->vx_set = fp32_constrain(chassis_move_control->vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
-	chassis_move_control->vy_set = fp32_constrain(chassis_move_control->vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);
+	chassis_move_control->vx_set = fp32_abs_constrain(chassis_move_control->vx_set, chassis_move_control->vx_max_speed);
+	chassis_move_control->vy_set = fp32_abs_constrain(chassis_move_control->vy_set, chassis_move_control->vy_max_speed);
 }
 
 #if ROBOT_CHASSIS_USE_MECANUM
@@ -873,6 +968,26 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 			chassis_move_control_loop->motor_chassis[i].give_current = (int16_t)(chassis_move_control_loop->motor_speed_pid[i].out);
 		}
 	}
+}
+
+fp32 chassis_get_high_wz_limit(void)
+{
+	return (chassis_move.wz_max_speed * 0.833f);
+}
+
+fp32 chassis_get_med_wz_limit(void)
+{
+	return (chassis_move.wz_max_speed * 0.667f);
+}
+
+fp32 chassis_get_low_wz_limit(void)
+{
+	return (chassis_move.wz_max_speed * 0.583f);
+}
+
+fp32 chassis_get_ultra_low_wz_limit(void)
+{
+	return (chassis_move.wz_max_speed * 0.167f);
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
