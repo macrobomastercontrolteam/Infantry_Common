@@ -683,8 +683,7 @@ static void chassis_set_control(void)
 	fp32 vy_set = 0;
 	fp32 wz_set = 0;
 	fp32 angle_set = 0;
-	uint8_t fIsAngleCtrl = 0;
-	fIsAngleCtrl = chassis_behaviour_control_set(&vx_set, &vy_set, &wz_set, &angle_set);
+	chassis_behaviour_control_set(&vx_set, &vy_set, &wz_set, &angle_set);
 
 	switch (chassis_move.chassis_coord_sys)
 	{
@@ -705,7 +704,7 @@ static void chassis_set_control(void)
 			chassis_move.vx_set = cos_yaw * vx_set + (-sin_yaw) * vy_set;
 			chassis_move.vy_set = sin_yaw * vx_set + cos_yaw * vy_set;
 
-			if (fIsAngleCtrl) // (chassis_behaviour_mode == CHASSIS_FOLLOW_GIMBAL_MODE)
+			if (chassis_behaviour_mode == CHASSIS_FOLLOW_GIMBAL_MODE)
 			{
 				chassis_move.chassis_relative_angle_set = rad_format(angle_set);
 				chassis_move.wz_set = -PID_calc(&chassis_move.chassis_angle_pid, chassis_move.chassis_yaw_motor->relative_angle, chassis_move.chassis_relative_angle_set, CHASSIS_CONTROL_TIME_S);

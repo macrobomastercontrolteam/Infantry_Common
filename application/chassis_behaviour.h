@@ -39,7 +39,7 @@ extern void chassis_behaviour_set_mode(void);
   * @param[out]     wz_set, usually controls rotation speed.
   * @retval         none
   */
-extern uint8_t chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, fp32 *angle_set);
+extern void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, fp32 *angle_set);
 extern void chassis_behaviour_change_transit(void);
 
 extern chassis_behaviour_e chassis_behaviour_mode;

@@ -209,9 +209,8 @@ void chassis_behaviour_change_transit(void)
  * @param[out]     wz_set, usually controls rotation speed.
  * @retval         none
  */
-uint8_t chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, fp32 *angle_set)
+void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, fp32 *angle_set)
 {
-	uint8_t fIsAngleCtrl = 0;
 	if ((vx_set == NULL || vy_set == NULL || wz_set == NULL || angle_set == NULL) == 0)
 	{
 		dial_channel_manager();
@@ -220,40 +219,34 @@ uint8_t chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, 
 		{
 			case CHASSIS_FOLLOW_GIMBAL_MODE:
 			{
-				fIsAngleCtrl = 1;
 				chassis_follow_gimbal_control(vx_set, vy_set, angle_set);
 				break;
 			}
 			case CHASSIS_BASIC_FPV_MODE:
 			{
 				uint8_t fSpinningOn = 0;
-				fIsAngleCtrl = 0;
 				chassis_basic_control(vx_set, vy_set, wz_set, fSpinningOn);
 				break;
 			}
 			case CHASSIS_SPINNING_MODE:
 			{
 				uint8_t fSpinningOn = 1;
-				fIsAngleCtrl = 0;
 				chassis_basic_control(vx_set, vy_set, wz_set, fSpinningOn);
 				break;
 			}
 			case CHASSIS_CV_CONTROL_MODE:
 			{
-				fIsAngleCtrl = 0;
 				chassis_cv_control(vx_set, vy_set, wz_set);
 				break;
 			}
 			case CHASSIS_ZERO_FORCE:
 			default:
 			{
-				fIsAngleCtrl = 0;
 				chassis_zero_force_control(vx_set, vy_set, wz_set);
 				break;
 			}
 		}
 	}
-	return fIsAngleCtrl;
 }
 
 void dial_channel_manager(void)
