@@ -30,7 +30,6 @@ uint32_t robot_arm_high_water;
 #endif
 
 robot_arm_t robot_arm;
-fp32 robot_arm_task_loop_delay;
 
 #if ROBOT_ARM_JSCOPE_DEBUG
 uint32_t loop_delay = 0;
@@ -45,6 +44,7 @@ static void jscope_robot_arm_test(void)
 
 void robot_arm_task(void const *pvParameters)
 {
+	uint32_t ulSystemTime = osKernelSysTick();
 	osDelay(ROBOT_ARM_TASK_INIT_TIME);
 
 	robot_arm_init();
@@ -57,12 +57,7 @@ void robot_arm_task(void const *pvParameters)
 		robot_arm_status_update();
 		robot_arm_state_transition();
 		robot_arm_control();
-
-		robot_arm_task_loop_delay = xTaskGetTickCount() - robot_arm.time_ms;
-		if (robot_arm_task_loop_delay < ROBOT_ARM_CONTROL_TIME_MS)
-		{
-			osDelay(ROBOT_ARM_CONTROL_TIME_MS - robot_arm_task_loop_delay);
-		}
+		osDelayUntil(&ulSystemTime, ROBOT_ARM_CONTROL_TIME_MS);
 
 #if ROBOT_ARM_JSCOPE_DEBUG
 		jscope_robot_arm_test();
@@ -216,7 +211,7 @@ void robot_arm_control(void)
 
 void robot_arm_status_update(void)
 {
-	robot_arm.time_ms = xTaskGetTickCount();
+	robot_arm.time_ms = osKernelSysTick();
 
 	robot_arm.roll.now = *(robot_arm.arm_INS_angle + INS_ROLL_ADDRESS_OFFSET);
 	robot_arm.roll.now -= roll_offset;
@@ -248,7 +243,7 @@ void robot_arm_init(void)
 	robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
 	robot_arm.fHoming = 1;
 	robot_arm.fMasterSwitch = 0;
-	robot_arm.prevStateSwitchTime = xTaskGetTickCount();
+	robot_arm.prevStateSwitchTime = osKernelSysTick();
 
 	const static fp32 joint_0_4310_angle_pid_coeffs[3] = {JOINT_0_4310_ANGLE_PID_KP, JOINT_0_4310_ANGLE_PID_KI, JOINT_0_4310_ANGLE_PID_KD};
 	PID_init(&robot_arm.joint_0_4310_angle_pid, PID_POSITION, joint_0_4310_angle_pid_coeffs, JOINT_0_4310_ANGLE_PID_MAX_OUT, JOINT_0_4310_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);

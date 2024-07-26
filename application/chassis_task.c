@@ -47,7 +47,6 @@ uint32_t chassis_high_water;
 
 // 底盘运动数据
 chassis_move_t chassis_move;
-fp32 chassis_task_loop_delay;
 
 #if CHASSIS_JSCOPE_DEBUG
 fp32 leg_L_dis_now = 0;
@@ -135,6 +134,7 @@ static void jscope_chassis_test(void)
 void chassis_task(void const *pvParameters)
 {
 	// uint8_t fValidCmd = 1;
+	uint32_t ulSystemTime = osKernelSysTick();
 	osDelay(BIPED_CHASSIS_TASK_INIT_TIME);
 
 	chassis_init(&chassis_move);
@@ -198,11 +198,7 @@ void chassis_task(void const *pvParameters)
 		fValidCmd &= hip_motor_set_torque(biped.leg_R.TR_set, biped.leg_L.TR_set, biped.leg_L.TL_set, biped.leg_R.TL_set, blocking_call);
 #endif
 
-		chassis_task_loop_delay = xTaskGetTickCount() - biped.time_ms;
-		if (chassis_task_loop_delay < CHASSIS_CONTROL_TIME_MS)
-		{
-			osDelay(CHASSIS_CONTROL_TIME_MS - chassis_task_loop_delay);
-		}
+		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
 
 #if CHASSIS_JSCOPE_DEBUG
 		jscope_chassis_test();

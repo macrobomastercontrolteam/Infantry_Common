@@ -385,7 +385,7 @@ static void RC_cmd_to_calibrate(void)
 
     if (rc_action_flag == 0 && rc_cmd_time > RC_CMD_LONG_TIME)
     {
-        rc_cmd_systemTick = xTaskGetTickCount();
+        rc_cmd_systemTick = osKernelSysTick();
         rc_action_flag = BEGIN_FLAG;
         rc_cmd_time = 0;
     }
@@ -455,7 +455,7 @@ static void RC_cmd_to_calibrate(void)
         rc_cmd_time = 0;
     }
 
-    calibrate_systemTick = xTaskGetTickCount();
+    calibrate_systemTick = osKernelSysTick();
 
     if (calibrate_systemTick - rc_cmd_systemTick > CALIBRATE_END_TIME)
     {

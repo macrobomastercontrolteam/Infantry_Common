@@ -90,7 +90,7 @@ uint32_t detect_task_stack;
 void detect_task(void const *pvParameters)
 {
     static uint32_t system_time;
-    system_time = xTaskGetTickCount();
+    system_time = osKernelSysTick();
     //init,初始化
     detect_init(system_time);
     //wait a time.空闲一段时间
@@ -99,7 +99,7 @@ void detect_task(void const *pvParameters)
     while (1)
     {
         static uint8_t error_num_display = 0;
-        system_time = xTaskGetTickCount();
+        system_time = osKernelSysTick();
 
         error_num_display = ERROR_LIST_LENGTH;
         error_list[ERROR_LIST_LENGTH].is_lost = 0;
@@ -207,7 +207,7 @@ bool_t toe_is_error(uint8_t toe)
 void detect_hook(uint8_t toe)
 {
     error_list[toe].last_time = error_list[toe].new_time;
-    error_list[toe].new_time = xTaskGetTickCount();
+    error_list[toe].new_time = osKernelSysTick();
     
     if (error_list[toe].is_lost)
     {
