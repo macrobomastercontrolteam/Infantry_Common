@@ -352,15 +352,15 @@ extern void chassis_task(void const *pvParameters);
  */
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-void swerve_platform_rc_mapping(void);
-void swerve_chassis_back_home(void);
-void swerve_chassis_params_reset(void);
-
 fp32 chassis_get_high_wz_limit(void);
 fp32 chassis_get_med_wz_limit(void);
 fp32 chassis_get_low_wz_limit(void);
 fp32 chassis_get_ultra_low_wz_limit(void);
+
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+void swerve_platform_rc_mapping(void);
+void swerve_chassis_back_home(void);
+void swerve_chassis_params_reset(void);
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)
