@@ -862,7 +862,7 @@ void CAN_cmd_swerve_steer(void)
 	// Send target encoder value of steering motors (GM6020) to chassis controller
 	chassis_tx_message.StdId = CAN_STEER_CONTROLLER_TX_ID;
 #if ENABLE_STEER_MOTOR_POWER
-	if ((chassis_move.chassis_mode != CHASSIS_VECTOR_RAW) || chassis_move.fHipDisabledEdge)
+	if ((chassis_behaviour_mode != CHASSIS_ZERO_FORCE) || chassis_move.fHipDisabledEdge)
 	{
 		uint16_t steer_motor1 = chassis_move.steer_motor_chassis[0].target_ecd;
 		uint16_t steer_motor2 = chassis_move.steer_motor_chassis[1].target_ecd;

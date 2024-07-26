@@ -31,9 +31,8 @@
 
 /**
   * @brief          limit the power, mainly limit motor current
-  * @param[in]      chassis_power_control: chassis data 
   * @retval         none
   */
-extern void chassis_power_control(chassis_move_t *chassis_power_control);
+extern void chassis_power_control(void);
 
 #endif

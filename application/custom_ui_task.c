@@ -240,7 +240,7 @@ void chassis_mode_draw(void)
 {
 	switch (chassis_behaviour_mode)
 	{
-		case CHASSIS_NO_FOLLOW_YAW:
+		case CHASSIS_BASIC_FPV_MODE:
 		{
 			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "CNFY");
 			update_char(&robot_status_str);
@@ -248,7 +248,7 @@ void chassis_mode_draw(void)
 			update_char(&rand_spin_str);
 			break;
 		}
-		case CHASSIS_SPINNING:
+		case CHASSIS_SPINNING_MODE:
 		{
 			if(chassis_move.fRandomSpinOn)
 			{

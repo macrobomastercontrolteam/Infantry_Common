@@ -199,12 +199,10 @@
 
 typedef enum
 {
-	CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW,    // chassis will follow yaw gimbal motor relative angle (this mode is not stable nor useful, but it may enlighten you on how to make new modes)
-	CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW,   // chassis will have yaw angle(chassis_yaw) close-looped control
-	CHASSIS_VECTOR_NO_FOLLOW_YAW,        // chassis will have rotation speed control
-	CHASSIS_VECTOR_RAW,                  // control-current will be sent to CAN bus derectly.
-	CHASSIS_VECTOR_SPINNING,             // spinning chassis
-} chassis_mode_e;
+	ABSOLUTE_COORDINATE_SYSTEM, // chassis movement follow absolute coordinate (base on the initial direction faced by camera)
+	GIMBAL_COORDINATE_SYSTEM,	// chassis movement follow gimbal coordinate (camera direction as front)
+	CHASSIS_COORDINATE_SYSTEM,	// chassis movement follow chassis coordinate (chassis front as front)
+} chassis_coord_sys_e;
 
 typedef struct
 {
@@ -279,8 +277,7 @@ typedef struct
 	const gimbal_motor_t *chassis_yaw_motor;   // will use the relative angle of yaw gimbal motor to calculate the euler angle
 	const gimbal_motor_t *chassis_pitch_motor; // will use the relative angle of pitch gimbal motor to calculate the euler angle
 	const fp32 *chassis_INS_angle;             // the point to the euler angle of gyro sensor
-	chassis_mode_e chassis_mode;               // state machine
-	chassis_mode_e last_chassis_mode;          // last state machine
+	chassis_coord_sys_e chassis_coord_sys;               // state machine
 	pid_type_def chassis_angle_pid;            // follow angle PID
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
@@ -347,15 +344,16 @@ extern void chassis_task(void const *pvParameters);
  *
  * @param[out]     vx_set: vertical speed set-point
  * @param[out]     vy_set: horizontal speed set-point
- * @param[out]     chassis_move_rc_to_vector: "chassis_move" valiable point
  * @retval         none
  */
-extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
+extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set);
 
 fp32 chassis_get_high_wz_limit(void);
 fp32 chassis_get_med_wz_limit(void);
 fp32 chassis_get_low_wz_limit(void);
 fp32 chassis_get_ultra_low_wz_limit(void);
+
+void chassis_enable_platform_flag(uint8_t fEnabled);
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_platform_rc_mapping(void);
