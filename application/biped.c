@@ -707,8 +707,7 @@ void biped_jumpManager(void)
 			}
 			else
 			{
-				biped.leg_L.L0.set = LEG_L0_MID;
-				biped.leg_R.L0.set = LEG_L0_MID;
+				chassis_move.upper_board_cmd.fBackToHome = 1;
 				biped.jumpState = JUMP_IDLE;
 			}
 			break;
@@ -728,8 +727,7 @@ void biped_jumpManager(void)
 			}
 			else if (biped.time_ms - state_entry_time_ms > JUMP_CHARGE_TIMEOUT_MS)
 			{
-				biped.leg_L.L0.set = LEG_L0_MID;
-				biped.leg_R.L0.set = LEG_L0_MID;
+				chassis_move.upper_board_cmd.fBackToHome = 1;
 				biped.jumpState = JUMP_IDLE;
 			}
 			break;

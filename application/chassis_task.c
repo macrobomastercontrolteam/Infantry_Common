@@ -583,8 +583,8 @@ void chassis_rc_to_control_vector(chassis_move_t *chassis_move_rc_to_vector, fp3
 
 		if (chassis_move_rc_to_vector->upper_board_cmd.fBackToHome)
 		{
-			biped.leg_L.L0.set = LEG_L0_MIN;
-			biped.leg_R.L0.set = LEG_L0_MIN;
+			biped.leg_L.L0.set = LEG_L0_LOW;
+			biped.leg_R.L0.set = LEG_L0_LOW;
 			biped.roll.set = 0;
 			chassis_move_rc_to_vector->upper_board_cmd.fBackToHome = 0;
 		}

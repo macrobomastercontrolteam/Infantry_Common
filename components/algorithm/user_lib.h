@@ -71,8 +71,9 @@
 #define LEG_L0_MIN 0.15f
 #define LEG_L0_MAX 0.34f
 #endif
-#define LEG_L0_MID ((LEG_L0_MAX + LEG_L0_MIN) / 2.0f)
 #define LEG_L0_RANGE (LEG_L0_MAX - LEG_L0_MIN)
+#define LEG_L0_LOW (LEG_L0_MIN + LEG_L0_RANGE * 0.1f)
+#define LEG_L0_MID ((LEG_L0_MAX + LEG_L0_MIN) * 0.5f)
 
 #define LEG_L0_MIN_THRESHOLD (LEG_L0_MIN + LEG_L0_RANGE * 0.2f)
 #define LEG_L0_MAX_THRESHOLD (LEG_L0_MAX - LEG_L0_RANGE * 0.2f)
