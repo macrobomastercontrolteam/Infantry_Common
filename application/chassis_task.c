@@ -657,6 +657,14 @@ void biped_platform_rc_mapping(void)
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_platform_rc_mapping(void)
 {
+	// configuration for pseudo RPY-to-tilt conversion
+	const fp32 SWERVE_PLATFORM_ROLL_KEYBOARD_CHANGE_TIME_S = 0.4f;
+	const fp32 SWERVE_PLATFORM_ROLL_KEYBOARD_SEN_INC = 2.0f * CHASSIS_ALPHA_WORKSPACE_PEAK / SWERVE_PLATFORM_ROLL_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S;
+	const fp32 SWERVE_PLATFORM_PITCH_KEYBOARD_CHANGE_TIME_S = 0.4f;
+	const fp32 SWERVE_PLATFORM_PITCH_KEYBOARD_SEN_INC = 2.0f * CHASSIS_ALPHA_WORKSPACE_PEAK / SWERVE_PLATFORM_PITCH_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S;
+	const fp32 SWERVE_PLATFORM_HEIGHT_KEYBOARD_CHANGE_TIME_S = 0.4f;
+	const fp32 SWERVE_PLATFORM_HEIGHT_KEYBOARD_SEN_INC = (CHASSIS_H_UPPER_LIMIT - CHASSIS_H_LOWER_LIMIT) / SWERVE_PLATFORM_HEIGHT_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S;
+
 	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) && (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C))
 	{
 		swerve_chassis_back_home();
@@ -666,11 +674,11 @@ void swerve_platform_rc_mapping(void)
 		// roll
 		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
 		{
-			chassis_move.chassis_platform.target_roll += SWERVE_HIP_ROLL_KEYBOARD_SEN_INC;
+			chassis_move.chassis_platform.target_roll += SWERVE_PLATFORM_ROLL_KEYBOARD_SEN_INC;
 		}
 		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C)
 		{
-			chassis_move.chassis_platform.target_roll -= SWERVE_HIP_ROLL_KEYBOARD_SEN_INC;
+			chassis_move.chassis_platform.target_roll -= SWERVE_PLATFORM_ROLL_KEYBOARD_SEN_INC;
 		}
 
 		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
@@ -678,11 +686,11 @@ void swerve_platform_rc_mapping(void)
 			// height
 			if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
 			{
-				chassis_move.chassis_platform.target_height += SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
+				chassis_move.chassis_platform.target_height += SWERVE_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
 			}
 			else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
 			{
-				chassis_move.chassis_platform.target_height -= SWERVE_HIP_HEIGHT_KEYBOARD_SEN_INC;
+				chassis_move.chassis_platform.target_height -= SWERVE_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
 			}
 		}
 		else
@@ -690,11 +698,11 @@ void swerve_platform_rc_mapping(void)
 			// pitch
 			if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
 			{
-				chassis_move.chassis_platform.target_pitch += SWERVE_HIP_PITCH_KEYBOARD_SEN_INC;
+				chassis_move.chassis_platform.target_pitch += SWERVE_PLATFORM_PITCH_KEYBOARD_SEN_INC;
 			}
 			else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
 			{
-				chassis_move.chassis_platform.target_pitch -= SWERVE_HIP_PITCH_KEYBOARD_SEN_INC;
+				chassis_move.chassis_platform.target_pitch -= SWERVE_PLATFORM_PITCH_KEYBOARD_SEN_INC;
 			}
 		}
 		// constrain target roll, pitch, and height values
