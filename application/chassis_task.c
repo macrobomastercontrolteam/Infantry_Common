@@ -216,9 +216,6 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	chassis_move_init->vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
 	chassis_move_init->wz_max_speed = SPINNING_CHASSIS_MAX_OMEGA;
 
-	chassis_move_init->vx_rc_sen = chassis_move_init->vx_max_speed / JOYSTICK_HALF_RANGE;
-	chassis_move_init->vy_rc_sen = chassis_move_init->vy_max_speed / JOYSTICK_HALF_RANGE;
-
 	chassis_move_init->dial_channel_latched = 0;
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
@@ -486,8 +483,6 @@ void chassis_speed_max_adj(void)
 		chassis_move.vy_max_speed = fp32_abs_constrain(chassis_move.vy_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPRINT_MAX_CHASSIS_SPEED_Y);
 		chassis_move.wz_max_speed = fp32_abs_constrain(chassis_move.wz_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPINNING_CHASSIS_MAX_OMEGA);
 	}
-	chassis_move.vx_rc_sen = chassis_move.vx_max_speed / JOYSTICK_HALF_RANGE;
-	chassis_move.vy_rc_sen = chassis_move.vy_max_speed / JOYSTICK_HALF_RANGE;
 }
 
 /**
@@ -513,8 +508,11 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
 	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_VERTICAL_CHANNEL], vx_channel, CHASSIS_RC_DEADLINE);
 	deadband_limit(chassis_move_rc_to_vector->chassis_RC->rc.ch[JOYSTICK_LEFT_HORIZONTAL_CHANNEL], vy_channel, CHASSIS_RC_DEADLINE);
 
-	vx_set_channel = vx_channel * chassis_move_rc_to_vector->vx_rc_sen;
-	vy_set_channel = vy_channel * -(chassis_move_rc_to_vector->vy_rc_sen);
+	// (remote controller sensitivity) map joystick value to vertical (vx) and horizontal (vy) speed
+	fp32 vx_rc_sen = chassis_move.vx_max_speed / JOYSTICK_HALF_RANGE;
+	fp32 vy_rc_sen = chassis_move.vy_max_speed / JOYSTICK_HALF_RANGE;
+	vx_set_channel = vx_channel * vx_rc_sen;
+	vy_set_channel = vy_channel * -vy_rc_sen;
 
 	// keyboard set speed set-point
 	if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_FRONT_KEY)
@@ -539,12 +537,12 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
 	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_vx, vx_set_channel);
 	first_order_filter_cali(&chassis_move_rc_to_vector->chassis_cmd_slow_set_vy, vy_set_channel);
 	// stop command, need not slow change, set zero derectly
-	if (fabs(vx_set_channel) < CHASSIS_RC_DEADLINE * chassis_move_rc_to_vector->vx_rc_sen)
+	if (fabs(vx_set_channel) < CHASSIS_RC_DEADLINE * vx_rc_sen)
 	{
 		chassis_move_rc_to_vector->chassis_cmd_slow_set_vx.out = 0.0f;
 	}
 
-	if (fabs(vy_set_channel) < CHASSIS_RC_DEADLINE * chassis_move_rc_to_vector->vy_rc_sen)
+	if (fabs(vy_set_channel) < CHASSIS_RC_DEADLINE * vy_rc_sen)
 	{
 		chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out = 0.0f;
 	}

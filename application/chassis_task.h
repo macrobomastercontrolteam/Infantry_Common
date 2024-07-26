@@ -281,10 +281,6 @@ typedef struct
 
 	fp32 vx_max_speed; // max forward speed, unit m/s
 	fp32 vy_max_speed; // max letf speed, unit m/s
-	fp32 vx_rc_sen;    // map joystick value to vertical speed
-	fp32 vy_rc_sen;    // map joystick value to horizontal speed
-
-	// @TODO: Currently wz limits are only enforced in CHASSIS_SPINNING, extend that to other modes
 	fp32 wz_max_speed; // max spinning speed, unit rad/s.
 
 	fp32 chassis_yaw;   // the yaw angle calculated by gyro sensor and gimbal motor
