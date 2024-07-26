@@ -318,13 +318,14 @@ void decode_4010_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
 
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
 {
-	// @TODO: Sometimes 4310 sends data[0] = 0x10 + ID. This might represent a real error, investigate it.
-	// uint8_t error_id = data[0] >> 4;
-	// if (error_id != 0)
-	// {
-	// 	return HAL_ERROR;
-	// }
-	// else
+	HAL_StatusTypeDef ret_value = HAL_ERROR;
+	uint8_t error_id = data[0] >> 4;
+	if ((error_id != 0) && (error_id != 1))
+	{
+		// Note: error_id = 0£¬ 1 means motor power is disabled/enabled
+		ret_value = HAL_ERROR;
+	}
+	else
 	{
 		uint16_t p_int = (data[1] << 8) | data[2];         // rad
 		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
@@ -335,8 +336,10 @@ HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr
 		motor_measure[*bMotorIdPtr].velocity = uint_to_float_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
 		motor_measure[*bMotorIdPtr].torque = uint_to_float_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
 		motor_measure[*bMotorIdPtr].temperature = data[6];
+
+		ret_value = HAL_OK;
 	}
-	return HAL_OK;
+	return ret_value;
 }
 
 uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
