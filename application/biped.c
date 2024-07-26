@@ -577,38 +577,46 @@ void torque_ctrl()
 
 void biped_stableness_judger(void)
 {
-	static uint32_t stableStartTimeMs = 0;
-	// disable fBipedEnable to avoid fBipedIsStable being turned on again
-	if (biped.fBipedEnable && (biped.fBipedIsStable == 0) && (biped.isJumpInTheAir == 0))
+	// explicit unstable
+	if ((biped.fBipedEnable == 0) || biped.isJumpInTheAir)
 	{
-		const fp32 STABLENESS_TORQUE_SQUARED_THRESHOLD = 0.2f;
-		const uint32_t STABLENESS_JUDGE_HOLD_TIME_MS = 75;
-		fp32 stablenessIndicator = biped.leg_L.TWheel_set * biped.leg_L.TWheel_set + biped.leg_R.TWheel_set * biped.leg_R.TWheel_set;
-		uint8_t fIsPossiblyStable = (stablenessIndicator < STABLENESS_TORQUE_SQUARED_THRESHOLD);
-		if (fIsPossiblyStable)
+		biped.fBipedIsStable = 0;
+	}
+	else
+	{
+		// detect stable
+		static uint32_t stableStartTimeMs = 0;
+		if (biped.fBipedIsStable == 0)
 		{
-			if (stableStartTimeMs == 0)
+			const fp32 STABLENESS_TORQUE_SQUARED_THRESHOLD = 0.2f;
+			const uint32_t STABLENESS_JUDGE_HOLD_TIME_MS = 75;
+			fp32 stablenessIndicator = biped.leg_L.TWheel_set * biped.leg_L.TWheel_set + biped.leg_R.TWheel_set * biped.leg_R.TWheel_set;
+			uint8_t fIsPossiblyStable = (stablenessIndicator < STABLENESS_TORQUE_SQUARED_THRESHOLD);
+			if (fIsPossiblyStable)
 			{
-				// start counting stable time
-				stableStartTimeMs = osKernelSysTick();
+				if (stableStartTimeMs == 0)
+				{
+					// start counting stable time
+					stableStartTimeMs = osKernelSysTick();
+				}
+				else
+				{
+					if (osKernelSysTick() - stableStartTimeMs >= STABLENESS_JUDGE_HOLD_TIME_MS)
+					{
+						biped.fBipedIsStable = 1;
+						stableStartTimeMs = 0;
+					}
+				}
 			}
 			else
 			{
-				if (osKernelSysTick() - stableStartTimeMs >= STABLENESS_JUDGE_HOLD_TIME_MS)
-				{
-					biped.fBipedIsStable = 1;
-					stableStartTimeMs = 0;
-				}
+				stableStartTimeMs = 0;
 			}
 		}
 		else
 		{
 			stableStartTimeMs = 0;
 		}
-	}
-	else
-	{
-		stableStartTimeMs = 0;
 	}
 }
 
