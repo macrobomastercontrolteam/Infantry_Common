@@ -41,10 +41,9 @@
 
 /**
   * @brief          limit the power, mainly limit driver motor current
-  * @param[in]      chassis_power_control: chassis data 
   * @retval         none
   */
-void chassis_power_control(chassis_move_t *chassis_power_control)
+void chassis_power_control(void)
 {
     // static fp32 total_current_limit = 0;
     // if (toe_is_error(REFEREE_TOE) || (get_robot_id() == 0))
@@ -64,19 +63,19 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
     //     {
     //         // Avoid windup after power being limited
     //         // @TODO: fix unsynchronization issue of M3508 speed after power limiter is triggered
-    //         if (chassis_power_control->motor_speed_pid[0].max_iout != 0)
+    //         if (chassis_move.motor_speed_pid[0].max_iout != 0)
     //         {
     //             for (uint8_t i = 0; i < 4; i++)
     //             {
-    //                 chassis_power_control->motor_speed_pid[i].max_iout = 0;
-    //                 chassis_power_control->motor_speed_pid[i].Kp = M3508_MOTOR_SPEED_PID_KP * 0.8f;
+    //                 chassis_move.motor_speed_pid[i].max_iout = 0;
+    //                 chassis_move.motor_speed_pid[i].Kp = M3508_MOTOR_SPEED_PID_KP * 0.8f;
     //             }
     //         }
 
     //         fp32 raw_current_limit = M3508_POWER_TO_CURRENT(chassis_power_limit / M3508_POWER_CONTROL_DELAY_S);
     //         if (chassis_power_buffer >= WARNING_POWER_BUFF)
     //         {
-    //             if ((chassis_power <= (chassis_power_limit * WARNING_POWER_RATIO)) || (chassis_power_control->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT))
+    //             if ((chassis_power <= (chassis_power_limit * WARNING_POWER_RATIO)) || (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT))
     //             {
     //                 raw_current_limit += M3508_POWER_TO_CURRENT(chassis_power_buffer / M3508_POWER_CONTROL_SHRINKED_DELAY_S);
     //             }
@@ -95,12 +94,12 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
     //     else
     //     {
     //         // turn back integral term
-    //         if (chassis_power_control->motor_speed_pid[0].max_iout == 0)
+    //         if (chassis_move.motor_speed_pid[0].max_iout == 0)
     //         {
     //             for (uint8_t i = 0; i < 4; i++)
     //             {
-    //                 chassis_power_control->motor_speed_pid[i].max_iout = M3508_MOTOR_SPEED_PID_MAX_IOUT;
-    //                 chassis_power_control->motor_speed_pid[i].Kp = M3508_MOTOR_SPEED_PID_KP;
+    //                 chassis_move.motor_speed_pid[i].max_iout = M3508_MOTOR_SPEED_PID_MAX_IOUT;
+    //                 chassis_move.motor_speed_pid[i].Kp = M3508_MOTOR_SPEED_PID_KP;
     //             }
     //         }
     //         total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
@@ -111,7 +110,7 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
     // //calculate the original motor current set
     // for(uint8_t i = 0; i < 4; i++)
     // {
-    //     total_current += fabs(chassis_power_control->motor_speed_pid[i].out);
+    //     total_current += fabs(chassis_move.motor_speed_pid[i].out);
     // }
     
 
@@ -119,9 +118,9 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
     // {
     //     // only limit current of driver motors, because power usage by steering motors is small and difficult to estimate. Because we control voltage input to steering motor (GM6020), not current
     //     fp32 current_scale = total_current_limit / total_current;
-    //     chassis_power_control->motor_speed_pid[0].out*=current_scale;
-    //     chassis_power_control->motor_speed_pid[1].out*=current_scale;
-    //     chassis_power_control->motor_speed_pid[2].out*=current_scale;
-    //     chassis_power_control->motor_speed_pid[3].out*=current_scale;
+    //     chassis_move.motor_speed_pid[0].out*=current_scale;
+    //     chassis_move.motor_speed_pid[1].out*=current_scale;
+    //     chassis_move.motor_speed_pid[2].out*=current_scale;
+    //     chassis_move.motor_speed_pid[3].out*=current_scale;
     // }
 }
