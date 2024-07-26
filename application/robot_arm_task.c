@@ -34,46 +34,12 @@ fp32 robot_arm_task_loop_delay;
 
 #if ROBOT_ARM_JSCOPE_DEBUG
 uint32_t loop_delay = 0;
-fp32 out0 = 0;
-fp32 out1 = 0;
-fp32 out2 = 0;
-fp32 out3 = 0;
-fp32 out4 = 0;
-fp32 out5 = 0;
-fp32 out6 = 0;
-fp32 target0 = 0;
-fp32 target1 = 0;
-fp32 target2 = 0;
-fp32 target3 = 0;
-fp32 target4 = 0;
-fp32 target5 = 0;
-fp32 target6 = 0;
-uint8_t robot_arm_state = 0;
 uint8_t isTargetReached = 0;
 uint8_t notReachedJoint = 0;
 static void jscope_robot_arm_test(void)
 {
 	loop_delay = HAL_GetTick() - robot_arm.time_ms;
-
-	out0 = motor_measure[JOINT_ID_0_4310].output_angle;
-	out1 = motor_measure[JOINT_ID_1_6012].output_angle;
-	out2 = motor_measure[JOINT_ID_2_4010].output_angle;
-	out3 = motor_measure[JOINT_ID_3_4310].output_angle;
-	out4 = motor_measure[JOINT_ID_4_4310].output_angle;
-	out5 = motor_measure[JOINT_ID_5_4310].output_angle;
-	out6 = motor_measure[JOINT_ID_6_6020].output_angle;
-
-	target0 = robot_arm.joint_angle_target[0];
-	target1 = robot_arm.joint_angle_target[1];
-	target2 = robot_arm.joint_angle_target[2];
-	target3 = robot_arm.joint_angle_target[3];
-	target4 = robot_arm.joint_angle_target[4];
-	target5 = robot_arm.joint_angle_target[5];
-	target6 = robot_arm.joint_angle_target[6];
-
 	isTargetReached = is_joint_target_reached(0.05f);
-
-	robot_arm_state = robot_arm.arm_state;
 }
 #endif
 
