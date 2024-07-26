@@ -726,7 +726,8 @@ void biped_jumpManager(void)
 			    (fabs(*(chassis_move.chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET)) < 0.1f) &&
 			    (fabs(biped.pitch.dot) < 0.1f) &&
 			    (MIN(biped.leg_L.L0.now, biped.leg_R.L0.now) <= LEG_L0_MIN_THRESHOLD) &&
-			    (biped.time_ms - state_entry_time_ms > JUMP_CHARGE_WAIT_MS))
+			    (biped.time_ms - state_entry_time_ms > JUMP_CHARGE_WAIT_MS) &&
+				biped.fBipedIsStable)
 			{
 				PID_clear(&biped.leg_L.supportFCharge_pid);
 				PID_clear(&biped.leg_R.supportFCharge_pid);
