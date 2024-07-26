@@ -17,15 +17,12 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
 #include "chassis_task.h"
-#include "chassis_behaviour.h"
 
 #include "cmsis_os.h"
 
 #include "CAN_receive.h"
 #include "INS_task.h"
 #include "arm_math.h"
-#include "biped.h"
-#include "chassis_power_control.h"
 #include "detect_task.h"
 #include "pid.h"
 #include "remote_control.h"
