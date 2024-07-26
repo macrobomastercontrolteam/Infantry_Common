@@ -84,7 +84,9 @@ typedef enum
   CAN_6020_HIGH_RANGE_TX_ID = 0x2FF,
 
   SUPCAP_RX_ID = 0x301,
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+	CAN_UPPER_HEAD_TX_ID = 0x110,
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	CAN_STEER_CONTROLLER_TX_ID = 0x112,
 	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
   // sends target chassis platform params: alpha1, alpha2, center height
@@ -93,8 +95,6 @@ typedef enum
 	CAN_SWERVE_RADII_DOT_RX_ID = 0x115,
   // receives current chassis platform params: alpha1, alpha2, center height, rotational radius of each wheels
 	CAN_SHRINKED_CONTROLLER_RX_ID = 0x116,
-#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
-	CAN_UPPER_HEAD_TX_ID = 0x110,
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	CAN_BIPED_CONTROLLER_TX_ID = 0x117,
 	CAN_BIPED_CONTROLLER_RX_ID = 0x118,
