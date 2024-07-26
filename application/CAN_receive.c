@@ -29,8 +29,8 @@
 #include "main.h"
 #include "user_lib.h"
 
-#define ENABLE_DRIVE_MOTOR_POWER 0
-#define ENABLE_HIP_MOTOR_POWER 0
+#define ENABLE_DRIVE_MOTOR_POWER 1
+#define ENABLE_HIP_MOTOR_POWER 1
 
 // reverse hip motor direction
 #define REVERSE_LB_HIP_MOTOR_DIRECTION 1

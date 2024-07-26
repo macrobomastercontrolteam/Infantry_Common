@@ -63,8 +63,8 @@ void LegClass_t_Init(LegClass_t *leg)
 	memcpy(leg->K, K_init, sizeof(leg->X));
 
 	// avoid saturation here to maintain scale in motor torques
-	const fp32 supportF_pid_param[3] = {1100, 50, 100};
-	PID_init(&(leg->supportF_pid), PID_POSITION, supportF_pid_param, 99999, 10, 0.9f, &raw_err_handler);
+	const fp32 supportF_pid_param[3] = {2500, 50, 35};
+	PID_init(&(leg->supportF_pid), PID_POSITION, supportF_pid_param, 99999, 30, 0.6f, &filter_err_handler);
 
 	const fp32 supportFInAir_pid_param[3] = {3000, 5, 0};
 	PID_init(&(leg->supportFInAir_pid), PID_POSITION, supportFInAir_pid_param, 99999, 99999, 0.9f, &raw_err_handler);

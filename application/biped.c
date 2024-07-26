@@ -9,7 +9,7 @@
 #define ENABLE_ROLL_PID 1
 #define ENABLE_SPLIT_PID 1
 #define ENABLE_LENGTH_PID 1
-#define ENABLE_BALANCE_ADJUST 1
+#define ENABLE_BALANCE_ADJUST 0
 
 #define REVERSE_ROLL_ANGLE 0
 #define REVERSE_PITCH_ANGLE 1
@@ -32,17 +32,11 @@ const fp32 biped_Tp_filter_coeff = 1.0f;
 const fp32 BRAKE_STOP_SPEED_THRESHOLD = 0.1f;
 const fp32 BRAKE_ENGAGE_TIMEOUT = 1000.0f;
 
-const fp32 LQR_ADJUST_COEFF = 0.4f;
+const fp32 LQR_ADJUST_COEFF = 0.5f;
 // bigger for less static error
-const fp32 LQR_ADJUST_DIS_COEFF = 0.4f;
+const fp32 LQR_ADJUST_DIS_COEFF = 0.5f;
 // smaller for less oscillation
-const fp32 LQR_ADJUST_DIS_DOT_COEFF = 0.4f;
-
-// const fp32 LQR_ADJUST_COEFF = 0.25f;
-// // bigger for less static error
-// const fp32 LQR_ADJUST_DIS_COEFF = 0.25f;
-// // smaller for less oscillation
-// const fp32 LQR_ADJUST_DIS_DOT_COEFF = 0.25f;
+const fp32 LQR_ADJUST_DIS_DOT_COEFF = 0.5f;
 
 #if CHASSIS_JSCOPE_DEBUG
 fp32 lqr_Tp_by_angle0_now;
@@ -102,12 +96,12 @@ void biped_init(void)
 	PID_init(&biped.turn_pid, PID_POSITION, turn_pid_param, 3, 1, 0.9f, &rad_err_handler);
 
 	// fragile, must keep Ki very small
-	const fp32 split_pid_param[3] = {100, 0, 10}; // for 5ms loop time
-	PID_init(&biped.split_pid, PID_POSITION, split_pid_param, HIP_TORQUE_MAX, HIP_TORQUE_MAX / 2.0f, 0.9f, &rad_err_handler);
+	const fp32 split_pid_param[3] = {35, 0, 1}; // for 5ms loop time
+	PID_init(&biped.split_pid, PID_POSITION, split_pid_param, HIP_TORQUE_MAX, HIP_TORQUE_MAX / 2.0f, 0.8f, &filter_rad_err_handler);
 
 	// fragile, must keep Ki zero
-	const fp32 roll_pid_param[3] = {600, 0, 10};
-	PID_init(&biped.roll_pid, PID_POSITION, roll_pid_param, 25, 0, 0.9f, &rad_err_handler);
+	const fp32 roll_pid_param[3] = {600, 0, 0};
+	PID_init(&biped.roll_pid, PID_POSITION, roll_pid_param, 25, 0, 0.9f, &filter_rad_err_handler);
 
 	const fp32 invPendulumInAir_pid_param[3] = {200, 10, 10};
 	PID_init(&biped.invPendulumInAir_pid, PID_POSITION, invPendulumInAir_pid_param, HIP_TORQUE_MAX * 2.0f, HIP_TORQUE_MAX * 2.0f, 0.9f, &rad_err_handler);
@@ -691,6 +685,8 @@ void biped_jumpManager(void)
 {
 	static uint32_t state_entry_time_ms = 0;
 	static jumpState_e last_jumpState = JUMP_IDLE;
+	fp32 SupportF_L[2][1];
+	fp32 SupportF_R[2][1];
 	switch (biped.jumpState)
 	{
 		case JUMP_IDLE:
@@ -769,8 +765,8 @@ void biped_jumpManager(void)
 		case JUMP_SHRINK:
 		{
 			// Shrink until landing
-			fp32 SupportF_L[2][1];
-			fp32 SupportF_R[2][1];
+			// fp32 SupportF_L[2][1];
+			// fp32 SupportF_R[2][1];
 			LegClass_t_Inv_VMC(&biped.leg_L, -motor_measure[CHASSIS_ID_HIP_LB].torque, motor_measure[CHASSIS_ID_HIP_LF].torque, SupportF_L);
 			LegClass_t_Inv_VMC(&biped.leg_R, -motor_measure[CHASSIS_ID_HIP_RB].torque, motor_measure[CHASSIS_ID_HIP_RF].torque, SupportF_R);
 			// JUMP_SUPPORT_FORCE_IGNORE_TIMEOUT_MS avoids detected the impact when hip collide with the hinge stop
