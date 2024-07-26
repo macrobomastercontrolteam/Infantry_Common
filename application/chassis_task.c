@@ -157,7 +157,7 @@ static void chassis_init(void)
 	const static fp32 chassis_y_order_filter[1] = {CHASSIS_ACCEL_Y_NUM};
 	const static fp32 chassis_wz_order_filter[1] = {CHASSIS_ACCEL_WZ_NUM};
 
-	chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_SYSTEM;
+	chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_FOLLOW_CHASSIS_RELATIVE_FRONT;
 	chassis_move.chassis_RC = get_remote_control_point();
 	chassis_move.chassis_INS_angle = get_INS_angle_point();
 	chassis_move.chassis_yaw_motor = get_yaw_motor_point();
@@ -688,7 +688,7 @@ static void chassis_set_control(void)
 
 	switch (chassis_move.chassis_coord_sys)
 	{
-		case ABSOLUTE_COORDINATE_SYSTEM:
+		case CHASSIS_COORDINATE_FOLLOW_CHASSIS_ABSOLUTE_FRONT:
 		{
 			// direction of vx align with absolute imu front
 			fp32 sin_yaw = AHRS_sinf(-chassis_move.chassis_yaw);
@@ -698,7 +698,7 @@ static void chassis_set_control(void)
 			chassis_move.wz_set = wz_set;
 			break;
 		}
-		case GIMBAL_COORDINATE_SYSTEM:
+		case CHASSIS_COORDINATE_FOLLOW_GIMBAL:
 		{
 			fp32 sin_yaw = AHRS_sinf(chassis_move.chassis_yaw_motor->relative_angle);
 			fp32 cos_yaw = AHRS_cosf(chassis_move.chassis_yaw_motor->relative_angle);
@@ -716,7 +716,7 @@ static void chassis_set_control(void)
 			}
 			break;
 		}
-		case CHASSIS_COORDINATE_SYSTEM:
+		case CHASSIS_COORDINATE_FOLLOW_CHASSIS_RELATIVE_FRONT:
 		default:
 		{
 			chassis_move.vx_set = vx_set;

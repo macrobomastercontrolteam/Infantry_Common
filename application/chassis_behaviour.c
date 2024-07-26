@@ -133,18 +133,18 @@ void chassis_behaviour_set_mode(void)
 		case CHASSIS_BASIC_FPV_MODE:
 		case CHASSIS_SPINNING_MODE:
 		{
-			chassis_move.chassis_coord_sys = GIMBAL_COORDINATE_SYSTEM;
+			chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_FOLLOW_GIMBAL;
 			break;
 		}
 		case CHASSIS_CV_CONTROL_MODE:
 		{
-			chassis_move.chassis_coord_sys = ABSOLUTE_COORDINATE_SYSTEM;
+			chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_FOLLOW_CHASSIS_ABSOLUTE_FRONT;
 			break;
 		}
 		case CHASSIS_ZERO_FORCE:
 		default:
 		{
-			chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_SYSTEM;
+			chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_FOLLOW_CHASSIS_RELATIVE_FRONT;
 			break;
 		}
 	}

@@ -199,9 +199,9 @@
 
 typedef enum
 {
-	ABSOLUTE_COORDINATE_SYSTEM, // chassis movement follow absolute coordinate (base on the initial direction faced by camera)
-	GIMBAL_COORDINATE_SYSTEM,	// chassis movement follow gimbal coordinate (camera direction as front)
-	CHASSIS_COORDINATE_SYSTEM,	// chassis movement follow chassis coordinate (chassis front as front)
+	CHASSIS_COORDINATE_FOLLOW_CHASSIS_ABSOLUTE_FRONT, // chassis movement follow absolute coordinate (base on the initial direction faced by camera)
+	CHASSIS_COORDINATE_FOLLOW_GIMBAL,	// chassis movement follow gimbal coordinate (camera direction as front)
+	CHASSIS_COORDINATE_FOLLOW_CHASSIS_RELATIVE_FRONT,	// chassis movement follow chassis coordinate (chassis front as front)
 } chassis_coord_sys_e;
 
 typedef struct
