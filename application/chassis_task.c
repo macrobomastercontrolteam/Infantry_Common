@@ -608,6 +608,52 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
 	*vy_set = chassis_move_rc_to_vector->chassis_cmd_slow_set_vy.out;
 }
 
+#if (ROBOT_TYPE == INFANTRY_2024_BIPED)
+void biped_platform_rc_mapping(void)
+{
+	const fp32 BIPED_PLATFORM_ROLL_KEYBOARD_CHANGE_TIME_S = 0.5f;
+	const fp32 BIPED_PLATFORM_ROLL_KEYBOARD_DOT = BIPED_PLATFORM_MAX_ROLL / BIPED_PLATFORM_ROLL_KEYBOARD_CHANGE_TIME_S;
+	const fp32 BIPED_PLATFORM_LENGTH_KEYBOARD_CHANGE_TIME_S = 1.25f;
+	const fp32 BIPED_PLATFORM_LENGTH_KEYBOARD_DOT = (BIPED_LEG_L0_MAX - BIPED_LEG_L0_MIN) / BIPED_PLATFORM_LENGTH_KEYBOARD_CHANGE_TIME_S;
+
+	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
+	{
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C)
+		{
+			biped_chassis_back_home();
+		}
+		else
+		{
+			// height
+			if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+			{
+				chassis_move.chassis_platform.target_simplified_L0_dot = BIPED_PLATFORM_LENGTH_KEYBOARD_DOT;
+			}
+			else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+			{
+				chassis_move.chassis_platform.target_simplified_L0_dot = -BIPED_PLATFORM_LENGTH_KEYBOARD_DOT;
+			}
+		}
+	}
+	else // ctrl not pressed
+	{
+		// roll
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
+		{
+			chassis_move.chassis_platform.target_roll_dot = BIPED_PLATFORM_ROLL_KEYBOARD_DOT;
+		}
+		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C)
+		{
+			chassis_move.chassis_platform.target_roll_dot = -BIPED_PLATFORM_ROLL_KEYBOARD_DOT;
+		}
+		else
+		{
+			chassis_move.chassis_platform.fJumpStart = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_G) != 0);
+		}
+	}
+}
+#endif
+
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_platform_rc_mapping(void)
 {

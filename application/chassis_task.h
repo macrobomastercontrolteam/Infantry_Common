@@ -67,6 +67,7 @@
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 #define BIPED_LEG_L0_MIN 0.15f
 #define BIPED_LEG_L0_MAX 0.34f
+#define BIPED_PLATFORM_MAX_ROLL DEG_TO_RAD(10.0f)
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
@@ -373,6 +374,7 @@ fp32 chassis_get_ultra_low_wz_limit(void);
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)
+void biped_platform_rc_mapping(void);
 void biped_chassis_back_home(void);
 void biped_chassis_params_reset(void);
 #endif

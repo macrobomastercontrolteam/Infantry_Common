@@ -545,6 +545,8 @@ static void chassis_spinning_control(fp32 *vx_set, fp32 *vy_set, fp32 *angle_set
 	chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	swerve_platform_rc_mapping();
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+	biped_platform_rc_mapping();
 #endif
 	*angle_set = chassis_spinning_speed_manager();
 }
@@ -643,6 +645,8 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
 	}
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	swerve_platform_rc_mapping();
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+	biped_platform_rc_mapping();
 #endif
 }
 
