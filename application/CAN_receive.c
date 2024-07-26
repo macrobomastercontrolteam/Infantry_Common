@@ -26,7 +26,7 @@
 #include "robot_arm_task.h"
 #include "user_lib.h"
 
-#define DISABLE_ARM_MOTOR_POWER 1
+#define ENABLE_ARM_MOTOR_POWER 0
 
 #define MOTOR_6012_GEAR_RATIO 36.0f
 #define MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO 0.225146199f
@@ -439,7 +439,7 @@ HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_
 	can_tx_message.RTR = CAN_RTR_DATA;
 	can_tx_message.DLC = 0x08;
 
-#if DISABLE_ARM_MOTOR_POWER
+#if (ENABLE_ARM_MOTOR_POWER == 0)
 	current_ch_5 = 0;
 	current_ch_6 = 0;
 	current_ch_7 = 0;
@@ -500,7 +500,7 @@ HAL_StatusTypeDef soft_disable_Ktech_motor(uint32_t id, CAN_HandleTypeDef *hcan_
 
 HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
 {
-#if DISABLE_ARM_MOTOR_POWER
+#if (ENABLE_ARM_MOTOR_POWER == 0)
 	return encode_4010_motor_torque_control(id, 0, blocking_call, hcan_ptr);
 #else
 	// Warning: do not set maxSpeed_dps = 0, the motor will behave abnormally!
@@ -527,7 +527,7 @@ HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_
 
 HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
 {
-#if DISABLE_ARM_MOTOR_POWER
+#if (ENABLE_ARM_MOTOR_POWER == 0)
 	return encode_6012_motor_torque_control(id, 0, blocking_call, hcan_ptr);
 #else
 	// Warning: do not set maxSpeed_dps = 0, the motor will behave abnormally!
@@ -560,7 +560,7 @@ HAL_StatusTypeDef encode_6012_motor_torque_control(uint32_t id, float torque_cmd
 	can_tx_message.RTR = CAN_RTR_DATA;
 	can_tx_message.DLC = 8;
 
-#if DISABLE_ARM_MOTOR_POWER
+#if (ENABLE_ARM_MOTOR_POWER == 0)
 	torque_cmd = 0;
 #endif
 
@@ -581,7 +581,7 @@ HAL_StatusTypeDef encode_4010_motor_torque_control(uint32_t id, float torque_cmd
 	can_tx_message.RTR = CAN_RTR_DATA;
 	can_tx_message.DLC = 8;
 
-#if DISABLE_ARM_MOTOR_POWER
+#if (ENABLE_ARM_MOTOR_POWER == 0)
 	torque_cmd = 0;
 #endif
 
@@ -601,7 +601,7 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, float _pos, float _vel, 
 	can_tx_message.RTR = CAN_RTR_DATA;
 	can_tx_message.DLC = 0x08;
 
-#if DISABLE_ARM_MOTOR_POWER
+#if (ENABLE_ARM_MOTOR_POWER == 0)
 	_pos = 0;
 	_vel = 0;
 	_KP = 0;
