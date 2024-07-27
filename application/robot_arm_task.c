@@ -243,22 +243,22 @@ void robot_arm_init(void)
 	robot_arm.fMasterSwitch = 0;
 	robot_arm.prevStateSwitchTime = osKernelSysTick();
 
-	const static fp32 joint_0_4310_angle_pid_coeffs[3] = {JOINT_0_4310_ANGLE_PID_KP, JOINT_0_4310_ANGLE_PID_KI, JOINT_0_4310_ANGLE_PID_KD};
-	PID_init(&robot_arm.joint_0_4310_angle_pid, PID_POSITION, joint_0_4310_angle_pid_coeffs, JOINT_0_4310_ANGLE_PID_MAX_OUT, JOINT_0_4310_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+	const static fp32 joint_0_angle_pid_coeffs[3] = {JOINT_0_ANGLE_PID_KP, JOINT_0_ANGLE_PID_KI, JOINT_0_ANGLE_PID_KD};
+	PID_init(&robot_arm.joint_0_angle_pid, PID_POSITION, joint_0_angle_pid_coeffs, JOINT_0_ANGLE_PID_MAX_OUT, JOINT_0_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
 
-	const static fp32 joint_3_4310_angle_pid_coeffs[3] = {JOINT_3_4310_ANGLE_PID_KP, JOINT_3_4310_ANGLE_PID_KI, JOINT_3_4310_ANGLE_PID_KD};
-	PID_init(&robot_arm.joint_3_4310_angle_pid, PID_POSITION, joint_3_4310_angle_pid_coeffs, JOINT_3_4310_ANGLE_PID_MAX_OUT, JOINT_3_4310_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+	const static fp32 joint_3_angle_pid_coeffs[3] = {JOINT_3_ANGLE_PID_KP, JOINT_3_ANGLE_PID_KI, JOINT_3_ANGLE_PID_KD};
+	PID_init(&robot_arm.joint_3_angle_pid, PID_POSITION, joint_3_angle_pid_coeffs, JOINT_3_ANGLE_PID_MAX_OUT, JOINT_3_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
 	
-	const static fp32 joint_4_4310_angle_pid_coeffs[3] = {JOINT_4_4310_ANGLE_PID_KP, JOINT_4_4310_ANGLE_PID_KI, JOINT_4_4310_ANGLE_PID_KD};
-	PID_init(&robot_arm.joint_4_4310_angle_pid, PID_POSITION, joint_4_4310_angle_pid_coeffs, JOINT_4_4310_ANGLE_PID_MAX_OUT, JOINT_4_4310_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+	const static fp32 joint_4_angle_pid_coeffs[3] = {JOINT_4_ANGLE_PID_KP, JOINT_4_ANGLE_PID_KI, JOINT_4_ANGLE_PID_KD};
+	PID_init(&robot_arm.joint_4_angle_pid, PID_POSITION, joint_4_angle_pid_coeffs, JOINT_4_ANGLE_PID_MAX_OUT, JOINT_4_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
 	
-	const static fp32 joint_5_4310_angle_pid_coeffs[3] = {JOINT_5_4310_ANGLE_PID_KP, JOINT_5_4310_ANGLE_PID_KI, JOINT_5_4310_ANGLE_PID_KD};
-	PID_init(&robot_arm.joint_5_4310_angle_pid, PID_POSITION, joint_5_4310_angle_pid_coeffs, JOINT_5_4310_ANGLE_PID_MAX_OUT, JOINT_5_4310_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+	const static fp32 joint_5_angle_pid_coeffs[3] = {JOINT_5_ANGLE_PID_KP, JOINT_5_ANGLE_PID_KI, JOINT_5_ANGLE_PID_KD};
+	PID_init(&robot_arm.joint_5_angle_pid, PID_POSITION, joint_5_angle_pid_coeffs, JOINT_5_ANGLE_PID_MAX_OUT, JOINT_5_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
 
-	const static fp32 joint_6_6020_angle_pid_coeffs[3] = {JOINT_6_6020_ANGLE_PID_KP, JOINT_6_6020_ANGLE_PID_KI, JOINT_6_6020_ANGLE_PID_KD};
-	PID_init(&robot_arm.joint_6_6020_angle_pid, PID_POSITION, joint_6_6020_angle_pid_coeffs, JOINT_6_6020_ANGLE_PID_MAX_OUT, JOINT_6_6020_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-	const static fp32 joint_6_6020_speed_pid_coeffs[3] = {JOINT_6_6020_SPEED_PID_KP, JOINT_6_6020_SPEED_PID_KI, JOINT_6_6020_SPEED_PID_KD};
-	PID_init(&robot_arm.joint_6_6020_speed_pid, PID_POSITION, joint_6_6020_speed_pid_coeffs, JOINT_6_6020_SPEED_PID_MAX_OUT, JOINT_6_6020_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
+	const static fp32 joint_6_angle_pid_coeffs[3] = {JOINT_6_ANGLE_PID_KP, JOINT_6_ANGLE_PID_KI, JOINT_6_ANGLE_PID_KD};
+	PID_init(&robot_arm.joint_6_angle_pid, PID_POSITION, joint_6_angle_pid_coeffs, JOINT_6_ANGLE_PID_MAX_OUT, JOINT_6_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+	const static fp32 joint_6_speed_pid_coeffs[3] = {JOINT_6_SPEED_PID_KP, JOINT_6_SPEED_PID_KI, JOINT_6_SPEED_PID_KD};
+	PID_init(&robot_arm.joint_6_speed_pid, PID_POSITION, joint_6_speed_pid_coeffs, JOINT_6_SPEED_PID_MAX_OUT, JOINT_6_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 
 	robot_arm_return_to_center();
 	CAN_cmd_switch_motor_power(1);
