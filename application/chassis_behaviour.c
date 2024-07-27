@@ -399,6 +399,7 @@ static void chassis_follow_gimbal_control(fp32 *vx_set, fp32 *vy_set, fp32 *angl
 void chassis_spinning_speed_manager(fp32* wz_set)
 {
 	// Randomly spin or manually change spin speed
+	static fp32 spinning_speed = SPINNING_CHASSIS_LOW_OMEGA;
 	if (chassis_move.fRandomSpinOn)
 	{
 		// Dial changes: range of possible speed and interval to change speed; positive dial value more rapid, negative less rapid
@@ -414,7 +415,7 @@ void chassis_spinning_speed_manager(fp32* wz_set)
 		// once per speed_change_period, update spinning speed to a random number in between random_wz_min_speed and random_wz_max_speed
 		if (osKernelSysTick() - ulLastUpdateTime >= speed_change_period)
 		{
-			*wz_set = spinning_sign * RNG_get_random_range_fp32(random_wz_min_speed, random_wz_max_speed);
+			spinning_speed = spinning_sign * RNG_get_random_range_fp32(random_wz_min_speed, random_wz_max_speed);
 			ulLastUpdateTime = osKernelSysTick();
 			param_change_counter++;
 
@@ -446,14 +447,15 @@ void chassis_spinning_speed_manager(fp32* wz_set)
 		if (chassis_move.dial_channel_out > 0)
 		{
 			fp32 spin_rc_sen_positive = ((chassis_move.wz_max_speed - spin_rc_offset) / JOYSTICK_HALF_RANGE);
-			*wz_set = chassis_move.dial_channel_out * spin_rc_sen_positive + spin_rc_offset;
+			spinning_speed = chassis_move.dial_channel_out * spin_rc_sen_positive + spin_rc_offset;
 		}
 		else
 		{
 			fp32 spin_rc_sen_negative = ((chassis_move.wz_max_speed + spin_rc_offset) / JOYSTICK_HALF_RANGE);
-			*wz_set = chassis_move.dial_channel_out * spin_rc_sen_negative + spin_rc_offset;
+			spinning_speed = chassis_move.dial_channel_out * spin_rc_sen_negative + spin_rc_offset;
 		}
 	}
+	*wz_set = spinning_speed;
 }
 
 static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set)
