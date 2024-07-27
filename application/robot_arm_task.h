@@ -146,10 +146,10 @@ typedef struct
 	uint8_t fHoming;
 	uint8_t fMasterSwitch;
 
-	const fp32 *arm_INS_angle;
-	const fp32 *arm_INS_speed;
+	// const fp32 *arm_INS_angle;
+	// const fp32 *arm_INS_speed;
 	// const fp32 *arm_INS_accel;
-    variable_status_t yaw, pitch, roll;
+    // variable_status_t yaw, pitch, roll;
     // fp32 accel_x, accel_y, accel_z;
 } robot_arm_t;
 

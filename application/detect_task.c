@@ -260,7 +260,7 @@ static void detect_init(uint32_t time)
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
-            {50, 0, 10},   // chassis controller
+            // {50, 0, 10},   // chassis controller
             {50, 0, 11},   // joint motor 0
             {50, 0, 12},   // joint motor 1
             {50, 0, 13},   // joint motor 2
@@ -268,9 +268,9 @@ static void detect_init(uint32_t time)
             {50, 0, 15},   // joint motor 4
             {50, 0, 16},   // joint motor 5
             {50, 0, 17},   // joint motor 6
-            {2, 3, 7},      //board gyro
-            {5, 5, 7},      //board accel
-            {40, 200, 7},   //board mag
+            // {2, 3, 7},      //board gyro
+            // {5, 5, 7},      //board accel
+            // {40, 200, 7},   //board mag
         };
 
     for (uint8_t i = 0; i < ERROR_LIST_LENGTH; i++)
@@ -288,7 +288,7 @@ static void detect_init(uint32_t time)
             error_list[i].is_lost = 1;
             error_list[i].data_is_error = 1;
         }
-        error_list[i].frequency = 0.0f;
+        error_list[i].frequency = 0;
         error_list[i].new_time = time;
         error_list[i].last_time = time;
         error_list[i].lost_time = time;

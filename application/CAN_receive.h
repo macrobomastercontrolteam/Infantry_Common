@@ -46,11 +46,6 @@ typedef enum
     CAN_MOTOR_6020_TX_ID = 0x2FF,
     CAN_JOINT_MOTOR_1_6012_RX_ID = 0x142,
     CAN_JOINT_MOTOR_2_4010_RX_ID = 0x143,
-
-    CAN_INTER_BOARD_POSITION_RX_ID = 0x114,
-	CAN_INTER_BOARD_ORIENTATION_RX_ID = 0x115,
-	CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID = 0x116,
-	CAN_INTER_BOARD_INDIVIDUAL_MOTOR_2_RX_ID = 0x117,
 } can_msg_id_e;
 
 // Consecutive indices corresponding to individual can_msg_id_e

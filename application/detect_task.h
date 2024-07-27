@@ -61,9 +61,8 @@
 //错误码以及对应设备顺序
 enum errorList
 {
-    // chassis related TOEs (make sure this group is continuous)
     DBUS_TOE = 0,
-    CHASSIS_CONTROLLER_TOE,
+    // chassis related TOEs (make sure this group is continuous)
     JOINT_0_TOE,
     JOINT_1_TOE,
     JOINT_2_TOE,
@@ -71,11 +70,6 @@ enum errorList
     JOINT_4_TOE,
     JOINT_5_TOE,
     JOINT_6_TOE,
-
-    BOARD_GYRO_TOE,
-    BOARD_ACCEL_TOE,
-    BOARD_MAG_TOE,
-
     ERROR_LIST_LENGTH,
 };
 

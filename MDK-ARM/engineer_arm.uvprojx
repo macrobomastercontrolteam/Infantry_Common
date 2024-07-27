@@ -589,11 +589,6 @@
           <GroupName>applications</GroupName>
           <Files>
             <File>
-              <FileName>calibrate_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\calibrate_task.c</FilePath>
-            </File>
-            <File>
               <FileName>CAN_receive.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\CAN_receive.c</FilePath>
@@ -602,11 +597,6 @@
               <FileName>detect_task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\detect_task.c</FilePath>
-            </File>
-            <File>
-              <FileName>INS_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\INS_task.c</FilePath>
             </File>
             <File>
               <FileName>usb_task.c</FileName>

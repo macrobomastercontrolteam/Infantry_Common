@@ -25,7 +25,7 @@
 #include "string.h"
 
 #include "detect_task.h"
-#include "voltage_task.h"
+// #include "voltage_task.h"
 
 
 void usb_printf(const char *fmt,...);
@@ -50,7 +50,6 @@ void usb_task(void const * argument)
         osDelay(1000);
         usb_printf(
 "******************************\r\n\
-Chassis Dev C Board:%s\r\n\
 joint motor 0:%s\r\n\
 joint motor 1:%s\r\n\
 joint motor 2:%s\r\n\
@@ -59,7 +58,6 @@ joint motor 4:%s\r\n\
 joint motor 5:%s\r\n\
 joint motor 6:%s\r\n\
 ******************************\r\n",
-            status[error_list_usb_local[CHASSIS_CONTROLLER_TOE].error_exist],
             status[error_list_usb_local[JOINT_0_TOE].error_exist],
             status[error_list_usb_local[JOINT_1_TOE].error_exist],
             status[error_list_usb_local[JOINT_2_TOE].error_exist],

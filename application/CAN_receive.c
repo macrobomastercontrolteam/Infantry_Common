@@ -172,25 +172,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			get_rm_motor_measure(&motor_measure[bMotorId], rx_data);
 			break;
 		}
-		case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID:
-		case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_2_RX_ID:
-		{
-			decode_chassis_controller_rx(rx_data, rx_header.StdId);
-			detect_hook(CHASSIS_CONTROLLER_TOE);
-			break;
-		}
-		case CAN_INTER_BOARD_POSITION_RX_ID:
-		{
-			// @TODO: end-effector control
-			detect_hook(CHASSIS_CONTROLLER_TOE);
-			break;
-		}
-		case CAN_INTER_BOARD_ORIENTATION_RX_ID:
-		{
-			// @TODO: end-effector control
-			detect_hook(CHASSIS_CONTROLLER_TOE);
-			break;
-		}
 		default:
 		{
 			break;
@@ -200,68 +181,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	if (bMotorId < JOINT_ID_LAST)
 	{
 		detect_hook(bMotorId + JOINT_0_TOE);
-	}
-}
-
-void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
-{
-	uint8_t fIsSpecialCmd = 0;
-	uint8_t specialCmd = data[0];
-	if ((specialCmd == 0x00) || (specialCmd == 0xFF))
-	{
-		fIsSpecialCmd = 1;
-		for (uint8_t i = 1; i < 8; i++)
-		{
-			if (specialCmd != data[i])
-			{
-				fIsSpecialCmd = 0;
-				break;
-			}
-		}
-	}
-
-	if (fIsSpecialCmd)
-	{
-		switch (specialCmd)
-		{
-			case 0x00:
-			{
-				robot_arm.fMasterSwitch = 0;
-				break;
-			}
-			case 0xFF:
-			{
-				robot_arm.fHoming = 1;
-				robot_arm_return_to_center();
-				robot_arm_switch_on_power();
-				break;
-			}
-		}
-	}
-	else
-	{
-		robot_arm.fHoming = 0;
-		robot_arm_switch_on_power();
-
-		switch (id)
-		{
-			case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID:
-			{
-				robot_arm.joint_angle_target[0] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
-				robot_arm.joint_angle_target[1] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
-				robot_arm.joint_angle_target[2] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
-				robot_arm.joint_angle_target[3] = (int16_t)((data[7] << 8) | data[6]) / RAD_TO_INT16_SCALE;
-				break;
-			}
-			case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_2_RX_ID:
-			default:
-			{
-				robot_arm.joint_angle_target[4] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
-				robot_arm.joint_angle_target[5] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
-				robot_arm.joint_angle_target[6] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
-				break;
-			}
-		}
 	}
 }
 
