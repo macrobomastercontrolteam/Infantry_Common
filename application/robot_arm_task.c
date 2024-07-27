@@ -11,7 +11,7 @@ void robot_arm_init(void);
 void robot_arm_status_update(void);
 void robot_arm_control(void);
 void robot_arm_state_transition(void);
-uint8_t is_joint_target_reached(fp32 tol);
+uint8_t is_joint_target_reached(fp32 tol, uint8_t *notReachedJointPtr);
 void robot_arm_assign_current_as_target(void);
 
 const fp32 joint_angle_min[7] = {ARM_JOINT_0_ANGLE_MIN, ARM_JOINT_1_ANGLE_MIN, ARM_JOINT_2_ANGLE_MIN, ARM_JOINT_3_ANGLE_MIN, ARM_JOINT_4_ANGLE_MIN, ARM_JOINT_5_ANGLE_MIN, ARM_JOINT_6_ANGLE_MIN};
@@ -32,13 +32,11 @@ uint32_t robot_arm_high_water;
 robot_arm_t robot_arm;
 
 #if ROBOT_ARM_JSCOPE_DEBUG
-uint32_t loop_delay = 0;
 uint8_t isTargetReached = 0;
 uint8_t notReachedJoint = 0;
 static void jscope_robot_arm_test(void)
 {
-	loop_delay = HAL_GetTick() - robot_arm.time_ms;
-	isTargetReached = is_joint_target_reached(0.05f);
+	isTargetReached = is_joint_target_reached(0.05f, &notReachedJoint);
 }
 #endif
 
@@ -138,7 +136,7 @@ void robot_arm_control(void)
 			{
 				arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S);
 
-				if (fIsStateHoldTimePassed && is_joint_target_reached(0.05f))
+				if (fIsStateHoldTimePassed && is_joint_target_reached(0.05f, NULL))
 				{
 					if (robot_arm.fHoming)
 					{
@@ -165,7 +163,7 @@ void robot_arm_control(void)
 
 				if (fIsStateHoldTimePassed)
 				{
-					if (is_joint_target_reached(0.05f))
+					if (is_joint_target_reached(0.05f, NULL))
 					{
 						if (robot_arm.fHoming)
 						{
@@ -199,7 +197,7 @@ void robot_arm_control(void)
 					robot_arm_assign_current_as_target();
 				}
 
-				if (robot_arm.fMasterSwitch && (is_joint_target_reached(0.05f) == 0))
+				if (robot_arm.fMasterSwitch && (is_joint_target_reached(0.05f, NULL) == 0))
 				{
 					robot_arm.arm_state = ARM_STATE_MOVING;
 				}
@@ -300,7 +298,7 @@ void robot_arm_switch_on_power(void)
 	}
 }
 
-uint8_t is_joint_target_reached(fp32 tol)
+uint8_t is_joint_target_reached(fp32 tol, uint8_t *notReachedJointPtr)
 {
 	uint8_t fTargetReached = 1;
 	for (uint8_t i = 0; i < sizeof(robot_arm.joint_angle_target) / sizeof(robot_arm.joint_angle_target[0]); i++)
@@ -308,11 +306,17 @@ uint8_t is_joint_target_reached(fp32 tol)
 		if (fabs(robot_arm.joint_angle_target[i] - motor_measure[i].output_angle) > tol)
 		{
 			fTargetReached = 0;
-#if ROBOT_ARM_JSCOPE_DEBUG
-			notReachedJoint = i;
-#endif
+			if (notReachedJointPtr != NULL)
+			{
+				*notReachedJointPtr = i;
+			}
 			break;
 		}
+	}
+
+	if (fTargetReached && (notReachedJointPtr != NULL))
+	{
+		*notReachedJointPtr = 0xFF;
 	}
 	return fTargetReached;
 }
