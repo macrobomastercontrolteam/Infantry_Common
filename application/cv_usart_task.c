@@ -74,6 +74,8 @@ typedef struct __attribute__((packed))
 	uint8_t team_color;
 	uint16_t time_remain;
 	uint16_t current_HP;
+	uint16_t red_outpost_HP;
+	uint16_t blue_outpost_HP;
 } tRefStatusMsgPayload;
 STATIC_ASSERT(sizeof(tRefStatusMsgPayload) <= DATA_PACKAGE_PAYLOAD_SIZE);
 
@@ -313,6 +315,8 @@ void CvCmder_SendInfoData(eInfoBits InfoBit)
 			CvTxBuffer.tData.RefStatusMsgPayload.team_color = get_team_color();
 			CvTxBuffer.tData.RefStatusMsgPayload.time_remain = get_time_remain();
 			CvTxBuffer.tData.RefStatusMsgPayload.current_HP = get_current_HP();
+			CvTxBuffer.tData.RefStatusMsgPayload.red_outpost_HP  = get_red_outpost_HP();
+			CvTxBuffer.tData.RefStatusMsgPayload.blue_outpost_HP = get_blue_outpost_HP();
 			break;
 		}
 		case CV_INFO_GIMBAL_ANGLE_BIT:
@@ -468,12 +472,14 @@ tCvCmdHandler *CvCmder_GetHandler(void)
 	return &CvCmdHandler;
 }
 
-void CvCmder_set_ref_status(uint16_t _current_HP, uint8_t _team_color, uint16_t _stage_remain_time, uint8_t _game_progress)
+void CvCmder_set_ref_status(uint16_t _current_HP, uint8_t _team_color, uint16_t _stage_remain_time, uint8_t _game_progress, uint16_t _red_outpost_HP, uint16_t _blue_outpost_HP)
 {
 	CvCmdHandler.game_progress = _game_progress;
 	CvCmdHandler.team_color = _team_color;
 	CvCmdHandler.stage_remain_time = _stage_remain_time;
 	CvCmdHandler.current_HP = _current_HP;
+	CvCmdHandler.red_outpost_HP = _red_outpost_HP;
+	CvCmdHandler.blue_outpost_HP = _blue_outpost_HP;
 }
 
 uint8_t is_game_started(void)
@@ -494,6 +500,16 @@ uint16_t get_current_HP(void)
 uint8_t get_team_color(void)
 {
 	return CvCmdHandler.team_color;
+}
+
+uint16_t get_red_outpost_HP(void)
+{
+	return CvCmdHandler.red_outpost_HP;
+}
+
+uint16_t get_blue_outpost_HP(void)
+{
+	return CvCmdHandler.blue_outpost_HP;
 }
 
 #if DEBUG_CV_WITH_USB

@@ -51,6 +51,8 @@ typedef struct
     uint8_t team_color;
     uint16_t stage_remain_time;
     uint8_t game_progress;
+    uint16_t blue_outpost_HP;
+    uint16_t red_outpost_HP;
 } tCvCmdHandler;
 
 void cv_usart_task(void const *argument);
@@ -60,8 +62,10 @@ void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
 tCvCmdHandler* CvCmder_GetHandler(void);
 void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd);
 void CvCmder_toe_solve_lost_fun(void);
-void CvCmder_set_ref_status(uint16_t _current_HP, uint8_t _team_color, uint16_t _stage_remain_time, uint8_t _game_progress);
+void CvCmder_set_ref_status(uint16_t _current_HP, uint8_t _team_color, uint16_t _stage_remain_time, uint8_t _game_progress, uint16_t _red_outpost_HP, uint16_t _blue_outpost_HP);
 uint8_t is_game_started(void);
+uint16_t get_red_outpost_HP(void);
+uint16_t get_blue_outpost_HP(void);
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void);
 #endif // DEBUG_CV_WITH_USB

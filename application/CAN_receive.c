@@ -37,7 +37,10 @@
 #define ENABLE_FRICTION_2_MOTOR_POWER 0
 
 #define BULLET_SPEED_ECD_MAX 40.0f
-#define BULLET_SPEED_RATIO (0xFF / BULLET_SPEED_ECD_MAX)
+#define BULLET_SPEED_DECODE_RATIO (BULLET_SPEED_ECD_MAX / 255.0f)
+
+#define HEAT_LIMIT_ECD_MAX 400.0f
+#define SHOOT_HEAT_DECODE_RATIO (HEAT_LIMIT_ECD_MAX / 255.0f)
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
@@ -146,17 +149,18 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 void decode_lower_head_data(uint8_t *data)
 {
-	shoot_control.heat_limit = (data[0] << 8) | data[1];
-	shoot_control.heat = (data[2] << 8) | data[3];
-	shoot_control.bullet_init_speed = (fp32) data[4] / BULLET_SPEED_RATIO;
+    shoot_control.heat_limit = (fp32)data[0] * SHOOT_HEAT_DECODE_RATIO;
+    shoot_control.heat = (fp32)data[1] * SHOOT_HEAT_DECODE_RATIO;
+    shoot_control.bullet_init_speed = (fp32)data[2] * BULLET_SPEED_DECODE_RATIO;
 
+    uint16_t blue_outpost_HP = (data[3] << 8) | data[4];
+	uint16_t red_outpost_HP = (data[5] << 8) | data[6];
 	uint8_t team_color = ((data[7] & (1 << 7)) != 0);
-	// placeholders
 	// 4 represents game start
     uint8_t game_progress = 4;
 	uint16_t current_HP = 100;
 	uint16_t stage_remain_time = 100;
-	CvCmder_set_ref_status(current_HP, team_color, stage_remain_time, game_progress);
+	CvCmder_set_ref_status(current_HP, team_color, stage_remain_time, game_progress, red_outpost_HP, blue_outpost_HP);
 }
 
 /**
