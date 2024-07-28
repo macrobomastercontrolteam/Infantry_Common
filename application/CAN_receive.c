@@ -254,19 +254,22 @@ HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
 		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
 
-		motor_measure[bMotorId].output_angle = uint_to_float_motor(p_int, MIT_CONTROL_P_MIN[DM_4310], MIT_CONTROL_P_MAX[DM_4310], 16);
-		motor_measure[bMotorId].velocity = uint_to_float_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
-		motor_measure[bMotorId].torque = uint_to_float_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
+		fp32 temp_output_angle = uint_to_float_motor(p_int, MIT_CONTROL_P_MIN[DM_4310], MIT_CONTROL_P_MAX[DM_4310], 16);
+		fp32 temp_velocity = uint_to_float_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
+		fp32 temp_torque = uint_to_float_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
 		motor_measure[bMotorId].temperature = data[6];
 
 #if REVERSE_JOINT_0_DIRECTION
 		if (bMotorId == JOINT_ID_0_4310)
 		{
-			motor_measure[bMotorId].output_angle *= -1;
-			motor_measure[bMotorId].velocity *= -1;
-			motor_measure[bMotorId].torque *= -1;
+			temp_output_angle *= -1;
+			temp_velocity *= -1;
+			temp_torque *= -1;
 		}
 #endif
+		motor_measure[bMotorId].output_angle = temp_output_angle;
+		motor_measure[bMotorId].velocity = temp_velocity;
+		motor_measure[bMotorId].torque = temp_torque;
 		ret_value = HAL_OK;
 	}
 	return ret_value;
