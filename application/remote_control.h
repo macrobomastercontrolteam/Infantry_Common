@@ -67,6 +67,8 @@
 
 // toggle auto-aim mode
 #define AUTO_AIM_TOGGLE_KEYBOARD KEY_PRESSED_OFFSET_G
+
+#define RC_JOYSTICK_DEADLINE 10
 /* ----------------------- Data Struct ------------------------------------- */
 typedef __packed struct
 {
@@ -94,6 +96,7 @@ typedef __packed struct
 
 extern void remote_control_init(void);
 extern const RC_ctrl_t *get_remote_control_point(void);
+extern RC_ctrl_t rc_ctrl;
 extern uint8_t RC_data_is_error(void);
 extern void solve_RC_lost(void);
 extern void solve_data_error(void);

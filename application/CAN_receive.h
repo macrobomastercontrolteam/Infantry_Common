@@ -30,34 +30,44 @@ extern "C" {
 #define LOWER_MOTORS_CAN hcan1
 #define UPPER_MOTORS_CAN hcan2
 
+#define MOTOR_MG4005_GEAR_RATIO 10.0f
+#define MOTOR_MG4005_MAX_CMD 2000.0f
+
+#define MOTOR_MS4005_GEAR_RATIO 1.0f
+#define MOTOR_MS4005_MAX_CMD 2000.0f
+
 typedef enum
 {
-    // main IDs: used for indexing
+    // DaMiao motors
+    // @TODO: use different rx id for different damiao motors
     CAN_JOINT_MOTOR_0_4310_TX_ID = 0x001,
-    CAN_JOINT_MOTOR_1_6012_TX_ID = 0x142,
-    CAN_JOINT_MOTOR_2_4010_TX_ID = 0x143,
-    CAN_JOINT_MOTOR_3_4310_TX_ID = 0x004,
-    CAN_JOINT_MOTOR_4_4310_TX_ID = 0x005,
-    CAN_JOINT_MOTOR_5_4310_TX_ID = 0x006,
-    CAN_JOINT_MOTOR_6_6020_RX_ID = 0x20B,
+    CAN_JOINT_MOTOR_1_4310_TX_ID = 0x002,
+    CAN_JOINT_MOTOR_2_4310_TX_ID = 0x003,
 
-    // other IDs
-    CAN_DAMIAO_RX_ID = 0x0FF,
-    CAN_MOTOR_6020_TX_ID = 0x2FF,
-    CAN_JOINT_MOTOR_1_6012_RX_ID = 0x142,
-    CAN_JOINT_MOTOR_2_4010_RX_ID = 0x143,
+    CAN_JOINT_MOTOR_0_4310_RX_ID = 0x0F1,
+    CAN_JOINT_MOTOR_1_4310_RX_ID = 0x0F2,
+    CAN_JOINT_MOTOR_2_4310_RX_ID = 0x0F3,
+
+    // KTech motors
+    CAN_KTECH_BROADCAST_CURRENT_TX_ID = 0x280,
+    // MG4005E-i10
+    CAN_JOINT_MOTOR_3_4005_RX_ID = 0x141,
+    // MS4005-v3
+    CAN_JOINT_MOTOR_4_4005_RX_ID = 0x142,
+    CAN_JOINT_MOTOR_5_4005_RX_ID = 0x143,
+    CAN_JOINT_MOTOR_6_4005_RX_ID = 0x144,
 } can_msg_id_e;
 
 // Consecutive indices corresponding to individual can_msg_id_e
 typedef enum
 {
     JOINT_ID_0_4310 = 0,
-    JOINT_ID_1_6012 = 1,
-    JOINT_ID_2_4010 = 2,
-    JOINT_ID_3_4310 = 3,
-    JOINT_ID_4_4310 = 4,
-    JOINT_ID_5_4310 = 5,
-    JOINT_ID_6_6020 = 6,
+    JOINT_ID_1_4310 = 1,
+    JOINT_ID_2_4310 = 2,
+    JOINT_ID_3_4005 = 3,
+    JOINT_ID_4_4005 = 4,
+    JOINT_ID_5_4005 = 5,
+    JOINT_ID_6_4005 = 6,
     JOINT_ID_LAST,
 } chassis_motor_ID_e;
 
@@ -83,20 +93,20 @@ typedef struct
 {
     int8_t temperature;
     uint16_t ecd;
-    int16_t speed_rpm;
-    int16_t given_current;
     int16_t last_ecd;
+    // int16_t speed_rpm;
+    // int16_t given_current;
     fp32 output_angle; // rad
-    fp32 input_angle;  // rad
-    fp32 velocity;     // rad/s
-    fp32 torque;       // Nm
-    fp32 power;
+    // fp32 input_angle;  // rad
+    fp32 velocity; // rad/s
+    fp32 torque;   // Nm
+    fp32 feedback_current;
 } motor_measure_t;
 
 extern motor_measure_t motor_measure[JOINT_ID_LAST];
 
-uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt);
-void arm_joints_cmd_torque(float joint_torques[7]);
+uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt, uint8_t fIsTeaching);
+void arm_joints_cmd_torque(const fp32 joint_torques[7]);
 void update_joint_6_6020_angle(void);
 void CAN_cmd_switch_motor_power(uint8_t _enable);
 

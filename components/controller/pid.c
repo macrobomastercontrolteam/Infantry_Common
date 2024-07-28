@@ -158,6 +158,7 @@ fp32 filter_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff)
 
 fp32 filter_rad_err_handler(fp32 set, fp32 ref, fp32 err[3], fp32 filter_coeff)
 {
+  // @TODO: fix zero filter output when error oscillates around -PI and PI
   fp32 new_err = rad_format(set - ref);
   fp32 output = first_order_filter(new_err, err[1], filter_coeff);
   return output;

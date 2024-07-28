@@ -4,6 +4,7 @@
 #include "CAN_receive.h"
 #include "user_lib.h"
 #include "pid.h"
+#include "remote_control.h"
 
 /*********** Robot Configs Start ***********/
 // @TODO
@@ -15,7 +16,7 @@
 #define DISABLE_JOINT_5_POWER 0
 #define DISABLE_JOINT_6_POWER 0
 
-#define ROBOT_ARM_JSCOPE_DEBUG 1
+#define ROBOT_ARM_JSCOPE_DEBUG 0
 /*********** Robot Configs End ***********/
 
 #define ROBOT_ARM_TASK_INIT_TIME 500.0f
@@ -77,74 +78,194 @@
 #define ARM_END_EFFECTOR_Z_MAX (0.5f)
 #define ARM_END_EFFECTOR_Z_HOME 0.0f
 
-// controls motor angle cmd
-#define JOINT_0_ANGLE_PID_KP 1.0f
-#define JOINT_0_ANGLE_PID_KI 0.5f
-#define JOINT_0_ANGLE_PID_KD 0.0f
-#define JOINT_0_ANGLE_PID_MAX_OUT 0.25f
-#define JOINT_0_ANGLE_PID_MAX_IOUT 0.25f
+/******** Fixed-arm mode pid start ********/
+#define JOINT_0_ANGLE_PID_KP 25.0f
+#define JOINT_0_ANGLE_PID_KI 15.0f
+#define JOINT_0_ANGLE_PID_KD 0.15f
+#define JOINT_0_ANGLE_PID_MAX_OUT 3.0f
+#define JOINT_0_ANGLE_PID_MAX_IOUT 3.0f
 
-// controls motor angle cmd
-#define JOINT_3_ANGLE_PID_KP 1.0f
-#define JOINT_3_ANGLE_PID_KI 1.0f
-#define JOINT_3_ANGLE_PID_KD 0.0f
-#define JOINT_3_ANGLE_PID_MAX_OUT 0.25f
-#define JOINT_3_ANGLE_PID_MAX_IOUT 0.25f
+#define JOINT_1_ANGLE_PID_KP 25.0f
+#define JOINT_1_ANGLE_PID_KI 15.0f
+#define JOINT_1_ANGLE_PID_KD 0.15f
+#define JOINT_1_ANGLE_PID_MAX_OUT 3.0f
+#define JOINT_1_ANGLE_PID_MAX_IOUT 3.0f
 
-// controls motor angle cmd
-#define JOINT_4_ANGLE_PID_KP 1.0f
-#define JOINT_4_ANGLE_PID_KI 1.0f
-#define JOINT_4_ANGLE_PID_KD 0.0f
-#define JOINT_4_ANGLE_PID_MAX_OUT 0.25f
-#define JOINT_4_ANGLE_PID_MAX_IOUT 0.25f
+#define JOINT_2_ANGLE_PID_KP 25.0f
+#define JOINT_2_ANGLE_PID_KI 15.0f
+#define JOINT_2_ANGLE_PID_KD 0.15f
+#define JOINT_2_ANGLE_PID_MAX_OUT 3.0f
+#define JOINT_2_ANGLE_PID_MAX_IOUT 3.0f
 
-// controls motor angle cmd
-#define JOINT_5_ANGLE_PID_KP 1.0f
-#define JOINT_5_ANGLE_PID_KI 1.0f
-#define JOINT_5_ANGLE_PID_KD 0.0f
-#define JOINT_5_ANGLE_PID_MAX_OUT 0.25f
-#define JOINT_5_ANGLE_PID_MAX_IOUT 0.25f
+#define JOINT_3_ANGLE_PID_KP 500.0f
+#define JOINT_3_ANGLE_PID_KI 100.0f
+#define JOINT_3_ANGLE_PID_KD 10.0f
+#define JOINT_3_ANGLE_PID_MAX_OUT MOTOR_MG4005_MAX_CMD
+#define JOINT_3_ANGLE_PID_MAX_IOUT MOTOR_MG4005_MAX_CMD
 
-// controls motor speed cmd
-#define JOINT_6_ANGLE_PID_KP 20.0f
-#define JOINT_6_ANGLE_PID_KI 0.5f
-#define JOINT_6_ANGLE_PID_KD 0.0f
-#define JOINT_6_ANGLE_PID_MAX_OUT RPM_TO_RADS(90.0f)
-#define JOINT_6_ANGLE_PID_MAX_IOUT RPM_TO_RADS(10.0f)
+#define JOINT_4_ANGLE_PID_KP 2000.0f
+#define JOINT_4_ANGLE_PID_KI 20.0f
+#define JOINT_4_ANGLE_PID_KD 0.5f
+#define JOINT_4_ANGLE_PID_MAX_OUT MOTOR_MS4005_MAX_CMD
+#define JOINT_4_ANGLE_PID_MAX_IOUT MOTOR_MS4005_MAX_CMD
 
-// controls motor acceleration cmd
-#define JOINT_6_SPEED_PID_KP 850.0f // pitch starts shaking at 1200
-#define JOINT_6_SPEED_PID_KI 0.0f
-#define JOINT_6_SPEED_PID_KD 0.0f
-#define JOINT_6_SPEED_PID_MAX_OUT 30000.0f
-#define JOINT_6_SPEED_PID_MAX_IOUT 10000.0f
+#define JOINT_5_ANGLE_PID_KP 2000.0f
+#define JOINT_5_ANGLE_PID_KI 20.0f
+#define JOINT_5_ANGLE_PID_KD 0.5f
+#define JOINT_5_ANGLE_PID_MAX_OUT MOTOR_MS4005_MAX_CMD
+#define JOINT_5_ANGLE_PID_MAX_IOUT MOTOR_MS4005_MAX_CMD
+
+#define JOINT_6_ANGLE_PID_KP 300.0f
+#define JOINT_6_ANGLE_PID_KI 40.0f
+#define JOINT_6_ANGLE_PID_KD 0.1f
+#define JOINT_6_ANGLE_PID_MAX_OUT MOTOR_MS4005_MAX_CMD
+#define JOINT_6_ANGLE_PID_MAX_IOUT MOTOR_MS4005_MAX_CMD
+/******** Fixed-arm mode pid end ********/
+
+/******** Teaching mode pid start ********/
+#define JOINT_0_ANGLE_TEACH_PID_KP 1.0f
+#define JOINT_0_ANGLE_TEACH_PID_KI 0.0f
+#define JOINT_0_ANGLE_TEACH_PID_KD 0.0f
+#define JOINT_0_ANGLE_TEACH_PID_MAX_OUT 0.25f
+#define JOINT_0_ANGLE_TEACH_PID_MAX_IOUT 0.0f
+
+#define JOINT_1_ANGLE_TEACH_PID_KP 1.0f
+#define JOINT_1_ANGLE_TEACH_PID_KI 0.0f
+#define JOINT_1_ANGLE_TEACH_PID_KD 0.0f
+#define JOINT_1_ANGLE_TEACH_PID_MAX_OUT 0.25f
+#define JOINT_1_ANGLE_TEACH_PID_MAX_IOUT 0.0f
+
+#define JOINT_2_ANGLE_TEACH_PID_KP 1.0f
+#define JOINT_2_ANGLE_TEACH_PID_KI 0.0f
+#define JOINT_2_ANGLE_TEACH_PID_KD 0.0f
+#define JOINT_2_ANGLE_TEACH_PID_MAX_OUT 0.25f
+#define JOINT_2_ANGLE_TEACH_PID_MAX_IOUT 0.0f
+
+#define JOINT_3_ANGLE_TEACH_PID_KP 1.0f
+#define JOINT_3_ANGLE_TEACH_PID_KI 0.0f
+#define JOINT_3_ANGLE_TEACH_PID_KD 0.0f
+#define JOINT_3_ANGLE_TEACH_PID_MAX_OUT 0.25f
+#define JOINT_3_ANGLE_TEACH_PID_MAX_IOUT 0.0f
+
+#define JOINT_4_ANGLE_TEACH_PID_KP 1.0f
+#define JOINT_4_ANGLE_TEACH_PID_KI 0.0f
+#define JOINT_4_ANGLE_TEACH_PID_KD 0.0f
+#define JOINT_4_ANGLE_TEACH_PID_MAX_OUT 0.25f
+#define JOINT_4_ANGLE_TEACH_PID_MAX_IOUT 0.0f
+
+#define JOINT_5_ANGLE_TEACH_PID_KP 1.0f
+#define JOINT_5_ANGLE_TEACH_PID_KI 0.0f
+#define JOINT_5_ANGLE_TEACH_PID_KD 0.0f
+#define JOINT_5_ANGLE_TEACH_PID_MAX_OUT 0.25f
+#define JOINT_5_ANGLE_TEACH_PID_MAX_IOUT 0.0f
+
+#define JOINT_6_ANGLE_TEACH_PID_KP 1.0f
+#define JOINT_6_ANGLE_TEACH_PID_KI 0.0f
+#define JOINT_6_ANGLE_TEACH_PID_KD 0.0f
+#define JOINT_6_ANGLE_TEACH_PID_MAX_OUT 0.25f
+#define JOINT_6_ANGLE_TEACH_PID_MAX_IOUT 0.0f
+/******** Teaching mode pid end ********/
+
+#define JOINT_0_RC_DIRECTION_GAIN (1.0f)
+#define JOINT_1_RC_DIRECTION_GAIN (-1.0f)
+#define JOINT_2_RC_DIRECTION_GAIN (1.0f)
+#define JOINT_3_RC_DIRECTION_GAIN (-1.0f)
+#define JOINT_4_RC_DIRECTION_GAIN (1.0f)
+#define JOINT_5_RC_DIRECTION_GAIN (1.0f)
+#define JOINT_6_RC_DIRECTION_GAIN (1.0f)
+
+#define ARM_JOINT_CLEARANCE 0.08f
+
+#define ARM_JOINT_0_ANGLE_MIN (-160.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_0_ANGLE_MAX (160.0f / 180.0f * PI - ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_0_ANGLE_RANGE (ARM_JOINT_0_ANGLE_MAX - ARM_JOINT_0_ANGLE_MIN)
+#define ARM_JOINT_0_ANGLE_HOME 0.0f
+#define ARM_JOINT_0_RC_SEN (JOINT_0_RC_DIRECTION_GAIN * ARM_JOINT_0_ANGLE_RANGE / JOYSTICK_FULL_RANGE)
+#define ARM_JOINT_0_ANGLE_RC_CHANGE_TIME_S 3.0f
+#define ARM_JOINT_0_KEYBOARD_INC (JOINT_0_RC_DIRECTION_GAIN * ARM_JOINT_0_ANGLE_RANGE / ARM_JOINT_0_ANGLE_RC_CHANGE_TIME_S * ROBOT_ARM_CONTROL_TIME_S)
+#define ARM_JOINT_0_RC_SEN_INC (ARM_JOINT_0_KEYBOARD_INC / JOYSTICK_HALF_RANGE)
+
+#define ARM_JOINT_1_ANGLE_MIN (-30.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_1_ANGLE_MAX (40.0f / 180.0f * PI - ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_1_ANGLE_RANGE (ARM_JOINT_1_ANGLE_MAX - ARM_JOINT_1_ANGLE_MIN)
+#define ARM_JOINT_1_ANGLE_HOME ARM_JOINT_1_ANGLE_MAX
+#define ARM_JOINT_1_RC_SEN (JOINT_1_RC_DIRECTION_GAIN * ARM_JOINT_1_ANGLE_RANGE / JOYSTICK_HALF_RANGE)
+#define ARM_JOINT_1_ANGLE_RC_CHANGE_TIME_S 1.0f
+#define ARM_JOINT_1_KEYBOARD_INC (JOINT_1_RC_DIRECTION_GAIN * ARM_JOINT_1_ANGLE_RANGE / ARM_JOINT_1_ANGLE_RC_CHANGE_TIME_S * ROBOT_ARM_CONTROL_TIME_S)
+#define ARM_JOINT_1_RC_SEN_INC (ARM_JOINT_1_KEYBOARD_INC / JOYSTICK_HALF_RANGE)
+
+#define ARM_JOINT_2_ANGLE_MIN (-155.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_2_ANGLE_MAX (0.0f - ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_2_ANGLE_RANGE (ARM_JOINT_2_ANGLE_MAX - ARM_JOINT_2_ANGLE_MIN)
+#define ARM_JOINT_2_ANGLE_HOME ARM_JOINT_2_ANGLE_MIN
+#define ARM_JOINT_2_RC_SEN (JOINT_2_RC_DIRECTION_GAIN * ARM_JOINT_2_ANGLE_RANGE / JOYSTICK_HALF_RANGE)
+#define ARM_JOINT_2_ANGLE_RC_CHANGE_TIME_S 1.5f
+#define ARM_JOINT_2_KEYBOARD_INC (JOINT_2_RC_DIRECTION_GAIN * ARM_JOINT_2_ANGLE_RANGE / ARM_JOINT_2_ANGLE_RC_CHANGE_TIME_S * ROBOT_ARM_CONTROL_TIME_S)
+#define ARM_JOINT_2_RC_SEN_INC (ARM_JOINT_2_KEYBOARD_INC / JOYSTICK_HALF_RANGE)
+
+#define ARM_JOINT_3_ANGLE_MIN (-80.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_3_ANGLE_MAX (80.0f / 180.0f * PI - ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_3_ANGLE_RANGE (ARM_JOINT_3_ANGLE_MAX - ARM_JOINT_3_ANGLE_MIN)
+#define ARM_JOINT_3_ANGLE_HOME 0.0f
+#define ARM_JOINT_3_RC_SEN (JOINT_3_RC_DIRECTION_GAIN * ARM_JOINT_3_ANGLE_RANGE / JOYSTICK_FULL_RANGE)
+#define ARM_JOINT_3_ANGLE_RC_CHANGE_TIME_S 1.0f
+#define ARM_JOINT_3_KEYBOARD_INC (JOINT_3_RC_DIRECTION_GAIN * ARM_JOINT_3_ANGLE_RANGE / ARM_JOINT_3_ANGLE_RC_CHANGE_TIME_S * ROBOT_ARM_CONTROL_TIME_S)
+#define ARM_JOINT_3_RC_SEN_INC (ARM_JOINT_3_KEYBOARD_INC / JOYSTICK_HALF_RANGE)
+
+#define ARM_JOINT_4_ANGLE_MIN (-0.5f * PI + ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_4_ANGLE_MAX (0.5f * PI - ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_4_ANGLE_RANGE (ARM_JOINT_4_ANGLE_MAX - ARM_JOINT_4_ANGLE_MIN)
+#define ARM_JOINT_4_ANGLE_HOME 0.0f
+#define ARM_JOINT_4_RC_SEN (JOINT_4_RC_DIRECTION_GAIN * ARM_JOINT_4_ANGLE_RANGE / JOYSTICK_FULL_RANGE)
+#define ARM_JOINT_4_ANGLE_RC_CHANGE_TIME_S 1.0f
+#define ARM_JOINT_4_KEYBOARD_INC (JOINT_4_RC_DIRECTION_GAIN * ARM_JOINT_4_ANGLE_RANGE / ARM_JOINT_4_ANGLE_RC_CHANGE_TIME_S * ROBOT_ARM_CONTROL_TIME_S)
+#define ARM_JOINT_4_RC_SEN_INC (ARM_JOINT_4_KEYBOARD_INC / JOYSTICK_HALF_RANGE)
+
+#define ARM_JOINT_5_ANGLE_MIN (0.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_5_ANGLE_MAX (180.0f / 180.0f * PI - ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_5_ANGLE_RANGE (ARM_JOINT_5_ANGLE_MAX - ARM_JOINT_5_ANGLE_MIN)
+#define ARM_JOINT_5_ANGLE_HOME ARM_JOINT_5_ANGLE_MAX
+#define ARM_JOINT_5_RC_SEN (JOINT_5_RC_DIRECTION_GAIN * ARM_JOINT_5_ANGLE_RANGE / JOYSTICK_FULL_RANGE)
+#define ARM_JOINT_5_ANGLE_RC_CHANGE_TIME_S 1.0f
+#define ARM_JOINT_5_KEYBOARD_INC (JOINT_5_RC_DIRECTION_GAIN * ARM_JOINT_5_ANGLE_RANGE / ARM_JOINT_5_ANGLE_RC_CHANGE_TIME_S * ROBOT_ARM_CONTROL_TIME_S)
+#define ARM_JOINT_5_RC_SEN_INC (ARM_JOINT_5_KEYBOARD_INC / JOYSTICK_HALF_RANGE)
+
+#define ARM_JOINT_6_ANGLE_MIN (-PI + ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_6_ANGLE_MAX (PI - ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_6_ANGLE_RANGE (ARM_JOINT_6_ANGLE_MAX - ARM_JOINT_6_ANGLE_MIN)
+#define ARM_JOINT_6_ANGLE_HOME 0.0f
+#define ARM_JOINT_6_RC_SEN (JOINT_6_RC_DIRECTION_GAIN * ARM_JOINT_6_ANGLE_RANGE / JOYSTICK_FULL_RANGE)
+#define ARM_JOINT_6_ANGLE_RC_CHANGE_TIME_S 1.0f
+#define ARM_JOINT_6_KEYBOARD_INC (JOINT_6_RC_DIRECTION_GAIN * ARM_JOINT_6_ANGLE_RANGE / ARM_JOINT_6_ANGLE_RC_CHANGE_TIME_S * ROBOT_ARM_CONTROL_TIME_S)
+#define ARM_JOINT_6_RC_SEN_INC (ARM_JOINT_6_KEYBOARD_INC / JOYSTICK_HALF_RANGE)
 
 typedef enum
 {
+	// real arm not controlled by demo arm
 	ARM_STATE_ZERO_FORCE = 0,
-	ARM_STATE_MOVING,
+	// demo arm sync to real arm
+	ARM_STATE_SYNCING,
+	// fix demo arm at real arm position
+	// Difference between ARM_STATE_FIXED and ARM_STATE_SYNCING: change of target position during syncing process is gradual, unlike instant change in fixed state
 	ARM_STATE_FIXED,
+	// control real arm by demo arm
+	ARM_STATE_TEACHING,
 } robot_arm_state_e;
 
 typedef struct
 {
 	fp32 time_step_s; // second
 	uint32_t time_ms; // millisecond
-	pid_type_def joint_0_angle_pid;
-	pid_type_def joint_1_angle_pid;
-	pid_type_def joint_2_angle_pid;
-	pid_type_def joint_3_angle_pid;
-	pid_type_def joint_4_angle_pid;
-	pid_type_def joint_5_angle_pid;
-
-	pid_type_def joint_6_angle_pid;
-	pid_type_def joint_6_speed_pid;
+	pid_type_def joint_angle_pid[7];
+	pid_type_def joint_angle_teach_pid[7];
 
 	fp32 joint_angle_target[7];
+	fp32 joint_angle_target_before_sync[7];
+	fp32 joint_angle_real_arm[7];
 	robot_arm_state_e arm_state;
 	uint32_t prevStateSwitchTime;
-	uint8_t fHoming;
 	uint8_t fMasterSwitch;
+	uint8_t fTeaching;
 
 	// const fp32 *arm_INS_angle;
 	// const fp32 *arm_INS_speed;
@@ -157,8 +278,8 @@ extern const fp32 joint_angle_min[7];
 extern const fp32 joint_angle_max[7];
 extern const fp32 joint_angle_home[7];
 extern void robot_arm_task(void const *pvParameters);
-void robot_arm_return_to_center(void);
-void robot_arm_motors_return_home(uint8_t _start, uint8_t _end);
+void robot_arm_all_motors_return_home(fp32 arm_angles[7]);
+void robot_arm_motors_return_home(fp32 arm_angles[7], uint8_t _start, uint8_t _end);
 void robot_arm_switch_on_power(void);
 
 extern robot_arm_t robot_arm;

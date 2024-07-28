@@ -81,11 +81,11 @@ typedef __packed struct
     uint32_t work_time;
     uint16_t set_offline_time : 12;
     uint16_t set_online_time : 12;
-    uint8_t error_exist;
     uint8_t enable : 1;
     uint8_t priority : 4;
     uint8_t is_lost : 1;
     uint8_t data_is_error : 1;
+    uint8_t error_exist;
 
     fp32 frequency;
     bool_t (*data_is_error_fun)(void);

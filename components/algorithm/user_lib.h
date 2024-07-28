@@ -51,14 +51,6 @@
 // switches between original, RM, capstone models
 #define MODEL_ORIG_RM_CAP 1
 
-// reverse hip motor direction
-#define REVERSE_LB_HIP_MOTOR_DIRECTION 0
-#define REVERSE_LF_HIP_MOTOR_DIRECTION 1
-#define REVERSE_RB_HIP_MOTOR_DIRECTION 1
-#define REVERSE_RF_HIP_MOTOR_DIRECTION 0
-#define REVERSE_LEFT_DRIVE_MOTOR_DIRECTION 1
-#define REVERSE_RIGHT_DRIVE_MOTOR_DIRECTION 0
-
 /******************************* Robot control configs *******************************/
 #define NORMAL_MAX_CHASSIS_SPEED_X 2.5f // chassis forward or back max speed
 #define NORMAL_MAX_CHASSIS_SPEED_YAW 2.5f
@@ -157,6 +149,7 @@ extern fp32 moving_average_calc(fp32 input, moving_average_type_t *moving_averag
 extern fp32 fp32_deadline(fp32 Value, fp32 minValue, fp32 maxValue);
 // int26死区
 extern int16_t int16_deadline(int16_t Value, int16_t minValue, int16_t maxValue);
+extern fp32 fp32_abs_constrain(fp32 in, fp32 absValue);
 // 限幅函数
 extern fp32 fp32_constrain(fp32 Value, fp32 minValue, fp32 maxValue);
 // 限幅函数
@@ -176,6 +169,14 @@ fp32 brakezone_symmetric(fp32 input, fp32 threshold, fp32 order);
 #ifndef rad_format
 #define rad_format(Ang) loop_fp32_constrain((Ang), -PI, PI)
 #endif /* rad_format */
+
+#ifndef DEG_TO_RAD
+#define DEG_TO_RAD(_deg) (_deg * PI / 180.0f)
+#endif
+
+#ifndef RAD_TO_DEG
+#define RAD_TO_DEG(_deg) (_deg * 180.0f / PI)
+#endif
 
 #ifndef Limit
 #define Limit(x, max, min) ((x) > (MAX(min, max)) ? (MAX(min, max)) : ((x) < (MIN(min, max)) ? (MIN(min, max)) : (x)))

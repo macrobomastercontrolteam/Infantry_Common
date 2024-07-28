@@ -53,6 +53,7 @@
 #include "detect_task.h"
 #include "cmsis_os.h"
 
+#define DETECT_TEST_MODE 0
 
 /**
   * @brief          init error_list, assign  offline_time, online_time, priority.
@@ -76,6 +77,16 @@ error_t error_list[ERROR_LIST_LENGTH + 1];
 uint32_t detect_task_stack;
 #endif
 
+#if DETECT_TEST_MODE
+uint16_t detect_intervals[ERROR_LIST_LENGTH];
+static void J_scope_detect_test(uint16_t ulSystemTime)
+{
+    for (int i = 0; i < ERROR_LIST_LENGTH; i++)
+    {
+        detect_intervals[i] = ulSystemTime - error_list[i].new_time;
+    }
+}
+#endif
 
 /**
   * @brief          detect task
@@ -99,7 +110,6 @@ void detect_task(void const *pvParameters)
     while (1)
     {
         static uint8_t error_num_display = 0;
-        system_time = osKernelSysTick();
 
         error_num_display = ERROR_LIST_LENGTH;
         error_list[ERROR_LIST_LENGTH].is_lost = 0;
@@ -170,8 +180,11 @@ void detect_task(void const *pvParameters)
                 }
             }
         }
+#if DETECT_TEST_MODE
+        J_scope_detect_test(system_time);
+#endif
 
-        vTaskDelay(DETECT_CONTROL_TIME);
+        osDelayUntil(&system_time, DETECT_CONTROL_TIME);
 #if INCLUDE_uxTaskGetStackHighWaterMark
         detect_task_stack = uxTaskGetStackHighWaterMark(NULL);
 #endif
@@ -207,7 +220,7 @@ bool_t toe_is_error(uint8_t toe)
 void detect_hook(uint8_t toe)
 {
     error_list[toe].last_time = error_list[toe].new_time;
-    error_list[toe].new_time = osKernelSysTick();
+    error_list[toe].new_time = xTaskGetTickCount();
     
     if (error_list[toe].is_lost)
     {

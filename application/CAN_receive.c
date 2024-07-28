@@ -28,6 +28,8 @@
 
 #define ENABLE_ARM_MOTOR_POWER 0
 
+#define REVERSE_JOINT_0_DIRECTION 1
+
 #define MOTOR_6012_GEAR_RATIO 36.0f
 #define MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO 0.225146199f
 #define MOTOR_6012_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO 0.212f
@@ -36,21 +38,21 @@
 
 #define MOTOR_4010_GEAR_RATIO 36.0f
 #define MOTOR_4010_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO 0.225146199f // @TODO
-#define MOTOR_4010_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO 0.212f      // @TODO
+#define MOTOR_4010_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO 0.212f	   // @TODO
 #define MOTOR_4010_CMD_TO_TORQUE_RATIO (1.0f / MOTOR_4010_GEAR_RATIO / MOTOR_4010_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO / MOTOR_4010_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO / 33.0f * 2048.0f)
 #define MOTOR_4010_BROADCAST_CMD_TO_TORQUE_RATIO (1.0f / MOTOR_4010_GEAR_RATIO / MOTOR_4010_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO / MOTOR_4010_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO / 32.0f * 2000.0f)
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 // motor data read
-#define get_rm_motor_measure(ptr, data)                                \
-	{                                                                  \
-		(ptr)->last_ecd = (ptr)->ecd;                                  \
-		(ptr)->ecd = (uint16_t)((data)[0] << 8 | (data)[1]);           \
-		(ptr)->speed_rpm = (uint16_t)((data)[2] << 8 | (data)[3]);     \
-		(ptr)->given_current = (uint16_t)((data)[4] << 8 | (data)[5]); \
-		(ptr)->temperature = (data)[6];                                \
-	}
+// #define get_rm_motor_measure(ptr, data)                                \
+// 	{                                                                  \
+// 		(ptr)->last_ecd = (ptr)->ecd;                                  \
+// 		(ptr)->ecd = (uint16_t)((data)[0] << 8 | (data)[1]);           \
+// 		(ptr)->speed_rpm = (uint16_t)((data)[2] << 8 | (data)[3]);     \
+// 		(ptr)->given_current = (uint16_t)((data)[4] << 8 | (data)[5]); \
+// 		(ptr)->temperature = (data)[6];                                \
+// 	}
 
 motor_measure_t motor_measure[JOINT_ID_LAST];
 
@@ -73,49 +75,18 @@ const float MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.
 const uint16_t joint_6_6020_offset_ecd = 2876;
 
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, float _pos, float _vel, float _KP, float _KD, float _torq, uint8_t blocking_call, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
-HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
-HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
-HAL_StatusTypeDef encode_6012_motor_torque_control(uint32_t id, float torque_cmd, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
-HAL_StatusTypeDef encode_4010_motor_torque_control(uint32_t id, float torque_cmd, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
-HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_t current_ch_6, int16_t current_ch_7, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call);
+HAL_StatusTypeDef encode_ktech_broadcast_current_control(const fp32 joint_torques[7], uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
 
-void decode_chassis_controller_rx(uint8_t *data, uint32_t id);
-void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
-void decode_4010_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
-HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
+void decode_MG4005_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
+void decode_MS4005_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
+HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
 
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call);
 HAL_StatusTypeDef soft_disable_Ktech_motor(uint32_t id, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call);
 HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data);
 float uint_to_float_motor(int x_int, float x_min, float x_max, int bits);
 int float_to_uint_motor(float x, float x_min, float x_max, int bits);
-uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt);
-fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 HAL_StatusTypeDef Send_CAN_Cmd(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data, uint8_t blocking_call);
-
-uint8_t canRxIdToMotorArrayId(can_msg_id_e _SINGLE_CAN_ID)
-{
-	switch (_SINGLE_CAN_ID)
-	{
-		case CAN_JOINT_MOTOR_1_6012_RX_ID:
-		{
-			return JOINT_ID_1_6012;
-		}
-		case CAN_JOINT_MOTOR_2_4010_RX_ID:
-		{
-			return JOINT_ID_2_4010;
-		}
-		case CAN_JOINT_MOTOR_6_6020_RX_ID:
-		{
-			return JOINT_ID_6_6020;
-		}
-		case CAN_DAMIAO_RX_ID:
-		default:
-		{
-			return 0xFF;
-		}
-	}
-}
 
 /**
  * @brief          hal CAN fifo call back, receive motor data
@@ -135,46 +106,79 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
-	bMotorId = canRxIdToMotorArrayId((can_msg_id_e)rx_header.StdId);
-	switch (rx_header.StdId)
+	if (hcan == &LOWER_MOTORS_CAN)
 	{
-		case CAN_DAMIAO_RX_ID:
+		switch (rx_header.StdId)
 		{
-			decode_4310_motor_feedback(rx_data, &bMotorId);
+		case CAN_JOINT_MOTOR_0_4310_RX_ID:
+		{
+			bMotorId = JOINT_ID_0_4310;
+			decode_4310_motor_feedback(rx_data, bMotorId);
 			break;
 		}
-		case CAN_JOINT_MOTOR_1_6012_RX_ID:
+		case CAN_JOINT_MOTOR_1_4310_RX_ID:
 		{
-			if ((rx_data[0] == CAN_KTECH_MULTIANGLE_2_ID) || (rx_data[0] == CAN_KTECH_TORQUE_ID))
-			{
-				decode_6012_motor_torque_feedback(rx_data, bMotorId);
-			}
-			else if (rx_data[0] == CAN_KTECH_TEMP_DISABLE_MOTOR_ID)
-			{
-				; // do nothing except detect_hook
-			}
+			bMotorId = JOINT_ID_1_4310;
+			decode_4310_motor_feedback(rx_data, bMotorId);
 			break;
 		}
-		case CAN_JOINT_MOTOR_2_4010_RX_ID:
+		case CAN_JOINT_MOTOR_2_4310_RX_ID:
 		{
-			if ((rx_data[0] == CAN_KTECH_MULTIANGLE_2_ID) || (rx_data[0] == CAN_KTECH_TORQUE_ID))
-			{
-				decode_4010_motor_torque_feedback(rx_data, bMotorId);
-			}
-			else if (rx_data[0] == CAN_KTECH_TEMP_DISABLE_MOTOR_ID)
-			{
-				; // do nothing except detect_hook
-			}
-			break;
-		}
-		case CAN_JOINT_MOTOR_6_6020_RX_ID:
-		{
-			get_rm_motor_measure(&motor_measure[bMotorId], rx_data);
+			bMotorId = JOINT_ID_2_4310;
+			decode_4310_motor_feedback(rx_data, bMotorId);
 			break;
 		}
 		default:
 		{
 			break;
+		}
+		}
+	}
+	else if (hcan == &UPPER_MOTORS_CAN)
+	{
+		switch (rx_header.StdId)
+		{
+		case CAN_JOINT_MOTOR_3_4005_RX_ID:
+		{
+			if (rx_data[0] == CAN_KTECH_TORQUE_ID)
+			{
+				// @Warning: motor 3 is MG4005, different from MS4005
+				bMotorId = JOINT_ID_3_4005;
+				decode_MG4005_motor_torque_feedback(rx_data, bMotorId);
+			}
+			break;
+		}
+		case CAN_JOINT_MOTOR_4_4005_RX_ID:
+		{
+			if (rx_data[0] == CAN_KTECH_TORQUE_ID)
+			{
+				bMotorId = JOINT_ID_4_4005;
+				decode_MS4005_motor_torque_feedback(rx_data, bMotorId);
+			}
+			break;
+		}
+		case CAN_JOINT_MOTOR_5_4005_RX_ID:
+		{
+			if (rx_data[0] == CAN_KTECH_TORQUE_ID)
+			{
+				bMotorId = JOINT_ID_5_4005;
+				decode_MS4005_motor_torque_feedback(rx_data, bMotorId);
+			}
+			break;
+		}
+		case CAN_JOINT_MOTOR_6_4005_RX_ID:
+		{
+			if (rx_data[0] == CAN_KTECH_TORQUE_ID)
+			{
+				bMotorId = JOINT_ID_6_4005;
+				decode_MS4005_motor_torque_feedback(rx_data, bMotorId);
+			}
+			break;
+		}
+		default:
+		{
+			break;
+		}
 		}
 	}
 
@@ -211,31 +215,31 @@ int float_to_uint_motor(float x, float x_min, float x_max, int bits)
 	}
 }
 
-void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
+void decode_MG4005_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
 {
-	int16_t iq_int = (data[3] << 8) | data[2];    // A
-	int16_t v_int = (data[5] << 8) | data[4];     // deg/s
-	int16_t p_int = ((data[7] << 8) | data[6]); // 16bit abs encoder
+	int16_t current_int = (data[3] << 8) | data[2]; // A
+	int16_t v_int = (data[5] << 8) | data[4];		// deg/s
+	int16_t p_int = ((data[7] << 8) | data[6]);		// 16bit abs encoder
 
-	motor_measure[bMotorId].torque = ((fp32)iq_int) / MOTOR_6012_CMD_TO_TORQUE_RATIO;
-	motor_measure[bMotorId].velocity = ((fp32)v_int) / 36.0f / 180.0f * PI;
+	motor_measure[bMotorId].feedback_current = (fp32)current_int;
+	motor_measure[bMotorId].velocity = ((fp32)v_int) / MOTOR_MG4005_GEAR_RATIO / 180.0f * PI;
 	motor_measure[bMotorId].output_angle = ((fp32)p_int) / (1 << 16) * 2.0f * PI;
 	motor_measure[bMotorId].temperature = data[1];
 }
 
-void decode_4010_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
+void decode_MS4005_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
 {
-	int16_t power_int = (data[3] << 8) | data[2]; // A
-	int16_t v_int = (data[5] << 8) | data[4];     // deg/s
-	int16_t p_int = ((data[7] << 8) | data[6]); // 16bit abs encoder
+	int16_t current_int = (data[3] << 8) | data[2]; // A
+	int16_t v_int = (data[5] << 8) | data[4];		// deg/s
+	int16_t p_int = ((data[7] << 8) | data[6]);		// 16bit abs encoder
 
-	motor_measure[bMotorId].torque = ((fp32)power_int) / MOTOR_4010_CMD_TO_TORQUE_RATIO;
-	motor_measure[bMotorId].velocity = ((fp32)v_int) / 36.0f / 180.0f * PI;
+	motor_measure[bMotorId].feedback_current = (fp32)current_int;
+	motor_measure[bMotorId].velocity = ((fp32)v_int) / MOTOR_MS4005_GEAR_RATIO / 180.0f * PI;
 	motor_measure[bMotorId].output_angle = ((fp32)p_int) / (1 << 16) * 2.0f * PI;
 	motor_measure[bMotorId].temperature = data[1];
 }
 
-HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
+HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
 	HAL_StatusTypeDef ret_value = HAL_ERROR;
 	uint8_t error_id = data[0] >> 4;
@@ -246,28 +250,35 @@ HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr
 	}
 	else
 	{
-		uint16_t p_int = (data[1] << 8) | data[2];         // rad
+		uint16_t p_int = (data[1] << 8) | data[2];		   // rad
 		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
 		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
 
-		*bMotorIdPtr = (data[0] & 0xF) - 1 + JOINT_ID_0_4310;
-		motor_measure[*bMotorIdPtr].output_angle = uint_to_float_motor(p_int, MIT_CONTROL_P_MIN[DM_4310], MIT_CONTROL_P_MAX[DM_4310], 16);
-		motor_measure[*bMotorIdPtr].velocity = uint_to_float_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
-		motor_measure[*bMotorIdPtr].torque = uint_to_float_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
-		motor_measure[*bMotorIdPtr].temperature = data[6];
+		motor_measure[bMotorId].output_angle = uint_to_float_motor(p_int, MIT_CONTROL_P_MIN[DM_4310], MIT_CONTROL_P_MAX[DM_4310], 16);
+		motor_measure[bMotorId].velocity = uint_to_float_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
+		motor_measure[bMotorId].torque = uint_to_float_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
+		motor_measure[bMotorId].temperature = data[6];
 
+#if REVERSE_JOINT_0_DIRECTION
+		if (bMotorId == JOINT_ID_0_4310)
+		{
+			motor_measure[bMotorId].output_angle *= -1;
+			motor_measure[bMotorId].velocity *= -1;
+			motor_measure[bMotorId].torque *= -1;
+		}
+#endif
 		ret_value = HAL_OK;
 	}
 	return ret_value;
 }
 
-uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
+uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt, uint8_t fIsTeaching)
 {
 	uint8_t fValidInput = 1;
 	uint8_t pos_index;
 	for (pos_index = 0; pos_index < 7; pos_index++)
 	{
-		if ((joint_angle_target_ptr[pos_index] != joint_angle_target_ptr[pos_index]) || (joint_angle_target_ptr[pos_index] > joint_angle_max[pos_index]) || (joint_angle_target_ptr[pos_index] < joint_angle_min[pos_index]))
+		if (joint_angle_target_ptr[pos_index] != joint_angle_target_ptr[pos_index])
 		{
 			robot_arm.fMasterSwitch = 0;
 			fValidInput = 0;
@@ -275,63 +286,46 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
 		}
 	}
 
-	if (fValidInput)
+	fp32 joint_torques[7] = {0};
+	if (fValidInput && robot_arm.fMasterSwitch)
 	{
-		uint8_t blocking_call = 0;
-		// According to test, CAN_JOINT_MOTOR_0_4310_TX_ID starts diverging with kd>1.5
-		// fp32 joint_0_angle_tune = PID_calc(&robot_arm.joint_0_angle_pid, motor_measure[JOINT_ID_0_4310].output_angle, joint_angle_target_ptr[0], dt);
-		encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, joint_angle_target_ptr[0], 0, 20, 0.75f, 0, blocking_call, DM_4310, &LOWER_MOTORS_CAN);
-		osDelay(2);
-
-		encode_6012_motor_position_control(CAN_JOINT_MOTOR_1_6012_TX_ID, 5.0f, joint_angle_target_ptr[1], blocking_call, &LOWER_MOTORS_CAN);
-		osDelay(2);
-
-		fp32 joint_3_angle_tune = PID_calc(&robot_arm.joint_3_angle_pid, motor_measure[JOINT_ID_3_4310].output_angle, joint_angle_target_ptr[3], dt);
-		encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4310_TX_ID, joint_3_angle_tune + joint_angle_target_ptr[3], 0, 15, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-		osDelay(2);
-
-		fp32 joint_4_angle_tune = PID_calc(&robot_arm.joint_4_angle_pid, motor_measure[JOINT_ID_4_4310].output_angle, joint_angle_target_ptr[4], dt);
-		encode_MIT_motor_control(CAN_JOINT_MOTOR_4_4310_TX_ID, joint_4_angle_tune + joint_angle_target_ptr[4], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-		osDelay(2);
-
-		fp32 joint_5_angle_tune = PID_calc(&robot_arm.joint_5_angle_pid, motor_measure[JOINT_ID_5_4310].output_angle, joint_angle_target_ptr[5], dt);
-		encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, joint_5_angle_tune + joint_angle_target_ptr[5], 0, 10, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-		osDelay(2);
-
-		encode_4010_motor_position_control(CAN_JOINT_MOTOR_2_4010_TX_ID, 10.0f, joint_angle_target_ptr[2], blocking_call, &LOWER_MOTORS_CAN);
-		osDelay(2);
-
-		// 6020 calculation
-		fp32 joint_6_6020_speed_set = PID_calc(&robot_arm.joint_6_angle_pid, motor_measure[JOINT_ID_6_6020].output_angle, joint_angle_target_ptr[6], dt);
-		fp32 joint_6_6020_current_set = (int16_t)PID_calc(&robot_arm.joint_6_speed_pid, motor_measure[JOINT_ID_6_6020].speed_rpm * 2 * PI / 60.0f, joint_6_6020_speed_set, dt);
-		encode_6020_motor_current_control(0, 0, joint_6_6020_current_set, &LOWER_MOTORS_CAN, blocking_call);
-		osDelay(2);
+		if (fIsTeaching)
+		{
+			for (uint8_t i = 0; i < 7; i++)
+			{
+				joint_torques[i] = PID_calc(&robot_arm.joint_angle_teach_pid[i], motor_measure[i].output_angle, joint_angle_target_ptr[i], dt);
+			}
+		}
+		else
+		{
+			for (uint8_t i = 0; i < 7; i++)
+			{
+				joint_torques[i] = PID_calc(&robot_arm.joint_angle_pid[i], motor_measure[i].output_angle, joint_angle_target_ptr[i], dt);
+			}
+		}
 	}
-
+	else
+	{
+		memset(joint_torques, 0, sizeof(joint_torques));
+	}
+	arm_joints_cmd_torque(joint_torques);
 	return fValidInput;
 }
 
-void arm_joints_cmd_torque(float joint_torques[7])
+void arm_joints_cmd_torque(const fp32 joint_torques[7])
 {
-	uint8_t blocking_call = 0;
+	uint8_t blocking_call = 1;
+#if REVERSE_JOINT_0_DIRECTION
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, 0, 0, 0, 0, -joint_torques[0], blocking_call, DM_4310, &LOWER_MOTORS_CAN);
+#else
 	encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, 0, 0, 0, 0, joint_torques[0], blocking_call, DM_4310, &LOWER_MOTORS_CAN);
-	osDelay(2);
-	encode_6012_motor_torque_control(CAN_JOINT_MOTOR_1_6012_TX_ID, joint_torques[1], blocking_call, &LOWER_MOTORS_CAN);
-	osDelay(2);
-
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4310_TX_ID, 0, 0, 0, 0, joint_torques[3], blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-	osDelay(2);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_4_4310_TX_ID, 0, 0, 0, 0, joint_torques[4], blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-	osDelay(2);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, 0, 0, 0, 0, joint_torques[5], blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-	osDelay(2);
-
-	// Warning: 4010 current to torque ratio is unknown
-	encode_4010_motor_torque_control(CAN_JOINT_MOTOR_2_4010_TX_ID, joint_torques[2], blocking_call, &LOWER_MOTORS_CAN);
-	osDelay(2);
-	// Warning: 6020 current to torque ratio is unknown
-	encode_6020_motor_current_control(0, 0, joint_torques[6], &LOWER_MOTORS_CAN, blocking_call);
-	osDelay(2);
+#endif
+	osDelay(1);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_1_4310_TX_ID, 0, 0, 0, 0, joint_torques[1], blocking_call, DM_4310, &LOWER_MOTORS_CAN);
+	osDelay(1);
+	encode_ktech_broadcast_current_control(joint_torques, blocking_call, &UPPER_MOTORS_CAN);
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_2_4310_TX_ID, 0, 0, 0, 0, joint_torques[2], blocking_call, DM_4310, &LOWER_MOTORS_CAN);
+	osDelay(1);
 }
 
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call)
@@ -355,56 +349,32 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
 
-HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_t current_ch_6, int16_t current_ch_7, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call)
-{
-	can_tx_message.StdId = CAN_MOTOR_6020_TX_ID;
-	can_tx_message.IDE = CAN_ID_STD;
-	can_tx_message.RTR = CAN_RTR_DATA;
-	can_tx_message.DLC = 0x08;
-
-#if (ENABLE_ARM_MOTOR_POWER == 0)
-	current_ch_5 = 0;
-	current_ch_6 = 0;
-	current_ch_7 = 0;
-#endif
-
-	can_send_data[0] = (current_ch_5 >> 8);
-	can_send_data[1] = current_ch_5;
-	can_send_data[2] = (current_ch_6 >> 8);
-	can_send_data[3] = current_ch_6;
-	can_send_data[4] = (current_ch_7 >> 8);
-	can_send_data[5] = current_ch_7;
-	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
-}
-
 void CAN_cmd_switch_motor_power(uint8_t _enable)
 {
-	uint8_t blocking_call = 0;
-	enable_DaMiao_motor(CAN_JOINT_MOTOR_0_4310_TX_ID, _enable, &LOWER_MOTORS_CAN, blocking_call);
-	osDelay(2);
-
+	uint8_t blocking_call = 1;
 	if (_enable == 0)
 	{
-		soft_disable_Ktech_motor(CAN_JOINT_MOTOR_1_6012_TX_ID, &LOWER_MOTORS_CAN, blocking_call);
+		soft_disable_Ktech_motor(CAN_JOINT_MOTOR_3_4005_RX_ID, &UPPER_MOTORS_CAN, blocking_call);
 		osDelay(2);
-		soft_disable_Ktech_motor(CAN_JOINT_MOTOR_2_4010_TX_ID, &LOWER_MOTORS_CAN, blocking_call);
+		soft_disable_Ktech_motor(CAN_JOINT_MOTOR_4_4005_RX_ID, &UPPER_MOTORS_CAN, blocking_call);
+		osDelay(2);
+		soft_disable_Ktech_motor(CAN_JOINT_MOTOR_5_4005_RX_ID, &UPPER_MOTORS_CAN, blocking_call);
+		osDelay(2);
+		soft_disable_Ktech_motor(CAN_JOINT_MOTOR_6_4005_RX_ID, &UPPER_MOTORS_CAN, blocking_call);
 		osDelay(2);
 
-		encode_6020_motor_current_control(0, 0, 0, &LOWER_MOTORS_CAN, blocking_call);
-		PID_clear(&robot_arm.joint_0_angle_pid);
-		PID_clear(&robot_arm.joint_3_angle_pid);
-		PID_clear(&robot_arm.joint_4_angle_pid);
-		PID_clear(&robot_arm.joint_5_angle_pid);
-
-		PID_clear(&robot_arm.joint_6_angle_pid);
-		PID_clear(&robot_arm.joint_6_speed_pid);
+		for (uint8_t i = 0; i < 7; i++)
+		{
+			PID_clear(&robot_arm.joint_angle_pid[i]);
+			PID_clear(&robot_arm.joint_angle_teach_pid[i]);
+		}
 	}
 
-	enable_DaMiao_motor(CAN_JOINT_MOTOR_3_4310_TX_ID, _enable, &UPPER_MOTORS_CAN, blocking_call);
+	enable_DaMiao_motor(CAN_JOINT_MOTOR_0_4310_TX_ID, _enable, &LOWER_MOTORS_CAN, blocking_call);
 	osDelay(2);
-	enable_DaMiao_motor(CAN_JOINT_MOTOR_4_4310_TX_ID, _enable, &UPPER_MOTORS_CAN, blocking_call);
+	enable_DaMiao_motor(CAN_JOINT_MOTOR_1_4310_TX_ID, _enable, &LOWER_MOTORS_CAN, blocking_call);
 	osDelay(2);
-	enable_DaMiao_motor(CAN_JOINT_MOTOR_5_4310_TX_ID, _enable, &UPPER_MOTORS_CAN, blocking_call);
+	enable_DaMiao_motor(CAN_JOINT_MOTOR_2_4310_TX_ID, _enable, &LOWER_MOTORS_CAN, blocking_call);
 	osDelay(2);
 }
 
@@ -421,99 +391,30 @@ HAL_StatusTypeDef soft_disable_Ktech_motor(uint32_t id, CAN_HandleTypeDef *hcan_
 	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
 
-HAL_StatusTypeDef encode_4010_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
+HAL_StatusTypeDef encode_ktech_broadcast_current_control(const fp32 current_cmd[4], uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
 {
-#if (ENABLE_ARM_MOTOR_POWER == 0)
-	return encode_4010_motor_torque_control(id, 0, blocking_call, hcan_ptr);
+	can_tx_message.StdId = CAN_KTECH_BROADCAST_CURRENT_TX_ID;
+	can_tx_message.ExtId = 0x00;
+	can_tx_message.IDE = CAN_ID_STD;
+	can_tx_message.RTR = CAN_RTR_DATA;
+	can_tx_message.DLC = 8;
+
+#if ENABLE_ARM_MOTOR_POWER
+	int16_t iqControl_1 = fp32_abs_constrain(current_cmd[3], MOTOR_MG4005_MAX_CMD);
+	int16_t iqControl_2 = fp32_abs_constrain(current_cmd[4], MOTOR_MS4005_MAX_CMD);
+	int16_t iqControl_3 = fp32_abs_constrain(current_cmd[5], MOTOR_MS4005_MAX_CMD);
+	int16_t iqControl_4 = fp32_abs_constrain(current_cmd[6], MOTOR_MS4005_MAX_CMD);
+	can_send_data[0] = *(uint8_t *)(&iqControl_1);
+	can_send_data[1] = *((uint8_t *)(&iqControl_1) + 1);
+	can_send_data[2] = *(uint8_t *)(&iqControl_2);
+	can_send_data[3] = *((uint8_t *)(&iqControl_2) + 1);
+	can_send_data[4] = *(uint8_t *)(&iqControl_3);
+	can_send_data[5] = *((uint8_t *)(&iqControl_3) + 1);
+	can_send_data[6] = *(uint8_t *)(&iqControl_4);
+	can_send_data[7] = *((uint8_t *)(&iqControl_4) + 1);
 #else
-	// Warning: do not set maxSpeed_dps = 0, the motor will behave abnormally!
-	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, 0.1f, 20.0f) * 360.0f / 60.0f * MOTOR_4010_GEAR_RATIO;
-	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f * MOTOR_4010_GEAR_RATIO;
-	can_tx_message.StdId = id;
-	can_tx_message.ExtId = 0x00;
-	can_tx_message.RTR = CAN_RTR_DATA;
-	can_tx_message.IDE = CAN_ID_STD;
-	can_tx_message.DLC = 8;
-
-	can_send_data[0] = 0xA4;
-	can_send_data[1] = 0x00;
-	can_send_data[2] = *((uint8_t *)&maxSpeed_dps + 0);
-	can_send_data[3] = *((uint8_t *)&maxSpeed_dps + 1);
-	can_send_data[4] = *((uint8_t *)&angle_deg + 0);
-	can_send_data[5] = *((uint8_t *)&angle_deg + 1);
-	can_send_data[6] = *((uint8_t *)&angle_deg + 2);
-	can_send_data[7] = *((uint8_t *)&angle_deg + 3);
-
-	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
-#endif
-}
-
-HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
-{
-#if (ENABLE_ARM_MOTOR_POWER == 0)
-	return encode_6012_motor_torque_control(id, 0, blocking_call, hcan_ptr);
-#else
-	// Warning: do not set maxSpeed_dps = 0, the motor will behave abnormally!
-	uint16_t maxSpeed_dps = fp32_constrain(maxSpeed_rpm, 0.1f, 20.0f) * 360.0f / 60.0f * MOTOR_6012_GEAR_RATIO;
-	int32_t angle_deg = fp32_constrain(angleControl_rad, -PI, PI) / PI * 180.0f * 100.0f * MOTOR_6012_GEAR_RATIO;
-	can_tx_message.StdId = id;
-	can_tx_message.ExtId = 0x00;
-	can_tx_message.RTR = CAN_RTR_DATA;
-	can_tx_message.IDE = CAN_ID_STD;
-	can_tx_message.DLC = 8;
-
-	can_send_data[0] = 0xA4;
-	can_send_data[1] = 0x00;
-	can_send_data[2] = *((uint8_t *)&maxSpeed_dps + 0);
-	can_send_data[3] = *((uint8_t *)&maxSpeed_dps + 1);
-	can_send_data[4] = *((uint8_t *)&angle_deg + 0);
-	can_send_data[5] = *((uint8_t *)&angle_deg + 1);
-	can_send_data[6] = *((uint8_t *)&angle_deg + 2);
-	can_send_data[7] = *((uint8_t *)&angle_deg + 3);
-
-	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
-#endif
-}
-
-HAL_StatusTypeDef encode_6012_motor_torque_control(uint32_t id, float torque_cmd, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
-{
-	can_tx_message.StdId = id;
-	can_tx_message.ExtId = 0x00;
-	can_tx_message.IDE = CAN_ID_STD;
-	can_tx_message.RTR = CAN_RTR_DATA;
-	can_tx_message.DLC = 8;
-
-#if (ENABLE_ARM_MOTOR_POWER == 0)
-	torque_cmd = 0;
-#endif
-
-	int16_t iqControl = torque_cmd * MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO;
 	memset(can_send_data, 0, sizeof(can_send_data));
-	can_send_data[0] = CAN_KTECH_TORQUE_ID;
-	can_send_data[4] = *(uint8_t *)(&iqControl);
-	can_send_data[5] = *((uint8_t *)(&iqControl) + 1);
-
-	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
-}
-
-HAL_StatusTypeDef encode_4010_motor_torque_control(uint32_t id, float torque_cmd, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
-{
-	can_tx_message.StdId = id;
-	can_tx_message.ExtId = 0x00;
-	can_tx_message.IDE = CAN_ID_STD;
-	can_tx_message.RTR = CAN_RTR_DATA;
-	can_tx_message.DLC = 8;
-
-#if (ENABLE_ARM_MOTOR_POWER == 0)
-	torque_cmd = 0;
 #endif
-
-	int16_t iqControl = torque_cmd * MOTOR_4010_BROADCAST_CMD_TO_TORQUE_RATIO;
-	memset(can_send_data, 0, sizeof(can_send_data));
-	can_send_data[0] = CAN_KTECH_TORQUE_ID;
-	can_send_data[4] = *(uint8_t *)(&iqControl);
-	can_send_data[5] = *((uint8_t *)(&iqControl) + 1);
-
 	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
 
@@ -589,24 +490,4 @@ HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef
 		osDelay(retry_delay_ms);
 	}
 	return CAN_status;
-}
-
-fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd)
-{
-	int32_t relative_ecd = ecd - offset_ecd;
-	if (relative_ecd > HALF_ECD_RANGE)
-	{
-		relative_ecd -= ECD_RANGE;
-	}
-	else if (relative_ecd < -HALF_ECD_RANGE)
-	{
-		relative_ecd += ECD_RANGE;
-	}
-
-	return relative_ecd * MOTOR_ECD_TO_RAD;
-}
-
-void update_joint_6_6020_angle(void)
-{
-	motor_measure[JOINT_ID_6_6020].output_angle = motor_ecd_to_angle_change(motor_measure[JOINT_ID_6_6020].ecd, joint_6_6020_offset_ecd);
 }

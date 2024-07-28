@@ -207,6 +207,11 @@ int16_t int16_deadline(int16_t Value, int16_t minValue, int16_t maxValue)
     return Value;
 }
 
+fp32 fp32_abs_constrain(fp32 in, fp32 absValue)
+{
+    return fp32_constrain(in, -absValue, absValue);
+}
+
 //ÏÞ·ùº¯Êý
 fp32 fp32_constrain(fp32 Value, fp32 minValue, fp32 maxValue)
 {
