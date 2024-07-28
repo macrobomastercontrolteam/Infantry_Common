@@ -252,7 +252,7 @@ void robot_arm_control(void)
 				robot_arm.fTeaching = 0;
 				robot_arm_all_motors_return_home(robot_arm.joint_angle_target);
 			}
-			else if (robot_arm.fTeaching && fIsStateHoldTimePassed && is_joint_target_reached(0.05f, NULL))
+			else if (robot_arm.fTeaching && fIsStateHoldTimePassed && is_joint_target_reached(DEG_TO_RAD(10.0f), NULL))
 			{
 				robot_arm.arm_state = ARM_STATE_TEACHING;
 			}
