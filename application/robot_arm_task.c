@@ -99,16 +99,12 @@ void robot_arm_state_transition(void)
 				// @TODO: teaching pid
 				break;
 			}
-			case ARM_STATE_FIXED:
-			{
-				memcpy(robot_arm.joint_angle_real_arm, robot_arm.joint_angle_target, sizeof(robot_arm.joint_angle_target));
-				break;
-			}
 			case ARM_STATE_SYNCING:
 			{
 				memcpy(robot_arm.joint_angle_target_before_sync, robot_arm.joint_angle_target, sizeof(robot_arm.joint_angle_target));
 				break;
 			}
+			case ARM_STATE_FIXED:
 			case ARM_STATE_ZERO_FORCE:
 			default:
 			{
