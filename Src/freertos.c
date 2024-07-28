@@ -35,16 +35,18 @@
 // #include "INS_task.h"
 #include "led_flow_task.h"
 // #include "oled_task.h"
-// #include "referee_usart_task.h"
+#include "referee_usart_task.h"
 #include "usb_task.h"
 // #include "voltage_task.h"
 // #include "servo_task.h"
 // #include "cv_usart_task.h"
+#include "referee_send_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+// osThreadId testHandle;
 osThreadId calibrate_tast_handle;
 osThreadId chassisTaskHandle;
 osThreadId robotArmTaskHandle;
@@ -58,6 +60,7 @@ osThreadId usb_task_handle;
 osThreadId battery_voltage_handle;
 // osThreadId servo_task_handle;
 osThreadId cv_usart_task_handle;
+osThreadId RefSendTaskHandle;
 
 
 /* USER CODE END PTD */
@@ -76,7 +79,6 @@ osThreadId cv_usart_task_handle;
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-osThreadId testHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -165,6 +167,9 @@ void MX_FREERTOS_Init(void) {
     osThreadDef(DETECT, detect_task, osPriorityNormal, 0, 256);
     detect_handle = osThreadCreate(osThread(DETECT), NULL);
 
+    osThreadDef(RefSendTask, referee_send_task, osPriorityNormal, 0, 128);
+    RefSendTaskHandle = osThreadCreate(osThread(RefSendTask), NULL);
+
     // osThreadDef(gimbalTask, gimbal_task, osPriorityHigh, 0, 512);
     // gimbalTaskHandle = osThreadCreate(osThread(gimbalTask), NULL);
 
@@ -177,8 +182,8 @@ void MX_FREERTOS_Init(void) {
     // osThreadDef(OLED, oled_task, osPriorityLow, 0, 256);
     // oled_handle = osThreadCreate(osThread(OLED), NULL);
 
-    // osThreadDef(REFEREE, referee_usart_task, osPriorityNormal, 0, 128);
-    // referee_usart_task_handle = osThreadCreate(osThread(REFEREE), NULL);
+    osThreadDef(REFEREE, referee_usart_task, osPriorityNormal, 0, 128);
+    referee_usart_task_handle = osThreadCreate(osThread(REFEREE), NULL);
 
     // osThreadDef(USBTask, usb_task, osPriorityNormal, 0, 128);
     // usb_task_handle = osThreadCreate(osThread(USBTask), NULL);

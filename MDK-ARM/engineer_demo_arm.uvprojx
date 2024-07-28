@@ -618,6 +618,21 @@
               <FileType>1</FileType>
               <FilePath>..\application\remote_control.c</FilePath>
             </File>
+            <File>
+              <FileName>referee_send_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\referee_send_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>referee_usart_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\referee_usart_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>referee.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\referee.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

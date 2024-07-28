@@ -4,6 +4,7 @@
 #define REFEREE_H
 
 #include "main.h"
+#include "user_lib.h"
 
 #include "protocol.h"
 
@@ -175,7 +176,15 @@ typedef __packed struct
     uint8_t data[32];
 } ext_download_stream_data_t;
 
-
+typedef __packed union
+{
+    __packed struct
+    {
+        fp32 realArmAngle[7];
+    } tData;
+    uint8_t data[30];
+} custom_robot_data_t;
+STATIC_ASSERT(sizeof(custom_robot_data_t) <= 30);
 
 extern void init_referee_struct_data(void);
 extern void referee_data_solve(uint8_t *frame);

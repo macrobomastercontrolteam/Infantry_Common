@@ -29,7 +29,7 @@ ext_robot_hurt_t robot_hurt_t;
 ext_shoot_data_t shoot_data_t;
 ext_bullet_remaining_t bullet_remaining_t;
 ext_student_interactive_data_t student_interactive_data_t;
-
+custom_robot_data_t diy_controller;
 
 
 
@@ -161,6 +161,11 @@ void referee_data_solve(uint8_t *frame)
         case STUDENT_INTERACTIVE_DATA_CMD_ID:
         {
             memcpy(&student_interactive_data_t, frame + index, sizeof(student_interactive_data_t));
+        }
+        break;
+        case DIY_controller_DATA_SEND_ID:
+        {
+            memcpy(&diy_controller.data, frame + index, sizeof(diy_controller));
         }
         break;
         default:
