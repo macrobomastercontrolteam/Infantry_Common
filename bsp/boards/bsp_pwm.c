@@ -1,4 +1,4 @@
-#include "bsp_servo_pwm.h"
+#include "bsp_pwm.h"
 #include "main.h"
 
 extern TIM_HandleTypeDef htim1;
@@ -14,7 +14,7 @@ void servo_pwm_set(uint16_t pwm, uint8_t i)
         }break;
         case 1:
         {
-            __HAL_TIM_SetCompare(&htim8, TIM_CHANNEL_1, pwm);
+            //__HAL_TIM_SetCompare(&htim8, TIM_CHANNEL_1, pwm);
         }break;
         case 2:
         {
@@ -26,3 +26,18 @@ void servo_pwm_set(uint16_t pwm, uint8_t i)
         }break;
     }
 }
+
+void pump_pwm_control(fp32 Duty_cycle) // 0-0.1:off; 0.1-0.9:operate; 0.9-1:max;
+{
+    __HAL_TIM_SetCompare(&htim8, TIM_CHANNEL_1, (uint16_t)(Duty_cycle*20000));  
+}
+
+void pump_max(void)
+{
+    pump_pwm_control(0.95);
+}
+void pump_stop(void)
+{
+    pump_pwm_control(0.05);
+}
+

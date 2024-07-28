@@ -29,7 +29,8 @@
 #include "INS_task.h"
 
 #include "user_lib.h"
-
+#include "bsp_gpio.h"
+#include "bsp_pwm.h"
 
 void wait_until_all_necessary_modules_online(void);
 /**
