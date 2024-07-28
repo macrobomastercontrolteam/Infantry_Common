@@ -403,7 +403,7 @@ uint8_t is_joint_target_reached(fp32 tol, uint8_t *notReachedJointPtr)
 	uint8_t fTargetReached = 1;
 	for (uint8_t i = 0; i < sizeof(robot_arm.joint_angle_target) / sizeof(robot_arm.joint_angle_target[0]); i++)
 	{
-		if (fabs(robot_arm.joint_angle_target[i] - motor_measure[i].output_angle) > tol)
+		if (fabs(rad_format(robot_arm.joint_angle_target[i] - motor_measure[i].output_angle)) > tol)
 		{
 			fTargetReached = 0;
 			if (notReachedJointPtr != NULL)
