@@ -406,3 +406,13 @@ armor_damage_info_t get_armor_hurt(void)
 		return ARMOR_NONE;
 	}
 }
+
+uint16_t get_red_outpost_HP(void)
+{
+	return game_robot_HP_t.red_outpost_HP;
+}
+
+uint16_t get_blue_outpost_HP(void)
+{
+	return game_robot_HP_t.blue_outpost_HP;
+}

@@ -76,6 +76,8 @@ typedef struct __attribute__((packed))
 	uint8_t team_color;
 	uint16_t time_remain;
 	uint16_t current_HP;
+	uint16_t red_outpost_HP;
+	uint16_t blue_outpost_HP;
 } tRefStatusMsgPayload;
 STATIC_ASSERT(sizeof(tRefStatusMsgPayload) <= DATA_PACKAGE_PAYLOAD_SIZE);
 
@@ -312,6 +314,8 @@ void CvCmder_SendInfoData(eInfoBits InfoBit)
 			CvTxBuffer.tData.RefStatusMsgPayload.team_color = get_team_color();
 			CvTxBuffer.tData.RefStatusMsgPayload.time_remain = get_time_remain();
 			CvTxBuffer.tData.RefStatusMsgPayload.current_HP = get_current_HP();
+			CvTxBuffer.tData.RefStatusMsgPayload.red_outpost_HP = get_red_outpost_HP();
+			CvTxBuffer.tData.RefStatusMsgPayload.blue_outpost_HP = get_blue_outpost_HP();
 			break;
 		}
 		case CV_INFO_GIMBAL_ANGLE_BIT:
