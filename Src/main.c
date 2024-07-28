@@ -129,7 +129,6 @@ int main(void)
   MX_I2C2_Init();
   MX_I2C3_Init();
   MX_RTC_Init();
-  MX_SPI2_Init();
   MX_TIM1_Init();
   MX_TIM3_Init();
   MX_TIM10_Init();
