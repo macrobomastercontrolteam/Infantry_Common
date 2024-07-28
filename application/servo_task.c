@@ -18,7 +18,7 @@
 #include "servo_task.h"
 #include "main.h"
 #include "cmsis_os.h"
-#include "bsp_servo_pwm.h"
+#include "bsp_pwm.h"
 #include "remote_control.h"
 
 // #define SERVO_MIN_PWM   500
