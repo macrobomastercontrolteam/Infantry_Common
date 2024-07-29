@@ -235,7 +235,7 @@ static void detect_init(uint32_t time)
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag
             {100, 100, 5},  //referee
-            {100, 0, 7},    //cv usart
+            {200, 0, 7},    //cv usart
             {100, 0, 11},    // super capacitor
             {50, 0, 8},    // swerve controller
             {25, 0, 8},    // biped controller feedback (normally < 3)
