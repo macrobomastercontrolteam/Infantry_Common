@@ -140,9 +140,10 @@ static void J_scope_chassis_test(void)
  */
 void chassis_task(void const *pvParameters)
 {
+	uint32_t ulSystemTime = osKernelSysTick();
 	//wait a time
 	//空闲一段时间
-	vTaskDelay(CHASSIS_TASK_INIT_TIME);
+	osDelay(CHASSIS_TASK_INIT_TIME);
 	//chassis init
 	//底盘初始化
 	chassis_init(&chassis_move);
@@ -174,7 +175,7 @@ void chassis_task(void const *pvParameters)
 						chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
 		CAN_cmd_robot_arm();
 
-		vTaskDelay(CHASSIS_CONTROL_TIME_MS);
+		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
 
 #if CHASSIS_TEST_MODE
 		J_scope_chassis_test();
@@ -308,7 +309,7 @@ void wait_until_all_necessary_modules_online(void)
 	while (fIsError)
 	{
 		fIsError = is_error_exist_in_range(DBUS_TOE, CHASSIS_MOTOR4_TOE);
-		vTaskDelay(2 * CHASSIS_CONTROL_TIME_MS);
+		osDelay(2 * CHASSIS_CONTROL_TIME_MS);
 	}
 }
 

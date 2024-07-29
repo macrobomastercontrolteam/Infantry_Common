@@ -89,12 +89,11 @@ uint32_t detect_task_stack;
   */
 void detect_task(void const *pvParameters)
 {
-    static uint32_t system_time;
-    system_time = xTaskGetTickCount();
+    uint32_t system_time = osKernelSysTick();
     //init,初始化
     detect_init(system_time);
     //wait a time.空闲一段时间
-    vTaskDelay(DETECT_TASK_INIT_TIME);
+    osDelay(DETECT_TASK_INIT_TIME);
 
     while (1)
     {
@@ -171,7 +170,7 @@ void detect_task(void const *pvParameters)
             }
         }
 
-        vTaskDelay(DETECT_CONTROL_TIME);
+        osDelayUntil(&system_time, DETECT_CONTROL_TIME);
 #if INCLUDE_uxTaskGetStackHighWaterMark
         detect_task_stack = uxTaskGetStackHighWaterMark(NULL);
 #endif
