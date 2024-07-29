@@ -8,7 +8,7 @@
 #define SENTRY_2023_MECANUM 4
 
 /********************* Only Modify this area (start) *********************/
-#define ROBOT_TYPE INFANTRY_2024_MECANUM
+#define ROBOT_TYPE SENTRY_2023_MECANUM
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define ENABLE_LASER 1

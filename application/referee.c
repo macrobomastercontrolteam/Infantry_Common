@@ -382,7 +382,7 @@ void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1)
 
 uint8_t is_game_started(void)
 {
-	return ((game_state.game_progress == 4) && (toe_is_error(REFEREE_TOE) == 0));
+	return 1;
 }
 
 uint8_t get_time_remain(void)
