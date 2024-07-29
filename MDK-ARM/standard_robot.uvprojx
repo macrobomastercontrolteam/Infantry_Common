@@ -619,11 +619,6 @@
               <FilePath>..\application\INS_task.c</FilePath>
             </File>
             <File>
-              <FileName>oled_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\oled_task.c</FilePath>
-            </File>
-            <File>
               <FileName>referee.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\referee.c</FilePath>
@@ -667,6 +662,11 @@
               <FileName>cv_usart_task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\cv_usart_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>referee_send_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\referee_send_task.c</FilePath>
             </File>
           </Files>
         </Group>
