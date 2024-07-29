@@ -187,6 +187,9 @@ void CvCmder_Init(void)
 void CvCmder_toe_solve_lost_fun(void)
 {
 	memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
+	CvCmder_ChangeMode(CV_MODE_ENEMY_DETECTED_BIT, 0);
+	CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
+	CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
 }
 
 /**

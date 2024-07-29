@@ -167,6 +167,11 @@ void chassis_behaviour_change_transit(void)
 				break;
 			}
 			case CHASSIS_CV_CONTROL_MODE:
+			{
+				// safety guard
+				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
+				break;
+			}
 			case CHASSIS_SPINNING_MODE:
 			{
 				// Relative angle implementation for chassis spinning mode
