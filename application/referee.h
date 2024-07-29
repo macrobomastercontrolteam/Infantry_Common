@@ -1,7 +1,7 @@
 // @TODO: This file follows the serial protocol released in 2019, update it to latest protocol
 
-#ifndef REFEREE_H
-#define REFEREE_H
+#ifndef _REFEREE_H
+#define _REFEREE_H
 
 #include "main.h"
 
