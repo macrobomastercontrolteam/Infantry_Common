@@ -9,6 +9,8 @@
 #include "detect_task.h"
 #include "shoot.h"
 
+#define REF_TEST_MODE 1
+
 frame_header_struct_t referee_receive_header;
 frame_header_struct_t referee_send_header;
 
@@ -49,6 +51,13 @@ ext_radar_cmd_t radar_cmd_t;
 ext_custom_client_data_t custom_client_data_t;
 ext_map_data_t map_data_t;
 ext_custom_info_t custom_info_t;
+
+#if REF_TEST_MODE
+uint16_t uiRefRxCmdId = 0;
+uint8_t test_mains_power_chassis_output = 0;
+uint8_t test_mains_power_shooter_output = 0;
+uint8_t test_mains_power_gimbal_output = 0;
+#endif
 
 void init_referee_struct_data(void)
 {
@@ -98,6 +107,10 @@ void referee_data_solve(uint8_t *frame)
 
 	memcpy(&cmd_id, frame + index, sizeof(uint16_t));
 	index += sizeof(uint16_t);
+
+#if REF_TEST_MODE
+    uiRefRxCmdId = cmd_id;
+#endif
 
 	switch (cmd_id)
 	{
@@ -155,6 +168,11 @@ void referee_data_solve(uint8_t *frame)
 		case ROBOT_STATE_CMD_ID:
 		{
 			memcpy(&robot_state, frame + index, sizeof(robot_state));
+#if REF_TEST_MODE
+            test_mains_power_chassis_output = robot_state.power_management_chassis_output;
+            test_mains_power_shooter_output = robot_state.power_management_shooter_output;
+            test_mains_power_gimbal_output = robot_state.power_management_gimbal_output;
+#endif
 			break;
 		}
 		case POWER_HEAT_DATA_CMD_ID:
