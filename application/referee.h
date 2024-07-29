@@ -392,5 +392,6 @@ uint8_t get_time_remain(void);
 uint16_t get_current_HP(void);
 armor_damage_info_t get_armor_hurt(void);
 
+extern ext_game_robot_state_t robot_state;
 extern ext_robot_hurt_t robot_hurt_t;
 #endif

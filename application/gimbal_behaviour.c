@@ -53,6 +53,7 @@
 #include "arm_math.h"
 #include "bsp_buzzer.h"
 #include "detect_task.h"
+#include "referee.h"
 
 #include "user_lib.h"
 #include "cv_usart_task.h"
@@ -410,6 +411,10 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         gimbal_behaviour = GIMBAL_AUTO_AIM;
     }
 #endif
+    else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_gimbal_output == 0))
+	{
+		gimbal_behaviour = GIMBAL_ZERO_FORCE;
+	}
     else
 	{
 		switch (gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL])

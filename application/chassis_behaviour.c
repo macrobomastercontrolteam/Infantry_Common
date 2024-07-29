@@ -85,12 +85,11 @@ void chassis_behaviour_set_mode(void)
 	{
 		; // CV fully automatic mode without RC: do not switch out of cv state
 	}
-	else if (gimbal_emergency_stop())
+	else if (gimbal_emergency_stop() || gimbal_cmd_to_chassis_stop())
 	{
 		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
 	}
-	// when gimbal is in some mode, such as init mode, chassis must not move
-	else if (gimbal_cmd_to_chassis_stop())
+	else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_chassis_output == 0))
 	{
 		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
 	}

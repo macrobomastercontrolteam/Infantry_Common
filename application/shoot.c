@@ -325,6 +325,10 @@ static void shoot_set_mode(void)
 	{
 		shoot_control.shoot_mode = SHOOT_STOP;
 	}
+	else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_shooter_output == 0))
+	{
+		shoot_control.shoot_mode = SHOOT_STOP;
+	}
 	else if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // auto aim mode
 	{
 		if (is_game_started() == 0)
