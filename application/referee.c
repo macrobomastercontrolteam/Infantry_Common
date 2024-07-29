@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "CRC8_CRC16.h"
 #include "protocol.h"
+#include "chassis_task.h"
 
 
 frame_header_struct_t referee_receive_header;
@@ -29,9 +30,7 @@ ext_robot_hurt_t robot_hurt_t;
 ext_shoot_data_t shoot_data_t;
 ext_bullet_remaining_t bullet_remaining_t;
 ext_student_interactive_data_t student_interactive_data_t;
-
-
-
+custom_robot_data_t diy_controller;
 
 void init_referee_struct_data(void)
 {
@@ -60,7 +59,7 @@ void init_referee_struct_data(void)
 
 
     memset(&student_interactive_data_t, 0, sizeof(ext_student_interactive_data_t));
-
+    memset(&diy_controller, 0, sizeof(custom_robot_data_t));
 
 
 }
@@ -161,6 +160,18 @@ void referee_data_solve(uint8_t *frame)
         case STUDENT_INTERACTIVE_DATA_CMD_ID:
         {
             memcpy(&student_interactive_data_t, frame + index, sizeof(student_interactive_data_t));
+        }
+        break;
+        case DIY_controller_DATA_SEND_ID:
+        {
+            memcpy(&diy_controller.data, frame + index, sizeof(diy_controller));
+            if (diy_controller.tData.fIsTeaching)
+            {
+                for (uint8_t i = 0; i < 7; i++)
+                {
+                    chassis_move.robot_arm_motor_pos[i] = diy_controller.tData.demoArmAngle[i];
+                }
+            }
         }
         break;
         default:
