@@ -283,7 +283,7 @@ void referee_data_solve(uint8_t *frame)
 		case DIY_controller_DATA_SEND_ID:
         {
             memcpy(&diy_controller.data, frame + index, sizeof(diy_controller));
-            if (diy_controller.tData.fIsTeaching)
+            if (diy_controller.tData.fIsTeaching && (chassis_move.fHoming == 0))
             {
                 for (uint8_t i = 0; i < 7; i++)
                 {
