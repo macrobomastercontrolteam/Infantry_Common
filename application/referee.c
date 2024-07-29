@@ -8,6 +8,7 @@
 #include "usart.h"
 #include "detect_task.h"
 #include "shoot.h"
+// #include "chassis_task.h"
 
 #define REF_TEST_MODE 1
 
@@ -43,7 +44,7 @@ ext_student_interactive_data_t student_interactive_data_t;
 // ext_client_custom_character_t client_custom_character_t;
 ext_sentry_cmd_t sentry_cmd_t;
 ext_radar_cmd_t radar_cmd_t;
-// ext_robot_interactive_data_t robot_interactive_data_t;
+// custom_robot_data_t diy_controller;
 // ext_map_command_t map_command_t;
 // ext_map_robot_data_t map_robot_data_t;
 // ext_robot_keyboard_mouse_command_t robot_keyboard_mouse_command_t;
@@ -93,6 +94,7 @@ void init_referee_struct_data(void)
 	memset(&custom_client_data_t, 0, sizeof(ext_custom_client_data_t));
 
 	memset(&student_interactive_data_t, 0, sizeof(ext_student_interactive_data_t));
+	// memset(&diy_controller, 0, sizeof(custom_robot_data_t));
 }
 
 void referee_data_solve(uint8_t *frame)
@@ -279,13 +281,19 @@ void referee_data_solve(uint8_t *frame)
 			memcpy(&student_interactive_data_t, frame + index, sizeof(student_interactive_data_t));
 			break;
 		}
-
-		//@TODO: unused for now
-		// case CUSTOM_CNTRLR_DATA_INTRFCE_ID:
-		// {
-		//     memcpy(&robot_interactive_data_t, frame + index, sizeof(robot_interactive_data_t));
-		//     break;
-		// }
+		// Specific for engineer robot
+		// case DIY_controller_DATA_SEND_ID:
+        // {
+        //     memcpy(&diy_controller.data, frame + index, sizeof(diy_controller));
+        //     if (diy_controller.tData.fIsTeaching)
+        //     {
+        //         for (uint8_t i = 0; i < 7; i++)
+        //         {
+        //             chassis_move.robot_arm_motor_pos[i] = diy_controller.tData.demoArmAngle[i];
+        //         }
+        //     }
+		// 	break;
+        // }
 		// case SMALL_MAP_INTERACTION_DATA_ID:
 		// {
 		//     memcpy(&robot_command_t, frame + index, sizeof(robot_command_t));

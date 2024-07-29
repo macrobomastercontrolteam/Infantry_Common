@@ -6,6 +6,7 @@
 #include "main.h"
 
 #include "protocol.h"
+// #include "user_lib.h"
 
 typedef enum
 {
@@ -289,12 +290,6 @@ typedef __packed struct // 0x0121
 	uint8_t radar_cmd;
 } ext_radar_cmd_t;
 
-// @TODO: research about this
-// typedef __pack struct // 0x0302
-// {
-//    uint8_t data[x];
-// } ext_robot_interactive_data_t; //Current: custom_robot_data_t;
-
 // typedef __pack struct // 0x0303
 // {
 //     float target_position_x;
@@ -370,6 +365,17 @@ typedef __packed struct
 {
 	uint8_t data[32];
 } ext_download_stream_data_t;
+
+// typedef __packed union
+// {
+//     __packed struct
+//     {
+//         fp32 demoArmAngle[7];
+//         uint8_t fIsTeaching;
+//     } tData;
+//     uint8_t data[30];
+// } custom_robot_data_t;
+// STATIC_ASSERT(sizeof(custom_robot_data_t) <= 30);
 
 extern void init_referee_struct_data(void);
 extern void referee_data_solve(uint8_t *frame);

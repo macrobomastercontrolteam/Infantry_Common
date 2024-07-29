@@ -45,7 +45,7 @@ typedef enum
     SENTRY_INFO_CMD_ID                = 0x020D,
     RADAR_INFO_CMD_ID                 = 0x020E,
     STUDENT_INTERACTIVE_DATA_CMD_ID   = 0x0301,
-    CUSTOM_CNTRLR_DATA_INTRFCE_ID     = 0x0302,
+    DIY_controller_DATA_SEND_ID       = 0x0302,
     SMALL_MAP_INTERACTION_DATA_ID     = 0x0303,
     KEYBOARD_MOUSE_INFO_ID            = 0x0304,
     SMALL_MAP_DATA_RECEIPT_ID         = 0x0305,
