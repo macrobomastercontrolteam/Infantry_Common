@@ -7,6 +7,7 @@
 #include "protocol.h"
 #include "chassis_task.h"
 
+#define REF_TEST_MODE 1
 
 frame_header_struct_t referee_receive_header;
 frame_header_struct_t referee_send_header;
@@ -31,6 +32,13 @@ ext_shoot_data_t shoot_data_t;
 ext_bullet_remaining_t bullet_remaining_t;
 ext_student_interactive_data_t student_interactive_data_t;
 custom_robot_data_t diy_controller;
+
+#if REF_TEST_MODE
+uint16_t uiRefRxCmdId = 0;
+uint8_t test_mains_power_chassis_output = 0;
+uint8_t test_mains_power_shooter_output = 0;
+uint8_t test_mains_power_gimbal_output = 0;
+#endif
 
 void init_referee_struct_data(void)
 {
@@ -77,6 +85,10 @@ void referee_data_solve(uint8_t *frame)
     memcpy(&cmd_id, frame + index, sizeof(uint16_t));
     index += sizeof(uint16_t);
 
+#if REF_TEST_MODE
+    uiRefRxCmdId = cmd_id;
+#endif
+
     switch (cmd_id)
     {
         case GAME_STATE_CMD_ID:
@@ -120,6 +132,11 @@ void referee_data_solve(uint8_t *frame)
         case ROBOT_STATE_CMD_ID:
         {
             memcpy(&robot_state, frame + index, sizeof(robot_state));
+#if REF_TEST_MODE
+            test_mains_power_chassis_output = robot_state.mains_power_chassis_output;
+            test_mains_power_shooter_output = robot_state.mains_power_shooter_output;
+            test_mains_power_gimbal_output = robot_state.mains_power_gimbal_output;
+#endif
         }
         break;
         case POWER_HEAT_DATA_CMD_ID:
