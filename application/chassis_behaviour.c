@@ -564,11 +564,11 @@ void chassis_align_with_gimbal(fp32* wz_set)
 void chassis_align_with_abs_angle(fp32* wz_set)
 {
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-	if (CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT) && (!toe_is_error(CV_TOE)))
+	if (CvCmder_GetMode(CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT) && (!toe_is_error(CV_TOE)))
 	{
 		// Keep rotating until chassis align with gimbal
 		const fp32 chassis_align_abs_angle_deadzone = DEG_TO_RAD(3.5f);
-		if (fabs(chassis_move.chassis_yaw_motor->relative_angle) > chassis_align_abs_angle_deadzone)
+		if (fabs(chassis_move.chassis_yaw) > chassis_align_abs_angle_deadzone)
 		{
 			*wz_set = (chassis_move.wz_max_speed - chassis_get_low_wz_limit()) * (fabs(chassis_move.chassis_yaw) / (PI / 2.0f)) + chassis_get_low_wz_limit();
 			if (chassis_move.chassis_yaw < 0)
