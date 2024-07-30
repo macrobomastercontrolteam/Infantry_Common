@@ -65,23 +65,13 @@
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
-// motor data read
-#define get_motor_measure(ptr, data)                                  \
-	{                                                                 \
-		(ptr)->last_ecd = (ptr)->ecd;                                 \
-		(ptr)->ecd = (uint16_t)((data)[0] << 8 | (data)[1]);          \
-		(ptr)->speed_rpm = (int16_t)((data)[2] << 8 | (data)[3]);     \
-		(ptr)->feedback_current = (int16_t)((data)[4] << 8 | (data)[5]); \
-		(ptr)->temperate = (data)[6];                                 \
-	}
 
 void CAN_cmd_3508_chassis(void);
-uint8_t convertCanIdToMotorIndex(uint32_t canId);
-void reverse_motor_feedback(uint8_t bMotorId);
 fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits);
 int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits);
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
-HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
+HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
+void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
 
 /**
  * @brief motor feedback data
@@ -141,47 +131,6 @@ const fp32 biped_angle_speed_encoding_ratio = (1 << 15) / BIPED_RAD_PER_SEC_ECD_
 uint8_t decode_biped_chassis_feedback(uint8_t *data);
 #endif
 
-uint8_t convertCanIdToMotorIndex(uint32_t canId)
-{
-	switch (canId)
-	{
-		case CAN_3508_M1_ID:
-		{
-			return MOTOR_INDEX_3508_M1;
-		}
-		case CAN_3508_M2_ID:
-		{
-			return MOTOR_INDEX_3508_M2;
-		}
-		case CAN_3508_M3_ID:
-		{
-			return MOTOR_INDEX_3508_M3;
-		}
-		case CAN_3508_M4_ID:
-		{
-			return MOTOR_INDEX_3508_M4;
-		}
-#if (ROBOT_YAW_IS_4310 == 0)
-		case CAN_YAW_MOTOR_6020_RX_ID:
-		{
-			return MOTOR_INDEX_YAW;
-		}
-#endif
-		case CAN_PIT_MOTOR_ID:
-		{
-			return MOTOR_INDEX_PITCH;
-		}
-		case CAN_TRIGGER_MOTOR_ID:
-		{
-			return MOTOR_INDEX_TRIGGER;
-		}
-		default:
-		{
-			return 0;
-		}
-	}
-}
-
 /**
  * @brief          hal CAN fifo call back, receive motor data
  * @param[in]      hcan, the point to CAN handle
@@ -191,10 +140,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	CAN_RxHeaderTypeDef rx_header;
 	uint8_t rx_data[8];
-	uint8_t fIsMotor = 0;
 	uint8_t bMotorId = 0;
-	uint8_t fIdIdentified = 0;
-	uint8_t fIsRmMotor = 0;
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
@@ -203,31 +149,35 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		switch (rx_header.StdId)
 		{
 			case CAN_PIT_MOTOR_ID:
-#if IS_TRIGGER_ON_GIMBAL
-			case CAN_TRIGGER_MOTOR_ID:
-#endif
 			{
-				fIsMotor = 1;
-				fIdIdentified = 0;
-				fIsRmMotor = 1;
+        		bMotorId = MOTOR_INDEX_PITCH;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(PITCH_GIMBAL_MOTOR_TOE);
 				break;
 			}
 			case CAN_FRICTION_MOTOR_LEFT_ID:
 			{
-				fIsMotor = 1;
 				bMotorId = MOTOR_INDEX_FRICTION_LEFT;
-				fIdIdentified = 1;
-				fIsRmMotor = 1;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(FRIC1_MOTOR_TOE);
 				break;
 			}
 			case CAN_FRICTION_MOTOR_RIGHT_ID:
 			{
-				fIsMotor = 1;
 				bMotorId = MOTOR_INDEX_FRICTION_RIGHT;
-				fIdIdentified = 1;
-				fIsRmMotor = 1;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(FRIC2_MOTOR_TOE);
 				break;
 			}
+#if IS_TRIGGER_ON_GIMBAL
+			case CAN_TRIGGER_MOTOR_ID:
+			{
+        		bMotorId = MOTOR_INDEX_TRIGGER;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(TRIGGER_MOTOR_TOE);
+				break;
+			}
+#endif
 			default:
 			{
 				break;
@@ -239,44 +189,71 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		switch (rx_header.StdId)
 		{
 			case CAN_3508_M1_ID:
+			{
+				bMotorId = MOTOR_INDEX_3508_M1;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+        		detect_hook(CHASSIS_MOTOR1_TOE);
+				break;
+			}
 			case CAN_3508_M2_ID:
+			{
+        		bMotorId = MOTOR_INDEX_3508_M2;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(CHASSIS_MOTOR2_TOE);
+        
+				break;
+			}
 			case CAN_3508_M3_ID:
+			{
+        		bMotorId = MOTOR_INDEX_3508_M3;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(CHASSIS_MOTOR3_TOE);
+				break;
+			}
 			case CAN_3508_M4_ID:
-#if (IS_TRIGGER_ON_GIMBAL == 0)
-			case CAN_TRIGGER_MOTOR_ID:
-#endif
-#if (ROBOT_YAW_IS_4310 == 0)
-			case CAN_YAW_MOTOR_6020_RX_ID:
-#endif
 			{
-				fIsMotor = 1;
-				fIdIdentified = 0;
-				fIsRmMotor = 1;
+        		bMotorId = MOTOR_INDEX_3508_M4;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(CHASSIS_MOTOR4_TOE);
 				break;
 			}
-#if ROBOT_YAW_IS_4310
-			case CAN_DAMIAO_RX_ID:
-			{
-				fIsRmMotor = 0;
-				if (decode_4310_motor_feedback(rx_data, &bMotorId) == HAL_OK)
-				{
-					fIsMotor = 1;
-					fIdIdentified = 1;
-				}
-				break;
-			}
-#endif
 			case SUPCAP_RX_ID:
 			{
-				fIsMotor = 0;
 				memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
 				detect_hook(SUPCAP_TOE);
 				break;
 			}
+#if ROBOT_YAW_IS_4310
+			case CAN_YAW_MOTOR_4310_RX_ID:
+			{
+				bMotorId = MOTOR_INDEX_YAW;
+				if (decode_4310_motor_feedback(rx_data, bMotorId) == HAL_OK)
+				{
+					detect_hook(YAW_GIMBAL_MOTOR_TOE);
+				}
+				break;
+			}
+#else
+			case CAN_YAW_MOTOR_6020_RX_ID:
+			{
+        		bMotorId = MOTOR_INDEX_YAW;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(YAW_GIMBAL_MOTOR_TOE);
+				break;
+			}
+#endif
+#if (IS_TRIGGER_ON_GIMBAL == 0)
+			case CAN_TRIGGER_MOTOR_ID:
+			{
+        		bMotorId = MOTOR_INDEX_TRIGGER;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(TRIGGER_MOTOR_TOE);
+				break;
+			}
+#endif
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 			case CAN_SHRINKED_CONTROLLER_RX_ID:
 			{
-				fIsMotor = 0;
 				if (decode_swerve_chassis_feedback(rx_data))
 				{
 					detect_hook(SWERVE_CTRL_TOE);
@@ -285,7 +262,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			}
 			case CAN_SWERVE_RADII_DOT_RX_ID:
 			{
-				fIsMotor = 0;
 				if (decode_swerve_chassis_target_radius_dot(rx_data))
 				{
 					detect_hook(SWERVE_CTRL_TOE);
@@ -296,7 +272,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)
 			case CAN_BIPED_CONTROLLER_RX_ID:
 			{
-				fIsMotor = 0;
 				if (decode_biped_chassis_feedback(rx_data))
 				{
 					detect_hook(BIPED_CTRL_TOE);
@@ -310,21 +285,43 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			}
 		}
 	}
+}
 
-	if (fIsMotor == 1)
+void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId)
+{
+	uint16_t temp_ecd = (uint16_t)(data[0] << 8 | data[1]);
+	int16_t temp_speed = (int16_t)(data[2] << 8 | data[3]);
+#if (REVERSE_M3508_1 || REVERSE_M3508_2 || REVERSE_M3508_3 || REVERSE_M3508_4)
+	switch (bMotorId)
 	{
-		if (fIdIdentified == 0)
+#if REVERSE_M3508_1
+		case MOTOR_INDEX_3508_M1:
+#endif
+#if REVERSE_M3508_2
+		case MOTOR_INDEX_3508_M2:
+#endif
+#if REVERSE_M3508_3
+		case MOTOR_INDEX_3508_M3:
+#endif
+#if REVERSE_M3508_4
+		case MOTOR_INDEX_3508_M4:
+#endif
 		{
-			bMotorId = convertCanIdToMotorIndex(rx_header.StdId);
+			temp_ecd = (temp_ecd + HALF_ECD_RANGE) % ECD_RANGE;
+			temp_speed = -temp_speed;
+			break;
 		}
-
-		if (fIsRmMotor)
+		default:
 		{
-			get_motor_measure(&motor_chassis[bMotorId], rx_data);
+			break;
 		}
-		reverse_motor_feedback(bMotorId);
-		detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
 	}
+#endif
+	motor_chassis[bMotorId].last_ecd = motor_chassis[bMotorId].ecd;
+	motor_chassis[bMotorId].ecd = temp_ecd;
+	motor_chassis[bMotorId].speed_rpm = temp_speed;
+	motor_chassis[bMotorId].feedback_current = (int16_t)(data[4] << 8 | data[5]);
+	motor_chassis[bMotorId].temperate = data[6];
 }
 
 fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits)
@@ -389,7 +386,7 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp
 	return HAL_CAN_AddTxMessage(hcan_ptr, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
-HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
+HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
 	HAL_StatusTypeDef ret_value = HAL_ERROR;
 	// Note: error_id = 0， 1 means motor power is disabled/enabled
@@ -400,17 +397,15 @@ HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr
 	}
 	else
 	{
-		uint16_t p_int = (data[1] << 8) | data[2];         // rad
+		uint16_t p_int = (data[1] << 8) | data[2];		   // rad
 		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
 		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
 
-		// Currently, yaw motor is the only DaMiao motor on the robot
-		*bMotorIdPtr = MOTOR_INDEX_YAW;
-		motor_chassis[*bMotorIdPtr].output_angle = uint_to_fp32_motor(p_int, MIT_CONTROL_P_MIN[DM_4310], MIT_CONTROL_P_MAX[DM_4310], 16);
-		motor_chassis[*bMotorIdPtr].ecd = loop_fp32_constrain(motor_chassis[*bMotorIdPtr].output_angle, 0, 2*PI) * MOTOR_RAD_TO_ECD;
-		motor_chassis[*bMotorIdPtr].velocity = uint_to_fp32_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
-		motor_chassis[*bMotorIdPtr].torque = uint_to_fp32_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
-		motor_chassis[*bMotorIdPtr].temperate = data[6];
+		motor_chassis[bMotorId].output_angle = uint_to_fp32_motor(p_int, MIT_CONTROL_P_MIN[DM_4310], MIT_CONTROL_P_MAX[DM_4310], 16);
+		motor_chassis[bMotorId].ecd = loop_fp32_constrain(motor_chassis[bMotorId].output_angle, 0, 2 * PI) * MOTOR_RAD_TO_ECD;
+		motor_chassis[bMotorId].velocity = uint_to_fp32_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
+		motor_chassis[bMotorId].torque = uint_to_fp32_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
+		motor_chassis[bMotorId].temperate = data[6];
 
 		ret_value = HAL_OK;
 	}
@@ -570,36 +565,6 @@ uint8_t decode_biped_chassis_feedback(uint8_t *data)
 	return fDataValid;
 }
 #endif
-
-void reverse_motor_feedback(uint8_t bMotorId)
-{
-#if (REVERSE_M3508_1 || REVERSE_M3508_2 || REVERSE_M3508_3 || REVERSE_M3508_4)
-	switch (bMotorId)
-	{
-#if REVERSE_M3508_1
-		case MOTOR_INDEX_3508_M1:
-#endif
-#if REVERSE_M3508_2
-		case MOTOR_INDEX_3508_M2:
-#endif
-#if REVERSE_M3508_3
-		case MOTOR_INDEX_3508_M3:
-#endif
-#if REVERSE_M3508_4
-		case MOTOR_INDEX_3508_M4:
-#endif
-		{
-			motor_chassis[bMotorId].ecd = (motor_chassis[bMotorId].ecd + HALF_ECD_RANGE) % ECD_RANGE;
-			motor_chassis[bMotorId].speed_rpm = -motor_chassis[bMotorId].speed_rpm;
-			break;
-		}
-		default:
-		{
-			break;
-		}
-	}
-#endif
-}
 
 /**
  * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)

@@ -40,7 +40,7 @@ typedef enum
     CAN_3508_M4_ID = 0x204,
 #if ROBOT_YAW_IS_4310
     CAN_YAW_MOTOR_4310_TX_ID = 0x005,
-    CAN_DAMIAO_RX_ID = 0x0FF,
+    CAN_YAW_MOTOR_4310_RX_ID = 0x0FF,
 #else
     CAN_YAW_MOTOR_6020_RX_ID = 0x205,
 #endif
