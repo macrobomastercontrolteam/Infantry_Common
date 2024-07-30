@@ -433,7 +433,7 @@ void chassis_spinning_speed_manager(fp32* wz_set)
 				random_wz_max_speed = random_wz_param_a * (-dial_ratio) + random_wz_param_b;
 
 				// change direction
-				spinning_sign = RNG_get_random_range_int32(0, 1) ? -1 : 1;
+				//spinning_sign = RNG_get_random_range_int32(0, 1) ? -1 : 1;
 
 				// calc periods
 				param_change_period = RNG_get_random_range_int32(MIN_SPIN_PARAM_CHANGE_PERIOD, roundf(NORMAL_SPIN_PARAM_CHANGE_PERIOD + dial_ratio * DELTA_SPIN_PARAM_CHANGE_PERIOD));
