@@ -481,22 +481,23 @@ static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set)
 	{
 		*vx_set = 0;
 		*vy_set = 0;
+		*wz_set = 0;
 	}
 	else
 	{
 		// chassis_task should maintain previous speed if cv is offline for a short time
 		*vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
 		*vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
-	}
 
-	// @TODO: implement CV enemy detection mode
-	if (is_game_started() && CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT) && (!toe_is_error(CV_TOE)))
-	{
-		chassis_spinning_speed_manager(wz_set);
-	}
-	else
-	{
-		*wz_set = 0;
+		// @TODO: implement CV enemy detection mode
+		if (is_game_started() && CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT))
+		{
+			chassis_spinning_speed_manager(wz_set);
+		}
+		else if (CvCmder_GetMode(CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT))
+		{
+			chassis_align_with_abs_angle(wz_set);
+		}
 	}
 #endif
 }
@@ -530,7 +531,6 @@ static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint
 	else
 	{
 		chassis_align_with_gimbal(wz_set);
-		chassis_align_with_abs_angle(wz_set);
 	}
 }
 
@@ -564,8 +564,8 @@ void chassis_align_with_gimbal(fp32* wz_set)
 void chassis_align_with_abs_angle(fp32* wz_set)
 {
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-	if (CvCmder_GetMode(CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT) && (!toe_is_error(CV_TOE)))
-	{
+	// if (CvCmder_GetMode(CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT) && (!toe_is_error(CV_TOE)))
+	// {
 		// Keep rotating until chassis align with gimbal
 		const fp32 chassis_align_abs_angle_deadzone = DEG_TO_RAD(3.5f);
 		if (fabs(chassis_move.chassis_yaw) > chassis_align_abs_angle_deadzone)
@@ -580,6 +580,6 @@ void chassis_align_with_abs_angle(fp32* wz_set)
 		{
 			*wz_set = 0;
 		}
-	}
+	// }
 #endif
 }
