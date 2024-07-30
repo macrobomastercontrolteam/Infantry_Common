@@ -30,7 +30,8 @@ typedef enum
     CV_MODE_ENEMY_DETECTED_BIT = 1 << 2,
     CV_MODE_SHOOT_BIT = 1 << 3,
     CV_MODE_CHASSIS_SPINNING_BIT = 1 << 4,
-    CV_MODE_LAST_BIT = 1 << 5,
+    CV_MODE_CHASSIS_ABS_ANGLE_BIT = 1 << 5,
+    CV_MODE_LAST_BIT = 1 << 6,
 } eModeControlBits;
 STATIC_ASSERT(CV_MODE_LAST_BIT <= (1 << 8));
 
