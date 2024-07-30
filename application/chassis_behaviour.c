@@ -567,11 +567,11 @@ void chassis_align_with_abs_angle(fp32* wz_set)
 	// if (CvCmder_GetMode(CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT) && (!toe_is_error(CV_TOE)))
 	// {
 		// Keep rotating until chassis align with gimbal
-		const fp32 chassis_align_abs_angle_deadzone = DEG_TO_RAD(3.5f);
+		const fp32 chassis_align_abs_angle_deadzone = DEG_TO_RAD(10.0f);
 		if (fabs(chassis_move.chassis_yaw) > chassis_align_abs_angle_deadzone)
 		{
-			*wz_set = (chassis_move.wz_max_speed - chassis_get_low_wz_limit()) * (fabs(chassis_move.chassis_yaw) / (PI / 2.0f)) + chassis_get_low_wz_limit();
-			if (chassis_move.chassis_yaw < 0)
+			*wz_set = ((chassis_move.wz_max_speed - chassis_get_ultra_low_wz_limit()) * (fabs(chassis_move.chassis_yaw) / (PI / 2.0f)) + chassis_get_ultra_low_wz_limit())*0.4f;
+			if (chassis_move.chassis_yaw > 0)
 			{
 				*wz_set *= -1;
 			}
