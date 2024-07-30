@@ -1,5 +1,5 @@
 #include "robot_arm_task.h"
-#include "INS_task.h"
+// #include "INS_task.h"
 #include "cmsis_os.h"
 #include "detect_task.h"
 
@@ -21,9 +21,9 @@ const fp32 arm_end_min[6] = {ARM_END_EFFECTOR_ROLL_MIN, ARM_END_EFFECTOR_PITCH_M
 const fp32 arm_end_max[6] = {ARM_END_EFFECTOR_ROLL_MAX, ARM_END_EFFECTOR_PITCH_MAX, ARM_END_EFFECTOR_YAW_MAX, ARM_END_EFFECTOR_X_MAX, ARM_END_EFFECTOR_Y_MAX, ARM_END_EFFECTOR_Z_MAX};
 const fp32 arm_end_home[6] = {ARM_END_EFFECTOR_ROLL_HOME, ARM_END_EFFECTOR_PITCH_HOME, ARM_END_EFFECTOR_YAW_HOME, ARM_END_EFFECTOR_X_HOME, ARM_END_EFFECTOR_Y_HOME, ARM_END_EFFECTOR_Z_HOME};
 
-const fp32 yaw_offset = 0;
-const fp32 pitch_offset = 0;
-const fp32 roll_offset = 0;
+// const fp32 yaw_offset = 0;
+// const fp32 pitch_offset = 0;
+// const fp32 roll_offset = 0;
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t robot_arm_high_water;
@@ -211,20 +211,20 @@ void robot_arm_status_update(void)
 {
 	robot_arm.time_ms = osKernelSysTick();
 
-	robot_arm.roll.now = *(robot_arm.arm_INS_angle + INS_ROLL_ADDRESS_OFFSET);
-	robot_arm.roll.now -= roll_offset;
-	robot_arm.roll.dot = *(robot_arm.arm_INS_speed + INS_GYRO_X_ADDRESS_OFFSET);
-	robot_arm.roll.last = robot_arm.roll.now;
+	// robot_arm.roll.now = *(robot_arm.arm_INS_angle + INS_ROLL_ADDRESS_OFFSET);
+	// robot_arm.roll.now -= roll_offset;
+	// robot_arm.roll.dot = *(robot_arm.arm_INS_speed + INS_GYRO_X_ADDRESS_OFFSET);
+	// robot_arm.roll.last = robot_arm.roll.now;
 
-	robot_arm.pitch.now = *(robot_arm.arm_INS_angle + INS_PITCH_ADDRESS_OFFSET);
-	robot_arm.pitch.now -= pitch_offset;
-	robot_arm.pitch.dot = *(robot_arm.arm_INS_speed + INS_GYRO_Y_ADDRESS_OFFSET);
-	robot_arm.pitch.last = robot_arm.pitch.now;
+	// robot_arm.pitch.now = *(robot_arm.arm_INS_angle + INS_PITCH_ADDRESS_OFFSET);
+	// robot_arm.pitch.now -= pitch_offset;
+	// robot_arm.pitch.dot = *(robot_arm.arm_INS_speed + INS_GYRO_Y_ADDRESS_OFFSET);
+	// robot_arm.pitch.last = robot_arm.pitch.now;
 
-	robot_arm.yaw.now = *(robot_arm.arm_INS_angle + INS_YAW_ADDRESS_OFFSET);
-	robot_arm.yaw.now -= yaw_offset;
-	robot_arm.yaw.dot = *(robot_arm.arm_INS_speed + INS_GYRO_Z_ADDRESS_OFFSET);
-	robot_arm.yaw.last = robot_arm.yaw.now;
+	// robot_arm.yaw.now = *(robot_arm.arm_INS_angle + INS_YAW_ADDRESS_OFFSET);
+	// robot_arm.yaw.now -= yaw_offset;
+	// robot_arm.yaw.dot = *(robot_arm.arm_INS_speed + INS_GYRO_Z_ADDRESS_OFFSET);
+	// robot_arm.yaw.last = robot_arm.yaw.now;
 
 	// robot_arm.accel_x = *(robot_arm.arm_INS_accel + INS_ACCEL_X_ADDRESS_OFFSET);
 	// robot_arm.accel_y = *(robot_arm.arm_INS_accel + INS_ACCEL_Y_ADDRESS_OFFSET);

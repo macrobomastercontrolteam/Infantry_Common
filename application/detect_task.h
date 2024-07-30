@@ -72,9 +72,9 @@ enum errorList
     JOINT_5_TOE,
     JOINT_6_TOE,
 
-    BOARD_GYRO_TOE,
-    BOARD_ACCEL_TOE,
-    BOARD_MAG_TOE,
+    // BOARD_GYRO_TOE,
+    // BOARD_ACCEL_TOE,
+    // BOARD_MAG_TOE,
 
     ERROR_LIST_LENGTH,
 };

@@ -40,16 +40,16 @@
 #include "bsp_usart.h"
 #include "remote_control.h"
 
-#include "calibrate_task.h"
-#include "chassis_task.h"
+// #include "calibrate_task.h"
+// #include "chassis_task.h"
 #include "detect_task.h"
-#include "gimbal_task.h"
-#include "INS_task.h"
+// #include "gimbal_task.h"
+// #include "INS_task.h"
 #include "led_flow_task.h"
 // #include "oled_task.h"
-#include "referee_usart_task.h"
-#include "usb_task.h"
-#include "voltage_task.h"
+// #include "referee_usart_task.h"
+// #include "usb_task.h"
+// #include "voltage_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -138,8 +138,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 	can_filter_init();
 	delay_init();
-	cali_param_init();
-	remote_control_init();
+	// cali_param_init();
+	// remote_control_init();
 	// usart1_tx_dma_init();
   /* USER CODE END 2 */
 
