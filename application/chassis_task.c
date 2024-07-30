@@ -31,7 +31,7 @@
 #include "user_lib.h"
 #include <assert.h>
 #include "referee.h"
-
+#include "vofa.h"
 #define STEER_MOTOR_UPSIDE_DOWN_MOUNTING 0
 #define SWERVE_INVALID_HIP_DATA_RESET_TIMEOUT 1000
 
@@ -114,7 +114,7 @@ void chassis_task(void const *pvParameters)
 	// {
 	//     osDelay(CHASSIS_CONTROL_TIME_MS * 2);
 	// }
-
+	
 	chassis_init();
 
 	while (1)
@@ -150,6 +150,7 @@ void chassis_task(void const *pvParameters)
  */
 static void chassis_init(void)
 {
+	vofa_send();
 	// chassis angle PID
 	const static fp32 chassis_yaw_pid[3] = {CHASSIS_FOLLOW_GIMBAL_PID_KP, CHASSIS_FOLLOW_GIMBAL_PID_KI, CHASSIS_FOLLOW_GIMBAL_PID_KD};
 
@@ -299,6 +300,8 @@ void biped_chassis_params_reset(void)
  */
 static void chassis_feedback_update(void)
 {
+	vofa_send();
+	vofa_update(1,(vofa_data_get(1)+0.001));
 #if (ROBOT_TYPE != INFANTRY_2024_BIPED)
 	uint8_t i = 0;
 	for (i = 0; i < 4; i++)
