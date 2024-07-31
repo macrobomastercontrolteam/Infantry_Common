@@ -177,6 +177,14 @@ fp32 brakezone_symmetric(fp32 input, fp32 threshold, fp32 order);
 #define rad_format(Ang) loop_fp32_constrain((Ang), -PI, PI)
 #endif /* rad_format */
 
+#ifndef DEG_TO_RAD
+#define DEG_TO_RAD(_deg) (_deg * PI / 180.0f)
+#endif
+
+#ifndef RAD_TO_DEG
+#define RAD_TO_DEG(_deg) (_deg * 180.0f / PI)
+#endif
+
 #ifndef Limit
 #define Limit(x, max, min) ((x) > (MAX(min, max)) ? (MAX(min, max)) : ((x) < (MIN(min, max)) ? (MIN(min, max)) : (x)))
 #endif /* Limit */

@@ -26,7 +26,15 @@
 #include "robot_arm_task.h"
 #include "user_lib.h"
 
-#define ENABLE_ARM_MOTOR_POWER 0
+#define ENABLE_ARM_MOTOR_POWER 1
+
+#define REVERSE_JOINT_0_DIRECTION 1
+#define REVERSE_JOINT_1_DIRECTION 0
+#define REVERSE_JOINT_2_DIRECTION 0
+#define REVERSE_JOINT_3_DIRECTION 0
+#define REVERSE_JOINT_4_DIRECTION 0
+#define REVERSE_JOINT_5_DIRECTION 0
+#define REVERSE_JOINT_6_DIRECTION 0
 
 #define MOTOR_6012_GEAR_RATIO 36.0f
 #define MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO 0.225146199f
@@ -58,19 +66,16 @@ static CAN_TxHeaderTypeDef can_tx_message;
 static uint8_t can_send_data[8];
 uint32_t send_mail_box;
 
-const float MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 12.5f};
-const float MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -12.5f};
-const float MIT_CONTROL_V_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {25.0f, 45.0f, 30.0f};
-const float MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-25.0f, -45.0f, -30.0f};
-const float MIT_CONTROL_T_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {20.0f, 24.0f, 10.0f};
-const float MIT_CONTROL_T_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-20.0f, -24.0f, -10.0f};
-const float MIT_CONTROL_KP_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {500.0f, 500.0f, 500.0f};
-const float MIT_CONTROL_KP_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f};
-const float MIT_CONTROL_KD_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {5.0f, 5.0f, 5.0f};
-const float MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f};
-
-// @TODO: measure 6020 offset angle
-const uint16_t joint_6_6020_offset_ecd = 2876;
+const float MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 12.5f, 12.5f};
+const float MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -12.5f, -12.5f};
+const float MIT_CONTROL_V_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {25.0f, 45.0f, 30.0f, 10.0f};
+const float MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-25.0f, -45.0f, -30.0f, -10.0f};
+const float MIT_CONTROL_T_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {20.0f, 24.0f, 10.0f, 28.0f};
+const float MIT_CONTROL_T_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-20.0f, -24.0f, -10.0f, -28.0f};
+const float MIT_CONTROL_KP_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {500.0f, 500.0f, 500.0f, 500.0f};
+const float MIT_CONTROL_KP_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f, 0.0f};
+const float MIT_CONTROL_KD_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {5.0f, 5.0f, 5.0f, 5.0f};
+const float MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, float _pos, float _vel, float _KP, float _KD, float _torq, uint8_t blocking_call, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
 HAL_StatusTypeDef encode_6012_motor_position_control(uint32_t id, fp32 maxSpeed_rpm, fp32 angleControl_rad, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
@@ -82,7 +87,8 @@ HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_
 void decode_chassis_controller_rx(uint8_t *data, uint32_t id);
 void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_4010_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
-HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr);
+HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
+HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId);
 
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call);
 HAL_StatusTypeDef soft_disable_Ktech_motor(uint32_t id, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call);
@@ -92,30 +98,6 @@ int float_to_uint_motor(float x, float x_min, float x_max, int bits);
 uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt);
 fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 HAL_StatusTypeDef Send_CAN_Cmd(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data, uint8_t blocking_call);
-
-uint8_t canRxIdToMotorArrayId(can_msg_id_e _SINGLE_CAN_ID)
-{
-	switch (_SINGLE_CAN_ID)
-	{
-		case CAN_JOINT_MOTOR_1_6012_RX_ID:
-		{
-			return JOINT_ID_1_6012;
-		}
-		case CAN_JOINT_MOTOR_2_4010_RX_ID:
-		{
-			return JOINT_ID_2_4010;
-		}
-		case CAN_JOINT_MOTOR_6_6020_RX_ID:
-		{
-			return JOINT_ID_6_6020;
-		}
-		case CAN_DAMIAO_RX_ID:
-		default:
-		{
-			return 0xFF;
-		}
-	}
-}
 
 /**
  * @brief          hal CAN fifo call back, receive motor data
@@ -135,23 +117,26 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
-	bMotorId = canRxIdToMotorArrayId((can_msg_id_e)rx_header.StdId);
 	switch (rx_header.StdId)
 	{
-		case CAN_DAMIAO_RX_ID:
+		case CAN_JOINT_MOTOR_0_4340_RX_ID:
 		{
-			decode_4310_motor_feedback(rx_data, &bMotorId);
+			bMotorId = JOINT_ID_0_4340;
+			decode_4340_motor_feedback(rx_data, bMotorId);
+			detect_hook(JOINT_0_TOE);
 			break;
 		}
 		case CAN_JOINT_MOTOR_1_6012_RX_ID:
 		{
 			if ((rx_data[0] == CAN_KTECH_MULTIANGLE_2_ID) || (rx_data[0] == CAN_KTECH_TORQUE_ID))
 			{
+				bMotorId = JOINT_ID_1_6012;
 				decode_6012_motor_torque_feedback(rx_data, bMotorId);
+				detect_hook(JOINT_1_TOE);
 			}
 			else if (rx_data[0] == CAN_KTECH_TEMP_DISABLE_MOTOR_ID)
 			{
-				; // do nothing except detect_hook
+				detect_hook(JOINT_1_TOE);
 			}
 			break;
 		}
@@ -159,17 +144,42 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		{
 			if ((rx_data[0] == CAN_KTECH_MULTIANGLE_2_ID) || (rx_data[0] == CAN_KTECH_TORQUE_ID))
 			{
+				bMotorId = JOINT_ID_2_4010;
 				decode_4010_motor_torque_feedback(rx_data, bMotorId);
+				detect_hook(JOINT_2_TOE);
 			}
 			else if (rx_data[0] == CAN_KTECH_TEMP_DISABLE_MOTOR_ID)
 			{
-				; // do nothing except detect_hook
+				detect_hook(JOINT_2_TOE);
 			}
+			break;
+		}
+		case CAN_JOINT_MOTOR_3_4340_RX_ID:
+		{
+			bMotorId = JOINT_ID_3_4340;
+			decode_4340_motor_feedback(rx_data, bMotorId);
+			detect_hook(JOINT_3_TOE);
+			break;
+		}
+		case CAN_JOINT_MOTOR_4_4310_RX_ID:
+		{
+			bMotorId = JOINT_ID_4_4310;
+			decode_4310_motor_feedback(rx_data, bMotorId);
+			detect_hook(JOINT_4_TOE);
+			break;
+		}
+		case CAN_JOINT_MOTOR_5_4310_RX_ID:
+		{
+			bMotorId = JOINT_ID_5_4310;
+			decode_4310_motor_feedback(rx_data, bMotorId);
+			detect_hook(JOINT_5_TOE);
 			break;
 		}
 		case CAN_JOINT_MOTOR_6_6020_RX_ID:
 		{
+			bMotorId = JOINT_ID_6_6020;
 			get_rm_motor_measure(&motor_measure[bMotorId], rx_data);
+			detect_hook(JOINT_6_TOE);
 			break;
 		}
 		case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID:
@@ -196,13 +206,78 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			break;
 		}
 	}
-
-	if (bMotorId < JOINT_ID_LAST)
-	{
-		detect_hook(bMotorId + JOINT_0_TOE);
-	}
 }
 
+// void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
+// {
+// 	static uint8_t fIsSpecialCmdLast = 0;
+// 	static uint8_t specialCmdLast = 0;
+// 	uint8_t fIsSpecialCmd = 0;
+// 	uint8_t specialCmd = data[0];
+// 	if ((specialCmd == 0x00) || (specialCmd == 0xFF))
+// 	{
+// 		fIsSpecialCmd = 1;
+// 		for (uint8_t i = 1; i < 8; i++)
+// 		{
+// 			if (specialCmd != data[i])
+// 			{
+// 				fIsSpecialCmd = 0;
+// 				break;
+// 			}
+// 		}
+// 	}
+
+// 	if (fIsSpecialCmd)
+// 	{
+// 		if ((specialCmdLast != specialCmd) || (fIsSpecialCmdLast == 0))
+// 		{
+// 			switch (specialCmd)
+// 			{
+// 				case 0x00:
+// 				{
+// 					robot_arm.fMasterSwitch = 0;
+// 					break;
+// 				}
+// 				case 0xFF:
+// 				{
+// 					if (robot_arm.arm_state != ARM_STATE_ZERO_FORCE)
+// 					{
+// 						robot_arm.fHoming = 1;
+// 						robot_arm_switch_on_power();
+// 					}
+// 					break;
+// 				}
+// 			}
+// 		}
+// 	}
+// 	else
+// 	{
+// 		robot_arm.fHoming = 0;
+// 		robot_arm_switch_on_power();
+
+// 		switch (id)
+// 		{
+// 			case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_1_RX_ID:
+// 			{
+// 				robot_arm.joint_angle_target[0] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
+// 				robot_arm.joint_angle_target[1] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
+// 				robot_arm.joint_angle_target[2] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
+// 				robot_arm.joint_angle_target[3] = (int16_t)((data[7] << 8) | data[6]) / RAD_TO_INT16_SCALE;
+// 				break;
+// 			}
+// 			case CAN_INTER_BOARD_INDIVIDUAL_MOTOR_2_RX_ID:
+// 			default:
+// 			{
+// 				robot_arm.joint_angle_target[4] = (int16_t)((data[1] << 8) | data[0]) / RAD_TO_INT16_SCALE;
+// 				robot_arm.joint_angle_target[5] = (int16_t)((data[3] << 8) | data[2]) / RAD_TO_INT16_SCALE;
+// 				robot_arm.joint_angle_target[6] = (int16_t)((data[5] << 8) | data[4]) / RAD_TO_INT16_SCALE;
+// 				break;
+// 			}
+// 		}
+// 	}
+// 	specialCmdLast = specialCmd;
+// 	fIsSpecialCmdLast = fIsSpecialCmd;
+// }
 void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 {
 	uint8_t fIsSpecialCmd = 0;
@@ -225,14 +300,15 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 		switch (specialCmd)
 		{
 			case 0x00:
+			default:
 			{
 				robot_arm.fMasterSwitch = 0;
+				robot_arm.fHoming = 0;
 				break;
 			}
 			case 0xFF:
 			{
 				robot_arm.fHoming = 1;
-				robot_arm_return_to_center();
 				robot_arm_switch_on_power();
 				break;
 			}
@@ -316,7 +392,7 @@ void decode_4010_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
 	motor_measure[bMotorId].temperature = data[1];
 }
 
-HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr)
+HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
 	HAL_StatusTypeDef ret_value = HAL_ERROR;
 	uint8_t error_id = data[0] >> 4;
@@ -331,24 +407,62 @@ HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t *bMotorIdPtr
 		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
 		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
 
-		*bMotorIdPtr = (data[0] & 0xF) - 1 + JOINT_ID_0_4310;
-		motor_measure[*bMotorIdPtr].output_angle = uint_to_float_motor(p_int, MIT_CONTROL_P_MIN[DM_4310], MIT_CONTROL_P_MAX[DM_4310], 16);
-		motor_measure[*bMotorIdPtr].velocity = uint_to_float_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
-		motor_measure[*bMotorIdPtr].torque = uint_to_float_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
-		motor_measure[*bMotorIdPtr].temperature = data[6];
+		motor_measure[bMotorId].output_angle = uint_to_float_motor(p_int, MIT_CONTROL_P_MIN[DM_4310], MIT_CONTROL_P_MAX[DM_4310], 16);
+		motor_measure[bMotorId].velocity = uint_to_float_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
+		motor_measure[bMotorId].torque = uint_to_float_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
+		motor_measure[bMotorId].temperature = data[6];
 
 		ret_value = HAL_OK;
 	}
 	return ret_value;
 }
 
+HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId)
+{
+	HAL_StatusTypeDef ret_value = HAL_ERROR;
+	uint8_t error_id = data[0] >> 4;
+	if ((error_id != 0) && (error_id != 1))
+	{
+		// Note: error_id = 0£¬ 1 means motor power is disabled/enabled
+		ret_value = HAL_ERROR;
+	}
+	else
+	{
+		uint16_t p_int = (data[1] << 8) | data[2];         // rad
+		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
+		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
+
+		fp32 temp_output_angle = uint_to_float_motor(p_int, MIT_CONTROL_P_MIN[DM_4340], MIT_CONTROL_P_MAX[DM_4340], 16);
+		fp32 temp_velocity = uint_to_float_motor(v_int, MIT_CONTROL_V_MIN[DM_4340], MIT_CONTROL_V_MAX[DM_4340], 12);
+		fp32 temp_torque = uint_to_float_motor(t_int, MIT_CONTROL_T_MIN[DM_4340], MIT_CONTROL_T_MAX[DM_4340], 12);
+
+#if REVERSE_JOINT_0_DIRECTION
+		if (bMotorId == JOINT_ID_0_4340)
+		{
+			temp_output_angle *= -1;
+			temp_velocity *= -1;
+			temp_torque *= -1;
+		}
+#endif
+		motor_measure[bMotorId].output_angle = temp_output_angle;
+		motor_measure[bMotorId].velocity = temp_velocity;
+		motor_measure[bMotorId].torque = temp_torque;
+		motor_measure[bMotorId].temperature = data[6];
+
+		ret_value = HAL_OK;
+	}
+	return ret_value;
+}
+
+fp32 speed_set[7];
+fp32 joint_torques[7];
 uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
 {
 	uint8_t fValidInput = 1;
 	uint8_t pos_index;
 	for (pos_index = 0; pos_index < 7; pos_index++)
 	{
-		if ((joint_angle_target_ptr[pos_index] != joint_angle_target_ptr[pos_index]) || (joint_angle_target_ptr[pos_index] > joint_angle_max[pos_index]) || (joint_angle_target_ptr[pos_index] < joint_angle_min[pos_index]))
+		if (joint_angle_target_ptr[pos_index] != joint_angle_target_ptr[pos_index])
 		{
 			robot_arm.fMasterSwitch = 0;
 			fValidInput = 0;
@@ -356,63 +470,72 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
 		}
 	}
 
-	if (fValidInput)
+	if (fValidInput && robot_arm.fMasterSwitch)
 	{
-		uint8_t blocking_call = 0;
-		// According to test, CAN_JOINT_MOTOR_0_4310_TX_ID starts diverging with kd>1.5
-		// fp32 joint_0_angle_tune = PID_calc(&robot_arm.joint_0_angle_pid, motor_measure[JOINT_ID_0_4310].output_angle, joint_angle_target_ptr[0], dt);
-		encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, joint_angle_target_ptr[0], 0, 20, 0.75f, 0, blocking_call, DM_4310, &LOWER_MOTORS_CAN);
-		osDelay(2);
-
-		encode_6012_motor_position_control(CAN_JOINT_MOTOR_1_6012_TX_ID, 5.0f, joint_angle_target_ptr[1], blocking_call, &LOWER_MOTORS_CAN);
-		osDelay(2);
-
-		fp32 joint_3_angle_tune = PID_calc(&robot_arm.joint_3_angle_pid, motor_measure[JOINT_ID_3_4310].output_angle, joint_angle_target_ptr[3], dt);
-		encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4310_TX_ID, joint_3_angle_tune + joint_angle_target_ptr[3], 0, 15, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-		osDelay(2);
-
-		fp32 joint_4_angle_tune = PID_calc(&robot_arm.joint_4_angle_pid, motor_measure[JOINT_ID_4_4310].output_angle, joint_angle_target_ptr[4], dt);
-		encode_MIT_motor_control(CAN_JOINT_MOTOR_4_4310_TX_ID, joint_4_angle_tune + joint_angle_target_ptr[4], 0, 5, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-		osDelay(2);
-
-		fp32 joint_5_angle_tune = PID_calc(&robot_arm.joint_5_angle_pid, motor_measure[JOINT_ID_5_4310].output_angle, joint_angle_target_ptr[5], dt);
-		encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, joint_5_angle_tune + joint_angle_target_ptr[5], 0, 10, 0.5f, 0, blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-		osDelay(2);
-
-		encode_4010_motor_position_control(CAN_JOINT_MOTOR_2_4010_TX_ID, 10.0f, joint_angle_target_ptr[2], blocking_call, &LOWER_MOTORS_CAN);
-		osDelay(2);
-
-		// 6020 calculation
-		fp32 joint_6_6020_speed_set = PID_calc(&robot_arm.joint_6_angle_pid, motor_measure[JOINT_ID_6_6020].output_angle, joint_angle_target_ptr[6], dt);
-		fp32 joint_6_6020_current_set = (int16_t)PID_calc(&robot_arm.joint_6_speed_pid, motor_measure[JOINT_ID_6_6020].speed_rpm * 2 * PI / 60.0f, joint_6_6020_speed_set, dt);
-		encode_6020_motor_current_control(0, 0, joint_6_6020_current_set, &LOWER_MOTORS_CAN, blocking_call);
-		osDelay(2);
+		for (uint8_t i = 0; i < 7; i++)
+		{
+			if ((i == 0) || (i == 1) || (i == 2))
+			{
+				// position control
+				// placeholder value
+				joint_torques[i] = 0.001f;
+			}
+			else
+			{
+				joint_angle_target_ptr[i] = fp32_constrain(joint_angle_target_ptr[i], joint_angle_min[i], joint_angle_max[i]);
+				speed_set[i] = PID_calc(&robot_arm.joint_angle_pid[i], motor_measure[i].output_angle, joint_angle_target_ptr[i], dt);
+				joint_torques[i] = PID_calc(&robot_arm.joint_speed_pid[i], motor_measure[i].velocity_manual, speed_set[i], dt);
+			}
+		}
 	}
-
+	else
+	{
+		memset(joint_torques, 0, sizeof(joint_torques));
+	}
+	arm_joints_cmd_motors(joint_torques);
 	return fValidInput;
 }
 
-void arm_joints_cmd_torque(float joint_torques[7])
+void arm_joints_cmd_motors(float joint_torques[7])
 {
-	uint8_t blocking_call = 0;
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4310_TX_ID, 0, 0, 0, 0, joint_torques[0], blocking_call, DM_4310, &LOWER_MOTORS_CAN);
-	osDelay(2);
-	encode_6012_motor_torque_control(CAN_JOINT_MOTOR_1_6012_TX_ID, joint_torques[1], blocking_call, &LOWER_MOTORS_CAN);
-	osDelay(2);
+	uint8_t blocking_call = 1;
+	if (joint_torques[0] == 0)
+	{
+		encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4340_TX_ID, 0, 0, 0, 0, joint_torques[0], blocking_call, DM_4340, &LOWER_MOTORS_CAN);
+	}
+	else
+	{
+		encode_MIT_motor_control(CAN_JOINT_MOTOR_0_4340_TX_ID, robot_arm.joint_angle_target[0], 0, 19.0f, 0.7f, 0, blocking_call, DM_4340, &LOWER_MOTORS_CAN);
+	}
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4340_TX_ID, 0, 0, 0, 0, joint_torques[3], blocking_call, DM_4340, &UPPER_MOTORS_CAN);
+	osDelay(1);
 
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_3_4310_TX_ID, 0, 0, 0, 0, joint_torques[3], blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-	osDelay(2);
+	if (joint_torques[2] == 0)
+	{
+		// power shut down
+		encode_4010_motor_torque_control(CAN_JOINT_MOTOR_2_4010_TX_ID, joint_torques[2], blocking_call, &LOWER_MOTORS_CAN);
+	}
+	else
+	{
+		encode_4010_motor_position_control(CAN_JOINT_MOTOR_2_4010_TX_ID, 10.0f, robot_arm.joint_angle_target[2], blocking_call, &LOWER_MOTORS_CAN);
+	}
 	encode_MIT_motor_control(CAN_JOINT_MOTOR_4_4310_TX_ID, 0, 0, 0, 0, joint_torques[4], blocking_call, DM_4310, &UPPER_MOTORS_CAN);
 	osDelay(2);
-	encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, 0, 0, 0, 0, joint_torques[5], blocking_call, DM_4310, &UPPER_MOTORS_CAN);
-	osDelay(2);
 
-	// Warning: 4010 current to torque ratio is unknown
-	encode_4010_motor_torque_control(CAN_JOINT_MOTOR_2_4010_TX_ID, joint_torques[2], blocking_call, &LOWER_MOTORS_CAN);
-	osDelay(2);
-	// Warning: 6020 current to torque ratio is unknown
+	encode_MIT_motor_control(CAN_JOINT_MOTOR_5_4310_TX_ID, 0, 0, 0, 0, joint_torques[5], blocking_call, DM_4310, &UPPER_MOTORS_CAN);
+	if (joint_torques[1] == 0)
+	{
+		// power shut down
+		encode_6012_motor_torque_control(CAN_JOINT_MOTOR_1_6012_TX_ID, robot_arm.joint_angle_target[1], blocking_call, &LOWER_MOTORS_CAN);
+	}
+	else
+	{
+		encode_6012_motor_position_control(CAN_JOINT_MOTOR_1_6012_TX_ID, 5.0f, robot_arm.joint_angle_target[1], blocking_call, &LOWER_MOTORS_CAN);
+	}
+	osDelay(1);
+
 	encode_6020_motor_current_control(0, 0, joint_torques[6], &LOWER_MOTORS_CAN, blocking_call);
-	osDelay(2);
+	osDelay(1);
 }
 
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr, uint8_t blocking_call)
@@ -461,7 +584,7 @@ HAL_StatusTypeDef encode_6020_motor_current_control(int16_t current_ch_5, int16_
 void CAN_cmd_switch_motor_power(uint8_t _enable)
 {
 	uint8_t blocking_call = 0;
-	enable_DaMiao_motor(CAN_JOINT_MOTOR_0_4310_TX_ID, _enable, &LOWER_MOTORS_CAN, blocking_call);
+	enable_DaMiao_motor(CAN_JOINT_MOTOR_0_4340_TX_ID, _enable, &LOWER_MOTORS_CAN, blocking_call);
 	osDelay(2);
 
 	if (_enable == 0)
@@ -472,16 +595,15 @@ void CAN_cmd_switch_motor_power(uint8_t _enable)
 		osDelay(2);
 
 		encode_6020_motor_current_control(0, 0, 0, &LOWER_MOTORS_CAN, blocking_call);
-		PID_clear(&robot_arm.joint_0_angle_pid);
-		PID_clear(&robot_arm.joint_3_angle_pid);
-		PID_clear(&robot_arm.joint_4_angle_pid);
-		PID_clear(&robot_arm.joint_5_angle_pid);
 
-		PID_clear(&robot_arm.joint_6_angle_pid);
-		PID_clear(&robot_arm.joint_6_speed_pid);
+		for (uint8_t i = 0; i < 7; i++)
+		{
+			PID_clear(&robot_arm.joint_angle_pid[i]);
+			PID_clear(&robot_arm.joint_speed_pid[i]);
+		}
 	}
 
-	enable_DaMiao_motor(CAN_JOINT_MOTOR_3_4310_TX_ID, _enable, &UPPER_MOTORS_CAN, blocking_call);
+	enable_DaMiao_motor(CAN_JOINT_MOTOR_3_4340_TX_ID, _enable, &UPPER_MOTORS_CAN, blocking_call);
 	osDelay(2);
 	enable_DaMiao_motor(CAN_JOINT_MOTOR_4_4310_TX_ID, _enable, &UPPER_MOTORS_CAN, blocking_call);
 	osDelay(2);
@@ -589,6 +711,7 @@ HAL_StatusTypeDef encode_4010_motor_torque_control(uint32_t id, float torque_cmd
 	torque_cmd = 0;
 #endif
 
+	// Warning: 4010 current to torque ratio is unknown
 	int16_t iqControl = torque_cmd * MOTOR_4010_BROADCAST_CMD_TO_TORQUE_RATIO;
 	memset(can_send_data, 0, sizeof(can_send_data));
 	can_send_data[0] = CAN_KTECH_TORQUE_ID;
@@ -611,6 +734,15 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, float _pos, float _vel, 
 	_KP = 0;
 	_KD = 0;
 	_torq = 0;
+#endif
+
+#if REVERSE_JOINT_0_DIRECTION
+	if (id == CAN_JOINT_MOTOR_0_4340_TX_ID)
+	{
+		_pos *= -1;
+		_vel *= -1;
+		_torq *= -1;
+	}
 #endif
 
 	uint16_t pos_tmp, vel_tmp, kp_tmp, kd_tmp, tor_tmp;
@@ -689,5 +821,8 @@ fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd)
 
 void update_joint_6_6020_angle(void)
 {
+	// @TODO: tune 6020 offset
+	const uint16_t joint_6_6020_offset_ecd = 2876;
 	motor_measure[JOINT_ID_6_6020].output_angle = motor_ecd_to_angle_change(motor_measure[JOINT_ID_6_6020].ecd, joint_6_6020_offset_ecd);
+	motor_measure[JOINT_ID_6_6020].velocity = motor_measure[JOINT_ID_6_6020].speed_rpm / 60.0f * 2.0f * PI;
 }

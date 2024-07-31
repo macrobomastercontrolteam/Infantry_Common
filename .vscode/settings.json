@@ -1,3 +1,15 @@
 {
-	"files.encoding": "gb2312"
+	"files.encoding": "gb2312",
+	"files.associations": {
+		"limits": "c",
+		"memory": "c",
+		"atomic": "c",
+		"bit": "c",
+		"cstddef": "c",
+		"new": "c",
+		"string": "c",
+		"type_traits": "c",
+		"robot_arm_task.h": "c",
+		"user_lib.h": "c"
+	}
 }

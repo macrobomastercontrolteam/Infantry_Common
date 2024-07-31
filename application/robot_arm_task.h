@@ -77,68 +77,107 @@
 #define ARM_END_EFFECTOR_Z_MAX (0.5f)
 #define ARM_END_EFFECTOR_Z_HOME 0.0f
 
-// controls motor angle cmd
-#define JOINT_0_ANGLE_PID_KP 1.0f
-#define JOINT_0_ANGLE_PID_KI 0.5f
+/******** Angle pid (angle diff -> speed cmd) start ********/
+#define JOINT_0_ANGLE_PID_KP 20.0f
+#define JOINT_0_ANGLE_PID_KI 0.0f
 #define JOINT_0_ANGLE_PID_KD 0.0f
-#define JOINT_0_ANGLE_PID_MAX_OUT 0.25f
-#define JOINT_0_ANGLE_PID_MAX_IOUT 0.25f
+#define JOINT_0_ANGLE_PID_MAX_OUT RPM_TO_RADS(25.0f)
+#define JOINT_0_ANGLE_PID_MAX_IOUT 0.0f
 
-// controls motor angle cmd
-#define JOINT_3_ANGLE_PID_KP 1.0f
-#define JOINT_3_ANGLE_PID_KI 1.0f
+#define JOINT_1_ANGLE_PID_KP 20.0f
+#define JOINT_1_ANGLE_PID_KI 0.0f
+#define JOINT_1_ANGLE_PID_KD 0.0f
+#define JOINT_1_ANGLE_PID_MAX_OUT RPM_TO_RADS(25.0f)
+#define JOINT_1_ANGLE_PID_MAX_IOUT 0.0f
+
+#define JOINT_2_ANGLE_PID_KP 25.0f
+#define JOINT_2_ANGLE_PID_KI 0.0f
+#define JOINT_2_ANGLE_PID_KD 0.0f
+#define JOINT_2_ANGLE_PID_MAX_OUT RPM_TO_RADS(25.0f)
+#define JOINT_2_ANGLE_PID_MAX_IOUT 0
+
+#define JOINT_3_ANGLE_PID_KP 20.0f
+#define JOINT_3_ANGLE_PID_KI 0.0f
 #define JOINT_3_ANGLE_PID_KD 0.0f
-#define JOINT_3_ANGLE_PID_MAX_OUT 0.25f
-#define JOINT_3_ANGLE_PID_MAX_IOUT 0.25f
+#define JOINT_3_ANGLE_PID_MAX_OUT RPM_TO_RADS(25.0f)
+#define JOINT_3_ANGLE_PID_MAX_IOUT 0.0f
 
-// controls motor angle cmd
-#define JOINT_4_ANGLE_PID_KP 1.0f
-#define JOINT_4_ANGLE_PID_KI 1.0f
+#define JOINT_4_ANGLE_PID_KP 20.0f
+#define JOINT_4_ANGLE_PID_KI 0.0f
 #define JOINT_4_ANGLE_PID_KD 0.0f
-#define JOINT_4_ANGLE_PID_MAX_OUT 0.25f
-#define JOINT_4_ANGLE_PID_MAX_IOUT 0.25f
+#define JOINT_4_ANGLE_PID_MAX_OUT RPM_TO_RADS(25.0f)
+#define JOINT_4_ANGLE_PID_MAX_IOUT 0.0f
 
-// controls motor angle cmd
-#define JOINT_5_ANGLE_PID_KP 1.0f
-#define JOINT_5_ANGLE_PID_KI 1.0f
+#define JOINT_5_ANGLE_PID_KP 20.0f
+#define JOINT_5_ANGLE_PID_KI 0.0f
 #define JOINT_5_ANGLE_PID_KD 0.0f
-#define JOINT_5_ANGLE_PID_MAX_OUT 0.25f
-#define JOINT_5_ANGLE_PID_MAX_IOUT 0.25f
+#define JOINT_5_ANGLE_PID_MAX_OUT RPM_TO_RADS(25.0f)
+#define JOINT_5_ANGLE_PID_MAX_IOUT 0.0f
 
-// controls motor speed cmd
 #define JOINT_6_ANGLE_PID_KP 20.0f
 #define JOINT_6_ANGLE_PID_KI 0.5f
 #define JOINT_6_ANGLE_PID_KD 0.0f
 #define JOINT_6_ANGLE_PID_MAX_OUT RPM_TO_RADS(90.0f)
 #define JOINT_6_ANGLE_PID_MAX_IOUT RPM_TO_RADS(10.0f)
+/******** Angle pid (angle diff -> speed cmd) end ********/
 
-// controls motor acceleration cmd
+/******** Angle pid (speed diff -> accel cmd) start ********/
+#define JOINT_0_SPEED_PID_KP 0.3f
+#define JOINT_0_SPEED_PID_KI 0.0f
+#define JOINT_0_SPEED_PID_KD 0.0f
+#define JOINT_0_SPEED_PID_MAX_OUT 0.25f
+#define JOINT_0_SPEED_PID_MAX_IOUT 0.25f
+
+#define JOINT_1_SPEED_PID_KP 0.3f
+#define JOINT_1_SPEED_PID_KI 0.0f
+#define JOINT_1_SPEED_PID_KD 0.0f
+#define JOINT_1_SPEED_PID_MAX_OUT 3.0f
+#define JOINT_1_SPEED_PID_MAX_IOUT 3.0f
+
+#define JOINT_2_SPEED_PID_KP 0.3f
+#define JOINT_2_SPEED_PID_KI 0.0f
+#define JOINT_2_SPEED_PID_KD 0.0f
+#define JOINT_2_SPEED_PID_MAX_OUT 3.0f
+#define JOINT_2_SPEED_PID_MAX_IOUT 3.0f
+
+#define JOINT_3_SPEED_PID_KP 2.5f
+#define JOINT_3_SPEED_PID_KI 0.0f
+#define JOINT_3_SPEED_PID_KD 0.0f
+#define JOINT_3_SPEED_PID_MAX_OUT 20.0f
+#define JOINT_3_SPEED_PID_MAX_IOUT 20.0f
+
+#define JOINT_4_SPEED_PID_KP 0.335f
+#define JOINT_4_SPEED_PID_KI 0.0f
+#define JOINT_4_SPEED_PID_KD 0.0f
+#define JOINT_4_SPEED_PID_MAX_OUT 3.0f
+#define JOINT_4_SPEED_PID_MAX_IOUT 3.0f
+
+#define JOINT_5_SPEED_PID_KP 0.375f
+#define JOINT_5_SPEED_PID_KI 0.0f
+#define JOINT_5_SPEED_PID_KD 0.0f
+#define JOINT_5_SPEED_PID_MAX_OUT 3.0f
+#define JOINT_5_SPEED_PID_MAX_IOUT 3.0f
+
 #define JOINT_6_SPEED_PID_KP 850.0f // pitch starts shaking at 1200
 #define JOINT_6_SPEED_PID_KI 0.0f
 #define JOINT_6_SPEED_PID_KD 0.0f
 #define JOINT_6_SPEED_PID_MAX_OUT 30000.0f
 #define JOINT_6_SPEED_PID_MAX_IOUT 10000.0f
+/******** Angle pid (speed diff -> accel cmd) end ********/
 
 typedef enum
 {
 	ARM_STATE_ZERO_FORCE = 0,
-	ARM_STATE_MOVING,
-	ARM_STATE_FIXED,
+	ARM_STATE_HOMING,
+	ARM_STATE_MOVE,
 } robot_arm_state_e;
 
 typedef struct
 {
 	fp32 time_step_s; // second
 	uint32_t time_ms; // millisecond
-	pid_type_def joint_0_angle_pid;
-	pid_type_def joint_1_angle_pid;
-	pid_type_def joint_2_angle_pid;
-	pid_type_def joint_3_angle_pid;
-	pid_type_def joint_4_angle_pid;
-	pid_type_def joint_5_angle_pid;
-
-	pid_type_def joint_6_angle_pid;
-	pid_type_def joint_6_speed_pid;
+	pid_type_def joint_angle_pid[7];
+	pid_type_def joint_speed_pid[7];
 
 	fp32 joint_angle_target[7];
 	robot_arm_state_e arm_state;
@@ -157,7 +196,7 @@ extern const fp32 joint_angle_min[7];
 extern const fp32 joint_angle_max[7];
 extern const fp32 joint_angle_home[7];
 extern void robot_arm_task(void const *pvParameters);
-void robot_arm_return_to_center(void);
+void robot_arm_all_motors_return_home(void);
 void robot_arm_motors_return_home(uint8_t _start, uint8_t _end);
 void robot_arm_switch_on_power(void);
 

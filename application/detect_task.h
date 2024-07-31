@@ -63,7 +63,6 @@ enum errorList
 {
     // chassis related TOEs (make sure this group is continuous)
     DBUS_TOE = 0,
-    CHASSIS_CONTROLLER_TOE,
     JOINT_0_TOE,
     JOINT_1_TOE,
     JOINT_2_TOE,
@@ -71,6 +70,7 @@ enum errorList
     JOINT_4_TOE,
     JOINT_5_TOE,
     JOINT_6_TOE,
+    CHASSIS_CONTROLLER_TOE,
 
     // BOARD_GYRO_TOE,
     // BOARD_ACCEL_TOE,

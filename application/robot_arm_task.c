@@ -3,10 +3,6 @@
 #include "cmsis_os.h"
 #include "detect_task.h"
 
-#define ARM_STATE_MOVING_HOLD_TIME_MS 500
-#define ARM_STATE_FIXED_HOLD_TIME_MS 500
-#define ARM_STATE_ZERO_FORCE_HOLD_TIME_MS 500
-
 void robot_arm_init(void);
 void robot_arm_status_update(void);
 void robot_arm_control(void);
@@ -44,7 +40,6 @@ void robot_arm_task(void const *pvParameters)
 {
 	uint32_t ulSystemTime = osKernelSysTick();
 	osDelay(ROBOT_ARM_TASK_INIT_TIME);
-
 	robot_arm_init();
 	osDelay(ROBOT_ARM_TASK_INIT_TIME);
 	robot_arm_status_update();
@@ -79,9 +74,13 @@ void robot_arm_state_transition(void)
 
 		switch (robot_arm.arm_state)
 		{
+			case ARM_STATE_HOMING:
+			{
+				robot_arm_all_motors_return_home();
+				break;
+			}
 			case ARM_STATE_ZERO_FORCE:
-			case ARM_STATE_FIXED:
-			case ARM_STATE_MOVING:
+			case ARM_STATE_MOVE:
 			default:
 			{
 				break;
@@ -94,112 +93,89 @@ void robot_arm_state_transition(void)
 
 void robot_arm_control(void)
 {
-	// Update state hold switch
-	uint32_t ulHoldTimePeriod;
-	switch (robot_arm.arm_state)
-	{
-		case ARM_STATE_MOVING:
-		{
-			ulHoldTimePeriod = ARM_STATE_MOVING_HOLD_TIME_MS;
-			break;
-		}
-		case ARM_STATE_FIXED:
-		{
-			ulHoldTimePeriod = ARM_STATE_FIXED_HOLD_TIME_MS;
-			break;
-		}
-		case ARM_STATE_ZERO_FORCE:
-		default:
-		{
-			ulHoldTimePeriod = ARM_STATE_ZERO_FORCE_HOLD_TIME_MS;
-			break;
-		}
-	}
-	uint8_t fIsStateHoldTimePassed = (robot_arm.time_ms - robot_arm.prevStateSwitchTime > ulHoldTimePeriod);
+	// const fp32 ARM_STATE_HOMING_HOLD_TIME_MS = 1000.0f;
+	// const fp32 ARM_STATE_MOVE_HOLD_TIME_MS = 1000.0f;
+	// const fp32 ARM_STATE_ZERO_FORCE_HOLD_TIME_MS = 1000.0f;
+	// // Update state hold switch
+	// uint32_t ulHoldTimePeriod;
+	// switch (robot_arm.arm_state)
+	// {
+	// 	case ARM_STATE_HOMING:
+	// 	{
+	// 		ulHoldTimePeriod = ARM_STATE_HOMING_HOLD_TIME_MS;
+	// 		break;
+	// 	}
+	// 	case ARM_STATE_MOVE:
+	// 	{
+	// 		ulHoldTimePeriod = ARM_STATE_MOVE_HOLD_TIME_MS;
+	// 		break;
+	// 	}
+	// 	case ARM_STATE_ZERO_FORCE:
+	// 	default:
+	// 	{
+	// 		ulHoldTimePeriod = ARM_STATE_ZERO_FORCE_HOLD_TIME_MS;
+	// 		break;
+	// 	}
+	// }
+	// uint8_t fIsStateHoldTimePassed = (robot_arm.time_ms - robot_arm.prevStateSwitchTime > ulHoldTimePeriod);
+	uint8_t fIsStateHoldTimePassed = 1;
 
 	// safety guard
-	if (robot_arm.fMasterSwitch && is_error_exist_in_range(CHASSIS_CONTROLLER_TOE, JOINT_6_TOE))
+	if (robot_arm.fMasterSwitch && is_error_exist_in_range(JOINT_0_TOE, CHASSIS_CONTROLLER_TOE))
 	{
 		robot_arm.fMasterSwitch = 0;
 	}
 
 	switch (robot_arm.arm_state)
 	{
-		case ARM_STATE_MOVING:
+		case ARM_STATE_MOVE:
 		{
 			if (robot_arm.fMasterSwitch == 0)
 			{
 				robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
-				robot_arm_return_to_center();
 			}
-			else
+			else if (fIsStateHoldTimePassed && robot_arm.fHoming)
 			{
-				arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S);
-
-				if (fIsStateHoldTimePassed && is_joint_target_reached(0.05f, NULL))
-				{
-					if (robot_arm.fHoming)
-					{
-						robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
-					}
-					else
-					{
-						robot_arm.arm_state = ARM_STATE_FIXED;
-					}
-				}
+				robot_arm.arm_state = ARM_STATE_HOMING;
 			}
+			arm_joints_cmd_position(robot_arm.joint_angle_target, robot_arm.time_step_s);
 			break;
 		}
-		case ARM_STATE_FIXED:
+		case ARM_STATE_HOMING:
 		{
 			if (robot_arm.fMasterSwitch == 0)
 			{
 				robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
-				robot_arm_return_to_center();
 			}
-			else
+			else if (fIsStateHoldTimePassed && (robot_arm.fHoming == 0))
 			{
-				arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S);
-
-				if (fIsStateHoldTimePassed)
-				{
-					if (is_joint_target_reached(0.05f, NULL))
-					{
-						if (robot_arm.fHoming)
-						{
-							robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
-						}
-						else
-						{
-							// state unchanged
-						}
-					}
-					else
-					{
-						robot_arm.arm_state = ARM_STATE_MOVING;
-					}
-				}
+				robot_arm.arm_state = ARM_STATE_MOVE;
 			}
+			else if (fIsStateHoldTimePassed && is_joint_target_reached(DEG_TO_RAD(5.45f), NULL))
+			{
+				robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
+			}
+			arm_joints_cmd_position(robot_arm.joint_angle_target, robot_arm.time_step_s);
 			break;
 		}
 		case ARM_STATE_ZERO_FORCE:
 		default:
 		{
-			fp32 all_0_torque[7] = {0};
-			arm_joints_cmd_torque(all_0_torque);
+			fp32 all_0_torque[7] = {0, 0, 0, 0, 0, 0, 0};
+			arm_joints_cmd_motors(all_0_torque);
 
-			if (fIsStateHoldTimePassed)
+			if (robot_arm.fMasterSwitch && fIsStateHoldTimePassed)
 			{
 				if (robot_arm.fHoming)
 				{
-					robot_arm.fHoming = 0;
-					// assign sleeping position as target (Note that sleep != home)
-					robot_arm_assign_current_as_target();
+					// if (is_joint_target_reached(DEG_TO_RAD(15.0f), NULL) == 0)
+					// {
+					// 	robot_arm.arm_state = ARM_STATE_HOMING;
+					// }
 				}
-
-				if (robot_arm.fMasterSwitch && (is_joint_target_reached(0.05f, NULL) == 0))
+				else
 				{
-					robot_arm.arm_state = ARM_STATE_MOVING;
+					robot_arm.arm_state = ARM_STATE_MOVE;
 				}
 			}
 			break;
@@ -209,7 +185,14 @@ void robot_arm_control(void)
 
 void robot_arm_status_update(void)
 {
+	robot_arm.time_step_s = (fp32)(osKernelSysTick() - robot_arm.time_ms) / 1000.0f;
 	robot_arm.time_ms = osKernelSysTick();
+
+	for (uint8_t i = 0; i < 7; i++)
+	{
+		motor_measure[i].velocity_manual = (motor_measure[i].output_angle - motor_measure[i].last_output_angle) / robot_arm.time_step_s;
+		motor_measure[i].last_output_angle = motor_measure[i].output_angle;
+	}
 
 	// robot_arm.roll.now = *(robot_arm.arm_INS_angle + INS_ROLL_ADDRESS_OFFSET);
 	// robot_arm.roll.now -= roll_offset;
@@ -235,36 +218,47 @@ void robot_arm_status_update(void)
 
 void robot_arm_init(void)
 {
-	robot_arm.arm_INS_angle = get_INS_angle_point();
-	robot_arm.arm_INS_speed = get_gyro_data_point();
+	const fp32 joint_angle_pid_coeffs[7][3] = {
+		{JOINT_0_ANGLE_PID_KP, JOINT_0_ANGLE_PID_KI, JOINT_0_ANGLE_PID_KD},
+		{JOINT_1_ANGLE_PID_KP, JOINT_1_ANGLE_PID_KI, JOINT_1_ANGLE_PID_KD},
+		{JOINT_2_ANGLE_PID_KP, JOINT_2_ANGLE_PID_KI, JOINT_2_ANGLE_PID_KD},
+		{JOINT_3_ANGLE_PID_KP, JOINT_3_ANGLE_PID_KI, JOINT_3_ANGLE_PID_KD},
+		{JOINT_4_ANGLE_PID_KP, JOINT_4_ANGLE_PID_KI, JOINT_4_ANGLE_PID_KD},
+		{JOINT_5_ANGLE_PID_KP, JOINT_5_ANGLE_PID_KI, JOINT_5_ANGLE_PID_KD},
+		{JOINT_6_ANGLE_PID_KP, JOINT_6_ANGLE_PID_KI, JOINT_6_ANGLE_PID_KD}};
+	const fp32 joint_angle_pid_max_out[7] = {JOINT_0_ANGLE_PID_MAX_OUT, JOINT_1_ANGLE_PID_MAX_OUT, JOINT_2_ANGLE_PID_MAX_OUT, JOINT_3_ANGLE_PID_MAX_OUT, JOINT_4_ANGLE_PID_MAX_OUT, JOINT_5_ANGLE_PID_MAX_OUT, JOINT_6_ANGLE_PID_MAX_OUT};
+	const fp32 joint_angle_pid_max_iout[7] = {JOINT_0_ANGLE_PID_MAX_IOUT, JOINT_1_ANGLE_PID_MAX_IOUT, JOINT_2_ANGLE_PID_MAX_IOUT, JOINT_3_ANGLE_PID_MAX_IOUT, JOINT_4_ANGLE_PID_MAX_IOUT, JOINT_5_ANGLE_PID_MAX_IOUT, JOINT_6_ANGLE_PID_MAX_IOUT};
+
+	const fp32 joint_speed_pid_coeffs[7][3] = {
+		{JOINT_0_SPEED_PID_KP, JOINT_0_SPEED_PID_KI, JOINT_0_SPEED_PID_KD},
+		{JOINT_1_SPEED_PID_KP, JOINT_1_SPEED_PID_KI, JOINT_1_SPEED_PID_KD},
+		{JOINT_2_SPEED_PID_KP, JOINT_2_SPEED_PID_KI, JOINT_2_SPEED_PID_KD},
+		{JOINT_3_SPEED_PID_KP, JOINT_3_SPEED_PID_KI, JOINT_3_SPEED_PID_KD},
+		{JOINT_4_SPEED_PID_KP, JOINT_4_SPEED_PID_KI, JOINT_4_SPEED_PID_KD},
+		{JOINT_5_SPEED_PID_KP, JOINT_5_SPEED_PID_KI, JOINT_5_SPEED_PID_KD},
+		{JOINT_6_SPEED_PID_KP, JOINT_6_SPEED_PID_KI, JOINT_6_SPEED_PID_KD}};
+	const fp32 joint_speed_pid_max_out[7] = {JOINT_0_SPEED_PID_MAX_OUT, JOINT_1_SPEED_PID_MAX_OUT, JOINT_2_SPEED_PID_MAX_OUT, JOINT_3_SPEED_PID_MAX_OUT, JOINT_4_SPEED_PID_MAX_OUT, JOINT_5_SPEED_PID_MAX_OUT, JOINT_6_SPEED_PID_MAX_OUT};
+	const fp32 joint_speed_pid_max_iout[7] = {JOINT_0_SPEED_PID_MAX_IOUT, JOINT_1_SPEED_PID_MAX_IOUT, JOINT_2_SPEED_PID_MAX_IOUT, JOINT_3_SPEED_PID_MAX_IOUT, JOINT_4_SPEED_PID_MAX_IOUT, JOINT_5_SPEED_PID_MAX_IOUT, JOINT_6_SPEED_PID_MAX_IOUT};
+
+	for (uint8_t i = 0; i < 7; i++)
+	{
+		PID_init(&robot_arm.joint_angle_pid[i], PID_POSITION, joint_angle_pid_coeffs[i], joint_angle_pid_max_out[i], joint_angle_pid_max_iout[i], 1.0f, &rad_err_handler);
+		PID_init(&robot_arm.joint_speed_pid[i], PID_POSITION, joint_speed_pid_coeffs[i], joint_speed_pid_max_out[i], joint_speed_pid_max_iout[i], 0.6f, &filter_err_handler);
+	}
+
+	// robot_arm.arm_INS_angle = get_INS_angle_point();
+	// robot_arm.arm_INS_speed = get_gyro_data_point();
 	// robot_arm.arm_INS_accel = get_accel_data_point();
 	robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
-	robot_arm.fHoming = 1;
+	robot_arm.fHoming = 0;
 	robot_arm.fMasterSwitch = 0;
 	robot_arm.prevStateSwitchTime = osKernelSysTick();
 
-	const static fp32 joint_0_angle_pid_coeffs[3] = {JOINT_0_ANGLE_PID_KP, JOINT_0_ANGLE_PID_KI, JOINT_0_ANGLE_PID_KD};
-	PID_init(&robot_arm.joint_0_angle_pid, PID_POSITION, joint_0_angle_pid_coeffs, JOINT_0_ANGLE_PID_MAX_OUT, JOINT_0_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-
-	const static fp32 joint_3_angle_pid_coeffs[3] = {JOINT_3_ANGLE_PID_KP, JOINT_3_ANGLE_PID_KI, JOINT_3_ANGLE_PID_KD};
-	PID_init(&robot_arm.joint_3_angle_pid, PID_POSITION, joint_3_angle_pid_coeffs, JOINT_3_ANGLE_PID_MAX_OUT, JOINT_3_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-	
-	const static fp32 joint_4_angle_pid_coeffs[3] = {JOINT_4_ANGLE_PID_KP, JOINT_4_ANGLE_PID_KI, JOINT_4_ANGLE_PID_KD};
-	PID_init(&robot_arm.joint_4_angle_pid, PID_POSITION, joint_4_angle_pid_coeffs, JOINT_4_ANGLE_PID_MAX_OUT, JOINT_4_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-	
-	const static fp32 joint_5_angle_pid_coeffs[3] = {JOINT_5_ANGLE_PID_KP, JOINT_5_ANGLE_PID_KI, JOINT_5_ANGLE_PID_KD};
-	PID_init(&robot_arm.joint_5_angle_pid, PID_POSITION, joint_5_angle_pid_coeffs, JOINT_5_ANGLE_PID_MAX_OUT, JOINT_5_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-
-	const static fp32 joint_6_angle_pid_coeffs[3] = {JOINT_6_ANGLE_PID_KP, JOINT_6_ANGLE_PID_KI, JOINT_6_ANGLE_PID_KD};
-	PID_init(&robot_arm.joint_6_angle_pid, PID_POSITION, joint_6_angle_pid_coeffs, JOINT_6_ANGLE_PID_MAX_OUT, JOINT_6_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
-	const static fp32 joint_6_speed_pid_coeffs[3] = {JOINT_6_SPEED_PID_KP, JOINT_6_SPEED_PID_KI, JOINT_6_SPEED_PID_KD};
-	PID_init(&robot_arm.joint_6_speed_pid, PID_POSITION, joint_6_speed_pid_coeffs, JOINT_6_SPEED_PID_MAX_OUT, JOINT_6_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
-
-	robot_arm_return_to_center();
+	robot_arm_all_motors_return_home();
 	CAN_cmd_switch_motor_power(1);
 }
 
-void robot_arm_return_to_center(void)
+void robot_arm_all_motors_return_home(void)
 {
 	robot_arm_motors_return_home(0, JOINT_ID_LAST - 1);
 }
@@ -291,7 +285,7 @@ void robot_arm_switch_on_power(void)
 {
 	if (robot_arm.fMasterSwitch == 0)
 	{
-		if (is_error_exist_in_range(CHASSIS_CONTROLLER_TOE, JOINT_6_TOE) == 0)
+		if (is_error_exist_in_range(JOINT_0_TOE, CHASSIS_CONTROLLER_TOE) == 0)
 		{
 			robot_arm.fMasterSwitch = 1;
 		}

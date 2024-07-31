@@ -30,22 +30,27 @@ extern "C" {
 #define LOWER_MOTORS_CAN hcan1
 #define UPPER_MOTORS_CAN hcan2
 
+#define JOINT_2_TORQUE_OFFSET 7.0f
+
 typedef enum
 {
-    // main IDs: used for indexing
-    CAN_JOINT_MOTOR_0_4310_TX_ID = 0x001,
+    // Tx IDs
+    CAN_JOINT_MOTOR_0_4340_TX_ID = 0x001,
     CAN_JOINT_MOTOR_1_6012_TX_ID = 0x142,
     CAN_JOINT_MOTOR_2_4010_TX_ID = 0x143,
-    CAN_JOINT_MOTOR_3_4310_TX_ID = 0x004,
+    CAN_JOINT_MOTOR_3_4340_TX_ID = 0x004,
     CAN_JOINT_MOTOR_4_4310_TX_ID = 0x005,
     CAN_JOINT_MOTOR_5_4310_TX_ID = 0x006,
-    CAN_JOINT_MOTOR_6_6020_RX_ID = 0x20B,
-
-    // other IDs
-    CAN_DAMIAO_RX_ID = 0x0FF,
     CAN_MOTOR_6020_TX_ID = 0x2FF,
+
+    // Rx IDs
+    CAN_JOINT_MOTOR_0_4340_RX_ID = 0x0F1,
     CAN_JOINT_MOTOR_1_6012_RX_ID = 0x142,
     CAN_JOINT_MOTOR_2_4010_RX_ID = 0x143,
+    CAN_JOINT_MOTOR_3_4340_RX_ID = 0x0F4,
+    CAN_JOINT_MOTOR_4_4310_RX_ID = 0x0F5,
+    CAN_JOINT_MOTOR_5_4310_RX_ID = 0x0F6,
+    CAN_JOINT_MOTOR_6_6020_RX_ID = 0x20B,
 
     CAN_INTER_BOARD_POSITION_RX_ID = 0x114,
 	CAN_INTER_BOARD_ORIENTATION_RX_ID = 0x115,
@@ -56,10 +61,10 @@ typedef enum
 // Consecutive indices corresponding to individual can_msg_id_e
 typedef enum
 {
-    JOINT_ID_0_4310 = 0,
+    JOINT_ID_0_4340 = 0,
     JOINT_ID_1_6012 = 1,
     JOINT_ID_2_4010 = 2,
-    JOINT_ID_3_4310 = 3,
+    JOINT_ID_3_4340 = 3,
     JOINT_ID_4_4310 = 4,
     JOINT_ID_5_4310 = 5,
     JOINT_ID_6_6020 = 6,
@@ -80,6 +85,7 @@ typedef enum
     DM_8006 = 0,
     MA_9015 = 1,
     DM_4310 = 2,
+    DM_4340 = 3,
     LAST_MIT_CONTROLLED_MOTOR_TYPE,
 } MIT_controlled_motor_type_e;
 
@@ -91,17 +97,18 @@ typedef struct
     int16_t speed_rpm;
     int16_t given_current;
     int16_t last_ecd;
+    fp32 last_output_angle; // rad
     fp32 output_angle; // rad
     fp32 input_angle;  // rad
     fp32 velocity;     // rad/s
+    fp32 velocity_manual;     // rad/s
     fp32 torque;       // Nm
-    fp32 power;
 } motor_measure_t;
 
 extern motor_measure_t motor_measure[JOINT_ID_LAST];
 
 uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt);
-void arm_joints_cmd_torque(float joint_torques[7]);
+void arm_joints_cmd_motors(float joint_torques[7]);
 void update_joint_6_6020_angle(void);
 void CAN_cmd_switch_motor_power(uint8_t _enable);
 

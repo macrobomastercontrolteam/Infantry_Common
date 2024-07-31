@@ -53,6 +53,7 @@
 #include "detect_task.h"
 #include "cmsis_os.h"
 
+#define DETECT_TEST_MODE 1
 
 /**
   * @brief          init error_list, assign  offline_time, online_time, priority.
@@ -74,6 +75,17 @@ error_t error_list[ERROR_LIST_LENGTH + 1];
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t detect_task_stack;
+#endif
+
+#if DETECT_TEST_MODE
+uint16_t detect_intervals[ERROR_LIST_LENGTH];
+static void J_scope_detect_test(uint16_t ulSystemTime)
+{
+    for (int i = 0; i < ERROR_LIST_LENGTH; i++)
+    {
+        detect_intervals[i] = ulSystemTime - error_list[i].new_time;
+    }
+}
 #endif
 
 
@@ -170,6 +182,9 @@ void detect_task(void const *pvParameters)
                 }
             }
         }
+#if DETECT_TEST_MODE
+        J_scope_detect_test(system_time);
+#endif
 
         vTaskDelay(DETECT_CONTROL_TIME);
 #if INCLUDE_uxTaskGetStackHighWaterMark
@@ -207,7 +222,7 @@ bool_t toe_is_error(uint8_t toe)
 void detect_hook(uint8_t toe)
 {
     error_list[toe].last_time = error_list[toe].new_time;
-    error_list[toe].new_time = osKernelSysTick();
+    error_list[toe].new_time = xTaskGetTickCount();
     
     if (error_list[toe].is_lost)
     {
@@ -260,14 +275,14 @@ static void detect_init(uint32_t time)
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
-            {50, 0, 10},   // chassis controller
             {50, 0, 11},   // joint motor 0
-            {50, 0, 12},   // joint motor 1
-            {50, 0, 13},   // joint motor 2
-            {50, 0, 14},   // joint motor 3
-            {50, 0, 15},   // joint motor 4
-            {50, 0, 16},   // joint motor 5
-            {50, 0, 17},   // joint motor 6
+            {50, 10, 12},   // joint motor 1
+            {50, 10, 13},   // joint motor 2
+            {50, 10, 14},   // joint motor 3
+            {50, 10, 15},   // joint motor 4
+            {50, 10, 16},   // joint motor 5
+            {50, 10, 17},   // joint motor 6
+            {50, 0, 10},   // chassis controller
             // {2, 3, 7},      //board gyro
             // {5, 5, 7},      //board accel
             // {40, 200, 7},   //board mag
