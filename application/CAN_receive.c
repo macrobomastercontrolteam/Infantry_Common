@@ -31,7 +31,7 @@
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 
-#define ENABLE_ARM_MOTOR_POWER 0
+#define ENABLE_ARM_MOTOR_POWER 1
 #define ENABLE_DRIVE_MOTOR_POWER 0
 
 //motor data read
@@ -105,13 +105,17 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
         case CAN_3508_M3_ID:
         case CAN_3508_M4_ID:
         {
-            if (hcan == &hcan2)
+            if (hcan == &hcan1)
             {
               bMotorValid = 1;
             }
             break;
         }
-    }
+		default:
+		{
+			break;
+		}
+	}
     
     if (bMotorValid == 1) {
         uint8_t bMotorId = convertCanIdToMotorIndex(rx_header.StdId);
@@ -279,7 +283,7 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     chassis_tx_message.IDE = CAN_ID_STD;
     chassis_tx_message.RTR = CAN_RTR_DATA;
     chassis_tx_message.DLC = 0x08;
-#if ENABLE_DRIVE_MOTOR_POWER
+#if (ENABLE_DRIVE_MOTOR_POWER == 0)
 		memset(chassis_can_send_data, 0, sizeof(chassis_can_send_data));
 #else
     chassis_can_send_data[0] = motor1 >> 8;

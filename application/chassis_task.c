@@ -104,7 +104,7 @@ static void chassis_set_control(chassis_move_t *chassis_move_control);
  * @retval         none
  */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
-
+void pump_manager(void);
 void robot_arm_control(void);
 void CAN_cmd_robot_arm(void);
 
@@ -154,6 +154,7 @@ void chassis_task(void const *pvParameters)
 
 	while (1)
 	{
+		pump_manager();
 		//set chassis control mode
 		//设置底盘控制模式
 		chassis_set_mode(&chassis_move);
@@ -185,6 +186,18 @@ void chassis_task(void const *pvParameters)
 #if INCLUDE_uxTaskGetStackHighWaterMark
 		chassis_high_water = uxTaskGetStackHighWaterMark(NULL);
 #endif
+	}
+}
+
+void pump_manager(void)
+{
+	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
+	{
+		pump_control(1);
+	}
+	else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+	{
+		pump_control(0);
 	}
 }
 
@@ -236,12 +249,6 @@ void robot_arm_control(void)
 					chassis_move.robot_arm_motor_pos[4] += right_horiz_channel * ARM_JOINT_4_RC_SEN_INC;
 					chassis_move.robot_arm_motor_pos[5] += left_vert_channel * ARM_JOINT_5_RC_SEN_INC;
 					chassis_move.robot_arm_motor_pos[6] += left_horiz_channel * ARM_JOINT_6_RC_SEN_INC;
-
-					// absolute control
-					// chassis_move.robot_arm_motor_pos[3] = right_vert_channel * ARM_JOINT_3_RC_SEN + ARM_JOINT_3_ANGLE_HOME;
-					// chassis_move.robot_arm_motor_pos[4] = right_horiz_channel * ARM_JOINT_4_RC_SEN + ARM_JOINT_4_ANGLE_HOME;
-					// chassis_move.robot_arm_motor_pos[5] = left_vert_channel * ARM_JOINT_5_RC_SEN + ARM_JOINT_5_ANGLE_HOME;
-					// chassis_move.robot_arm_motor_pos[6] = left_horiz_channel * ARM_JOINT_6_RC_SEN + ARM_JOINT_6_ANGLE_HOME;
 					break;
 				}
 				case RC_SW_MID:
@@ -250,11 +257,6 @@ void robot_arm_control(void)
 					chassis_move.robot_arm_motor_pos[0] += right_horiz_channel * ARM_JOINT_0_RC_SEN_INC;
 					chassis_move.robot_arm_motor_pos[1] += right_vert_channel * ARM_JOINT_1_RC_SEN_INC;
 					chassis_move.robot_arm_motor_pos[2] += left_horiz_channel * ARM_JOINT_2_RC_SEN_INC;
-
-					// absolute control
-					// chassis_move.robot_arm_motor_pos[0] = right_horiz_channel * ARM_JOINT_0_RC_SEN + ARM_JOINT_0_ANGLE_HOME;
-					// chassis_move.robot_arm_motor_pos[1] = right_vert_channel * ARM_JOINT_1_RC_SEN + ARM_JOINT_1_ANGLE_HOME;
-					// chassis_move.robot_arm_motor_pos[2] = left_horiz_channel * ARM_JOINT_2_RC_SEN + ARM_JOINT_2_ANGLE_HOME;
 					break;
 				}
 				default:

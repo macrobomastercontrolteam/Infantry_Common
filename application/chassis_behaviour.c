@@ -95,10 +95,8 @@
 #define SPINNING_CHASSIS_HIGH_OMEGA (RPM_TO_RADS(35.0f))
 
 #if CHASSIS_TEST_MODE
-int32_t chassis_behaviour_mode_int;
 static void J_scope_chassis_behavior_test(void)
 {
-    chassis_behaviour_mode_int = (int32_t)(chassis_behaviour_mode);
 }
 #endif
 

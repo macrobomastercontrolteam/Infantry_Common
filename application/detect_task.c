@@ -52,8 +52,9 @@
   
 #include "detect_task.h"
 #include "cmsis_os.h"
+#include "referee.h"
 
-
+#define DETECT_TEST_MODE 1
 /**
   * @brief          init error_list, assign  offline_time, online_time, priority.
   * @param[in]      time: system time
@@ -68,7 +69,6 @@ static void detect_init(uint32_t time);
 
 
 
-
 error_t error_list[ERROR_LIST_LENGTH + 1];
 
 
@@ -76,6 +76,16 @@ error_t error_list[ERROR_LIST_LENGTH + 1];
 uint32_t detect_task_stack;
 #endif
 
+#if DETECT_TEST_MODE
+uint16_t detect_intervals[ERROR_LIST_LENGTH];
+static void J_scope_detect_test(uint16_t ulSystemTime)
+{
+    for (int i = 0; i < ERROR_LIST_LENGTH; i++)
+    {
+        detect_intervals[i] = ulSystemTime - error_list[i].new_time;
+    }
+}
+#endif
 
 /**
   * @brief          detect task
@@ -169,6 +179,9 @@ void detect_task(void const *pvParameters)
                 }
             }
         }
+#if DETECT_TEST_MODE
+        J_scope_detect_test(system_time);
+#endif
 
         osDelayUntil(&system_time, DETECT_CONTROL_TIME);
 #if INCLUDE_uxTaskGetStackHighWaterMark
@@ -304,6 +317,7 @@ static void detect_init(uint32_t time)
         error_list[i].lost_time = time;
         error_list[i].work_time = time;
     }
+    error_list[REFEREE_TOE].solve_lost_fun = ref_solve_lost_fun;
 
     // error_list[OLED_TOE].data_is_error_fun = NULL;
     // error_list[OLED_TOE].solve_lost_fun = OLED_com_reset;

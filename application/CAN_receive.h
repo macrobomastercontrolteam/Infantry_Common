@@ -23,8 +23,8 @@
 
 #include "global_inc.h"
 
-#define CHASSIS_CAN hcan2
-#define GIMBAL_CAN hcan1
+#define CHASSIS_CAN hcan1
+#define GIMBAL_CAN hcan2
 
 #define RAD_TO_INT16_SCALE (32767.0f/PI) // (2^15-1)/PI
 #define ONE_METER_TO_INT16_SCALE (32767.0f/1.0f) // (2^15-1)/1.0f

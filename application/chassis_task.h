@@ -357,6 +357,8 @@ extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_mov
 void robot_arm_set_home(void);
 #endif
 
+extern const fp32 joint_angle_min[7];
+extern const fp32 joint_angle_max[7];
 extern chassis_move_t chassis_move;
 
 #endif

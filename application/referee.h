@@ -378,6 +378,7 @@ typedef __packed union
 STATIC_ASSERT(sizeof(custom_robot_data_t) <= 30);
 
 extern void init_referee_struct_data(void);
+extern void ref_solve_lost_fun(void);
 extern void referee_data_solve(uint8_t *frame);
 
 // extern void get_chassis_power_data(fp32 *power, fp32 *buffer, fp32 *power_limit);

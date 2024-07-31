@@ -8,8 +8,11 @@
 #include "usart.h"
 #include "detect_task.h"
 #include "chassis_task.h"
+#include "remote_control.h"
 
 #define REF_TEST_MODE 0
+
+const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 frame_header_struct_t referee_receive_header;
 frame_header_struct_t referee_send_header;
@@ -95,10 +98,10 @@ void init_referee_struct_data(void)
 	// memset(&student_interactive_data_t, 0, sizeof(ext_student_interactive_data_t));
 	memset(&diy_controller, 0, sizeof(custom_robot_data_t));
 }
-
+uint16_t cmd_id = 0;
 void referee_data_solve(uint8_t *frame)
 {
-	uint16_t cmd_id = 0;
+	// uint16_t cmd_id = 0;
 
 	uint8_t index = 0;
 
@@ -282,14 +285,15 @@ void referee_data_solve(uint8_t *frame)
 		// }
 		case DIY_controller_DATA_SEND_ID:
         {
-            memcpy(&diy_controller.data, frame + index, sizeof(diy_controller));
-            if (diy_controller.tData.fIsTeaching && (chassis_move.fHoming == 0))
-            {
-                for (uint8_t i = 0; i < 7; i++)
-                {
-                    chassis_move.robot_arm_motor_pos[i] = diy_controller.tData.demoArmAngle[i];
-                }
-            }
+			memcpy(&diy_controller.data, frame + index, sizeof(diy_controller));
+			if ((diy_controller.tData.fIsTeaching == 1) && (rc_ctrl.rc.s[LEFT_LEVER_CHANNEL] == RC_SW_UP) && (rc_ctrl.rc.s[RIGHT_LEVER_CHANNEL] != RC_SW_DOWN))
+			{
+				for (uint8_t i = 0; i < 7; i++)
+				{
+					chassis_move.robot_arm_motor_pos[i] = fp32_constrain(diy_controller.tData.demoArmAngle[i], joint_angle_min[i], joint_angle_max[i]);
+				}
+				chassis_move.fHoming = 0;
+			}
 			break;
         }
 		// case SMALL_MAP_INTERACTION_DATA_ID:
@@ -404,3 +408,8 @@ void referee_data_solve(uint8_t *frame)
 // 		return ARMOR_NONE;
 // 	}
 // }
+
+void ref_solve_lost_fun(void)
+{
+	diy_controller.tData.fIsTeaching = 0;
+}
