@@ -695,14 +695,14 @@
               <FilePath>..\application\graphic.c</FilePath>
             </File>
             <File>
-              <FileName>vofa.c</FileName>
+              <FileName>vofa_task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\application\vofa.c</FilePath>
+              <FilePath>..\application\vofa_task.c</FilePath>
             </File>
             <File>
-              <FileName>vofa.h</FileName>
+              <FileName>vofa_task.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\application\vofa.h</FilePath>
+              <FilePath>..\application\vofa_task.h</FilePath>
             </File>
           </Files>
         </Group>
