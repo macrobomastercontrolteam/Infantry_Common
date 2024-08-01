@@ -169,8 +169,10 @@ void chassis_behaviour_change_transit(void)
 			}
 			case CHASSIS_CV_CONTROL_MODE:
 			{
+#if CV_INTERFACE
 				// safety guard
 				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
+#endif
 				break;
 			}
 			case CHASSIS_SPINNING_MODE:

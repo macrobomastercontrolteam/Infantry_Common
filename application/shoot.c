@@ -189,6 +189,7 @@ int16_t shoot_control_loop(void)
 		{
 			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 			{
+#if CV_INTERFACE
 				if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // Auto aim
 				{
 					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
@@ -197,6 +198,7 @@ int16_t shoot_control_loop(void)
 					}
 				}
 				else // Manual control
+#endif
 				{
 					if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
 					{
@@ -259,6 +261,7 @@ int16_t shoot_control_loop(void)
 		}
 		case SHOOT_AUTO_FIRE:
 		{
+#if CV_INTERFACE
 			if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // auto aim
 			{
 				if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) == 0)
@@ -267,6 +270,7 @@ int16_t shoot_control_loop(void)
 				}
 			}
 			else
+#endif
 			{
 				if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
 				{
@@ -329,6 +333,7 @@ static void shoot_set_mode(void)
 	{
 		shoot_control.shoot_mode = SHOOT_STOP;
 	}
+#if CV_INTERFACE
 	else if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // auto aim mode
 	{
 		if (is_game_started() == 0)
@@ -349,6 +354,7 @@ static void shoot_set_mode(void)
 			shoot_control.shoot_mode = SHOOT_STOP;
 		}
 	}
+#endif
 	else
 	{
 		// remote controller S1 switch logic

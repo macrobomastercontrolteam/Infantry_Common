@@ -406,10 +406,12 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
+#if CV_INTERFACE
     else if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT))
     {
         gimbal_behaviour = GIMBAL_AUTO_AIM;
     }
+#endif
 #endif
     else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_gimbal_output == 0))
 	{
