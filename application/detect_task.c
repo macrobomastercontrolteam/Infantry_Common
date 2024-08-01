@@ -221,7 +221,7 @@ static void detect_init(uint32_t time)
     // Important: config offlineTime onlinetime priority
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
-            {30, 40, 15},   //SBUS
+            {50, 40, 15},   //SBUS
             {20, 10, 11},   //motor1
             {20, 10, 10},   //motor2
             {20, 10, 9},    //motor3
@@ -231,11 +231,11 @@ static void detect_init(uint32_t time)
             {20, 10, 12},   //trigger
             {20, 10, 16},   //fric 1
             {20, 10, 17},   //fric 2
-            {5, 3, 7},      //board gyro
-            {5, 5, 7},      //board accel
+            {20, 3, 7},      //board gyro
+            {20, 5, 7},      //board accel
             {40, 200, 7},   //board mag
-            {100, 100, 5},  //referee
-            {200, 0, 7},    //cv usart
+            {200, 20, 5},  //referee
+            {300, 0, 7},    //cv usart
             {100, 0, 11},    // super capacitor
             {50, 0, 8},    // swerve controller
             {25, 0, 8},    // biped controller feedback (normally < 3)
