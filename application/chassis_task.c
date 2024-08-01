@@ -72,7 +72,6 @@ void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
 #endif
-supcap_t cap_message_rx;
 
 chassis_move_t chassis_move;
 
@@ -130,7 +129,9 @@ void chassis_task(void const *pvParameters)
 		chassis_control_loop();
 		// send CAN msg
 		CAN_cmd_chassis();
-
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+		CAN_cmd_supercap();
+#endif
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
 
 #if CHASSIS_TEST_MODE

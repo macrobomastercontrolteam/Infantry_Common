@@ -7,8 +7,12 @@
 #define INFANTRY_2024_BIPED 3
 #define SENTRY_2023_MECANUM 4
 
+#define UBC_SUPERCAP 0
+#define HRB_SUPERCAP 1
+#define SJTU_SUPERCAP 2
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE INFANTRY_2024_MECANUM
+#define SUPERCAP_TYPE UBC_SUPER_CAP
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define ENABLE_LASER 1

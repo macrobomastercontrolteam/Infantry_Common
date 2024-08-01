@@ -36,10 +36,10 @@ graphic_data_struct_t chassis_dir;
 string_data chassis_relative_angle;
 string_data pitch_direction_icon;
 string_data pitch_angle_text;
-string_data cap_voltage_data;
-string_data cap_power_data;
-string_data cap_voltage_str;
-string_data cap_power;
+// string_data cap_voltage_data;
+// string_data cap_power_data;
+// string_data cap_voltage_str;
+// string_data cap_power;
 string_data chassis_front_dir;
 graphic_data_struct_t armor_0;
 graphic_data_struct_t armor_1;
@@ -58,7 +58,6 @@ string_data robot_status_str;
 string_data MacRM_logo_str;
 
 void static_elements_init(void);
-void super_cap_status_draw(void);
 void chassis_direction_draw(float yaw_relative_angle);
 void gimbal_pitch_direction_draw(float pitch_relative_angle);
 void armor_damage_draw(float yaw_relative_angle);
@@ -79,7 +78,7 @@ void custom_ui_task(void const *argument)
 		chassis_direction_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
 		gimbal_pitch_direction_draw(gimbal_control.gimbal_pitch_motor.absolute_angle);
 		armor_damage_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
-		super_cap_status_draw();
+		//super_cap_status_draw();
 		chassis_mode_draw();
 		osDelayUntil(&ulSystemTime, CUSTOM_UI_TIME_MS);
 	}
@@ -87,16 +86,16 @@ void custom_ui_task(void const *argument)
 
 void static_elements_init(void)
 {
-	char_draw(&cap_voltage_str, "capVlotageStr", UI_Graph_ADD, 1, UI_Color_Pink, 20, 4, 3, 1473, 468, "CAPV");
-	update_char(&cap_voltage_str);
+	// char_draw(&cap_voltage_str, "capVlotageStr", UI_Graph_ADD, 1, UI_Color_Pink, 20, 4, 3, 1473, 468, "CAPV");
+	// update_char(&cap_voltage_str);
 	char_draw(&MacRM_logo_str, "macfalcons", UI_Graph_ADD, 1, UI_Color_Pink, 20, 11, 3, 850, 60, "MACFALCONS");
 	update_char(&MacRM_logo_str);
-	char_draw(&cap_power, "capPowerStr", UI_Graph_ADD, 0, UI_Color_Pink, 20, 4, 3, 1473, 428, "CAPP");
-	update_char(&cap_power);
-	float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_ADD, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
-	update_char(&cap_voltage_data);
-	float_draw(&cap_power_data, "capPower", UI_Graph_ADD, 0, UI_Color_Cyan, 20, 3, 1, 1590, 3888, cap_message_rx.cap_message.cap_power);
-	update_char(&cap_power_data);
+	// char_draw(&cap_power, "capPowerStr", UI_Graph_ADD, 0, UI_Color_Pink, 20, 4, 3, 1473, 428, "CAPP");
+	// update_char(&cap_power);
+	// float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_ADD, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
+	// update_char(&cap_voltage_data);
+	// float_draw(&cap_power_data, "capPower", UI_Graph_ADD, 0, UI_Color_Cyan, 20, 3, 1, 1590, 3888, cap_message_rx.cap_message.cap_power);
+	// update_char(&cap_power_data);
 	float_draw(&trigger_speed_data, "triggerSpeedData", UI_Graph_ADD, 7, UI_Color_Cyan, 20, 4, 3, 1590, 508, 0);
 	update_char(&trigger_speed_data);
 	char_draw(&trigger_speed, "triggerSpeed", UI_Graph_ADD, 0, UI_Color_Pink, 20, 6, 3, 1473, 508, "TRIRPM");
@@ -199,28 +198,28 @@ void armor_damage_draw(float yaw_relative_angle)
 	}
 }
 
-void super_cap_status_draw(void)
-{
-	if (cap_message_rx.cap_message.cap_milivoltage >= (SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD * 1000.0f))
-	{
-		float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_Change, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
-	}
-	else if (cap_message_rx.cap_message.cap_milivoltage < 1000)
-	{
-		float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_Change, 0, UI_Color_Purplish_red, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
-	}
-	update_char(&cap_voltage_data);
+// void super_cap_status_draw(void)
+// {
+	// if (cap_message_rx.cap_message.cap_milivoltage >= (SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD * 1000.0f))
+	// {
+	// 	float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_Change, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
+	// }
+	// else if (cap_message_rx.cap_message.cap_milivoltage < 1000)
+	// {
+	// 	float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_Change, 0, UI_Color_Purplish_red, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
+	// }
+	// update_char(&cap_voltage_data);
 
-	if (cap_message_rx.cap_message.cap_power < 0)
-	{
-		float_draw(&cap_power_data, "capPower", UI_Graph_Change, 1, UI_Color_Cyan, 20, 5, 3, 1590, 428, cap_message_rx.cap_message.cap_power);
-	}
-	else if (cap_message_rx.cap_message.cap_power >= 0)
-	{
-		float_draw(&cap_power_data, "capPower", UI_Graph_Change, 0, UI_Color_Purplish_red, 20, 5, 3, 1590, 428, cap_message_rx.cap_message.cap_power);
-	}
-	update_char(&cap_power_data);
-}
+	// if (cap_message_rx.cap_message.cap_power < 0)
+	// {
+	// 	float_draw(&cap_power_data, "capPower", UI_Graph_Change, 1, UI_Color_Cyan, 20, 5, 3, 1590, 428, cap_message_rx.cap_message.cap_power);
+	// }
+	// else if (cap_message_rx.cap_message.cap_power >= 0)
+	// {
+	// 	float_draw(&cap_power_data, "capPower", UI_Graph_Change, 0, UI_Color_Purplish_red, 20, 5, 3, 1590, 428, cap_message_rx.cap_message.cap_power);
+	// }
+	// update_char(&cap_power_data);
+// }
 
 void trigger_motor_state_draw(float trigger_rpm)
 {

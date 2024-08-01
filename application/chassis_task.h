@@ -248,22 +248,6 @@ typedef struct
 } chassis_platform_t;
 #endif
 
-typedef union
-{
-	uint8_t can_buf[8];
-	struct
-	{
-		// 0: not provide power
-		// 1: provide power
-		uint8_t cap_state;
-		uint8_t reserve;
-		uint16_t cap_milivoltage;
-		float cap_power;
-	} cap_message;
-} supcap_t;
-
-extern supcap_t cap_message_rx;
-
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 typedef struct
 {
