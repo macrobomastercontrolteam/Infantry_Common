@@ -397,7 +397,6 @@ void CvCmder_RxParser(void)
 				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
 				CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT, 0);
-
 			}
 			break;
 		}
