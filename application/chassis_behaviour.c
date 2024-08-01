@@ -67,7 +67,8 @@ static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set);
  * @retval         none
  */
 static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint8_t fSpinningOn);
-void chassis_align_with_gimbal(fp32* wz_set);
+void chassis_align_to_gimbal(fp32* wz_set);
+void chassis_align_to_imu_front(fp32* wz_set);
 
 void chassis_spinning_speed_manager(fp32 *wz_set);
 void dial_channel_manager(void);
@@ -480,22 +481,23 @@ static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set)
 	{
 		*vx_set = 0;
 		*vy_set = 0;
+		*wz_set = 0;
 	}
 	else
 	{
 		// chassis_task should maintain previous speed if cv is offline for a short time
 		*vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
 		*vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
-	}
 
-	// @TODO: implement CV enemy detection mode
-	if (is_game_started() && CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT) && (!toe_is_error(CV_TOE)))
-	{
-		chassis_spinning_speed_manager(wz_set);
-	}
-	else
-	{
-		*wz_set = 0;
+		// @TODO: implement CV enemy detection mode
+		if (is_game_started() && CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT))
+		{
+			chassis_spinning_speed_manager(wz_set);
+		}
+		else if (CvCmder_GetMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT))
+		{
+			chassis_align_to_imu_front(wz_set);
+		}
 	}
 #endif
 }
@@ -528,11 +530,11 @@ static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint
 	}
 	else
 	{
-		chassis_align_with_gimbal(wz_set);
+		chassis_align_to_gimbal(wz_set);
 	}
 }
 
-void chassis_align_with_gimbal(fp32* wz_set)
+void chassis_align_to_gimbal(fp32* wz_set)
 {
 #if (ROBOT_TYPE != INFANTRY_2024_BIPED)
 	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) && ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) == 0))
@@ -557,4 +559,22 @@ void chassis_align_with_gimbal(fp32* wz_set)
 		*wz_set = (chassis_move.wz_max_speed / JOYSTICK_HALF_RANGE) * chassis_move.dial_channel_out;
 	}
 #endif
+}
+
+void chassis_align_to_imu_front(fp32 *wz_set)
+{
+	// Keep rotating until chassis align with IMU abs front
+	const fp32 chassis_align_abs_angle_deadzone = DEG_TO_RAD(10.0f);
+	if (fabs(chassis_move.chassis_yaw) > chassis_align_abs_angle_deadzone)
+	{
+		*wz_set = ((chassis_move.wz_max_speed - chassis_get_ultra_low_wz_limit()) * (fabs(chassis_move.chassis_yaw) / (PI / 2.0f)) + chassis_get_ultra_low_wz_limit()) * 0.4f;
+		if (chassis_move.chassis_yaw > 0)
+		{
+			*wz_set *= -1;
+		}
+	}
+	else
+	{
+		*wz_set = 0;
+	}
 }
