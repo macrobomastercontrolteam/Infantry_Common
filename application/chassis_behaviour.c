@@ -67,8 +67,8 @@ static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set);
  * @retval         none
  */
 static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint8_t fSpinningOn);
-void chassis_align_with_gimbal(fp32* wz_set);
-void chassis_align_with_abs_angle(fp32* wz_set);
+void chassis_align_to_gimbal(fp32* wz_set);
+void chassis_align_to_imu_front(fp32* wz_set);
 
 void chassis_spinning_speed_manager(fp32 *wz_set);
 void dial_channel_manager(void);
@@ -496,7 +496,7 @@ static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set)
 		}
 		else if (CvCmder_GetMode(CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT))
 		{
-			chassis_align_with_abs_angle(wz_set);
+			chassis_align_to_imu_front(wz_set);
 		}
 	}
 #endif
@@ -530,11 +530,11 @@ static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint
 	}
 	else
 	{
-		chassis_align_with_gimbal(wz_set);
+		chassis_align_to_gimbal(wz_set);
 	}
 }
 
-void chassis_align_with_gimbal(fp32* wz_set)
+void chassis_align_to_gimbal(fp32* wz_set)
 {
 #if (ROBOT_TYPE != INFANTRY_2024_BIPED)
 	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) && ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) == 0))
