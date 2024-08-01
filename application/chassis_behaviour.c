@@ -494,7 +494,7 @@ static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set)
 		{
 			chassis_spinning_speed_manager(wz_set);
 		}
-		else if (CvCmder_GetMode(CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT))
+		else if (CvCmder_GetMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT))
 		{
 			chassis_align_to_imu_front(wz_set);
 		}

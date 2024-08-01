@@ -190,7 +190,7 @@ void CvCmder_toe_solve_lost_fun(void)
 	CvCmder_ChangeMode(CV_MODE_ENEMY_DETECTED_BIT, 0);
 	CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 	CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
-	CvCmder_ChangeMode(CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT, 0);
+	CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT, 0);
 }
 
 /**
@@ -390,13 +390,13 @@ void CvCmder_RxParser(void)
 				CvCmdHandler.ulShootStartTime = osKernelSysTick();
 
 				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_CHASSIS_SPINNING_BIT);
-				CvCmder_ChangeMode(CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT);
+				CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT);
 			}
 			else
 			{
 				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
-				CvCmder_ChangeMode(CV_MODE_CHASSIS_ABS_ANGLE_ALINNING_BIT, 0);
+				CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT, 0);
 
 			}
 			break;
