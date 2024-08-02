@@ -28,6 +28,7 @@
 #include "graphic.h"
 #include "referee.h"
 #include "shoot.h"
+#include "CAN_receive.h"
 
 #define CUSTOM_UI_TIME_MS 10.0f
 
@@ -40,6 +41,7 @@ string_data pitch_angle_text;
 // string_data cap_power_data;
 // string_data cap_voltage_str;
 // string_data cap_power;
+graphic_data_struct_t supercap_energy_percentage;
 string_data chassis_front_dir;
 graphic_data_struct_t armor_0;
 graphic_data_struct_t armor_1;
@@ -56,6 +58,7 @@ string_data trigger_speed_data;
 string_data rand_spin_str;
 string_data robot_status_str;
 string_data MacRM_logo_str;
+uint16_t cap_energy_percentage;
 
 void static_elements_init(void);
 void chassis_direction_draw(float yaw_relative_angle);
@@ -63,6 +66,7 @@ void gimbal_pitch_direction_draw(float pitch_relative_angle);
 void armor_damage_draw(float yaw_relative_angle);
 void chassis_mode_draw(void);
 void trigger_motor_state_draw(float trigger_rpm);
+void super_cap_status_draw(void);
 
 void custom_ui_task(void const *argument)
 {
@@ -114,6 +118,8 @@ void static_elements_init(void)
 	update_ui(&crosshair_hori_5);
 	line_draw(&crosshair_hori_6, "096", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 920, 370, 1000, 370);
 	update_ui(&crosshair_hori_6);
+	line_draw(&supercap_energy_percentage, "cap_energy_percentage", UI_Graph_ADD, 2, UI_Color_Cyan, 20, 775, 110, ((float)cap_energy_percentage / 100.0f * 4 + 775), 110);
+	update_ui(&supercap_energy_percentage);
 }
 
 void chassis_direction_draw(float yaw_relative_angle)
@@ -198,8 +204,8 @@ void armor_damage_draw(float yaw_relative_angle)
 	}
 }
 
-// void super_cap_status_draw(void)
-// {
+void super_cap_status_draw(void)
+{
 	// if (cap_message_rx.cap_message.cap_milivoltage >= (SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD * 1000.0f))
 	// {
 	// 	float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_Change, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
@@ -219,7 +225,29 @@ void armor_damage_draw(float yaw_relative_angle)
 	// 	float_draw(&cap_power_data, "capPower", UI_Graph_Change, 0, UI_Color_Purplish_red, 20, 5, 3, 1590, 428, cap_message_rx.cap_message.cap_power);
 	// }
 	// update_char(&cap_power_data);
-// }
+#if HRB_SUPERCAP_ENABLE
+	if (((float)cap_message_rx.cap_message.cap_voltage_persentage) / 100.0f < 30)
+	{
+		line_draw(&supercap_energy_percentage, "cap_energy_percentage", UI_Graph_Change, 2, UI_Color_Cyan, 20, 775, 110, ((float)cap_message_rx.cap_message.cap_voltage_persentage / 100.0f * 4 + 775), 110);
+	}
+	else if (((float)cap_message_rx.cap_message.cap_voltage_persentage) / 100.0f > 30.0f)
+	{
+		line_draw(&supercap_energy_percentage, "cap_energy_percentage", UI_Graph_Change, 2, UI_Color_Cyan, 20, 775, 110, ((float)cap_message_rx.cap_message.cap_voltage_persentage / 100.0f * 4 + 775), 110);
+	}
+	update_char(&supercap_energy_percentage);
+#elif (SUPERCAP_TYPE == UBC_SUPERCAP)
+	cap_energy_percentage = get_cap_energy_percentage();
+	if ((float)cap_energy_percentage / 100.0f < 30)
+	{
+	line_draw(&supercap_energy_percentage, "cap_energy_percentage", UI_Graph_Change, 2, UI_Color_Cyan, 20, 775, 110, ((float)cap_energy_percentage / 100.0f * 4 + 775), 110);
+	}
+	else if ((float)cap_energy_percentage / 100.0f > 30.0f)
+	{
+	line_draw(&supercap_energy_percentage, "cap_energy_percentage", UI_Graph_Change, 2, UI_Color_Purplish_red, 20, 775, 110, ((float)cap_energy_percentage / 100.0f * 4 + 775), 110);
+	}
+	update_char(&supercap_energy_percentage);
+#endif
+}
 
 void trigger_motor_state_draw(float trigger_rpm)
 {
