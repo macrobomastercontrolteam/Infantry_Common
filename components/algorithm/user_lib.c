@@ -1,6 +1,16 @@
 #include "user_lib.h"
 #include "arm_math.h"
 
+fp32 first_order_filter(fp32 input, fp32 output_prev, fp32 coeff)
+{
+    if (coeff > 1)
+    {
+        return NAN;
+    }
+    fp32 output = (1-coeff)*output_prev + coeff*input;
+    return output;
+}
+
 //快速开方
 fp32 invSqrt(fp32 num)
 {
@@ -146,6 +156,11 @@ int16_t int16_deadline(int16_t Value, int16_t minValue, int16_t maxValue)
     return Value;
 }
 
+fp32 fp32_abs_constrain(fp32 in, fp32 absValue)
+{
+    return fp32_constrain(in, -absValue, absValue);
+}
+
 //限幅函数
 fp32 fp32_constrain(fp32 Value, fp32 minValue, fp32 maxValue)
 {
@@ -155,6 +170,11 @@ fp32 fp32_constrain(fp32 Value, fp32 minValue, fp32 maxValue)
         return maxValue;
     else
         return Value;
+}
+
+fp32 M3508_loop_ecd_constrain(fp32 Input)
+{
+	return loop_fp32_constrain(Input, -HALF_ECD_RANGE, HALF_ECD_RANGE);
 }
 
 //限幅函数

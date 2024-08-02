@@ -191,7 +191,7 @@
 
 //chassis task control time  2ms
 //底盘任务控制间隔 2ms
-#define CHASSIS_CONTROL_TIME_MS 2
+#define CHASSIS_CONTROL_TIME_MS 3
 #define CHASSIS_CONTROL_TIME_S (CHASSIS_CONTROL_TIME_MS / 1000.0f)
 //chassis task control time 0.002s
 //底盘任务控制间隔 0.002s
@@ -271,6 +271,25 @@
 #define CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT 6.0f
 #define CHASSIS_FOLLOW_GIMBAL_PID_MAX_IOUT 0.2f
 
+/************ VTM gimbal configs ************/
+#define M3508_VTM_PITCH_ECD_PID_KP 50.0f
+#define M3508_VTM_PITCH_ECD_PID_KI 0.0f
+#define M3508_VTM_PITCH_ECD_PID_KD 0.0f
+#define M3508_VTM_PITCH_ECD_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
+#define M3508_VTM_PITCH_ECD_PID_MAX_IOUT 0.0f
+
+#define M3508_VTM_YAW_ECD_PID_KP 50.0f
+#define M3508_VTM_YAW_ECD_PID_KI 0.0f
+#define M3508_VTM_YAW_ECD_PID_KD 150.0f
+#define M3508_VTM_YAW_ECD_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
+#define M3508_VTM_YAW_ECD_PID_MAX_IOUT 0.0f
+
+#define VTM_YAW_KEYBOARD_CHANGE_TIME_S 1.0f
+#define VTM_YAW_ECD_KEYBOARD_SEN_INC (PI / 2.0f * MOTOR_RAD_TO_ECD / VTM_YAW_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S)
+#define VTM_PITCH_KEYBOARD_CHANGE_TIME_S 1.0f
+#define VTM_PITCH_ECD_KEYBOARD_SEN_INC (PI / 2.0f * MOTOR_RAD_TO_ECD / VTM_PITCH_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S)
+/************ VTM gimbal configs ************/
+
 typedef enum
 {
   CHASSIS_VECTOR_NO_FOLLOW_YAW,       //chassis will have rotation speed control. 底盘有旋转速度控制
@@ -323,6 +342,22 @@ typedef struct
 #endif /* INDIVIDUAL_MOTOR_TEST */
 } chassis_move_t;
 
+typedef struct
+{
+  pid_type_def pitch_ecd_pid;
+  pid_type_def yaw_ecd_pid;
+
+  int16_t pitch_current_cmd;
+  int16_t yaw_current_cmd;
+
+  // Note: encoder of 3508 is not permanent
+  // upwards is positive
+  fp32 pitch_target_ecd;
+  // to the right is positive
+  fp32 yaw_target_ecd;
+  uint8_t fVtmGimbalPowerEnabled;
+} vtm_gimbal_t;
+
 /**
   * @brief          chassis task, osDelay CHASSIS_CONTROL_TIME_MS (2ms) 
   * @param[in]      pvParameters: null
@@ -360,5 +395,6 @@ void robot_arm_set_home(void);
 extern const fp32 joint_angle_min[7];
 extern const fp32 joint_angle_max[7];
 extern chassis_move_t chassis_move;
+extern vtm_gimbal_t vtm_gimbal;
 
 #endif

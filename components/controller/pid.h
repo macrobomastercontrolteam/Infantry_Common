@@ -84,6 +84,7 @@ extern void PID_init(pid_type_def *pid, uint8_t mode, const fp32 PID[3], fp32 ma
   * @retval         pidÊä³ö
   */
 extern fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set);
+extern fp32 PID_calc_with_dot_filter(pid_type_def *pid, fp32 ref, fp32 set, fp32 kd_filter_coeff);
 
 /**
   * @brief          pid out clear
@@ -100,6 +101,7 @@ extern void PID_clear(pid_type_def *pid);
 extern void LimitMax(fp32 *num, fp32 Limit);
 
 fp32 raw_err_handler(fp32 set, fp32 ref);
-fp32 abs_err_handler(fp32 set, fp32 ref);
+fp32 rad_err_handler(fp32 set, fp32 ref);
+fp32 M3508_ecd_err_handler(fp32 set, fp32 ref);
 
 #endif

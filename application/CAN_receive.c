@@ -27,24 +27,18 @@
 
 #include "user_lib.h"
 #include "detect_task.h"
+#include "chassis_task.h"
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 
-#define ENABLE_ARM_MOTOR_POWER 1
+#define ENABLE_ARM_MOTOR_POWER 0
 #define ENABLE_DRIVE_MOTOR_POWER 0
+#define ENABLE_VTM_MOTOR_POWER 0
 
-//motor data read
-#define get_motor_measure(ptr, data)                                    \
-    {                                                                   \
-        (ptr)->last_ecd = (ptr)->ecd;                                   \
-        (ptr)->ecd = (uint16_t)((data)[0] << 8 | (data)[1]);            \
-        (ptr)->speed_rpm = (uint16_t)((data)[2] << 8 | (data)[3]);      \
-        (ptr)->given_current = (uint16_t)((data)[4] << 8 | (data)[5]);  \
-        (ptr)->temperate = (data)[6];                                   \
-    }
-
-uint8_t convertCanIdToMotorIndex(uint32_t canId);
+void decode_3508_motor_msg(motor_measure_t *ptr, uint8_t data[8]);
+void decode_vtm_yaw_motor_msg(motor_measure_t *ptr, uint8_t data[8]);
+void decode_vtm_pitch_motor_msg(motor_measure_t *ptr, uint8_t data[8]);
 
 /**
  * @brief motor feedback data
@@ -55,30 +49,12 @@ uint8_t convertCanIdToMotorIndex(uint32_t canId);
  * Gimbal CAN:
  * 5:pitch gimbal motor 6020;
  */
-static motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
+motor_measure_t motor_measure[MOTOR_LIST_LENGTH];
 
 static CAN_TxHeaderTypeDef  gimbal_tx_message;
 static uint8_t              gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef  chassis_tx_message;
 static uint8_t              chassis_can_send_data[8];
-
-uint8_t convertCanIdToMotorIndex(uint32_t canId)
-{
-	switch (canId)
-	{
-		case CAN_3508_M1_ID:
-		case CAN_3508_M2_ID:
-		case CAN_3508_M3_ID:
-		case CAN_3508_M4_ID:
-		{
-			return (canId - CAN_3508_M1_ID);
-		}
-		default:
-		{
-			return 0;
-		}
-	}
-}
 
 /**
   * @brief          hal CAN fifo call back, receive motor data
@@ -94,34 +70,72 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     CAN_RxHeaderTypeDef rx_header;
     uint8_t rx_data[8];
-    uint8_t bMotorValid = 0;
 
     HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
-    switch (rx_header.StdId)
-    {
-        case CAN_3508_M1_ID:
-        case CAN_3508_M2_ID:
-        case CAN_3508_M3_ID:
-        case CAN_3508_M4_ID:
-        {
-            if (hcan == &hcan1)
-            {
-              bMotorValid = 1;
-            }
-            break;
-        }
-		default:
-		{
-			break;
+	if (hcan == &hcan1)
+	{
+		switch (rx_header.StdId)
+			{
+			case CAN_3508_M1_ID:
+			case CAN_3508_M2_ID:
+			case CAN_3508_M3_ID:
+			case CAN_3508_M4_ID:
+			{
+				uint8_t bMotorId = rx_header.StdId - CAN_3508_M1_ID;
+				decode_3508_motor_msg(&motor_measure[bMotorId], rx_data);
+				detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
+				break;
+			}
+			case CAN_VTM_YAW_ID:
+			{
+				uint8_t bMotorId = rx_header.StdId - CAN_3508_M1_ID;
+				decode_vtm_yaw_motor_msg(&motor_measure[bMotorId], rx_data);
+				detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
+				break;
+			}
+			case CAN_VTM_PITCH_ID:
+			{
+				uint8_t bMotorId = rx_header.StdId - CAN_3508_M1_ID;
+				decode_vtm_pitch_motor_msg(&motor_measure[bMotorId], rx_data);
+				detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
+				break;
+			}
+			default:
+			{
+				break;
+			}
 		}
 	}
-    
-    if (bMotorValid == 1) {
-        uint8_t bMotorId = convertCanIdToMotorIndex(rx_header.StdId);
-        get_motor_measure(&motor_chassis[bMotorId], rx_data);
-        detect_hook(CHASSIS_MOTOR1_TOE + bMotorId);
-    }
+}
+
+void decode_3508_motor_msg(motor_measure_t *ptr, uint8_t data[8])
+{
+    ptr->last_ecd = ptr->ecd;
+    ptr->ecd = (uint16_t)((data[0] << 8) | data[1]);
+    ptr->speed_rpm = (int16_t)((data[2] << 8) | data[3]);
+    ptr->given_current = (int16_t)((data[4] << 8) | data[5]);
+    ptr->temperate = data[6];
+}
+
+void decode_vtm_yaw_motor_msg(motor_measure_t *ptr, uint8_t data[8])
+{
+	ptr->last_ecd = ptr->ecd;
+	ptr->ecd = (uint16_t)((data[0] << 8) | data[1]);
+	ptr->feedback_abs_ecd_fp32 = M3508_loop_ecd_constrain((float)ptr->ecd - (float)ptr->offset_ecd);
+	ptr->speed_rpm = (int16_t)((data[2] << 8) | data[3]);
+	ptr->given_current = (int16_t)((data[4] << 8) | data[5]);
+	ptr->temperate = data[6];
+}
+
+void decode_vtm_pitch_motor_msg(motor_measure_t *ptr, uint8_t data[8])
+{
+	ptr->last_ecd = ptr->ecd;
+	ptr->ecd = (uint16_t)((data[0] << 8) | data[1]);
+	ptr->feedback_abs_ecd_fp32 = M3508_loop_ecd_constrain((float)ptr->ecd - (float)ptr->offset_ecd);
+	ptr->speed_rpm = (int16_t)((data[2] << 8) | data[3]);
+	ptr->given_current = (int16_t)((data[4] << 8) | data[5]);
+	ptr->temperate = data[6];
 }
 
 void CAN_cmd_robot_arm_by_end_effector(end_effector_cmd_t _end_effector_cmd, robot_arm_behaviour_e arm_cmd_type, uint8_t fHoming)
@@ -279,7 +293,7 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
 {
     uint32_t send_mail_box;
     // driver motors (M3508)
-    chassis_tx_message.StdId = CAN_CHASSIS_M3508_TX_ID;
+    chassis_tx_message.StdId = CAN_CHASSIS_M3508_1_TX_ID;
     chassis_tx_message.IDE = CAN_ID_STD;
     chassis_tx_message.RTR = CAN_RTR_DATA;
     chassis_tx_message.DLC = 0x08;
@@ -295,6 +309,33 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
     chassis_can_send_data[6] = motor4 >> 8;
     chassis_can_send_data[7] = motor4;
 #endif
+    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+void CAN_cmd_vtm_gimbal(int16_t motor5, int16_t motor6)
+{
+    uint32_t send_mail_box;
+    chassis_tx_message.StdId = CAN_CHASSIS_M3508_2_TX_ID;
+    chassis_tx_message.IDE = CAN_ID_STD;
+    chassis_tx_message.RTR = CAN_RTR_DATA;
+    chassis_tx_message.DLC = 0x08;
+#if ENABLE_VTM_MOTOR_POWER
+    if (vtm_gimbal.fVtmGimbalPowerEnabled)
+    {
+      chassis_can_send_data[0] = motor5 >> 8;
+      chassis_can_send_data[1] = motor5;
+      chassis_can_send_data[2] = motor6 >> 8;
+      chassis_can_send_data[3] = motor6;
+      // chassis_can_send_data[4] = rev >> 8;
+      // chassis_can_send_data[5] = rev;
+      // chassis_can_send_data[6] = rev >> 8;
+      // chassis_can_send_data[7] = rev;
+    }
+    else
+#endif
+    {
+      memset(chassis_can_send_data, 0, sizeof(chassis_can_send_data));
+    }
     HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
 
@@ -316,6 +357,6 @@ const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_index)
 	}
 	else
 	{
-		return &motor_chassis[motor_index];
+		return &motor_measure[motor_index];
 	}
 }
