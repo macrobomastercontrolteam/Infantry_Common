@@ -104,7 +104,7 @@ static void chassis_set_control(chassis_move_t *chassis_move_control);
  * @retval         none
  */
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
-void pump_manager(void);
+void relay_signal_manager(void);
 void robot_arm_control(void);
 void CAN_cmd_robot_arm(void);
 
@@ -154,7 +154,6 @@ void chassis_task(void const *pvParameters)
 
 	while (1)
 	{
-		pump_manager();
 		//set chassis control mode
 		//设置底盘控制模式
 		chassis_set_mode(&chassis_move);
@@ -172,6 +171,7 @@ void chassis_task(void const *pvParameters)
 		chassis_control_loop(&chassis_move);
 
 		robot_arm_control();
+		relay_signal_manager();
 
 		CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current,
 						chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
@@ -190,14 +190,24 @@ void chassis_task(void const *pvParameters)
 }
 
 void pump_manager(void)
-{
-	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
 	{
-		pump_control(1);
-	}
-	else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
-	{
-		pump_control(0);
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
+		{
+			head_pump_control(1);
+		}
+		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+		{
+			head_pump_control(0);
+		}
+
+		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_G)
+		{
+			storage_pump_control(1);
+		}
+		else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+		{
+			storage_pump_control(0);
+		}
 	}
 }
 
