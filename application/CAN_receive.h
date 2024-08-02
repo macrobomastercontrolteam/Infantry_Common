@@ -33,7 +33,8 @@
 typedef enum
 {
 	/*******Tx CAN IDs********/
-	CAN_CHASSIS_M3508_TX_ID = 0x200,
+	CAN_CHASSIS_M3508_1_TX_ID = 0x200,
+	CAN_CHASSIS_M3508_2_TX_ID = 0x1FF,
 	CAN_GIMBAL_ALL_TX_ID = 0x1FF,
   
 	CAN_GIMBAL_CONTROLLER_POSITION_TX_ID = 0x114,
@@ -46,6 +47,8 @@ typedef enum
 	CAN_3508_M2_ID = 0x202,
 	CAN_3508_M3_ID = 0x203,
 	CAN_3508_M4_ID = 0x204,
+	CAN_VTM_YAW_ID = 0x205,
+	CAN_VTM_PITCH_ID = 0x206,
 } can_msg_id_e;
 
 typedef enum
@@ -54,6 +57,8 @@ typedef enum
 	MOTOR_INDEX_3508_M2,
 	MOTOR_INDEX_3508_M3,
 	MOTOR_INDEX_3508_M4,
+	MOTOR_INDEX_VTM_YAW,
+	MOTOR_INDEX_VTM_PITCH,
 	MOTOR_LIST_LENGTH,
 } can_motor_id_e;
 
@@ -134,6 +139,8 @@ extern void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int1
   * @retval         电机数据指针
   */
 extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_index);
+extern void CAN_cmd_vtm_gimbal(int16_t motor5, int16_t motor6);
 
+extern motor_measure_t motor_measure[MOTOR_LIST_LENGTH];
 
 #endif

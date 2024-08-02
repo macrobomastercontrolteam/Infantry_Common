@@ -107,6 +107,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop);
 void relay_signal_manager(void);
 void robot_arm_control(void);
 void CAN_cmd_robot_arm(void);
+void vtm_gimbal_control(void);
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
@@ -121,6 +122,7 @@ const fp32 arm_end_home[6] = {ARM_END_EFFECTOR_ROLL_HOME, ARM_END_EFFECTOR_PITCH
 
 //底盘运动数据
 chassis_move_t chassis_move;
+vtm_gimbal_t vtm_gimbal;
 
 #if CHASSIS_TEST_MODE
 static void J_scope_chassis_test(void)
@@ -142,39 +144,25 @@ static void J_scope_chassis_test(void)
 void chassis_task(void const *pvParameters)
 {
 	uint32_t ulSystemTime = osKernelSysTick();
-	//wait a time
-	//空闲一段时间
 	osDelay(CHASSIS_TASK_INIT_TIME);
-	//chassis init
-	//底盘初始化
 	chassis_init(&chassis_move);
-	//make sure all chassis motor is online,
-	//判断底盘电机是否都在线
 	wait_until_all_necessary_modules_online();
 
 	while (1)
 	{
-		//set chassis control mode
-		//设置底盘控制模式
 		chassis_set_mode(&chassis_move);
-		//when mode changes, some data save
-		//模式切换数据保存
 		chassis_mode_change_control_transit(&chassis_move);
-		//chassis data update
-		//底盘数据更新
 		chassis_feedback_update(&chassis_move);
-		//set chassis control set-point
-		//底盘控制量设置
 		chassis_set_control(&chassis_move);
-		//chassis control pid calculate
-		//底盘控制PID计算
 		chassis_control_loop(&chassis_move);
 
 		robot_arm_control();
+		vtm_gimbal_control();
 		relay_signal_manager();
 
-		CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current,
-						chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
+		CAN_cmd_chassis(chassis_move.motor_chassis[0].give_current, chassis_move.motor_chassis[1].give_current, chassis_move.motor_chassis[2].give_current, chassis_move.motor_chassis[3].give_current);
+		osDelay(1);
+		CAN_cmd_vtm_gimbal(vtm_gimbal.yaw_current_cmd, vtm_gimbal.pitch_current_cmd);
 		CAN_cmd_robot_arm();
 
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
@@ -189,7 +177,57 @@ void chassis_task(void const *pvParameters)
 	}
 }
 
-void pump_manager(void)
+fp32 vtm_pitch_error_dot_filter_coeff = 0.75f;
+fp32 vtm_yaw_error_dot_filter_coeff = 0.6f;
+void vtm_gimbal_control(void)
+{
+	static uint8_t fLastVtmGimbalPowerEnabled = 0;
+	vtm_gimbal.fVtmGimbalPowerEnabled = (chassis_behaviour_mode != CHASSIS_ZERO_FORCE);
+	// edge detection
+	if (fLastVtmGimbalPowerEnabled != vtm_gimbal.fVtmGimbalPowerEnabled)
+	{
+		if (vtm_gimbal.fVtmGimbalPowerEnabled)
+		{
+			vtm_gimbal.yaw_target_ecd = M3508_loop_ecd_constrain(motor_measure[MOTOR_INDEX_VTM_YAW].ecd);
+			vtm_gimbal.pitch_target_ecd = M3508_loop_ecd_constrain(motor_measure[MOTOR_INDEX_VTM_PITCH].ecd);
+			PID_clear(&vtm_gimbal.yaw_ecd_pid);
+			PID_clear(&vtm_gimbal.pitch_ecd_pid);
+		}
+		fLastVtmGimbalPowerEnabled = vtm_gimbal.fVtmGimbalPowerEnabled;
+	}
+
+	if (vtm_gimbal.fVtmGimbalPowerEnabled)
+	{
+		if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) == 0)
+		{
+			if (rc_ctrl.key.v & KEY_PRESSED_OFFSET_C)
+			{
+				vtm_gimbal.yaw_target_ecd = M3508_loop_ecd_constrain(vtm_gimbal.yaw_target_ecd - VTM_YAW_ECD_KEYBOARD_SEN_INC);
+			}
+			else if (rc_ctrl.key.v & KEY_PRESSED_OFFSET_B)
+			{
+				vtm_gimbal.yaw_target_ecd = M3508_loop_ecd_constrain(vtm_gimbal.yaw_target_ecd + VTM_YAW_ECD_KEYBOARD_SEN_INC);
+			}
+
+			if (rc_ctrl.key.v & KEY_PRESSED_OFFSET_V)
+			{
+				vtm_gimbal.pitch_target_ecd = M3508_loop_ecd_constrain(vtm_gimbal.pitch_target_ecd - VTM_PITCH_ECD_KEYBOARD_SEN_INC);
+			}
+			else if (rc_ctrl.key.v & KEY_PRESSED_OFFSET_F)
+			{
+				vtm_gimbal.pitch_target_ecd = M3508_loop_ecd_constrain(vtm_gimbal.pitch_target_ecd + VTM_PITCH_ECD_KEYBOARD_SEN_INC);
+			}
+		}
+		vtm_gimbal.yaw_target_ecd = fp32_constrain(vtm_gimbal.yaw_target_ecd, -HALF_ECD_RANGE, HALF_ECD_RANGE);
+		vtm_gimbal.pitch_target_ecd = fp32_constrain(vtm_gimbal.pitch_target_ecd, -HALF_ECD_RANGE, HALF_ECD_RANGE);
+		vtm_gimbal.yaw_current_cmd = PID_calc_with_dot_filter(&vtm_gimbal.yaw_ecd_pid, motor_measure[MOTOR_INDEX_VTM_YAW].ecd, vtm_gimbal.yaw_target_ecd, vtm_yaw_error_dot_filter_coeff);
+		vtm_gimbal.pitch_current_cmd = PID_calc_with_dot_filter(&vtm_gimbal.pitch_ecd_pid, motor_measure[MOTOR_INDEX_VTM_PITCH].ecd, vtm_gimbal.pitch_target_ecd, vtm_pitch_error_dot_filter_coeff);
+	}
+}
+
+void relay_signal_manager(void)
+{
+	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
 	{
 		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
 		{
@@ -375,7 +413,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	}
 	//initialize angle PID
 	//初始化角度PID
-	PID_init(&chassis_move_init->chassis_angle_pid, PID_POSITION, chassis_yaw_pid, CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT, CHASSIS_FOLLOW_GIMBAL_PID_MAX_IOUT, &abs_err_handler);
+	PID_init(&chassis_move_init->chassis_angle_pid, PID_POSITION, chassis_yaw_pid, CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT, CHASSIS_FOLLOW_GIMBAL_PID_MAX_IOUT, &rad_err_handler);
 
 	//first order low-pass filter  replace ramp function
 	//用一阶滤波代替斜波函数生成
@@ -393,6 +431,18 @@ static void chassis_init(chassis_move_t *chassis_move_init)
 	chassis_move_init->robot_arm_mode = ROBOT_ARM_ZERO_FORCE;
 	chassis_move_init->fHoming = 0;
 	robot_arm_set_home();
+
+	// init vtm gimbal params
+	const static fp32 vtm_pitch_ecd_pid_coeffs[3] = {M3508_VTM_PITCH_ECD_PID_KP, M3508_VTM_PITCH_ECD_PID_KI, M3508_VTM_PITCH_ECD_PID_KD};
+	const static fp32 vtm_yaw_ecd_pid_coeffs[3] = {M3508_VTM_YAW_ECD_PID_KP, M3508_VTM_YAW_ECD_PID_KI, M3508_VTM_YAW_ECD_PID_KD};
+	PID_init(&vtm_gimbal.pitch_ecd_pid, PID_POSITION, vtm_pitch_ecd_pid_coeffs, M3508_VTM_PITCH_ECD_PID_MAX_OUT, M3508_VTM_PITCH_ECD_PID_MAX_IOUT, &M3508_ecd_err_handler);
+	PID_init(&vtm_gimbal.yaw_ecd_pid, PID_POSITION, vtm_yaw_ecd_pid_coeffs, M3508_VTM_YAW_ECD_PID_MAX_OUT, M3508_VTM_YAW_ECD_PID_MAX_IOUT, &M3508_ecd_err_handler);
+
+	vtm_gimbal.fVtmGimbalPowerEnabled = 0;
+	vtm_gimbal.pitch_target_ecd = 0;
+	vtm_gimbal.yaw_target_ecd = 0;
+	vtm_gimbal.pitch_current_cmd = 0;
+	vtm_gimbal.yaw_current_cmd = 0;
 
 	//update data
 	//更新一下数据

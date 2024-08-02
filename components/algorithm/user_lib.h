@@ -31,10 +31,10 @@
 #define _impl_CASSERT_LINE(predicate, line, file) \
     typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 
-#define HALF_ECD_RANGE 4096
-#define ECD_RANGE 8192
-#define MOTOR_RAD_TO_ECD 1303.7972938088067f  // 8192/(2*PI)
-#define MOTOR_ECD_TO_RAD 0.000766990394f //      2*PI/8192
+#define HALF_ECD_RANGE 4096.0f
+#define ECD_RANGE 8192.0f
+#define MOTOR_RAD_TO_ECD (ECD_RANGE / (2.0f * PI))
+#define MOTOR_ECD_TO_RAD (1 / MOTOR_RAD_TO_ECD)
 
 #define MOVING_AVERAGE_RESET 1
 #define MOVING_AVERAGE_CALC 0
@@ -121,13 +121,16 @@ extern fp32 fp32_deadline(fp32 Value, fp32 minValue, fp32 maxValue);
 extern int16_t int16_deadline(int16_t Value, int16_t minValue, int16_t maxValue);
 //限幅函数
 extern fp32 fp32_constrain(fp32 Value, fp32 minValue, fp32 maxValue);
+extern fp32 M3508_loop_ecd_constrain(fp32 Input);
 //限幅函数
 extern int16_t int16_constrain(int16_t Value, int16_t minValue, int16_t maxValue);
 //循环限幅函数
 extern fp32 loop_fp32_constrain(fp32 Input, fp32 minValue, fp32 maxValue);
+extern fp32 fp32_abs_constrain(fp32 in, fp32 absValue);
 //角度 °限幅 180 ~ -180
 extern fp32 theta_format(fp32 Ang);
 uint8_t checkAndResetFlag(uint8_t *pbFlag);
+fp32 first_order_filter(fp32 input, fp32 output_prev, fp32 coeff);
 
 //弧度格式化为-PI~PI
 #define rad_format(Ang) loop_fp32_constrain((Ang), -PI, PI)

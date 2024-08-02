@@ -120,6 +120,46 @@ fp32 PID_calc(pid_type_def *pid, fp32 ref, fp32 set)
     return pid->out;
 }
 
+// @TODO: make it modular
+// custom pid calculation with filter on error dot
+fp32 PID_calc_with_dot_filter(pid_type_def *pid, fp32 ref, fp32 set, fp32 kd_filter_coeff)
+{
+    if (pid == NULL)
+    {
+        return 0.0f;
+    }
+
+    pid->error[2] = pid->error[1];
+    pid->error[1] = pid->error[0];
+    pid->set = set;
+    pid->fdb = ref;
+    pid->error[0] = pid->err_handler(set, ref);
+    if (pid->mode == PID_POSITION)
+    {
+        pid->Pout = pid->Kp * pid->error[0];
+        pid->Iout += pid->Ki * pid->error[0];
+        pid->Dbuf[2] = pid->Dbuf[1];
+        pid->Dbuf[1] = pid->Dbuf[0];
+        pid->Dbuf[0] = first_order_filter(pid->error[0] - pid->error[1], pid->Dbuf[0], kd_filter_coeff);
+        pid->Dout = pid->Kd * pid->Dbuf[0];
+        LimitMax(&pid->Iout, pid->max_iout);
+        pid->out = pid->Pout + pid->Iout + pid->Dout;
+        LimitMax(&pid->out, pid->max_out);
+    }
+    else if (pid->mode == PID_DELTA)
+    {
+        pid->Pout = pid->Kp * (pid->error[0] - pid->error[1]);
+        pid->Iout = pid->Ki * pid->error[0];
+        pid->Dbuf[2] = pid->Dbuf[1];
+        pid->Dbuf[1] = pid->Dbuf[0];
+        pid->Dbuf[0] = first_order_filter((pid->error[0] - 2.0f * pid->error[1] + pid->error[2]), pid->Dbuf[0], kd_filter_coeff);
+        pid->Dout = pid->Kd * pid->Dbuf[0];
+        pid->out += pid->Pout + pid->Iout + pid->Dout;
+        LimitMax(&pid->out, pid->max_out);
+    }
+    return pid->out;
+}
+
 /**
   * @brief          pid out clear
   * @param[out]     pid: PID struct data point
@@ -148,7 +188,12 @@ fp32 raw_err_handler(fp32 set, fp32 ref)
   return set - ref;
 }
 
-fp32 abs_err_handler(fp32 set, fp32 ref)
+fp32 rad_err_handler(fp32 set, fp32 ref)
 {
   return rad_format(set - ref);
+}
+
+fp32 M3508_ecd_err_handler(fp32 set, fp32 ref)
+{
+  return M3508_loop_ecd_constrain(set - ref);
 }
