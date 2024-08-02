@@ -37,7 +37,7 @@
 
 #define PITCH_TURN  1
 // @Warning: the current yaw 6020 motor is configured to rotate in the opposite direction, change it if the motor is replaced accordingly
-#define YAW_TURN    1
+#define YAW_TURN    0
 
 #define int_abs(x) ((x) > 0 ? (x) : (-x))
 
