@@ -308,7 +308,7 @@ void chassis_calc_feedbacks(void)
 	// @TODO: calculate for chassis_move.current_alpha1 and chassis_move.current_alpha2 using IMU data
 	fp32 raw_roll = *(INS_angle + INS_ROLL_ADDRESS_OFFSET);
 	fp32 raw_pitch = *(INS_angle + INS_PITCH_ADDRESS_OFFSET);
-	chassis_move.current_alpha1 = rad_format(raw_roll + PI);
+	chassis_move.current_alpha1 = -rad_format(raw_roll + PI);
 	chassis_move.current_alpha2 = -raw_pitch;
 
 	// calculation for chassis_move.height: some legs may not be on the ground, so pick the largest height calculated
