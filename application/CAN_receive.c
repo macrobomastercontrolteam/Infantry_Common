@@ -23,6 +23,7 @@
 #include "main.h"
 #include "remote_control.h"
 #include "string.h"
+#include <stdlib.h>
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
