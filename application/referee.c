@@ -27,7 +27,7 @@ frame_header_struct_t referee_send_header;
 // ext_supply_projectile_booking_t supply_projectile_booking_t; //0x0103
 // ext_referee_warning_t referee_warning_t; // 0x0104
 
-// ext_game_robot_state_t robot_state;                // 0x0201
+ext_game_robot_state_t robot_state;                // 0x0201
 // ext_power_heat_data_t power_heat_data_t;           // 0x0202
 // ext_game_robot_pos_t game_robot_pos_t;             // 0x0203
 // ext_buff_musk_t buff_musk_t;                       // 0x0204
@@ -76,7 +76,7 @@ void init_referee_struct_data(void)
 	// memset(&supply_projectile_booking_t, 0, sizeof(ext_supply_projectile_booking_t));
 	// memset(&referee_warning_t, 0, sizeof(ext_referee_warning_t));
 
-	// memset(&robot_state, 0, sizeof(ext_game_robot_state_t));
+	memset(&robot_state, 0, sizeof(ext_game_robot_state_t));
 	// memset(&power_heat_data_t, 0, sizeof(ext_power_heat_data_t));
 	// memset(&game_robot_pos_t, 0, sizeof(ext_game_robot_pos_t));
 	// memset(&buff_musk_t, 0, sizeof(ext_buff_musk_t));
@@ -169,16 +169,16 @@ void referee_data_solve(uint8_t *frame)
 // 			break;
 // 		}
 
-// 		case ROBOT_STATE_CMD_ID:
-// 		{
-// 			memcpy(&robot_state, frame + index, sizeof(robot_state));
-// #if REF_TEST_MODE
-//             test_mains_power_chassis_output = robot_state.power_management_chassis_output;
-//             test_mains_power_shooter_output = robot_state.power_management_shooter_output;
-//             test_mains_power_gimbal_output = robot_state.power_management_gimbal_output;
-// #endif
-// 			break;
-// 		}
+		case ROBOT_STATE_CMD_ID:
+		{
+			memcpy(&robot_state, frame + index, sizeof(robot_state));
+#if REF_TEST_MODE
+            test_mains_power_chassis_output = robot_state.power_management_chassis_output;
+            test_mains_power_shooter_output = robot_state.power_management_shooter_output;
+            test_mains_power_gimbal_output = robot_state.power_management_gimbal_output;
+#endif
+			break;
+		}
 // 		case POWER_HEAT_DATA_CMD_ID:
 // 		{
 // 			memcpy(&power_heat_data_t, frame + index, sizeof(power_heat_data_t));
@@ -332,10 +332,10 @@ void referee_data_solve(uint8_t *frame)
 // 	}
 // }
 
-// uint8_t get_robot_id(void)
-// {
-// 	return robot_state.robot_id;
-// }
+uint8_t get_robot_id(void)
+{
+	return robot_state.robot_id;
+}
 
 // uint8_t get_team_color(void)
 // {

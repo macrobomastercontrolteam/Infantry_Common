@@ -136,19 +136,19 @@
 //  uint8_t dart_aim_state;
 // }dart_info_t;
 
-// typedef __packed struct // 0x0201
-// {
-// 	uint8_t robot_id;
-// 	uint8_t robot_level;
-// 	uint16_t current_HP;
-// 	uint16_t maximum_HP;
-// 	uint16_t shooter_barrel_cooling_value;
-// 	uint16_t shooter_barrel_heat_limit;
-// 	uint16_t chassis_power_limit;
-// 	uint8_t power_management_gimbal_output : 1;
-// 	uint8_t power_management_chassis_output : 1;
-// 	uint8_t power_management_shooter_output : 1;
-// } ext_game_robot_state_t;
+typedef __packed struct // 0x0201
+{
+	uint8_t robot_id;
+	uint8_t robot_level;
+	uint16_t current_HP;
+	uint16_t maximum_HP;
+	uint16_t shooter_barrel_cooling_value;
+	uint16_t shooter_barrel_heat_limit;
+	uint16_t chassis_power_limit;
+	uint8_t power_management_gimbal_output : 1;
+	uint8_t power_management_chassis_output : 1;
+	uint8_t power_management_shooter_output : 1;
+} ext_game_robot_state_t;
 
 // typedef __packed struct // 0x0202
 // {
@@ -383,7 +383,7 @@ extern void referee_data_solve(uint8_t *frame);
 
 // extern void get_chassis_power_data(fp32 *power, fp32 *buffer, fp32 *power_limit);
 
-// extern uint8_t get_robot_id(void);
+extern uint8_t get_robot_id(void);
 // extern uint8_t get_team_color(void);
 
 // extern void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0);

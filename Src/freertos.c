@@ -39,6 +39,7 @@
 #include "voltage_task.h"
 // #include "servo_task.h"
 #include "cv_usart_task.h"
+#include "custom_ui_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,6 +57,7 @@ osThreadId referee_usart_task_handle;
 // osThreadId battery_voltage_handle;
 // osThreadId servo_task_handle;
 // osThreadId cv_usart_task_handle;
+osThreadId custom_ui_task_handle;
 
 
 /* USER CODE END PTD */
@@ -177,7 +179,8 @@ void MX_FREERTOS_Init(void) {
     osThreadDef(REFEREE, referee_usart_task, osPriorityNormal, 0, 128);
     referee_usart_task_handle = osThreadCreate(osThread(REFEREE), NULL);
 
-
+    osThreadDef(customUITask, custom_ui_task, osPriorityBelowNormal, 0, 512);
+    custom_ui_task_handle = osThreadCreate(osThread(customUITask), NULL);
     // osThreadDef(USBTask, usb_task, osPriorityNormal, 0, 128);
     // usb_task_handle = osThreadCreate(osThread(USBTask), NULL);
 
