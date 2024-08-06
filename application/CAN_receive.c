@@ -223,9 +223,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 uint8_t CAN_cmd_hip_motors(float torque1, float torque2, float torque3, float torque4)
 {
 	uint8_t fValidInput = (((torque1 != torque1) || (torque2 != torque2) || (torque3 != torque3) || (torque4 != torque4)) == 0);
-#if ENABLE_HIP_MOTOR
-	// if ((chassis_move.fHipMotorEnabled == 0) || (fValidInput == 0) || (chassis_move.fHipDataIsValid == 0))
-	if ((chassis_move.fHipMotorEnabled == 0) || (fValidInput == 0))
+#if ENABLE_HIP_MOTOR_POWER
+	if ((chassis_move.fHipMotorEnabled == 0) || (fValidInput == 0) || (chassis_move.fHipDataIsValid == 0))
 #endif
 	{
 		torque1 = 0;
@@ -328,6 +327,16 @@ void encode_6012_multi_motor_torque_control(float torque1, float torque2, float 
 	can_tx_msg.RTR = CAN_RTR_DATA;
 	can_tx_msg.DLC = 8;
 
+#if ENABLE_HIP_MOTOR_POWER
+	if (chassis_move.fHipMotorEnabled)
+#endif
+	{
+		torque1 = 0;
+		torque2 = 0;
+		torque3 = 0;
+		torque4 = 0;
+	}
+
 	int16_t iqControl_1 = torque1 * MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO;
 	int16_t iqControl_2 = torque2 * MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO;
 	int16_t iqControl_3 = torque3 * MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO;
@@ -426,7 +435,7 @@ void CAN_cmd_steer_motors(uint8_t id_range, int16_t voltage1, int16_t voltage2, 
 	can_tx_msg.RTR = CAN_RTR_DATA;
 	can_tx_msg.DLC = 8;
 
-#if ENABLE_STEER_MOTOR
+#if ENABLE_STEER_MOTOR_POWER
 	if (chassis_move.fSteerMotorEnabled == 0)
 #endif
 	{
