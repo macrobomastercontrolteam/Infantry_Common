@@ -253,7 +253,7 @@ void robot_arm_control(void)
 				robot_arm.fTeaching = 0;
 				robot_arm_all_motors_return_home(robot_arm.joint_angle_target);
 			}
-			else if (robot_arm.fTeaching && fIsStateHoldTimePassed && is_joint_target_reached(DEG_TO_RAD(10.0f), NULL))
+			else if (robot_arm.fTeaching && fIsStateHoldTimePassed) // && is_joint_target_reached(DEG_TO_RAD(10.0f), &notReachedJoint))
 			{
 				robot_arm.arm_state = ARM_STATE_TEACHING;
 			}
@@ -277,19 +277,16 @@ void robot_arm_control(void)
 				robot_arm.fTeaching = 0;
 				robot_arm_all_motors_return_home(robot_arm.joint_angle_target);
 			}
-			else if (robot_arm.fTeaching && fIsStateHoldTimePassed && is_joint_target_reached(0.05f, NULL))
+			else if (robot_arm.fTeaching && fIsStateHoldTimePassed) // && is_joint_target_reached(DEG_TO_RAD(10.0f), &notReachedJoint))
 			{
 				robot_arm.arm_state = ARM_STATE_TEACHING;
 			}
-			else if ((is_joint_target_reached(DEG_TO_RAD(10.0f), NULL) == 0))
-			{
-				// fall back to gradual syncing mode to avoid sudden movement
-				robot_arm.arm_state = ARM_STATE_SYNCING;
-			}
-			else
-			{
-				arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S, 0);
-			}
+			// else if ((is_joint_target_reached(DEG_TO_RAD(10.0f), &notReachedJoint) == 0))
+			// {
+			// 	// fall back to gradual syncing mode to avoid sudden movement
+			// 	robot_arm.arm_state = ARM_STATE_SYNCING;
+			// }
+			arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S, 0);
 			break;
 		}
 		case ARM_STATE_TEACHING:
@@ -304,10 +301,7 @@ void robot_arm_control(void)
 			{
 				robot_arm.arm_state = ARM_STATE_FIXED;
 			}
-			else
-			{
-				arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S, 1);
-			}
+			arm_joints_cmd_position(robot_arm.joint_angle_target, ROBOT_ARM_CONTROL_TIME_S, 1);
 			break;
 		}
 	}
