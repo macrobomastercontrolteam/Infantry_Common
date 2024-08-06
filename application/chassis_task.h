@@ -353,8 +353,6 @@ fp32 chassis_get_med_wz_limit(void);
 fp32 chassis_get_low_wz_limit(void);
 fp32 chassis_get_ultra_low_wz_limit(void);
 
-void chassis_enable_platform_flag(uint8_t fEnabled);
-
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_platform_rc_mapping(void);
 void swerve_chassis_back_home(void);

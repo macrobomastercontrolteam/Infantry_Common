@@ -27,6 +27,7 @@
 #include "detect_task.h"
 #include "referee.h"
 #include "remote_control.h"
+#include "chassis_behaviour.h"
 #include "string.h"
 #include "shoot.h"
 
@@ -942,4 +943,27 @@ const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_index)
 	{
 		return &motor_chassis[motor_index];
 	}
+}
+
+void chassis_enable_platform_flag(uint8_t fEnabled)
+{
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+
+#if ENABLE_HIP_MOTOR_POWER
+	chassis_move.fHipDisabledEdge = ((fEnabled == 0) && chassis_move.fHipEnabled);
+	chassis_move.fHipEnabled = fEnabled;
+#else
+	chassis_move.fHipDisabledEdge = 0;
+	chassis_move.fHipEnabled = 0;
+#endif
+
+#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
+
+#if ENABLE_DRIVE_MOTOR_POWER
+	chassis_move.fLegEnabled = fEnabled;
+#else
+	chassis_move.fLegEnabled = 0;
+#endif
+
+#endif
 }

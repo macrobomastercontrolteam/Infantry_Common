@@ -208,29 +208,6 @@ static void chassis_init(void)
 	chassis_feedback_update();
 }
 
-void chassis_enable_platform_flag(uint8_t fEnabled)
-{
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-
-#if ENABLE_HIP_MOTOR_POWER
-	chassis_move.fHipDisabledEdge = ((fEnabled == 0) && chassis_move.fHipEnabled);
-	chassis_move.fHipEnabled = fEnabled;
-#else
-	chassis_move.fHipDisabledEdge = 0;
-	chassis_move.fHipEnabled = 0;
-#endif
-
-#elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
-
-#if ENABLE_DRIVE_MOTOR_POWER
-	chassis_move.fLegEnabled = fEnabled;
-#else
-	chassis_move.fLegEnabled = 0;
-#endif
-
-#endif
-}
-
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_chassis_back_home(void)
 {

@@ -173,6 +173,8 @@ void CAN_cmd_biped_chassis(void);
 void CAN_cmd_biped_chassis_mode(void);
 #endif
 
+void chassis_enable_platform_flag(uint8_t fEnabled);
+
 /**
   * @brief          return the yaw 6020 motor data point
   * @param[in]      none
