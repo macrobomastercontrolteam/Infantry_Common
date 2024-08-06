@@ -283,7 +283,7 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt, uint8_
 	{
 		if (joint_angle_target_ptr[pos_index] != joint_angle_target_ptr[pos_index])
 		{
-			robot_arm.fMasterSwitch = 0;
+			robot_arm_switch_off_power();
 			fValidInput = 0;
 			break;
 		}

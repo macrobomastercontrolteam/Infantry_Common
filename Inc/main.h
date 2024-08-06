@@ -95,6 +95,10 @@ void Error_Handler(void);
 #define SPI2_CS_GPIO_Port GPIOB
 #define CS1_GYRO_Pin GPIO_PIN_0
 #define CS1_GYRO_GPIO_Port GPIOB
+#define PWM1_Pin GPIO_PIN_9
+#define PWM1_GPIO_Port GPIOE
+#define PWM2_Pin GPIO_PIN_11
+#define PWM2_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

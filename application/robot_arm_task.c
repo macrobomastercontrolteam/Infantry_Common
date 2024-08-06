@@ -3,6 +3,7 @@
 #include "cmsis_os.h"
 #include "detect_task.h"
 #include "user_lib.h"
+#include "main.h"
 
 #define ROBOT_ARM_RC_TEST 0
 
@@ -17,6 +18,8 @@ void robot_arm_control(void);
 void robot_arm_state_transition(void);
 uint8_t is_joint_target_reached(fp32 tol, uint8_t *notReachedJointPtr);
 void robot_arm_assign_current_as_target(void);
+uint8_t key_scan_pwm1(void);
+uint8_t key_scan_pwm2(void);
 
 const fp32 joint_angle_min[7] = {ARM_JOINT_0_ANGLE_MIN, ARM_JOINT_1_ANGLE_MIN, ARM_JOINT_2_ANGLE_MIN, ARM_JOINT_3_ANGLE_MIN, ARM_JOINT_4_ANGLE_MIN, ARM_JOINT_5_ANGLE_MIN, ARM_JOINT_6_ANGLE_MIN};
 const fp32 joint_angle_max[7] = {ARM_JOINT_0_ANGLE_MAX, ARM_JOINT_1_ANGLE_MAX, ARM_JOINT_2_ANGLE_MAX, ARM_JOINT_3_ANGLE_MAX, ARM_JOINT_4_ANGLE_MAX, ARM_JOINT_5_ANGLE_MAX, ARM_JOINT_6_ANGLE_MAX};
@@ -144,8 +147,7 @@ void robot_arm_behaviour_set(void)
 			case RC_SW_DOWN:
 			default:
 			{
-				robot_arm.fMasterSwitch = 0;
-				robot_arm.fTeaching = 0;
+				robot_arm_switch_off_power();
 				break;
 			}
 		}
@@ -225,7 +227,7 @@ void robot_arm_control(void)
 	// safety guard
 	if (robot_arm.fMasterSwitch && is_error_exist_in_range(JOINT_0_TOE, JOINT_6_TOE))
 	{
-		robot_arm.fMasterSwitch = 0;
+		robot_arm_switch_off_power();
 	}
 
 	switch (robot_arm.arm_state)
@@ -239,8 +241,7 @@ void robot_arm_control(void)
 			}
 			else
 			{
-				const fp32 all_0_torque[7] = {0, 0, 0, 0, 0, 0, 0};
-				arm_joints_cmd_torque(all_0_torque);
+				robot_arm.fTeaching = 0;
 			}
 			break;
 		}
@@ -315,6 +316,57 @@ void robot_arm_control(void)
 void robot_arm_status_update(void)
 {
 	robot_arm.time_ms = osKernelSysTick();
+
+	if (key_scan_pwm1())
+	{
+		robot_arm.fTeaching = (robot_arm.fTeaching ? 0 : 1);
+	}
+
+	if (key_scan_pwm2())
+	{
+		if (robot_arm.fMasterSwitch)
+		{
+			robot_arm_switch_off_power();
+		}
+		else
+		{
+			robot_arm_switch_on_power();
+		}
+	}
+}
+
+uint8_t key_scan_pwm1(void)
+{
+	static uint8_t bLastKey1 = 0;
+	uint8_t key = 0;
+	uint8_t output = 0;
+	key = HAL_GPIO_ReadPin(PWM1_GPIO_Port, PWM1_Pin);
+	if (bLastKey1 != key)
+	{
+		if (key == GPIO_PIN_SET)
+		{
+			output = 1;
+		}
+		bLastKey1 = key;
+	}
+	return output;
+}
+
+uint8_t key_scan_pwm2(void)
+{
+	static uint8_t bLastKey2 = 0;
+	uint8_t key = 0;
+	uint8_t output = 0;
+	key = HAL_GPIO_ReadPin(PWM2_GPIO_Port, PWM2_Pin);
+	if (bLastKey2 != key)
+	{
+		if (key == GPIO_PIN_SET)
+		{
+			output = 1;
+		}
+		bLastKey2 = key;
+	}
+	return output;
 }
 
 void robot_arm_init(void)
@@ -352,8 +404,7 @@ void robot_arm_init(void)
 	PID_init(&robot_arm.joint_angle_teach_pid[6], PID_POSITION, joint_6_angle_teach_pid_coeffs, JOINT_6_ANGLE_TEACH_PID_MAX_OUT, JOINT_6_ANGLE_TEACH_PID_MAX_IOUT, 1.0f, &filter_rad_err_handler);
 
 	robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
-	robot_arm.fTeaching = 0;
-	robot_arm.fMasterSwitch = 0;
+	robot_arm_switch_off_power();
 	robot_arm.prevStateSwitchTime = osKernelSysTick();
 
 	robot_arm_all_motors_return_home(robot_arm.joint_angle_target);
@@ -392,6 +443,12 @@ void robot_arm_switch_on_power(void)
 			robot_arm.fMasterSwitch = 1;
 		}
 	}
+}
+
+void robot_arm_switch_off_power(void)
+{
+	robot_arm.fMasterSwitch = 0;
+	robot_arm.fTeaching = 0;
 }
 
 uint8_t is_joint_target_reached(fp32 tol, uint8_t *notReachedJointPtr)
