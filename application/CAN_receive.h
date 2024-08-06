@@ -107,6 +107,7 @@ typedef enum
   CAN_BIPED_CONTROLLER_RX_ID = 0x118,
   CAN_BIPED_CONTROLLER_MODE_TX_ID = 0x119,
 #endif
+  CAN_REF_UART_TX_ID = 0x11A,
 } can_other_msg_id_e;
 
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
@@ -268,5 +269,7 @@ extern uint16_t get_base_power(void);
 extern int16_t get_cap_energy_percentage(void);
 extern uint16_t get_cap_state(void);
 #endif
+
+void CAN_cmd_ref_uart(void);
 
 #endif

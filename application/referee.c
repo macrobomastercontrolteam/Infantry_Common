@@ -318,14 +318,23 @@ void referee_data_solve(uint8_t *frame)
 
 void get_chassis_power_data(fp32 *power, fp32 *buffer, fp32 *power_limit)
 {
-	*power = power_heat_data_t.chassis_power;
-	*buffer = power_heat_data_t.buffer_energy;
-	if (robot_state.chassis_power_limit > 0)
+	if (toe_is_error(REFEREE_TOE) == 0)
 	{
-		*power_limit = robot_state.chassis_power_limit;
+		*power = power_heat_data_t.chassis_power;
+		*buffer = power_heat_data_t.buffer_energy;
+		if (robot_state.chassis_power_limit > 0)
+		{
+			*power_limit = robot_state.chassis_power_limit;
+		}
+		else
+		{
+			*power_limit = 45;
+		}
 	}
 	else
 	{
+		*power = 0;
+		*buffer = 60;
 		*power_limit = 45;
 	}
 }
@@ -370,8 +379,16 @@ uint8_t get_team_color(void)
 
 void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0)
 {
-	*heat_limit = robot_state.shooter_barrel_heat_limit;
-	*heat0 = power_heat_data_t.shooter_17mm_1_barrel_heat;
+	if (toe_is_error(REFEREE_TOE) == 0)
+	{
+		*heat_limit = robot_state.shooter_barrel_heat_limit;
+		*heat0 = power_heat_data_t.shooter_17mm_1_barrel_heat;
+	}
+	else
+	{
+		*heat_limit = 240;
+		*heat0 = 0;
+	}
 }
 
 void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1)

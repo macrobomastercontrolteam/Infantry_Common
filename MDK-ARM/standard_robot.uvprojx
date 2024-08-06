@@ -693,6 +693,11 @@
               <FileType>1</FileType>
               <FilePath>..\application\graphic.c</FilePath>
             </File>
+            <File>
+              <FileName>uart_to_can_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\uart_to_can_task.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

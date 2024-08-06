@@ -774,6 +774,37 @@ void CAN_cmd_chassis(void)
 #endif
 }
 
+void CAN_cmd_ref_uart(void)
+{
+	uint32_t send_mail_box;
+
+	chassis_tx_message.StdId = CAN_REF_UART_TX_ID;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
+
+	uint16_t heat_limit;
+    uint16_t heat;
+	get_shoot_heat0_limit_and_heat(&heat_limit, &heat);
+	fp32 chassis_power;
+	fp32 chassis_power_buffer;
+    fp32 chassis_power_limit;
+    get_chassis_power_data(&chassis_power, &chassis_power_buffer, &chassis_power_limit);
+	uint8_t chassis_power_int = (uint8_t) chassis_power;
+	uint8_t chassis_buffer_int = (uint8_t) chassis_power_buffer;
+	uint8_t chassis_power_limit_int = (uint8_t) chassis_power_limit;
+
+	chassis_can_send_data[0] = heat_limit >> 8;
+	chassis_can_send_data[1] = heat_limit;
+	chassis_can_send_data[2] = heat >> 8;
+	chassis_can_send_data[3] = heat;
+	chassis_can_send_data[4] = chassis_power_int;
+	chassis_can_send_data[5] = chassis_buffer_int;
+	chassis_can_send_data[6] = chassis_power_limit_int;
+	// chassis_can_send_data[7] = rev;
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
 /**
  * @brief          send control current or voltage of motor. Refer to can_msg_id_e for motor IDs
  * @param[in]      motor1: (0x201) 3508 motor control current, range [-16384,16384]
