@@ -38,13 +38,12 @@ uint32_t robot_arm_high_water;
 
 robot_arm_t robot_arm;
 
-#if ROBOT_ARM_JSCOPE_DEBUG
-// uint8_t isTargetReached = 0;
 uint8_t notReachedJoint = 0;
+
+#if ROBOT_ARM_JSCOPE_DEBUG
 fp32 angle_diff[7];
 static void jscope_robot_arm_test(void)
 {
-	// isTargetReached = is_joint_target_reached(0.05f, &notReachedJoint);
 	for (uint8_t i = 0; i < 7; i++)
 	{
 		angle_diff[i] = RAD_TO_DEG(rad_format(robot_arm.joint_angle_target[i] - motor_measure[i].output_angle));
