@@ -45,7 +45,7 @@
   */
 static void detect_init(uint32_t time);
 
-
+#define DETECT_TEST_MODE 0
 
 
 error_t error_list[ERROR_LIST_LENGTH + 1];
@@ -53,6 +53,17 @@ error_t error_list[ERROR_LIST_LENGTH + 1];
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t detect_task_stack;
+#endif
+
+#if DETECT_TEST_MODE
+uint16_t detect_intervals[ERROR_LIST_LENGTH];
+static void J_scope_detect_test(uint16_t ulSystemTime)
+{
+    for (int i = 0; i < ERROR_LIST_LENGTH; i++)
+    {
+        detect_intervals[i] = ulSystemTime - error_list[i].new_time;
+    }
+}
 #endif
 
 
@@ -131,6 +142,10 @@ void detect_task(void const *pvParameters)
                 }
             }
         }
+#if DETECT_TEST_MODE
+        J_scope_detect_test(ulSystemTime);
+#endif
+
         osDelayUntil(&ulSystemTime, DETECT_CONTROL_TIME_MS);
 #if INCLUDE_uxTaskGetStackHighWaterMark
         detect_task_stack = uxTaskGetStackHighWaterMark(NULL);
@@ -205,21 +220,25 @@ static void detect_init(uint32_t time)
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
-            {10, 10, 11},   //motor1
-            {10, 10, 10},   //motor2
-            {10, 10, 9},    //motor3
-            {10, 10, 8},    //motor4
-            {2, 3, 14},     //yaw
-            {2, 3, 13},     //pitch
-            {10, 10, 12},   //trigger
-            {10, 10, 16},   //fric 1
-            {10, 10, 17},   //fric 2
+            {25, 0, 11},   //motor1
+            {25, 0, 10},   //motor2
+            {25, 0, 9},    //motor3
+            {25, 0, 8},    //motor4
+            {25, 0, 11},   //hip1
+            {25, 0, 10},   //hip2
+            {25, 0, 9},    //hip3
+            {25, 0, 8},    //hip4
+            // {2, 3, 14},     //yaw
+            // {2, 3, 13},     //pitch
+            // {10, 10, 12},   //trigger
+            // {10, 10, 16},   //fric 1
+            // {10, 10, 17},   //fric 2
             {2, 3, 7},      //board gyro
             {5, 5, 7},      //board accel
             {40, 200, 7},   //board mag
-            {100, 100, 5},  //referee
-            {50, 0, 7},    //cv usart
-            {40, 0, 11},    // super capacitor
+            // {100, 100, 5},  //referee
+            // {50, 0, 7},    //cv usart
+            // {40, 0, 11},    // super capacitor
             {50, 0, 8},    // swerve controller
             // {100, 100, 1},  //oled
         };
@@ -244,18 +263,18 @@ static void detect_init(uint32_t time)
         error_list[i].lost_time = time;
         error_list[i].work_time = time;
     }
-#if TEST_NO_REF
-	error_list[REFEREE_TOE].enable = 0;
-	error_list[REFEREE_TOE].error_exist = 0;
-	error_list[REFEREE_TOE].is_lost = 0;
-	error_list[REFEREE_TOE].data_is_error = 0;
-#endif
+// #if TEST_NO_REF
+// 	error_list[REFEREE_TOE].enable = 0;
+// 	error_list[REFEREE_TOE].error_exist = 0;
+// 	error_list[REFEREE_TOE].is_lost = 0;
+// 	error_list[REFEREE_TOE].data_is_error = 0;
+// #endif
 
 // #if CV_INTERFACE
 //     error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
 // #endif
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2024_SWERVE_HIP)
     error_list[SWERVE_CTRL_TOE].solve_lost_fun = chassis_swerve_params_reset;
 #endif
 

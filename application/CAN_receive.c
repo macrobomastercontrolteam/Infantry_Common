@@ -45,6 +45,9 @@
 #define MG6012_ECD_DELTA_DEADZONE MG6012_ECD_RANGE_90
 #define MG6012_SPEED_DPS_DELTA_DEADZONE 100
 
+#define INTER_CTRL_CAN hcan2
+#define STEER_AND_HIP_CAN hcan1
+
 typedef enum
 {
 	CAN_6012_TORQUE_FEEDBACK_ID = 0xA1,
@@ -68,6 +71,7 @@ const fp32 angle_encoding_ratio_shrinked = (1 << 7) / ANGLE_ECD_MAX_LIMIT;
 
 void decode_6020_motor_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
+void encode_6012_motor_torque_control(uint32_t id, float torque_cmd);
 
 /**
  * @brief          hal CAN fifo call back, receive motor data
@@ -82,28 +86,75 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
-	if (hcan == &hcan1)
+	if (hcan == &STEER_AND_HIP_CAN)
 	{
 		switch (rx_header.StdId)
 		{
 			case CAN_STEER1_RX_ID:
+			{
+				bMotorId = CHASSIS_ID_STEER_1;
+				decode_6020_motor_feedback(rx_data, bMotorId);
+				detect_hook(CHASSIS_STEER1_TOE);
+				break;
+			}
 			case CAN_STEER2_RX_ID:
+			{
+				bMotorId = CHASSIS_ID_STEER_2;
+				decode_6020_motor_feedback(rx_data, bMotorId);
+				detect_hook(CHASSIS_STEER2_TOE);
+				break;
+			}
 			case CAN_STEER3_RX_ID:
+			{
+				bMotorId = CHASSIS_ID_STEER_3;
+				decode_6020_motor_feedback(rx_data, bMotorId);
+				detect_hook(CHASSIS_STEER3_TOE);
+				break;
+			}
 			case CAN_STEER4_RX_ID:
 			{
-				bMotorId = rx_header.StdId - CAN_STEER1_RX_ID + CHASSIS_ID_STEER_1;
+				bMotorId = CHASSIS_ID_STEER_4;
 				decode_6020_motor_feedback(rx_data, bMotorId);
+				detect_hook(CHASSIS_STEER4_TOE);
 				break;
 			}
 			case CAN_HIP1_RX_ID:
+			{
+				if (rx_data[0] == CAN_6012_TORQUE_FEEDBACK_ID)
+				{
+					bMotorId = CHASSIS_ID_HIP_1;
+					decode_6012_motor_torque_feedback(rx_data, bMotorId);
+					detect_hook(CHASSIS_HIP1_TOE);
+				}
+				break;
+			}
 			case CAN_HIP2_RX_ID:
+			{
+				if (rx_data[0] == CAN_6012_TORQUE_FEEDBACK_ID)
+				{
+					bMotorId = CHASSIS_ID_HIP_2;
+					decode_6012_motor_torque_feedback(rx_data, bMotorId);
+					detect_hook(CHASSIS_HIP2_TOE);
+				}
+				break;
+			}
 			case CAN_HIP3_RX_ID:
+			{
+				if (rx_data[0] == CAN_6012_TORQUE_FEEDBACK_ID)
+				{
+					bMotorId = CHASSIS_ID_HIP_3;
+					decode_6012_motor_torque_feedback(rx_data, bMotorId);
+					detect_hook(CHASSIS_HIP3_TOE);
+				}
+				break;
+			}
 			case CAN_HIP4_RX_ID:
 			{
 				if (rx_data[0] == CAN_6012_TORQUE_FEEDBACK_ID)
 				{
-					bMotorId = rx_header.StdId - CAN_HIP1_RX_ID + CHASSIS_ID_HIP_1;
+					bMotorId = CHASSIS_ID_HIP_4;
 					decode_6012_motor_torque_feedback(rx_data, bMotorId);
+					detect_hook(CHASSIS_HIP4_TOE);
 				}
 				break;
 			}
@@ -113,7 +164,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			}
 		}
 	}
-	else if (hcan == &hcan2)
+	else if (hcan == &INTER_CTRL_CAN)
 	{
 		// Note: filter is enabled for CAN2, so be careful with the mask config
 		switch (rx_header.StdId)
@@ -128,6 +179,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 						motor_info[bMotorId].target_ecd = ((rx_data[2 * bMotorId] << 8) | rx_data[2 * bMotorId + 1]);
 					}
 				}
+				detect_hook(SWERVE_CTRL_TOE);
 				break;
 			}
 			case CAN_SWERVE_CONTROLLERE_RX_ID:
@@ -157,6 +209,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 					chassis_move.target_alpha2 = fp32_constrain(chassis_move.target_alpha2, chassis_move.alpha_lower_limit, chassis_move.alpha_upper_limit);
 				}
 #endif
+				detect_hook(SWERVE_CTRL_TOE);
 				break;
 			}
 			default:
@@ -235,7 +288,7 @@ void CAN_send_shrinked_params_to_upper_board(fp32 current_radius1, fp32 current_
 	{
 		memset(can_tx_data, 0xFF, sizeof(can_tx_data));
 	}
-	HAL_CAN_AddTxMessage(&hcan2, &can_tx_msg, can_tx_data, &send_mail_box);
+	HAL_CAN_AddTxMessage(&INTER_CTRL_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
 }
 
 void CAN_send_radius_dot_to_upper_board(fp32 target_radius_dot1, fp32 target_radius_dot2, fp32 target_radius_dot3, fp32 target_radius_dot4)
@@ -265,7 +318,7 @@ void CAN_send_radius_dot_to_upper_board(fp32 target_radius_dot1, fp32 target_rad
 	{
 		memset(can_tx_data, 0xFF, sizeof(can_tx_data));
 	}
-	HAL_CAN_AddTxMessage(&hcan2, &can_tx_msg, can_tx_data, &send_mail_box);
+	HAL_CAN_AddTxMessage(&INTER_CTRL_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
 }
 
 void encode_6012_multi_motor_torque_control(float torque1, float torque2, float torque3, float torque4)
@@ -289,7 +342,7 @@ void encode_6012_multi_motor_torque_control(float torque1, float torque2, float 
 	can_tx_data[6] = *(uint8_t *)(&iqControl_4);
 	can_tx_data[7] = *((uint8_t *)(&iqControl_4) + 1);
 
-	HAL_CAN_AddTxMessage(&hcan1, &can_tx_msg, can_tx_data, &send_mail_box);
+	HAL_CAN_AddTxMessage(&INTER_CTRL_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
 }
 
 void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
@@ -391,5 +444,5 @@ void CAN_cmd_steer_motors(uint8_t id_range, int16_t voltage1, int16_t voltage2, 
 	can_tx_data[5] = voltage3;
 	can_tx_data[6] = voltage4 >> 8;
 	can_tx_data[7] = voltage4;
-	HAL_CAN_AddTxMessage(&hcan1, &can_tx_msg, can_tx_data, &send_mail_box);
+	HAL_CAN_AddTxMessage(&STEER_AND_HIP_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
 }

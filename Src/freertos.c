@@ -29,7 +29,7 @@
 
 #include "calibrate_task.h"
 #include "chassis_task.h"
-// #include "detect_task.h"
+#include "detect_task.h"
 // #include "gimbal_task.h"
 #include "INS_task.h"
 #include "led_flow_task.h"
@@ -159,8 +159,8 @@ void MX_FREERTOS_Init(void) {
     osThreadDef(ChassisTask, chassis_task, osPriorityAboveNormal, 0, 512);
     chassisTaskHandle = osThreadCreate(osThread(ChassisTask), NULL);
 
-    // osThreadDef(DETECT, detect_task, osPriorityNormal, 0, 256);
-    // detect_handle = osThreadCreate(osThread(DETECT), NULL);
+    osThreadDef(DETECT, detect_task, osPriorityNormal, 0, 256);
+    detect_handle = osThreadCreate(osThread(DETECT), NULL);
 
     // osThreadDef(gimbalTask, gimbal_task, osPriorityHigh, 0, 512);
     // gimbalTaskHandle = osThreadCreate(osThread(gimbalTask), NULL);

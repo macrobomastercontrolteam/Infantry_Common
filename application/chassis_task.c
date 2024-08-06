@@ -298,6 +298,13 @@ void chassis_init(void)
 	chassis_move.fHipDataIsValid = 0;
 }
 
+void chassis_swerve_params_reset(void)
+{
+	chassis_move.fSteerMotorEnabled = 0;
+	chassis_move.fHipMotorEnabled = 0;
+	chassis_move.fHipDataIsValid = 0;
+}
+
 void chassis_calc_feedbacks(void)
 {
 	fp32 current_theta1 = motor_info[CHASSIS_ID_HIP_1].feedback_abs_angle;

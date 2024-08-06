@@ -22,9 +22,6 @@
 
 #include "global_inc.h"
 
-#define CHASSIS_CAN hcan1
-#define GIMBAL_CAN hcan2
-
 #define CAN_CONTROL_ID_BASE 0x1ff
 #define CAN_CONTROL_ID_EXTEND 0x2ff
 #define STEER_MOTOR_COUNT (CHASSIS_ID_STEER_4 - CHASSIS_ID_STEER_1 + 1)
@@ -93,6 +90,7 @@ typedef enum
 
 extern motor_info_t motor_info[CHASSIS_ID_LAST];
 
+void chassis_swerve_params_reset(void);
 void can_user_init(void);
 void CAN_cmd_steer_motors(uint8_t id_range, int16_t voltage1, int16_t voltage2, int16_t voltage3, int16_t voltage4);
 uint8_t CAN_cmd_hip_motors(float torque1, float torque2, float torque3, float torque4);
