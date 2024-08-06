@@ -196,6 +196,10 @@ void robot_arm_behaviour_set(void)
 	}
 }
 
+/**
+ * @brief This state machine is written in a hurry, so it may not be the best implementation. Feel free to completely reconstruct it.
+ * 
+ */
 void robot_arm_control(void)
 {
 	// Update state hold switch
