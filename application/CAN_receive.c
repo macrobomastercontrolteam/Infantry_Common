@@ -45,8 +45,8 @@
 #define MG6012_ECD_DELTA_DEADZONE MG6012_ECD_RANGE_90
 #define MG6012_SPEED_DPS_DELTA_DEADZONE 100
 
-#define INTER_CTRL_CAN hcan2
-#define STEER_AND_HIP_CAN hcan1
+#define INTER_CTRL_CAN hcan1
+#define STEER_AND_HIP_CAN hcan2
 
 typedef enum
 {
@@ -342,7 +342,7 @@ void encode_6012_multi_motor_torque_control(float torque1, float torque2, float 
 	can_tx_data[6] = *(uint8_t *)(&iqControl_4);
 	can_tx_data[7] = *((uint8_t *)(&iqControl_4) + 1);
 
-	HAL_CAN_AddTxMessage(&INTER_CTRL_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
+	HAL_CAN_AddTxMessage(&STEER_AND_HIP_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
 }
 
 void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
