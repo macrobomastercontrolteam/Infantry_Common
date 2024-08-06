@@ -235,6 +235,8 @@ void robot_arm_control(void)
 		case ARM_STATE_ZERO_FORCE:
 		default:
 		{
+			const fp32 all_0_torque[7] = {0, 0, 0, 0, 0, 0, 0};
+			arm_joints_cmd_torque(all_0_torque);
 			if (fIsStateHoldTimePassed && robot_arm.fMasterSwitch)
 			{
 				robot_arm.arm_state = ARM_STATE_SYNCING;
