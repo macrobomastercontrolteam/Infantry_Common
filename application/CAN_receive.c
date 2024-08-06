@@ -403,10 +403,29 @@ HAL_StatusTypeDef encode_ktech_broadcast_current_control(const fp32 current_cmd[
 	can_tx_message.DLC = 8;
 
 #if ENABLE_ARM_MOTOR_POWER
+#if ENABLE_JOINT_3_MOTOR
 	int16_t iqControl_1 = fp32_abs_constrain(current_cmd[3], MOTOR_MG4005_MAX_CMD);
+#else
+	int16_t iqControl_1 = 0;
+#endif
+
+#if ENABLE_JOINT_4_MOTOR
 	int16_t iqControl_2 = fp32_abs_constrain(current_cmd[4], MOTOR_MS4005_MAX_CMD);
+#else
+	int16_t iqControl_2 = 0;
+#endif
+
+#if ENABLE_JOINT_5_MOTOR
 	int16_t iqControl_3 = fp32_abs_constrain(current_cmd[5], MOTOR_MS4005_MAX_CMD);
+#else
+	int16_t iqControl_3 = 0;
+#endif
+
+#if ENABLE_JOINT_6_MOTOR
 	int16_t iqControl_4 = fp32_abs_constrain(current_cmd[6], MOTOR_MS4005_MAX_CMD);
+#else
+	int16_t iqControl_4 = 0;
+#endif
 	can_send_data[0] = *(uint8_t *)(&iqControl_1);
 	can_send_data[1] = *((uint8_t *)(&iqControl_1) + 1);
 	can_send_data[2] = *(uint8_t *)(&iqControl_2);

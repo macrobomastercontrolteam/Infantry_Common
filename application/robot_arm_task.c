@@ -397,8 +397,50 @@ void robot_arm_switch_on_power(void)
 uint8_t is_joint_target_reached(fp32 tol, uint8_t *notReachedJointPtr)
 {
 	uint8_t fTargetReached = 1;
-	for (uint8_t i = 0; i < sizeof(robot_arm.joint_angle_target) / sizeof(robot_arm.joint_angle_target[0]); i++)
+	for (uint8_t i = 0; i < 7; i++)
 	{
+#if (ENABLE_JOINT_6_MOTOR == 0)
+		if (i == 6)
+		{
+			continue;
+		}
+#endif
+#if (ENABLE_JOINT_5_MOTOR == 0)
+		if (i == 5)
+		{
+			continue;
+		}
+#endif
+#if (ENABLE_JOINT_4_MOTOR == 0)
+		if (i == 4)
+		{
+			continue;
+		}
+#endif
+#if (ENABLE_JOINT_3_MOTOR == 0)
+		if (i == 3)
+		{
+			continue;
+		}
+#endif
+#if (ENABLE_JOINT_2_MOTOR == 0)
+		if (i == 2)
+		{
+			continue;
+		}
+#endif
+#if (ENABLE_JOINT_1_MOTOR == 0)
+		if (i == 1)
+		{
+			continue;
+		}
+#endif
+#if (ENABLE_JOINT_0_MOTOR == 0)
+		if (i == 0)
+		{
+			continue;
+		}
+#endif
 		if (fabs(rad_format(robot_arm.joint_angle_target[i] - motor_measure[i].output_angle)) > tol)
 		{
 			fTargetReached = 0;
