@@ -161,7 +161,7 @@ void MX_FREERTOS_Init(void) {
     // osThreadDef(ChassisTask, chassis_task, osPriorityAboveNormal, 0, 512);
     // chassisTaskHandle = osThreadCreate(osThread(ChassisTask), NULL);
 
-    osThreadDef(RobotArmTask, robot_arm_task, osPriorityAboveNormal, 0, 512);
+    osThreadDef(RobotArmTask, robot_arm_task, osPriorityAboveNormal, 0, 1024);
     robotArmTaskHandle = osThreadCreate(osThread(RobotArmTask), NULL);
 
     osThreadDef(DETECT, detect_task, osPriorityNormal, 0, 256);
