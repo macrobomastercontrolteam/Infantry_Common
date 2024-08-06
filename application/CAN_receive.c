@@ -250,7 +250,16 @@ uint8_t CAN_cmd_hip_motors(float torque1, float torque2, float torque3, float to
 #endif
 
 	// 6012 motor as hip
-	encode_6012_multi_motor_torque_control(torque1, torque2, torque3, torque4);
+	// Broadcast msg would cause signal to be lost if the bus is too long, use individual msg instead
+	// encode_6012_multi_motor_torque_control(torque1, torque2, torque3, torque4);
+
+	encode_6012_motor_torque_control(CAN_HIP1_RX_ID, torque1);
+	osDelay(1);
+	encode_6012_motor_torque_control(CAN_HIP2_RX_ID, torque2);
+	osDelay(1);
+	encode_6012_motor_torque_control(CAN_HIP3_RX_ID, torque3);
+	osDelay(1);
+	encode_6012_motor_torque_control(CAN_HIP4_RX_ID, torque4);
 	return fValidInput;
 }
 
@@ -350,6 +359,27 @@ void encode_6012_multi_motor_torque_control(float torque1, float torque2, float 
 	can_tx_data[5] = *((uint8_t *)(&iqControl_3) + 1);
 	can_tx_data[6] = *(uint8_t *)(&iqControl_4);
 	can_tx_data[7] = *((uint8_t *)(&iqControl_4) + 1);
+
+	HAL_CAN_AddTxMessage(&STEER_AND_HIP_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
+}
+
+void encode_6012_motor_torque_control(uint32_t id, float torque_cmd)
+{
+	can_tx_msg.StdId = id;
+	can_tx_msg.ExtId = 0x00;
+	can_tx_msg.IDE = CAN_ID_STD;
+	can_tx_msg.RTR = CAN_RTR_DATA;
+	can_tx_msg.DLC = 8;
+
+#if (ENABLE_HIP_MOTOR_POWER == 0)
+	torque_cmd = 0;
+#endif
+
+	int16_t iqControl = torque_cmd * MOTOR_6012_BROADCAST_CMD_TO_TORQUE_RATIO;
+	memset(can_tx_data, 0, sizeof(can_tx_data));
+	can_tx_data[0] = CAN_6012_TORQUE_FEEDBACK_ID;
+	can_tx_data[4] = *(uint8_t *)(&iqControl);
+	can_tx_data[5] = *((uint8_t *)(&iqControl) + 1);
 
 	HAL_CAN_AddTxMessage(&STEER_AND_HIP_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
 }
@@ -455,3 +485,175 @@ void CAN_cmd_steer_motors(uint8_t id_range, int16_t voltage1, int16_t voltage2, 
 	can_tx_data[7] = voltage4;
 	HAL_CAN_AddTxMessage(&STEER_AND_HIP_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
 }
+
+/**
+ * @brief CAN1 and CAN2 tx calls are interlaced so that we can reduce total delay time without affecting the performance
+ * @TODO: make helper functions to load CAN msg to the buffer and freely organize their sending order
+ */
+void CAN_cmd_wrapper(void)
+{
+	/*********** CAN_cmd_hip_motors ***********/
+	float hip_torque1 = motor_info[CHASSIS_ID_HIP_1].set_torque;
+	float hip_torque2 = motor_info[CHASSIS_ID_HIP_2].set_torque;
+	float hip_torque3 = motor_info[CHASSIS_ID_HIP_3].set_torque;
+	float hip_torque4 = motor_info[CHASSIS_ID_HIP_4].set_torque;
+
+	uint8_t fValidInput = (((hip_torque1 != hip_torque1) || (hip_torque2 != hip_torque2) || (hip_torque3 != hip_torque3) || (hip_torque4 != hip_torque4)) == 0);
+#if ENABLE_HIP_MOTOR_POWER
+	// @TODO: validate this line
+	if ((chassis_move.fHipMotorEnabled == 0) || (fValidInput == 0) || (chassis_move.fHipDataIsValid == 0))
+	// if ((chassis_move.fHipMotorEnabled == 0) || (fValidInput == 0))
+#endif
+	{
+		hip_torque1 = 0;
+		hip_torque2 = 0;
+		hip_torque3 = 0;
+		hip_torque4 = 0;
+	}
+
+#if REVERSE_3_HIP_MOTOR_DIRECTION
+	hip_torque3 *= -1.0f;
+#endif
+
+#if REVERSE_2_HIP_MOTOR_DIRECTION
+	hip_torque2 *= -1.0f;
+#endif
+
+#if REVERSE_4_HIP_MOTOR_DIRECTION
+	hip_torque4 *= -1.0f;
+#endif
+
+#if REVERSE_1_HIP_MOTOR_DIRECTION
+	hip_torque1 *= -1.0f;
+#endif
+
+	// 6012 motor as hip
+	// Broadcast msg would cause signal to be lost if the bus is too long, use individual msg instead
+	// encode_6012_multi_motor_torque_control(hip_torque1, hip_torque2, hip_torque3, hip_torque4);
+	/*********** CAN_cmd_hip_motors ***********/
+
+	/*********** CAN_cmd_steer_motors ***********/
+	int16_t voltage1 = motor_info[CHASSIS_ID_STEER_1].set_voltage;
+	int16_t voltage2 = motor_info[CHASSIS_ID_STEER_2].set_voltage;
+	int16_t voltage3 = motor_info[CHASSIS_ID_STEER_3].set_voltage;
+	int16_t voltage4 = motor_info[CHASSIS_ID_STEER_4].set_voltage;
+	can_tx_msg.StdId = CAN_CONTROL_ID_BASE;
+	can_tx_msg.IDE = CAN_ID_STD;
+	can_tx_msg.RTR = CAN_RTR_DATA;
+	can_tx_msg.DLC = 8;
+#if ENABLE_STEER_MOTOR_POWER
+	if (chassis_move.fSteerMotorEnabled == 0)
+#endif
+	{
+		voltage1 = 0;
+		voltage2 = 0;
+		voltage3 = 0;
+		voltage4 = 0;
+	}
+	can_tx_data[0] = voltage1 >> 8;
+	can_tx_data[1] = voltage1;
+	can_tx_data[2] = voltage2 >> 8;
+	can_tx_data[3] = voltage2;
+	can_tx_data[4] = voltage3 >> 8;
+	can_tx_data[5] = voltage3;
+	can_tx_data[6] = voltage4 >> 8;
+	can_tx_data[7] = voltage4;
+	HAL_CAN_AddTxMessage(&STEER_AND_HIP_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
+	/*********** CAN_cmd_steer_motors ***********/
+
+	/*********** CAN_send_shrinked_params_to_upper_board ***********/
+	fp32 current_radius1 = chassis_move.wheel_rot_radius[0];
+	fp32 current_radius2 = chassis_move.wheel_rot_radius[1];
+	fp32 current_radius3 = chassis_move.wheel_rot_radius[2];
+	fp32 current_radius4 = chassis_move.wheel_rot_radius[3];
+	fp32 current_alpha1 = chassis_move.current_alpha1;
+	fp32 current_alpha2 = chassis_move.current_alpha2;
+	fp32 current_height = chassis_move.height;
+	can_tx_msg.StdId = CAN_SHRINKED_CONTROLLER_TX_ID;
+	can_tx_msg.IDE = CAN_ID_STD;
+	can_tx_msg.RTR = CAN_RTR_DATA;
+	can_tx_msg.DLC = 8;
+
+	if (chassis_move.fHipDataIsValid)
+	{
+		uint8_t current_radius1_uint = fp32_constrain(current_radius1, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+		uint8_t current_radius2_uint = fp32_constrain(current_radius2, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+		uint8_t current_radius3_uint = fp32_constrain(current_radius3, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+		uint8_t current_radius4_uint = fp32_constrain(current_radius4, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+
+		int8_t current_alpha1_int = fp32_abs_constrain(current_alpha1, ANGLE_ECD_MAX_LIMIT) * angle_encoding_ratio_shrinked;
+		int8_t current_alpha2_int = fp32_abs_constrain(current_alpha2, ANGLE_ECD_MAX_LIMIT) * angle_encoding_ratio_shrinked;
+		uint8_t current_height_uint = fp32_constrain(current_height, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+
+		can_tx_data[0] = current_radius1_uint;
+		can_tx_data[1] = current_radius2_uint;
+		can_tx_data[2] = current_radius3_uint;
+		can_tx_data[3] = current_radius4_uint;
+
+		can_tx_data[4] = current_alpha1_int;
+		can_tx_data[5] = current_alpha2_int;
+		can_tx_data[6] = current_height_uint;
+		// reserved
+		// can_tx_data[7] = rev;
+	}
+	else
+	{
+		memset(can_tx_data, 0xFF, sizeof(can_tx_data));
+	}
+	HAL_CAN_AddTxMessage(&INTER_CTRL_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
+	/*********** CAN_send_shrinked_params_to_upper_board ***********/
+
+	osDelay(1);
+	encode_6012_motor_torque_control(CAN_HIP1_RX_ID, hip_torque1);
+
+	/*********** CAN_send_radius_dot_to_upper_board ***********/
+	fp32 target_radius_dot1 = chassis_move.target_wheel_rot_radius_dot[0];
+	fp32 target_radius_dot2 = chassis_move.target_wheel_rot_radius_dot[1];
+	fp32 target_radius_dot3 = chassis_move.target_wheel_rot_radius_dot[2];
+	fp32 target_radius_dot4 = chassis_move.target_wheel_rot_radius_dot[3];
+
+	can_tx_msg.StdId = CAN_SWERVE_RADII_DOT_TX_ID;
+	can_tx_msg.IDE = CAN_ID_STD;
+	can_tx_msg.RTR = CAN_RTR_DATA;
+	can_tx_msg.DLC = 8;
+
+	if (chassis_move.fHipDataIsValid)
+	{
+		int16_t target_radius_dot1_int = fp32_abs_constrain(target_radius_dot1, METER_PER_SEC_ECD_MAX_LIMIT) * speed_encoding_ratio;
+		int16_t target_radius_dot2_int = fp32_abs_constrain(target_radius_dot2, METER_PER_SEC_ECD_MAX_LIMIT) * speed_encoding_ratio;
+		int16_t target_radius_dot3_int = fp32_abs_constrain(target_radius_dot3, METER_PER_SEC_ECD_MAX_LIMIT) * speed_encoding_ratio;
+		int16_t target_radius_dot4_int = fp32_abs_constrain(target_radius_dot4, METER_PER_SEC_ECD_MAX_LIMIT) * speed_encoding_ratio;
+
+		can_tx_data[0] = *(uint8_t *)(&target_radius_dot1_int);
+		can_tx_data[1] = *((uint8_t *)(&target_radius_dot1_int) + 1);
+		can_tx_data[2] = *(uint8_t *)(&target_radius_dot2_int);
+		can_tx_data[3] = *((uint8_t *)(&target_radius_dot2_int) + 1);
+		can_tx_data[4] = *(uint8_t *)(&target_radius_dot3_int);
+		can_tx_data[5] = *((uint8_t *)(&target_radius_dot3_int) + 1);
+		can_tx_data[6] = *(uint8_t *)(&target_radius_dot4_int);
+		can_tx_data[7] = *((uint8_t *)(&target_radius_dot4_int) + 1);
+	}
+	else
+	{
+		memset(can_tx_data, 0xFF, sizeof(can_tx_data));
+	}
+	HAL_CAN_AddTxMessage(&INTER_CTRL_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
+	/*********** CAN_send_radius_dot_to_upper_board ***********/
+	osDelay(1);
+	encode_6012_motor_torque_control(CAN_HIP2_RX_ID, hip_torque2);
+	osDelay(1);
+	encode_6012_motor_torque_control(CAN_HIP3_RX_ID, hip_torque3);
+	osDelay(1);
+	encode_6012_motor_torque_control(CAN_HIP4_RX_ID, hip_torque4);
+}
+
+// void CAN_cmd_wrapper(void)
+// {
+// 	CAN_cmd_steer_motors(0, motor_info[CHASSIS_ID_STEER_1].set_voltage, motor_info[CHASSIS_ID_STEER_2].set_voltage, motor_info[CHASSIS_ID_STEER_3].set_voltage, motor_info[CHASSIS_ID_STEER_4].set_voltage);
+// 	osDelay(1);
+// 	CAN_send_shrinked_params_to_upper_board(chassis_move.wheel_rot_radius[0], chassis_move.wheel_rot_radius[1], chassis_move.wheel_rot_radius[2], chassis_move.wheel_rot_radius[3], chassis_move.current_alpha1, chassis_move.current_alpha2, chassis_move.height);
+// 	osDelay(1);
+// 	CAN_cmd_hip_motors(motor_info[CHASSIS_ID_HIP_1].set_torque, motor_info[CHASSIS_ID_HIP_2].set_torque, motor_info[CHASSIS_ID_HIP_3].set_torque, motor_info[CHASSIS_ID_HIP_4].set_torque);
+// 	osDelay(1);
+// 	CAN_send_radius_dot_to_upper_board(chassis_move.target_wheel_rot_radius_dot[0], chassis_move.target_wheel_rot_radius_dot[1], chassis_move.target_wheel_rot_radius_dot[2], chassis_move.target_wheel_rot_radius_dot[3]);
+// }

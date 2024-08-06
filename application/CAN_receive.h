@@ -97,5 +97,6 @@ uint8_t CAN_cmd_hip_motors(float torque1, float torque2, float torque3, float to
 void CAN_send_shrinked_params_to_upper_board(fp32 radius1, fp32 radius2, fp32 radius3, fp32 radius4, fp32 current_alpha1, fp32 current_alpha2, fp32 current_height);
 void CAN_send_radius_dot_to_upper_board(fp32 target_radius_dot1, fp32 target_radius_dot2, fp32 target_radius_dot3, fp32 target_radius_dot4);
 void encode_6012_multi_motor_torque_control(float torque1, float torque2, float torque3, float torque4);
+void CAN_cmd_wrapper(void);
 
 #endif

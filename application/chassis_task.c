@@ -214,14 +214,7 @@ void chassis_task(void const *pvParameters)
 				}
 			}
 		}
-
-		/* send motor control message through can bus*/
-		CAN_cmd_steer_motors(0, motor_info[CHASSIS_ID_STEER_1].set_voltage, motor_info[CHASSIS_ID_STEER_2].set_voltage, motor_info[CHASSIS_ID_STEER_3].set_voltage, motor_info[CHASSIS_ID_STEER_4].set_voltage);
-		CAN_send_shrinked_params_to_upper_board(chassis_move.wheel_rot_radius[0], chassis_move.wheel_rot_radius[1], chassis_move.wheel_rot_radius[2], chassis_move.wheel_rot_radius[3], chassis_move.current_alpha1, chassis_move.current_alpha2, chassis_move.height);
-		osDelay(1);
-		CAN_cmd_hip_motors(motor_info[CHASSIS_ID_HIP_1].set_torque, motor_info[CHASSIS_ID_HIP_2].set_torque, motor_info[CHASSIS_ID_HIP_3].set_torque, motor_info[CHASSIS_ID_HIP_4].set_torque);
-		CAN_send_radius_dot_to_upper_board(chassis_move.target_wheel_rot_radius_dot[0], chassis_move.target_wheel_rot_radius_dot[1], chassis_move.target_wheel_rot_radius_dot[2], chassis_move.target_wheel_rot_radius_dot[3]);
-
+		CAN_cmd_wrapper();
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
 
 #if CHASSIS_TEST_MODE
