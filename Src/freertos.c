@@ -153,8 +153,9 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-    osThreadDef(cali, calibrate_task, osPriorityNormal, 0, 512);
-    calibrate_tast_handle = osThreadCreate(osThread(cali), NULL);
+    // Note: not used for now except for IMU calibration
+    // osThreadDef(cali, calibrate_task, osPriorityNormal, 0, 512);
+    // calibrate_tast_handle = osThreadCreate(osThread(cali), NULL);
 
     osThreadDef(ChassisTask, chassis_task, osPriorityAboveNormal, 0, 512);
     chassisTaskHandle = osThreadCreate(osThread(ChassisTask), NULL);
