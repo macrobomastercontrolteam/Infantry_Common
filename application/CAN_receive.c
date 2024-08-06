@@ -218,7 +218,7 @@ void CAN_send_shrinked_params_to_upper_board(fp32 current_radius1, fp32 current_
 
 		int8_t current_alpha1_int = fp32_abs_constrain(current_alpha1, ANGLE_ECD_MAX_LIMIT) * angle_encoding_ratio_shrinked;
 		int8_t current_alpha2_int = fp32_abs_constrain(current_alpha2, ANGLE_ECD_MAX_LIMIT) * angle_encoding_ratio_shrinked;
-		uint8_t current_height_uint = fp32_constrain(current_radius4, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
+		uint8_t current_height_uint = fp32_constrain(current_height, 0, METER_ENCODER_MAX_LIMIT) * meter_encoding_ratio_shrinked;
 
 		can_tx_data[0] = current_radius1_uint;
 		can_tx_data[1] = current_radius2_uint;
