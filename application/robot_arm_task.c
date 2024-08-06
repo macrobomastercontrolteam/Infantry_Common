@@ -222,7 +222,7 @@ void robot_arm_control(void)
 	// }
 	// uint8_t fIsStateHoldTimePassed = (robot_arm.time_ms - robot_arm.prevStateSwitchTime > ulHoldTimePeriod);
 	uint8_t fIsStateHoldTimePassed = 1;
-	const fp32 ROBOT_ARM_SYNCING_TIME_MS = 1000.0f;
+	const fp32 ROBOT_ARM_SYNCING_TIME_MS = 100.0f;
 
 	// safety guard
 	if (robot_arm.fMasterSwitch && is_error_exist_in_range(JOINT_0_TOE, JOINT_6_TOE))
