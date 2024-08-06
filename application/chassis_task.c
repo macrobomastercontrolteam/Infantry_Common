@@ -113,6 +113,9 @@ float MG6012_abs_angle_pid_calc(pid_type_def *pid, float feedback_abs_ecd_fp32, 
 // fp32 target_theta3_dot_fp32;
 // fp32 target_theta4_dot_fp32;
 // fp32 set_torque3_fp32;
+fp32 roll_fp32;
+fp32 pitch_fp32;
+fp32 yaw_fp32;
 static void J_scope_chassis_test(void)
 {
 	// hip1_angle = motor_info[CHASSIS_ID_HIP_1].feedback_abs_angle * 180.0f / PI;
@@ -153,6 +156,10 @@ static void J_scope_chassis_test(void)
 	// current_theta4_fp32 = motor_info[CHASSIS_ID_HIP_4].feedback_abs_ecd_fp32 / MG6012_ECD_RANGE_180 * 180.0f;
 
 	// set_torque3_fp32 = motor_info[CHASSIS_ID_HIP_3].set_torque * 50.0f;
+
+	roll_fp32 = *(INS_angle + INS_ROLL_ADDRESS_OFFSET) * 180.0f / PI;
+	pitch_fp32 = *(INS_angle + INS_PITCH_ADDRESS_OFFSET) * 180.0f / PI;
+	yaw_fp32 = *(INS_angle + INS_YAW_ADDRESS_OFFSET) * 180.0f / PI;
 }
 #endif
 
