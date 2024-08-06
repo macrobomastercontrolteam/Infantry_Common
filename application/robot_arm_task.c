@@ -371,37 +371,63 @@ uint8_t key_scan_pwm2(void)
 
 void robot_arm_init(void)
 {
-	const static fp32 joint_0_angle_pid_coeffs[3] = {JOINT_0_ANGLE_PID_KP, JOINT_0_ANGLE_PID_KI, JOINT_0_ANGLE_PID_KD};
-	const static fp32 joint_1_angle_pid_coeffs[3] = {JOINT_1_ANGLE_PID_KP, JOINT_1_ANGLE_PID_KI, JOINT_1_ANGLE_PID_KD};
-	const static fp32 joint_2_angle_pid_coeffs[3] = {JOINT_2_ANGLE_PID_KP, JOINT_2_ANGLE_PID_KI, JOINT_2_ANGLE_PID_KD};
-	const static fp32 joint_3_angle_pid_coeffs[3] = {JOINT_3_ANGLE_PID_KP, JOINT_3_ANGLE_PID_KI, JOINT_3_ANGLE_PID_KD};
-	const static fp32 joint_4_angle_pid_coeffs[3] = {JOINT_4_ANGLE_PID_KP, JOINT_4_ANGLE_PID_KI, JOINT_4_ANGLE_PID_KD};
-	const static fp32 joint_5_angle_pid_coeffs[3] = {JOINT_5_ANGLE_PID_KP, JOINT_5_ANGLE_PID_KI, JOINT_5_ANGLE_PID_KD};
-	const static fp32 joint_6_angle_pid_coeffs[3] = {JOINT_6_ANGLE_PID_KP, JOINT_6_ANGLE_PID_KI, JOINT_6_ANGLE_PID_KD};
+	// fix mode pid
+	const fp32 joint_angle_pid_coeffs[7][3] = {
+		{JOINT_0_ANGLE_PID_KP, JOINT_0_ANGLE_PID_KI, JOINT_0_ANGLE_PID_KD},
+		{JOINT_1_ANGLE_PID_KP, JOINT_1_ANGLE_PID_KI, JOINT_1_ANGLE_PID_KD},
+		{JOINT_2_ANGLE_PID_KP, JOINT_2_ANGLE_PID_KI, JOINT_2_ANGLE_PID_KD},
+		{JOINT_3_ANGLE_PID_KP, JOINT_3_ANGLE_PID_KI, JOINT_3_ANGLE_PID_KD},
+		{JOINT_4_ANGLE_PID_KP, JOINT_4_ANGLE_PID_KI, JOINT_4_ANGLE_PID_KD},
+		{JOINT_5_ANGLE_PID_KP, JOINT_5_ANGLE_PID_KI, JOINT_5_ANGLE_PID_KD},
+		{JOINT_6_ANGLE_PID_KP, JOINT_6_ANGLE_PID_KI, JOINT_6_ANGLE_PID_KD}};
+	const fp32 joint_angle_pid_max_out[7] = {JOINT_0_ANGLE_PID_MAX_OUT, JOINT_1_ANGLE_PID_MAX_OUT, JOINT_2_ANGLE_PID_MAX_OUT, JOINT_3_ANGLE_PID_MAX_OUT, JOINT_4_ANGLE_PID_MAX_OUT, JOINT_5_ANGLE_PID_MAX_OUT, JOINT_6_ANGLE_PID_MAX_OUT};
+	const fp32 joint_angle_pid_max_iout[7] = {JOINT_0_ANGLE_PID_MAX_IOUT, JOINT_1_ANGLE_PID_MAX_IOUT, JOINT_2_ANGLE_PID_MAX_IOUT, JOINT_3_ANGLE_PID_MAX_IOUT, JOINT_4_ANGLE_PID_MAX_IOUT, JOINT_5_ANGLE_PID_MAX_IOUT, JOINT_6_ANGLE_PID_MAX_IOUT};
 
-	PID_init(&robot_arm.joint_angle_pid[0], PID_POSITION, joint_0_angle_pid_coeffs, JOINT_0_ANGLE_PID_MAX_OUT, JOINT_0_ANGLE_PID_MAX_IOUT, 0.8f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_pid[1], PID_POSITION, joint_1_angle_pid_coeffs, JOINT_1_ANGLE_PID_MAX_OUT, JOINT_1_ANGLE_PID_MAX_IOUT, 0.8f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_pid[2], PID_POSITION, joint_2_angle_pid_coeffs, JOINT_2_ANGLE_PID_MAX_OUT, JOINT_2_ANGLE_PID_MAX_IOUT, 0.8f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_pid[3], PID_POSITION, joint_3_angle_pid_coeffs, JOINT_3_ANGLE_PID_MAX_OUT, JOINT_3_ANGLE_PID_MAX_IOUT, 1.0f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_pid[4], PID_POSITION, joint_4_angle_pid_coeffs, JOINT_4_ANGLE_PID_MAX_OUT, JOINT_4_ANGLE_PID_MAX_IOUT, 1.0f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_pid[5], PID_POSITION, joint_5_angle_pid_coeffs, JOINT_5_ANGLE_PID_MAX_OUT, JOINT_5_ANGLE_PID_MAX_IOUT, 1.0f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_pid[6], PID_POSITION, joint_6_angle_pid_coeffs, JOINT_6_ANGLE_PID_MAX_OUT, JOINT_6_ANGLE_PID_MAX_IOUT, 1.0f, &filter_rad_err_handler);
+	const fp32 joint_speed_pid_coeffs[7][3] = {
+		{JOINT_0_SPEED_PID_KP, JOINT_0_SPEED_PID_KI, JOINT_0_SPEED_PID_KD},
+		{JOINT_1_SPEED_PID_KP, JOINT_1_SPEED_PID_KI, JOINT_1_SPEED_PID_KD},
+		{JOINT_2_SPEED_PID_KP, JOINT_2_SPEED_PID_KI, JOINT_2_SPEED_PID_KD},
+		{JOINT_3_SPEED_PID_KP, JOINT_3_SPEED_PID_KI, JOINT_3_SPEED_PID_KD},
+		{JOINT_4_SPEED_PID_KP, JOINT_4_SPEED_PID_KI, JOINT_4_SPEED_PID_KD},
+		{JOINT_5_SPEED_PID_KP, JOINT_5_SPEED_PID_KI, JOINT_5_SPEED_PID_KD},
+		{JOINT_6_SPEED_PID_KP, JOINT_6_SPEED_PID_KI, JOINT_6_SPEED_PID_KD}};
+	const fp32 joint_speed_pid_max_out[7] = {JOINT_0_SPEED_PID_MAX_OUT, JOINT_1_SPEED_PID_MAX_OUT, JOINT_2_SPEED_PID_MAX_OUT, JOINT_3_SPEED_PID_MAX_OUT, JOINT_4_SPEED_PID_MAX_OUT, JOINT_5_SPEED_PID_MAX_OUT, JOINT_6_SPEED_PID_MAX_OUT};
+	const fp32 joint_speed_pid_max_iout[7] = {JOINT_0_SPEED_PID_MAX_IOUT, JOINT_1_SPEED_PID_MAX_IOUT, JOINT_2_SPEED_PID_MAX_IOUT, JOINT_3_SPEED_PID_MAX_IOUT, JOINT_4_SPEED_PID_MAX_IOUT, JOINT_5_SPEED_PID_MAX_IOUT, JOINT_6_SPEED_PID_MAX_IOUT};
 
-	const static fp32 joint_0_angle_teach_pid_coeffs[3] = {JOINT_0_ANGLE_TEACH_PID_KP, JOINT_0_ANGLE_TEACH_PID_KI, JOINT_0_ANGLE_TEACH_PID_KD};
-	const static fp32 joint_1_angle_teach_pid_coeffs[3] = {JOINT_1_ANGLE_TEACH_PID_KP, JOINT_1_ANGLE_TEACH_PID_KI, JOINT_1_ANGLE_TEACH_PID_KD};
-	const static fp32 joint_2_angle_teach_pid_coeffs[3] = {JOINT_2_ANGLE_TEACH_PID_KP, JOINT_2_ANGLE_TEACH_PID_KI, JOINT_2_ANGLE_TEACH_PID_KD};
-	const static fp32 joint_3_angle_teach_pid_coeffs[3] = {JOINT_3_ANGLE_TEACH_PID_KP, JOINT_3_ANGLE_TEACH_PID_KI, JOINT_3_ANGLE_TEACH_PID_KD};
-	const static fp32 joint_4_angle_teach_pid_coeffs[3] = {JOINT_4_ANGLE_TEACH_PID_KP, JOINT_4_ANGLE_TEACH_PID_KI, JOINT_4_ANGLE_TEACH_PID_KD};
-	const static fp32 joint_5_angle_teach_pid_coeffs[3] = {JOINT_5_ANGLE_TEACH_PID_KP, JOINT_5_ANGLE_TEACH_PID_KI, JOINT_5_ANGLE_TEACH_PID_KD};
-	const static fp32 joint_6_angle_teach_pid_coeffs[3] = {JOINT_6_ANGLE_TEACH_PID_KP, JOINT_6_ANGLE_TEACH_PID_KI, JOINT_6_ANGLE_TEACH_PID_KD};
+	for (uint8_t i = 0; i < 7; i++)
+	{
+		PID_init(&robot_arm.joint_angle_pid[i], PID_POSITION, joint_angle_pid_coeffs[i], joint_angle_pid_max_out[i], joint_angle_pid_max_iout[i], 1.0f, &rad_err_handler);
+		PID_init(&robot_arm.joint_speed_pid[i], PID_POSITION, joint_speed_pid_coeffs[i], joint_speed_pid_max_out[i], joint_speed_pid_max_iout[i], 0.8f, &filter_err_handler);
+	}
 
-	PID_init(&robot_arm.joint_angle_teach_pid[0], PID_POSITION, joint_0_angle_teach_pid_coeffs, JOINT_0_ANGLE_TEACH_PID_MAX_OUT, JOINT_0_ANGLE_TEACH_PID_MAX_IOUT, 0.8f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_teach_pid[1], PID_POSITION, joint_1_angle_teach_pid_coeffs, JOINT_1_ANGLE_TEACH_PID_MAX_OUT, JOINT_1_ANGLE_TEACH_PID_MAX_IOUT, 0.8f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_teach_pid[2], PID_POSITION, joint_2_angle_teach_pid_coeffs, JOINT_2_ANGLE_TEACH_PID_MAX_OUT, JOINT_2_ANGLE_TEACH_PID_MAX_IOUT, 0.8f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_teach_pid[3], PID_POSITION, joint_3_angle_teach_pid_coeffs, JOINT_3_ANGLE_TEACH_PID_MAX_OUT, JOINT_3_ANGLE_TEACH_PID_MAX_IOUT, 1.0f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_teach_pid[4], PID_POSITION, joint_4_angle_teach_pid_coeffs, JOINT_4_ANGLE_TEACH_PID_MAX_OUT, JOINT_4_ANGLE_TEACH_PID_MAX_IOUT, 1.0f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_teach_pid[5], PID_POSITION, joint_5_angle_teach_pid_coeffs, JOINT_5_ANGLE_TEACH_PID_MAX_OUT, JOINT_5_ANGLE_TEACH_PID_MAX_IOUT, 1.0f, &filter_rad_err_handler);
-	PID_init(&robot_arm.joint_angle_teach_pid[6], PID_POSITION, joint_6_angle_teach_pid_coeffs, JOINT_6_ANGLE_TEACH_PID_MAX_OUT, JOINT_6_ANGLE_TEACH_PID_MAX_IOUT, 1.0f, &filter_rad_err_handler);
+	// teach mode pid
+	const fp32 joint_angle_teach_pid_coeffs[7][3] = {
+		{JOINT_0_ANGLE_TEACH_PID_KP, JOINT_0_ANGLE_TEACH_PID_KI, JOINT_0_ANGLE_TEACH_PID_KD},
+		{JOINT_1_ANGLE_TEACH_PID_KP, JOINT_1_ANGLE_TEACH_PID_KI, JOINT_1_ANGLE_TEACH_PID_KD},
+		{JOINT_2_ANGLE_TEACH_PID_KP, JOINT_2_ANGLE_TEACH_PID_KI, JOINT_2_ANGLE_TEACH_PID_KD},
+		{JOINT_3_ANGLE_TEACH_PID_KP, JOINT_3_ANGLE_TEACH_PID_KI, JOINT_3_ANGLE_TEACH_PID_KD},
+		{JOINT_4_ANGLE_TEACH_PID_KP, JOINT_4_ANGLE_TEACH_PID_KI, JOINT_4_ANGLE_TEACH_PID_KD},
+		{JOINT_5_ANGLE_TEACH_PID_KP, JOINT_5_ANGLE_TEACH_PID_KI, JOINT_5_ANGLE_TEACH_PID_KD},
+		{JOINT_6_ANGLE_TEACH_PID_KP, JOINT_6_ANGLE_TEACH_PID_KI, JOINT_6_ANGLE_TEACH_PID_KD}};
+	const fp32 joint_angle_teach_pid_max_out[7] = {JOINT_0_ANGLE_TEACH_PID_MAX_OUT, JOINT_1_ANGLE_TEACH_PID_MAX_OUT, JOINT_2_ANGLE_TEACH_PID_MAX_OUT, JOINT_3_ANGLE_TEACH_PID_MAX_OUT, JOINT_4_ANGLE_TEACH_PID_MAX_OUT, JOINT_5_ANGLE_TEACH_PID_MAX_OUT, JOINT_6_ANGLE_TEACH_PID_MAX_OUT};
+	const fp32 joint_angle_teach_pid_max_iout[7] = {JOINT_0_ANGLE_TEACH_PID_MAX_IOUT, JOINT_1_ANGLE_TEACH_PID_MAX_IOUT, JOINT_2_ANGLE_TEACH_PID_MAX_IOUT, JOINT_3_ANGLE_TEACH_PID_MAX_IOUT, JOINT_4_ANGLE_TEACH_PID_MAX_IOUT, JOINT_5_ANGLE_TEACH_PID_MAX_IOUT, JOINT_6_ANGLE_TEACH_PID_MAX_IOUT};
+
+	const fp32 joint_speed_teach_pid_coeffs[7][3] = {
+		{JOINT_0_SPEED_TEACH_PID_KP, JOINT_0_SPEED_TEACH_PID_KI, JOINT_0_SPEED_TEACH_PID_KD},
+		{JOINT_1_SPEED_TEACH_PID_KP, JOINT_1_SPEED_TEACH_PID_KI, JOINT_1_SPEED_TEACH_PID_KD},
+		{JOINT_2_SPEED_TEACH_PID_KP, JOINT_2_SPEED_TEACH_PID_KI, JOINT_2_SPEED_TEACH_PID_KD},
+		{JOINT_3_SPEED_TEACH_PID_KP, JOINT_3_SPEED_TEACH_PID_KI, JOINT_3_SPEED_TEACH_PID_KD},
+		{JOINT_4_SPEED_TEACH_PID_KP, JOINT_4_SPEED_TEACH_PID_KI, JOINT_4_SPEED_TEACH_PID_KD},
+		{JOINT_5_SPEED_TEACH_PID_KP, JOINT_5_SPEED_TEACH_PID_KI, JOINT_5_SPEED_TEACH_PID_KD},
+		{JOINT_6_SPEED_TEACH_PID_KP, JOINT_6_SPEED_TEACH_PID_KI, JOINT_6_SPEED_TEACH_PID_KD}};	
+	const fp32 joint_speed_teach_pid_max_out[7] = {JOINT_0_SPEED_TEACH_PID_MAX_OUT, JOINT_1_SPEED_TEACH_PID_MAX_OUT, JOINT_2_SPEED_TEACH_PID_MAX_OUT, JOINT_3_SPEED_TEACH_PID_MAX_OUT, JOINT_4_SPEED_TEACH_PID_MAX_OUT, JOINT_5_SPEED_TEACH_PID_MAX_OUT, JOINT_6_SPEED_TEACH_PID_MAX_OUT};
+	const fp32 joint_speed_teach_pid_max_iout[7] = {JOINT_0_SPEED_TEACH_PID_MAX_IOUT, JOINT_1_SPEED_TEACH_PID_MAX_IOUT, JOINT_2_SPEED_TEACH_PID_MAX_IOUT, JOINT_3_SPEED_TEACH_PID_MAX_IOUT, JOINT_4_SPEED_TEACH_PID_MAX_IOUT, JOINT_5_SPEED_TEACH_PID_MAX_IOUT, JOINT_6_SPEED_TEACH_PID_MAX_IOUT};
+
+	for (uint8_t i = 0; i < 7; i++)
+	{
+		PID_init(&robot_arm.joint_angle_teach_pid[i], PID_POSITION, joint_angle_teach_pid_coeffs[i], joint_angle_teach_pid_max_out[i], joint_angle_teach_pid_max_iout[i], 1.0f, &rad_err_handler);
+		PID_init(&robot_arm.joint_speed_teach_pid[i], PID_POSITION, joint_speed_teach_pid_coeffs[i], joint_speed_teach_pid_max_out[i], joint_speed_teach_pid_max_iout[i], 0.8f, &filter_err_handler);
+	}
 
 	robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
 	robot_arm_switch_off_power();

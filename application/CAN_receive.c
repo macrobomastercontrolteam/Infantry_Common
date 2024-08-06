@@ -289,21 +289,33 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt, uint8_
 		}
 	}
 
-	fp32 joint_torques[7] = {0};
+	fp32 joint_torques[7];
 	if (fValidInput && robot_arm.fMasterSwitch)
 	{
 		if (fIsTeaching)
 		{
-			for (uint8_t i = 0; i < 7; i++)
-			{
-				joint_torques[i] = PID_calc(&robot_arm.joint_angle_teach_pid[i], motor_measure[i].output_angle, joint_angle_target_ptr[i], dt);
-			}
+			// @TODO: find the method to counteract gravity in teach mode
+			// for (uint8_t i = 0; i < 7; i++)
+			// {
+			// 	speed_set[i] = PID_calc(&robot_arm.joint_angle_teach_pid[i], motor_measure[i].output_angle, joint_angle_target_ptr[i], dt);
+			// 	joint_torques[i] = PID_calc(&robot_arm.joint_speed_teach_pid[i], motor_measure[i].velocity, speed_set[i], dt);
+			// }
+
+			joint_torques[0] = 0;
+			joint_torques[1] = 0;
+			joint_torques[2] = 0;
+			joint_torques[3] = 0;
+			joint_torques[4] = 0;
+			joint_torques[5] = 0;
+			joint_torques[6] = 0;
 		}
 		else
 		{
 			for (uint8_t i = 0; i < 7; i++)
 			{
-				joint_torques[i] = PID_calc(&robot_arm.joint_angle_pid[i], motor_measure[i].output_angle, joint_angle_target_ptr[i], dt);
+				fp32 speed_set[7];
+				speed_set[i] = PID_calc(&robot_arm.joint_angle_pid[i], motor_measure[i].output_angle, joint_angle_target_ptr[i], dt);
+				joint_torques[i] = PID_calc(&robot_arm.joint_speed_pid[i], motor_measure[i].velocity, speed_set[i], dt);
 			}
 		}
 	}
@@ -369,7 +381,9 @@ void CAN_cmd_switch_motor_power(uint8_t _enable)
 		for (uint8_t i = 0; i < 7; i++)
 		{
 			PID_clear(&robot_arm.joint_angle_pid[i]);
+			PID_clear(&robot_arm.joint_speed_pid[i]);
 			PID_clear(&robot_arm.joint_angle_teach_pid[i]);
+			PID_clear(&robot_arm.joint_speed_teach_pid[i]);
 		}
 	}
 
