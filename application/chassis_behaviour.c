@@ -17,7 +17,7 @@
 #include "chassis_task.h"
 #include "cmsis_os.h"
 #include "user_lib.h"
-#include "referee.h"
+// #include "referee.h"
 
 #include "cv_usart_task.h"
 #include "detect_task.h"
@@ -90,10 +90,10 @@ void chassis_behaviour_set_mode(void)
 	{
 		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
 	}
-	else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_chassis_output == 0))
-	{
-		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
-	}
+	// else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_chassis_output == 0))
+	// {
+	// 	chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+	// }
 	else
 	{
 		switch (chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL])
@@ -465,41 +465,41 @@ void chassis_spinning_speed_manager(fp32* wz_set)
 
 static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set)
 {
-	if (vx_set == NULL || vy_set == NULL || wz_set == NULL)
-	{
-		return;
-	}
+// 	if (vx_set == NULL || vy_set == NULL || wz_set == NULL)
+// 	{
+// 		return;
+// 	}
 
-	// manual test immediately before game start
-	if (is_game_started() == 0)
-	{
-		chassis_rc_to_control_vector(vx_set, vy_set);
-	}
+// 	// manual test immediately before game start
+// 	// if (is_game_started() == 0)
+// 	// {
+// 	// 	chassis_rc_to_control_vector(vx_set, vy_set);
+// 	// }
 
-#if CV_INTERFACE
-	if (toe_is_error(CV_TOE))
-	{
-		*vx_set = 0;
-		*vy_set = 0;
-		*wz_set = 0;
-	}
-	else
-	{
-		// chassis_task should maintain previous speed if cv is offline for a short time
-		*vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
-		*vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
+// #if CV_INTERFACE
+// 	if (toe_is_error(CV_TOE))
+// 	{
+// 		*vx_set = 0;
+// 		*vy_set = 0;
+// 		*wz_set = 0;
+// 	}
+// 	else
+// 	{
+// 		// chassis_task should maintain previous speed if cv is offline for a short time
+// 		*vx_set = CvCmdHandler.CvCmdMsg.xSpeed;
+// 		*vy_set = CvCmdHandler.CvCmdMsg.ySpeed;
 
-		// @TODO: implement CV enemy detection mode
-		if (is_game_started() && CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT))
-		{
-			chassis_spinning_speed_manager(wz_set);
-		}
-		else if (CvCmder_GetMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT))
-		{
-			chassis_align_to_imu_front(wz_set);
-		}
-	}
-#endif
+// 		// @TODO: implement CV enemy detection mode
+// 		if (is_game_started() && CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT))
+// 		{
+// 			chassis_spinning_speed_manager(wz_set);
+// 		}
+// 		else if (CvCmder_GetMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT))
+// 		{
+// 			chassis_align_to_imu_front(wz_set);
+// 		}
+// 	}
+// #endif
 }
 
 /**

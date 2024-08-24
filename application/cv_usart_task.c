@@ -14,10 +14,9 @@
 
 #include "bsp_usart.h"
 #include "detect_task.h"
-#include "referee.h"
 #include "string.h"
 #include "usart.h"
-#include "referee.h"
+// #include "referee.h"
 #include "gimbal_task.h"
 #if DEBUG_CV_WITH_USB
 #include "usb_task.h"
@@ -314,12 +313,12 @@ void CvCmder_SendInfoData(eInfoBits InfoBit)
 		}
 		case CV_INFO_REF_STATUS_BIT:
 		{
-			CvTxBuffer.tData.RefStatusMsgPayload.game_progress = is_game_started();
-			CvTxBuffer.tData.RefStatusMsgPayload.team_color = get_team_color();
-			CvTxBuffer.tData.RefStatusMsgPayload.time_remain = get_time_remain();
-			CvTxBuffer.tData.RefStatusMsgPayload.current_HP = get_current_HP();
-			CvTxBuffer.tData.RefStatusMsgPayload.red_outpost_HP = get_red_outpost_HP();
-			CvTxBuffer.tData.RefStatusMsgPayload.blue_outpost_HP = get_blue_outpost_HP();
+			// CvTxBuffer.tData.RefStatusMsgPayload.game_progress = is_game_started();
+			// CvTxBuffer.tData.RefStatusMsgPayload.team_color = get_team_color();
+			// CvTxBuffer.tData.RefStatusMsgPayload.time_remain = get_time_remain();
+			// CvTxBuffer.tData.RefStatusMsgPayload.current_HP = get_current_HP();
+			// CvTxBuffer.tData.RefStatusMsgPayload.red_outpost_HP = get_red_outpost_HP();
+			// CvTxBuffer.tData.RefStatusMsgPayload.blue_outpost_HP = get_blue_outpost_HP();
 			break;
 		}
 		case CV_INFO_GIMBAL_ANGLE_BIT:

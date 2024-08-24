@@ -100,6 +100,7 @@ typedef enum
 	CAN_BIPED_CONTROLLER_RX_ID = 0x118,
 	CAN_BIPED_CONTROLLER_MODE_TX_ID = 0x119,
 #endif
+  CAN_REF_UART_RX_ID = 0x11A,
 } can_other_msg_id_e;
 
 typedef enum
@@ -196,7 +197,15 @@ extern const motor_measure_t *get_pitch_gimbal_motor_measure_point(void);
   */
 extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_index);
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr);
+void get_chassis_power_data(fp32 *power_ptr, fp32 *buffer_ptr, fp32 *power_limit_ptr);
+void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit_ptr, uint16_t *heat0_ptr);
 
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
+
+extern uint16_t heat_limit;
+extern uint16_t heat;
+extern uint8_t chassis_power_int;
+extern uint8_t chassis_buffer_int;
+extern uint8_t chassis_power_limit_int;
 
 #endif

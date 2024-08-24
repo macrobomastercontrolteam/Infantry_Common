@@ -25,7 +25,7 @@
 
 #include "chassis_task.h"
 #include "detect_task.h"
-#include "referee.h"
+// #include "referee.h"
 #include "remote_control.h"
 #include "chassis_behaviour.h"
 #include "string.h"
@@ -73,6 +73,7 @@ int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits);
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
+void decode_ref_uart(uint8_t *data);
 
 /**
  * @brief motor feedback data
@@ -132,6 +133,12 @@ const fp32 biped_angle_speed_encoding_ratio = (1 << 15) / BIPED_RAD_PER_SEC_ECD_
 uint8_t decode_biped_chassis_feedback(uint8_t *data);
 #endif
 
+uint16_t heat_limit = 0;
+uint16_t heat = 0;
+uint8_t chassis_power_int = 0;
+uint8_t chassis_buffer_int = 0;
+uint8_t chassis_power_limit_int = 45;
+
 /**
  * @brief          hal CAN fifo call back, receive motor data
  * @param[in]      hcan, the point to CAN handle
@@ -189,6 +196,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		switch (rx_header.StdId)
 		{
+			case CAN_REF_UART_RX_ID:
+			{
+				decode_ref_uart(rx_data);
+				break;
+			}
 			case CAN_3508_M1_ID:
 			{
 				bMotorId = MOTOR_INDEX_3508_M1;
@@ -286,6 +298,16 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			}
 		}
 	}
+}
+
+void decode_ref_uart(uint8_t *data)
+{
+	heat_limit = (uint16_t)(data[0] << 8 | data[1]);
+	heat = (uint16_t)(data[3] << 8 | data[2]);
+
+	chassis_power_int = data[4];
+	chassis_buffer_int = data[5];
+	chassis_power_limit_int = data[6];
 }
 
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId)
@@ -966,4 +988,17 @@ void chassis_enable_platform_flag(uint8_t fEnabled)
 #endif
 
 #endif
+}
+
+void get_chassis_power_data(fp32 *power_ptr, fp32 *buffer_ptr, fp32 *power_limit_ptr)
+{
+	*power_ptr = chassis_power_int;
+	*buffer_ptr = chassis_buffer_int;
+	*power_limit_ptr = chassis_power_limit_int;
+}
+
+void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit_ptr, uint16_t *heat0_ptr)
+{
+	*heat_limit_ptr = heat_limit;
+	*heat0_ptr = heat;
 }

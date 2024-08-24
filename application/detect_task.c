@@ -38,7 +38,7 @@
 #include "cv_usart_task.h"
 #include "chassis_task.h"
 
-#define DETECT_TEST_MODE 0
+#define DETECT_TEST_MODE 1
 
 /**
   * @brief          init error_list, assign  offline_time, online_time, priority.

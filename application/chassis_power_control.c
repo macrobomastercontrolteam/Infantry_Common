@@ -17,7 +17,7 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
 #include "chassis_power_control.h"
-#include "referee.h"
+// #include "referee.h"
 #include "arm_math.h"
 #include "detect_task.h"
 #include "chassis_task.h"

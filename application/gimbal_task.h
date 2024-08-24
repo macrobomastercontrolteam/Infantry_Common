@@ -83,10 +83,10 @@
 
 #if ROBOT_YAW_IS_4310
 #define YAW_SPEED_PID_KP        0.7f
-#define YAW_SPEED_PID_KI        1.0f
+#define YAW_SPEED_PID_KI        0.0f
 #define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   7.0f
-#define YAW_SPEED_PID_MAX_IOUT  2.33f
+#define YAW_SPEED_PID_MAX_IOUT  0.0f
 #else
 #error "6020 yaw pid not defined for this robot type"
 #endif

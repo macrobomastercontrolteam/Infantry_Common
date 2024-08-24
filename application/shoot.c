@@ -22,7 +22,7 @@
 #include "arm_math.h"
 #include "bsp_fric.h"
 #include "bsp_laser.h"
-#include "referee.h"
+// #include "referee.h"
 #include "user_lib.h"
 
 #include "CAN_receive.h"
@@ -325,17 +325,18 @@ static void shoot_set_mode(void)
 	{
 		shoot_control.shoot_mode = SHOOT_STOP;
 	}
-	else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_shooter_output == 0))
-	{
-		shoot_control.shoot_mode = SHOOT_STOP;
-	}
+	// else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_shooter_output == 0))
+	// {
+	// 	shoot_control.shoot_mode = SHOOT_STOP;
+	// }
 	else if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // auto aim mode
 	{
-		if (is_game_started() == 0)
-		{
-			shoot_control.shoot_mode = SHOOT_STOP;
-		}
-		else if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
+		// if (is_game_started() == 0)
+		// {
+		// 	shoot_control.shoot_mode = SHOOT_STOP;
+		// }
+		// else
+		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
 		{
 			if (shoot_control.shoot_mode != SHOOT_AUTO_FIRE)
 			{
@@ -446,7 +447,9 @@ static void shoot_feedback_update(void)
 	{
 		shoot_control.left_click_hold_time = 0;
 	}
-	get_shoot_heat0_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
+	// get_shoot_heat0_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
+	shoot_control.heat_limit = 100;
+	shoot_control.heat = 0;
 }
 
 static void trigger_motor_stall_handler(void)
@@ -502,7 +505,7 @@ static void trigger_motor_stall_handler(void)
 bool_t isOverheated(void)
 {
 	bool_t out = 0;
-	if (toe_is_error(REFEREE_TOE) == 0)
+	// if (toe_is_error(REFEREE_TOE) == 0)
 	{
 		if (SHOOT_HEAT_LIMIT_CLEARANCE > shoot_control.heat_limit)
 		{

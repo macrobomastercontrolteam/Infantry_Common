@@ -5,7 +5,7 @@
 #include "graphic.h"
 #include "CRC8_CRC16.h"
 #include "protocol.h"
-#include "referee.h"
+// #include "referee.h"
 #include "usart.h"
 #include <stdarg.h>
 #include <stdio.h>
@@ -488,7 +488,7 @@ int update_ui(graphic_data_struct_t *image_ptr)
 {
 	ext_student_interactive_header_data_t custom_grapic_draw;
 
-	uint16_t sender_id = get_robot_id();
+	uint16_t sender_id = 1;
 	uint16_t receiver_id = get_receiver_id(sender_id);
 
 	custom_grapic_draw.data_cmd_id = 0x0101; // Draw one graphics (Content ID, refer to the referee system manual for queries)
@@ -507,7 +507,7 @@ int update_char(string_data *string_ptr)
 {
 	string_payload custom_grapic_draw;
 
-	uint16_t sender_id = get_robot_id();
+	uint16_t sender_id = 1;
 	uint16_t receiver_id = get_receiver_id(sender_id);
 
 	custom_grapic_draw.data_cmd_id = UI_Data_ID_DrawChar; // Draw one graphics (Content ID, refer to the referee system manual for queries)
