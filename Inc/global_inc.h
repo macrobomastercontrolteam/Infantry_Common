@@ -9,7 +9,7 @@
 
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE INFANTRY_2024_MECANUM
-#define CV_INTERFACE 1
+#define CV_INTERFACE 0
 #define DEBUG_CV_WITH_USB 0
 #define ENABLE_LASER 1
 #define USE_SERVO_TO_STIR_AMMO 0
