@@ -28,10 +28,10 @@
 #define METER_PER_SEC_ECD_MAX_LIMIT 1.5f
 #define METER_ENCODER_MAX_LIMIT 0.5f
 #define ANGLE_ECD_MAX_LIMIT (PI / 12.0f)
-
+//Data for HIP movement calculation
 #define CHASSIS_A_LENGTH 0.322815f
 #define CHASSIS_HALF_A_LENGTH (CHASSIS_A_LENGTH / 2.0f)
-#define CHASSIS_L1_LENGTH 0.12f
+#define CHASSIS_L1_LENGTH 0.12f //Length of the linkage on Swerve leg
 #define CHASSIS_L2_LENGTH 0.177353f
 #define CHASSIS_THETA_LOWER_LIMIT 0.0f
 #define CHASSIS_THETA_UPPER_LIMIT DEG_TO_RAD(68.28f)
