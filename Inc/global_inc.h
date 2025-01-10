@@ -15,8 +15,10 @@
 #define USE_SERVO_TO_STIR_AMMO 0
 /********************* Only Modify this area (end) *********************/
 
-#if ((ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == INFANTRY_2024_MECANUM))
+//#if ((ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == INFANTRY_2024_MECANUM))
 // Yaw use DaMiao 4310
+#if ((ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE))
+
 #define ROBOT_YAW_IS_4310 1
 #else
 #define ROBOT_YAW_IS_4310 0
