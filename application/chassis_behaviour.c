@@ -167,12 +167,14 @@ void chassis_behaviour_change_transit(void)
 				chassis_move.chassis_relative_angle_set = 0;
 				break;
 			}
+#if CV_INTERFACE
 			case CHASSIS_CV_CONTROL_MODE:
 			{
 				// safety guard
 				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
 				break;
 			}
+#endif
 			case CHASSIS_SPINNING_MODE:
 			{
 				// Relative angle implementation for chassis spinning mode

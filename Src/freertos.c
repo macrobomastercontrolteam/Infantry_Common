@@ -40,6 +40,7 @@
 // #include "servo_task.h"
 #include "cv_usart_task.h"
 #include "custom_ui_task.h"
+#include "usart_divice_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,6 +59,7 @@ osThreadId usb_task_handle;
 // osThreadId servo_task_handle;
 osThreadId cv_usart_task_handle;
 osThreadId custom_ui_task_handle;
+osThreadId usart_divice_task_handle;
 
 
 /* USER CODE END PTD */
@@ -181,7 +183,10 @@ void MX_FREERTOS_Init(void) {
 
     osThreadDef(customUITask, custom_ui_task, osPriorityBelowNormal, 0, 512);
     custom_ui_task_handle = osThreadCreate(osThread(customUITask), NULL);
-
+#if USART_DIVICE
+    osThreadDef(usartDiviceTask, usart_divice_task, osPriorityNormal, 0, 512);
+    usart_divice_task_handle = osThreadCreate(osThread(usartDiviceTask), NULL);
+#endif
 
     // osThreadDef(USBTask, usb_task, osPriorityNormal, 0, 128);
     // usb_task_handle = osThreadCreate(osThread(USBTask), NULL);
@@ -192,10 +197,10 @@ void MX_FREERTOS_Init(void) {
     // osThreadDef(SERVO, servo_task, osPriorityNormal, 0, 128);
     // servo_task_handle = osThreadCreate(osThread(SERVO), NULL);
 #if CV_INTERFACE
-    osThreadDef(CVTask, cv_usart_task, osPriorityNormal, 0, 256);
+        osThreadDef(CVTask, cv_usart_task, osPriorityNormal, 0, 256);
     cv_usart_task_handle = osThreadCreate(osThread(CVTask), NULL);
 #else
-    UNUSED(cv_usart_task_handle);
+        UNUSED(cv_usart_task_handle);
 #endif
 
   /* USER CODE END RTOS_THREADS */

@@ -9,10 +9,13 @@
 
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE INFANTRY_2024_MECANUM
-#define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define ENABLE_LASER 1
 #define USE_SERVO_TO_STIR_AMMO 0
+//use uart1 port for-
+#define CV_INTERFACE 0
+#define USART_VOFA 0
+#define USART_DIVICE 1 
 /********************* Only Modify this area (end) *********************/
 
 #if ((ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == INFANTRY_2024_MECANUM))

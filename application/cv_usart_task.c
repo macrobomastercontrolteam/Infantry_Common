@@ -548,13 +548,14 @@ uint8_t CvCmder_MockModeChange(void)
 }
 #endif // DEBUG_CV_WITH_USB
 
-#endif // CV_INTERFACE
+
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
+	
 	if (huart->Instance == USART1)
 	{
-#if CV_INTERFACE
+
 		uint16_t uiHeaderFinder = 0;
 		while ((uiHeaderFinder < Size) && (Size - uiHeaderFinder >= sizeof(CvRxBuffer.abData)))
 		{
@@ -579,14 +580,15 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 				uiHeaderFinder++;
 			}
 		}
-#endif
+
 		// @TODO: change to circular buffer strategy for faster restart time of DMA
 		/* start the DMA again */
 		// Do not remove this, otherwise RTOS task will stuck for unkown reasons
 		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
 		__HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
 	}
+	
 }
-
+#endif // CV_INTERFACE
 // End of section using anonymous unions
 #pragma pop
