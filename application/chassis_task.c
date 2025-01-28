@@ -63,7 +63,7 @@ static void chassis_set_control(void);
  */
 static void chassis_control_loop(void);
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_SWERVE)
 static uint16_t motor_angle_to_ecd_change(fp32 angle);
 void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle);
 void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32 alpha2, fp32 gimbal_chassis_relative_yaw_angle);
@@ -196,7 +196,7 @@ static void chassis_init(void)
 	chassis_move.fRandomSpinOn = 0;
 #endif
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 	// special assignment to ensure fHipDisabledEdge not being miscalculated by the garbage data
 	chassis_move.fHipEnabled = 0;
 	swerve_chassis_params_reset();
@@ -208,7 +208,7 @@ static void chassis_init(void)
 	chassis_feedback_update();
 }
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 void swerve_chassis_back_home(void)
 {
 	// back to middle height, which has the largest workspace for alpha angle
@@ -285,7 +285,7 @@ static void chassis_feedback_update(void)
 		chassis_move.motor_chassis[i].accel = chassis_move.motor_speed_pid[i].Dbuf[0] * CHASSIS_CONTROL_FREQUENCE;
 	}
 
-#if (ROBOT_TYPE != INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE != INFANTRY_2023_SWERVE) && (ROBOT_TYPE != HERO_2025_SWERVE)
 	// update chassis parameters: vertical speed x, horizontal speed y, rotation speed wz, right hand rule
 	chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
 	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
@@ -534,7 +534,7 @@ void biped_platform_rc_mapping(void)
 }
 #endif
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 void swerve_platform_rc_mapping(void)
 {
 	// configuration for pseudo RPY-to-tilt conversion
@@ -722,7 +722,7 @@ static void mecanum_chassis_vector_to_wheel_speed(const fp32 vx_set, const fp32 
 	wheel_speed[2] = vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[2] * wz_set;
 	wheel_speed[3] = -vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[3] * wz_set;
 }
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 /**
  * @brief          four drive wheels' speeds and four steering wheels' angles are calculated by three chassis param.
  * @param[in]      vx_set: vertial speed (up is positive)
@@ -966,7 +966,7 @@ static void chassis_control_loop(void)
 #if ROBOT_CHASSIS_USE_MECANUM
 	// mecanum chassis inverse kinematics
 	mecanum_chassis_vector_to_wheel_speed(chassis_move.vx_set, chassis_move.vy_set, chassis_move.wz_set, wheel_speed);
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 	// swerve chassis inverse kinematics
 	fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit rad
 	swerve_chassis_vector_to_wheel_vector(chassis_move.vx_set, chassis_move.vy_set, chassis_move.wz_set, wheel_speed, steer_wheel_angle);
@@ -977,7 +977,7 @@ static void chassis_control_loop(void)
 		for (i = 0; i < 4; i++)
 		{
 			chassis_move.motor_chassis[i].give_current = (int16_t)(wheel_speed[i]);
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 			chassis_move.steer_motor_chassis[i].target_ecd = motor_angle_to_ecd_change(steer_wheel_angle[i]);
 #endif
 		}
@@ -994,7 +994,7 @@ static void chassis_control_loop(void)
 				max_vector = temp;
 			}
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 			chassis_move.steer_motor_chassis[i].target_ecd = motor_angle_to_ecd_change(steer_wheel_angle[i]);
 #endif
 		}
@@ -1044,7 +1044,7 @@ fp32 chassis_get_ultra_low_wz_limit(void)
 	return (chassis_move.wz_max_speed * 0.167f);
 }
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 /**
  * @brief Convert motor angle from radian to encoder unit
  * Requirements:

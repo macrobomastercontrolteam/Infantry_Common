@@ -86,7 +86,7 @@ typedef enum
   SUPCAP_RX_ID = 0x301,
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 	CAN_STEER_CONTROLLER_TX_ID = 0x112,
 	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
   // sends target chassis platform params: alpha1, alpha2, center height
@@ -160,7 +160,7 @@ extern void CAN_cmd_chassis_reset_ID(void);
   */
 extern void CAN_cmd_chassis(void);
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 #if USE_SERVO_TO_STIR_AMMO
 void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes);
 #endif

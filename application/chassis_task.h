@@ -44,7 +44,7 @@
 #define CHASSIS_TEST_MODE 0
 
 // chassis platform parameters
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 #define CHASSIS_A_LENGTH 0.322815f
 #define CHASSIS_HALF_A_LENGTH (CHASSIS_A_LENGTH / 2.0f)
 #define CHASSIS_L1_LENGTH 0.12f
@@ -74,7 +74,7 @@
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.2788f
 #elif (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.25010678f
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 // angle going from the right direction to front-right leg
 #define CHASSIS_LEG_TO_HORIZONTAL_ANGLE (PI / 4.0f)
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.3535533906f
@@ -104,7 +104,7 @@
 #define M3508_MOTOR_GEAR_RATIO (3591.0f / 187.0f)
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define DRIVE_WHEEL_RADIUS 0.0785f
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 #define DRIVE_WHEEL_RADIUS 0.055f
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 #define DRIVE_WHEEL_RADIUS 0.0675f
@@ -136,7 +136,7 @@
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 // avoid changing angle too often near zero speed
 #define STEER_TURN_X_SPEED_DEADZONE 0.01f
 #define STEER_TURN_Y_SPEED_DEADZONE (STEER_TURN_X_SPEED_DEADZONE * NORMAL_MAX_CHASSIS_SPEED_Y / NORMAL_MAX_CHASSIS_SPEED_X)
@@ -213,7 +213,7 @@ typedef struct
 	int16_t give_current;
 } chassis_motor_t;
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 typedef struct
 {
 	fp32 target_roll;
@@ -264,7 +264,7 @@ typedef union
 
 extern supcap_t cap_message_rx;
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 typedef struct
 {
 	uint16_t target_ecd; ///< unit encoder unit; range is [0, 8191]; positive direction is clockwise; forward direction of chassis is 0 ecd
@@ -280,7 +280,7 @@ typedef struct
 	chassis_coord_sys_e chassis_coord_sys;               // state machine
 	pid_type_def chassis_angle_pid;            // follow angle PID
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 	fp32 wheel_rot_radii[4];
 	chassis_motor_t motor_chassis[4];          // chassis motor data
 	pid_type_def motor_speed_pid[4];           // motor speed PID
@@ -304,7 +304,7 @@ typedef struct
 	first_order_filter_type_t chassis_cmd_slow_set_vy; // use first order filter to slow set-point
 	first_order_filter_type_t chassis_cmd_slow_set_wz; // use first order filter to slow set-point
 
-#if !(ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if !(ROBOT_TYPE == INFANTRY_2023_SWERVE) || !(ROBOT_TYPE == HERO_2025_SWERVE)
 	fp32 vx; // chassis vertical speed, positive means forward,unit m/s
 	fp32 vy; // chassis horizontal speed, positive means letf,unit m/s
 	fp32 wz; // chassis rotation speed, positive means counterclockwise,unit rad/s
@@ -353,7 +353,7 @@ fp32 chassis_get_med_wz_limit(void);
 fp32 chassis_get_low_wz_limit(void);
 fp32 chassis_get_ultra_low_wz_limit(void);
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 void swerve_platform_rc_mapping(void);
 void swerve_chassis_back_home(void);
 void swerve_chassis_params_reset(void);

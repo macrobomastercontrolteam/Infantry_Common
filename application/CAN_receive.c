@@ -33,7 +33,7 @@
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
-#define ENABLE_DRIVE_MOTOR_POWER 0
+#define ENABLE_DRIVE_MOTOR_POWER 1
 #define ENABLE_YAW_MOTOR_POWER 0
 #define ENABLE_PITCH_MOTOR_POWER 0
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
@@ -43,8 +43,10 @@
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define ENABLE_UPPER_HEAD_POWER 0
+#elif (ROBOT_TYPE == HERO_2025_SWERVE)
+#define ENABLE_STEER_MOTOR_POWER 1
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-#define ENABLE_STEER_MOTOR_POWER 0
+#define ENABLE_STEER_MOTOR_POWER 1
 #define ENABLE_HIP_MOTOR_POWER 0
 #endif
 
@@ -55,7 +57,7 @@
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 1
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_SWERVE)
 #define IS_TRIGGER_ON_GIMBAL 0
 #else
 #define IS_TRIGGER_ON_GIMBAL 0
@@ -102,7 +104,7 @@ const fp32 MIT_CONTROL_KP_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0
 const fp32 MIT_CONTROL_KD_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {5.0f, 5.0f, 5.0f};
 const fp32 MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f};
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE || ROBOT_TYPE == HERO_2025_SWERVE)
 #define SWERVE_METER_PER_SEC_ECD_MAX_LIMIT 1.5f
 #define SWERVE_METER_ECD_MAX_LIMIT 0.5f
 #define SWERVE_ANGLE_ECD_MAX_LIMIT (PI / 12.0f)
@@ -252,7 +254,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				break;
 			}
 #endif
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 			case CAN_SHRINKED_CONTROLLER_RX_ID:
 			{
 				if (decode_swerve_chassis_feedback(rx_data))
@@ -413,7 +415,7 @@ HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 	return ret_value;
 }
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 uint8_t decode_swerve_chassis_feedback(uint8_t *data)
 {
 	uint8_t fDataValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
@@ -675,7 +677,7 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
  */
 void CAN_cmd_chassis_reset_ID(void)
 {
-#if ROBOT_CHASSIS_USE_MECANUM || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if ROBOT_CHASSIS_USE_MECANUM || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 	uint32_t send_mail_box;
 	chassis_tx_message.StdId = 0x700;
 	chassis_tx_message.IDE = CAN_ID_STD;
@@ -747,7 +749,7 @@ void CAN_cmd_upper_head(void)
 
 void CAN_cmd_chassis(void)
 {
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 	CAN_cmd_3508_chassis();
 	osDelay(1);
 	CAN_cmd_swerve_steer();
@@ -827,7 +829,7 @@ void CAN_cmd_3508_chassis(void)
 #endif
 }
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 void CAN_cmd_swerve_steer(void)
 {
 	uint32_t send_mail_box;
@@ -947,7 +949,7 @@ const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_index)
 
 void chassis_enable_platform_flag(uint8_t fEnabled)
 {
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 
 #if ENABLE_HIP_MOTOR_POWER
 	chassis_move.fHipDisabledEdge = ((fEnabled == 0) && chassis_move.fHipEnabled);

@@ -139,7 +139,7 @@
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
 
 //pitch speed close-loop PID params, max out and max iout
 // for cv auto-aim: 10000, 10000

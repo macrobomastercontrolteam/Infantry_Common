@@ -266,7 +266,8 @@ static void detect_init(uint32_t time)
     error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
 #endif
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == HERO_2025_SWERVE)
+    error_list[SWERVE_CTRL_TOE].solve_lost_fun = swerve_chassis_params_reset;
 	error_list[SWERVE_CTRL_TOE].solve_lost_fun = swerve_chassis_params_reset;
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	error_list[BIPED_CTRL_TOE].solve_lost_fun = biped_chassis_params_reset;
