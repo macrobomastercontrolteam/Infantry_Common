@@ -59,6 +59,8 @@ bool_t isOverheated(void);
 
 shoot_control_t shoot_control;
 
+uint16_t s_data;
+
 /**
  * @brief          Initialize the shoot control, including PID, remote control pointer, and motor pointer
  * @param[in]      void
@@ -124,182 +126,59 @@ int16_t shoot_control_loop(void)
 		// laser_enable(shoot_control.shoot_mode != SHOOT_STOP);
 		switch (shoot_control.shoot_mode)
 		{
-			case SHOOT_STOP:
-			{
-#if USE_SERVO_TO_STIR_AMMO
-				CAN_cmd_load_servo(0, 3);
-#endif
-				break;
-			}
-			case SHOOT_READY_FRIC:
-			{
-#if USE_SERVO_TO_STIR_AMMO
-				CAN_cmd_load_servo(1, 3);
-#endif
-				shoot_control.trigger_speed_set = 0;
+		case SHOOT_STOP:
+		{
+			break;
+		}
+		case SHOOT_READY_FRIC:
+		{
+			shoot_control.trigger_speed_set = 0;
 
-				PID_clear(&shoot_control.friction_motor1_pid);
-				PID_clear(&shoot_control.friction_motor2_pid);
+			PID_clear(&shoot_control.friction_motor1_pid);
+			PID_clear(&shoot_control.friction_motor2_pid);
 
-				shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
-				shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
+			shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
+			shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
 
-				shoot_control.friction_motor1_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-				shoot_control.friction_motor2_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-				break;
-			}
-			case SHOOT_AUTO_FIRE:
-			{
-				break;
-			}
-			case SHOOT_SEMI_AUTO_FIRE:
-			{
-				shoot_control.set_angle = rad_format(shoot_control.angle + TRIGGER_ANGLE_INCREMENT);
-				shoot_control.trigger_speed_set = SEMI_AUTO_FIRE_TRIGGER_SPEED;
-				break;
-			}
-			default:
-			{
-				break;
-			}
+			shoot_control.friction_motor1_rpm_set = -LAUNCHER_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+			shoot_control.friction_motor2_rpm_set = -LAUNCHER_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+			break;
+		}
+		default:
+		{
+			break;
+		}
 		}
 		pre_shoot_mode = shoot_control.shoot_mode;
 	}
 
 	switch (shoot_control.shoot_mode)
 	{
-		case SHOOT_STOP:
+	case SHOOT_STOP:
+	{
+		shoot_control.friction_motor1_rpm_set = 0.0f;
+		shoot_control.friction_motor2_rpm_set = 0.0f;
+		shoot_control.trigger_speed_set = 0;
+		if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
 		{
-			shoot_control.friction_motor1_rpm_set = 0.0f;
-			shoot_control.friction_motor2_rpm_set = 0.0f;
-			shoot_control.trigger_speed_set = 0;
-			if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
-			{
-				shoot_control.friction_motor1_pid.max_out = 0;
-				shoot_control.friction_motor2_pid.max_out = 0;
-			}
-			else
-			{
-				shoot_control.friction_motor1_pid.max_out = 1000;
-				shoot_control.friction_motor2_pid.max_out = 1000;
-			}
-			break;
+			shoot_control.friction_motor1_pid.max_out = 0;
+			shoot_control.friction_motor2_pid.max_out = 0;
 		}
-		case SHOOT_READY_FRIC:
+		else
 		{
-			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
-			{
-#if CV_INTERFACE
-				if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // Auto aim
-				{
-					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
-					{
-						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-					}
-				}
-				else // Manual control
-#endif
-				{
-					if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
-					{
-						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-					}
-					else if (shoot_control.press_l)
-					{
-						if (shoot_control.left_click_hold_time >= RC_S_LONG_TIME)
-						{
-							shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-						}
-						else
-						{
-							shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
-						}
-					}
-				}
-			}
-			break;
+			shoot_control.friction_motor1_pid.max_out = 1000;
+			shoot_control.friction_motor2_pid.max_out = 1000;
 		}
-		// rotate trigger motor until a bullet is loaded and ready to fire, therefore, requires a microswitch to function
-		case SHOOT_READY_TRIGGER:
-		{
-			if (shoot_control.key == SWITCH_TRIGGER_OFF)
-			{
-				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
-			}
-			// else
-			// {
-			//     shoot_control.trigger_speed_set = 0.0f;
-			//     shoot_control.shoot_mode = SHOOT_READY;
-			// }
-			break;
-		}
-		case SHOOT_READY:
-		{
-			if (shoot_control.key == SWITCH_TRIGGER_OFF)
-			{
-				shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
-			}
-			break;
-		}
-		case SHOOT_SEMI_AUTO_FIRE:
-		{
-			if (shoot_control.press_r == 0)
-			{
-				shoot_control.shoot_mode = SHOOT_STOP;
-			}
-			else if (shoot_control.left_click_hold_time >= RC_S_LONG_TIME)
-			{
-				shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-			}
-			else if ((rad_format(shoot_control.set_angle - shoot_control.angle) <= TRIGGER_MOTOR_ANGLE_THRESHOLD) || isOverheated())
-			{
-				shoot_control.trigger_speed_set = 0.0f;
-				shoot_control.set_angle = shoot_control.angle;
-				shoot_control.shoot_mode = SHOOT_READY_FRIC;
-			}
-			break;
-		}
-		case SHOOT_AUTO_FIRE:
-		{
-#if CV_INTERFACE
-			if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // auto aim
-			{
-				if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) == 0)
-				{
-					shoot_control.shoot_mode = SHOOT_READY_FRIC;
-				}
-			}
-			else
-#endif
-			{
-				if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
-				{
-					; // stay in auto fire mode
-				}
-				else
-				{
-					if ((shoot_control.press_r == 0)) // && (shoot_control.key == SWITCH_TRIGGER_OFF)
-					{
-						shoot_control.shoot_mode = SHOOT_STOP;
-					}
-					else if ((shoot_control.press_l == 0))
-					{
-						// shoot_control.trigger_speed_set = 0;
-						shoot_control.shoot_mode = SHOOT_READY_FRIC;
-					}
-				}
-			}
-
-			if (isOverheated())
-			{
-				shoot_control.trigger_speed_set = 0;
-			}
-			else
-			{
-				shoot_control.trigger_speed_set = AUTO_FIRE_TRIGGER_SPEED;
-			}
-			break;
-		}
+		break;
+	}
+	case SHOOT_READY_FRIC:
+	{
+		break;
+	}
+	default:
+	{
+		break;
+	}
 	}
 
 	trigger_motor_stall_handler();
@@ -324,76 +203,43 @@ int16_t shoot_control_loop(void)
 static void shoot_set_mode(void)
 {
 
-	// normal RC control
-	if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
+	// remote controller S1 switch logic
+	static int8_t last_s = RC_SW_UP;
+	int8_t new_s = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL];
+	switch (new_s)
 	{
-		shoot_control.shoot_mode = SHOOT_STOP;
+	case RC_SW_UP:
+	{
+		if (last_s != RC_SW_UP)
+		{
+			shoot_control.shoot_mode = SHOOT_READY_FRIC;
+		}
+		break;
 	}
-	else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_shooter_output == 0))
+	case RC_SW_MID:
 	{
-		shoot_control.shoot_mode = SHOOT_STOP;
-	}
-#if CV_INTERFACE
-	else if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // auto aim mode
-	{
-		if (is_game_started() == 0)
+		if (shoot_control.press_r)
+		{
+			if (shoot_control.last_press_r == 0)
+			{
+				shoot_control.shoot_mode = SHOOT_READY_FRIC; // start rotatiing friction wheel
+			}
+		}
+		else
 		{
 			shoot_control.shoot_mode = SHOOT_STOP;
 		}
-		else if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
-		{
-			if (shoot_control.shoot_mode != SHOOT_AUTO_FIRE)
-			{
-				shoot_control.shoot_mode = SHOOT_READY_FRIC; // prepare to shoot
-			}
-			// reset the start time during shooting
-			shoot_control.cv_auto_shoot_start_time = osKernelSysTick();
-		}
-		else if ((osKernelSysTick() - shoot_control.cv_auto_shoot_start_time) > AUTOAIM_READY_TIMEOUT)
-		{
-			shoot_control.shoot_mode = SHOOT_STOP;
-		}
+		break;
 	}
-#endif
-	else
+	case RC_SW_DOWN:
+	default:
 	{
-		// remote controller S1 switch logic
-		static int8_t last_s = RC_SW_UP;
-		int8_t new_s = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL];
-		switch (new_s)
-		{
-			case RC_SW_UP:
-			{
-				if (last_s != RC_SW_UP)
-				{
-					shoot_control.shoot_mode = SHOOT_READY_FRIC;
-				}
-				break;
-			}
-			case RC_SW_MID:
-			{
-				if (shoot_control.press_r)
-				{
-					if (shoot_control.last_press_r == 0)
-					{
-						shoot_control.shoot_mode = SHOOT_READY_FRIC; // start rotatiing friction wheel
-					}
-				}
-				else
-				{
-					shoot_control.shoot_mode = SHOOT_STOP;
-				}
-				break;
-			}
-			case RC_SW_DOWN:
-			default:
-			{
-				shoot_control.shoot_mode = SHOOT_STOP;
-				break;
-			}
-		}
-		last_s = new_s;
+		shoot_control.shoot_mode = SHOOT_STOP;
+		break;
 	}
+	}
+	last_s = new_s;
+	s_data = new_s;
 }
 
 static void shoot_feedback_update(void)

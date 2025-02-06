@@ -189,35 +189,35 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		switch (rx_header.StdId)
 		{
-			case CAN_3508_M1_ID:
-			{
-				bMotorId = MOTOR_INDEX_3508_M1;
-				decode_rm_motor_feedback(rx_data, bMotorId);
-        		detect_hook(CHASSIS_MOTOR1_TOE);
-				break;
-			}
-			case CAN_3508_M2_ID:
-			{
-        		bMotorId = MOTOR_INDEX_3508_M2;
-				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(CHASSIS_MOTOR2_TOE);
+			// case CAN_3508_M1_ID:
+			// {
+			// 	bMotorId = MOTOR_INDEX_3508_M1;
+			// 	decode_rm_motor_feedback(rx_data, bMotorId);
+        	// 	detect_hook(CHASSIS_MOTOR1_TOE);
+			// 	break;
+			// }
+			// case CAN_3508_M2_ID:
+			// {
+        	// 	bMotorId = MOTOR_INDEX_3508_M2;
+			// 	decode_rm_motor_feedback(rx_data, bMotorId);
+			// 	detect_hook(CHASSIS_MOTOR2_TOE);
         
-				break;
-			}
-			case CAN_3508_M3_ID:
-			{
-        		bMotorId = MOTOR_INDEX_3508_M3;
-				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(CHASSIS_MOTOR3_TOE);
-				break;
-			}
-			case CAN_3508_M4_ID:
-			{
-        		bMotorId = MOTOR_INDEX_3508_M4;
-				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(CHASSIS_MOTOR4_TOE);
-				break;
-			}
+			// 	break;
+			// }
+			// case CAN_3508_M3_ID:
+			// {
+        	// 	bMotorId = MOTOR_INDEX_3508_M3;
+			// 	decode_rm_motor_feedback(rx_data, bMotorId);
+			// 	detect_hook(CHASSIS_MOTOR3_TOE);
+			// 	break;
+			// }
+			// case CAN_3508_M4_ID:
+			// {
+        	// 	bMotorId = MOTOR_INDEX_3508_M4;
+			// 	decode_rm_motor_feedback(rx_data, bMotorId);
+			// 	detect_hook(CHASSIS_MOTOR4_TOE);
+			// 	break;
+			// }
 			case SUPCAP_RX_ID:
 			{
 				memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
@@ -580,7 +580,7 @@ void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, in
 {
 	uint32_t send_mail_box;
 	// CAN_6020_LOW_RANGE_TX_ID same as CAN_3508_OR_2006_HIGH_RANGE_TX_ID
-	gimbal_tx_message.StdId = CAN_6020_LOW_RANGE_TX_ID;
+	gimbal_tx_message.StdId = CAN_3508_OR_2006_LOW_RANGE_TX_ID;
 	gimbal_tx_message.IDE = CAN_ID_STD;
 	gimbal_tx_message.RTR = CAN_RTR_DATA;
 	gimbal_tx_message.DLC = 0x08;
@@ -594,51 +594,24 @@ void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, in
 #if (ENABLE_PITCH_MOTOR_POWER == 0)
 	pitch = 0;
 #endif
-#if ((ENABLE_FRICTION_1_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+#if ((ENABLE_FRICTION_1_MOTOR_POWER == 0) )
 	fric_left = 0;
 #endif
-#if ((ENABLE_FRICTION_2_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+#if ((ENABLE_FRICTION_2_MOTOR_POWER == 0) )
 	fric_right = 0;
-#endif
-
-	// control yaw motor and trigger motor
-#if ROBOT_YAW_IS_4310
-	// gimbal_can_send_data[0] = (rev >> 8);
-	// gimbal_can_send_data[1] = rev;
-#else
-	gimbal_can_send_data[0] = ((int16_t)yaw >> 8);
-	gimbal_can_send_data[1] = (int16_t)yaw;
-#endif
-	// gimbal_can_send_data[2] = (rev >> 8);
-	// gimbal_can_send_data[3] = rev;
-#if IS_TRIGGER_ON_GIMBAL
-	// gimbal_can_send_data[4] = (rev >> 8);
-	// gimbal_can_send_data[5] = rev;
-#else
-	gimbal_can_send_data[4] = (trigger >> 8);
-	gimbal_can_send_data[5] = trigger;
-#endif
-	// gimbal_can_send_data[6] = (rev >> 8);
-	// gimbal_can_send_data[7] = rev;
-	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
-#if ROBOT_YAW_IS_4310
-	osDelay(1);
 #endif
 
 	// control pitch motor and fric_left and fric_right
 	gimbal_can_send_data[0] = (fric_left >> 8);
 	gimbal_can_send_data[1] = fric_left;
-	gimbal_can_send_data[2] = ((int16_t)pitch >> 8);
-	gimbal_can_send_data[3] = (int16_t)pitch;
-#if IS_TRIGGER_ON_GIMBAL
-	gimbal_can_send_data[4] = (trigger >> 8);
-	gimbal_can_send_data[5] = trigger;
-#else
+	gimbal_can_send_data[2] = (fric_right >> 8);
+	gimbal_can_send_data[3] = fric_right;
+	
+	// gimbal_can_send_data[2] = ((int16_t)pitch >> 8);
+	// gimbal_can_send_data[3] = (int16_t)pitch;
 	// gimbal_can_send_data[4] = (rev >> 8);
 	// gimbal_can_send_data[5] = rev;
-#endif
-	gimbal_can_send_data[6] = (fric_right >> 8);
-	gimbal_can_send_data[7] = fric_right;
+
 	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
 #if ROBOT_YAW_IS_4310
