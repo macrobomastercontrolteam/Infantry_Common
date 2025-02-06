@@ -65,11 +65,9 @@
 #define FRICTION_MOTOR_SPEED_THRESHOLD 0.9f // 10% tolerance
 
 // max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
-#if ENABLE_SHOOT_REDUNDANT_SWITCH
-#define FRICTION_MOTOR_SPEED  26.0f
-#else
-#define FRICTION_MOTOR_SPEED  1.0f
-#endif
+
+#define LAUNCHER_MOTOR_SPEED 0.3f * M3508_MOTOR_GEAR_RATIO  //actual speed, in m/s
+
 
 // Unit: ammo per minute
 #define SEMI_AUTO_FIRE_RATE 1200.0f
@@ -110,16 +108,16 @@
 #define SHOOT_HEAT_LIMIT_CLEARANCE     60
 
 //Frictional wheel 1 PID
-#define FRICTION_1_SPEED_PID_KP        20.0f
+#define FRICTION_1_SPEED_PID_KP        15.0f
 #define FRICTION_1_SPEED_PID_KI        0.0f
-#define FRICTION_1_SPEED_PID_KD        0.0f
+#define FRICTION_1_SPEED_PID_KD        0.0002f
 #define FRICTION_1_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
 #define FRICTION_1_SPEED_PID_MAX_IOUT  200.0f
 
 //Frictional wheel 2 PID
-#define FRICTION_2_SPEED_PID_KP        20.0f
+#define FRICTION_2_SPEED_PID_KP        15.0f
 #define FRICTION_2_SPEED_PID_KI        0.0f
-#define FRICTION_2_SPEED_PID_KD        0.0f
+#define FRICTION_2_SPEED_PID_KD        0.0002f
 #define FRICTION_2_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
 #define FRICTION_2_SPEED_PID_MAX_IOUT  200.0f
 
@@ -187,7 +185,7 @@ typedef struct
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
 extern void shoot_init(void);
 extern int16_t shoot_control_loop(void);
-
+extern uint16_t s_data;
 extern shoot_control_t shoot_control;
 
 #endif
