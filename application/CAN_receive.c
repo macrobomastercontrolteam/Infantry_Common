@@ -607,11 +607,13 @@ void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, in
 	gimbal_can_send_data[2] = (fric_right >> 8);
 	gimbal_can_send_data[3] = fric_right;
 	
-	// gimbal_can_send_data[2] = ((int16_t)pitch >> 8);
-	// gimbal_can_send_data[3] = (int16_t)pitch;
-	// gimbal_can_send_data[4] = (rev >> 8);
-	// gimbal_can_send_data[5] = rev;
+	gimbal_tx_message.StdId = CAN_3508_OR_2006_HIGH_RANGE_TX_ID;
 
+	gimbal_can_send_data[0] = ((int16_t)pitch >> 8);
+	gimbal_can_send_data[1] = (int16_t)pitch;
+	gimbal_can_send_data[2] = ((int16_t)pitch >> 8);
+	gimbal_can_send_data[3] = (int16_t)pitch;
+	
 	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
 #if ROBOT_YAW_IS_4310

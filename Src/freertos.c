@@ -78,7 +78,7 @@ osThreadId usart_divice_task_handle;
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-// osThreadId testHandle;
+osThreadId testHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -150,8 +150,8 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of test */
-  // osThreadDef(test, test_task, osPriorityNormal, 0, 128);
-  // testHandle = osThreadCreate(osThread(test), NULL);
+  osThreadDef(test, test_task, osPriorityNormal, 0, 128);
+  testHandle = osThreadCreate(osThread(test), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

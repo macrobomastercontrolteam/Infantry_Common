@@ -186,6 +186,8 @@ typedef struct
 extern void shoot_init(void);
 extern int16_t shoot_control_loop(void);
 extern uint16_t s_data;
+extern uint16_t temp_data1;
+extern uint16_t temp_data2;
 extern shoot_control_t shoot_control;
 
 #endif

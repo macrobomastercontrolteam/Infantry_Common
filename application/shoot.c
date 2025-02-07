@@ -30,7 +30,7 @@
 #include "detect_task.h"
 #include "gimbal_behaviour.h"
 #include "pid.h"
-
+#include "bsp_gpio.h"
 // microswitch
 #define BUTTEN_TRIG_PIN HAL_GPIO_ReadPin(BUTTON_TRIG_GPIO_Port, BUTTON_TRIG_Pin)
 #define AUTOAIM_READY_TIMEOUT 4000
@@ -60,6 +60,8 @@ bool_t isOverheated(void);
 shoot_control_t shoot_control;
 
 uint16_t s_data;
+uint16_t temp_data1;
+uint16_t temp_data2;
 
 /**
  * @brief          Initialize the shoot control, including PID, remote control pointer, and motor pointer
@@ -218,6 +220,9 @@ static void shoot_set_mode(void)
 	}
 	case RC_SW_MID:
 	{
+		temp_data1 = gpio_cmd_pitch_forward();
+		temp_data2 = gpio_cmd_pitch_backward();
+		
 		if (shoot_control.press_r)
 		{
 			if (shoot_control.last_press_r == 0)
