@@ -248,7 +248,8 @@ void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_valu
     }
 
     // safety for shoot
-    if (toe_is_error(TRIGGER_MOTOR_TOE) || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+    //if (toe_is_error(TRIGGER_MOTOR_TOE) || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+    if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
     {
         *fric1_set_current_ptr = 0;
         *fric1_set_current_ptr = 0;
