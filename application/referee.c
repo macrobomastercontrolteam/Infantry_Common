@@ -293,6 +293,7 @@ void referee_data_solve(uint8_t *frame)
 					chassis_move.robot_arm_motor_pos[i] = fp32_constrain(diy_controller.tData.demoArmAngle[i], joint_angle_min[i], joint_angle_max[i]);
 				}
 				chassis_move.fHoming = 0;
+				chassis_move.fStatic = 0;
 			}
 			break;
         }
