@@ -10,6 +10,7 @@
 		"string": "c",
 		"type_traits": "c",
 		"robot_arm_task.h": "c",
-		"user_lib.h": "c"
+		"user_lib.h": "c",
+		"detect_task.h": "c"
 	}
 }

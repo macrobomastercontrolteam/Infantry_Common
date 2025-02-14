@@ -16,6 +16,7 @@ const fp32 joint_angle_home[7] = {ARM_JOINT_0_ANGLE_HOME, ARM_JOINT_1_ANGLE_HOME
 const fp32 arm_end_min[6] = {ARM_END_EFFECTOR_ROLL_MIN, ARM_END_EFFECTOR_PITCH_MIN, ARM_END_EFFECTOR_YAW_MIN, ARM_END_EFFECTOR_X_MIN, ARM_END_EFFECTOR_Y_MIN, ARM_END_EFFECTOR_Z_MIN};
 const fp32 arm_end_max[6] = {ARM_END_EFFECTOR_ROLL_MAX, ARM_END_EFFECTOR_PITCH_MAX, ARM_END_EFFECTOR_YAW_MAX, ARM_END_EFFECTOR_X_MAX, ARM_END_EFFECTOR_Y_MAX, ARM_END_EFFECTOR_Z_MAX};
 const fp32 arm_end_home[6] = {ARM_END_EFFECTOR_ROLL_HOME, ARM_END_EFFECTOR_PITCH_HOME, ARM_END_EFFECTOR_YAW_HOME, ARM_END_EFFECTOR_X_HOME, ARM_END_EFFECTOR_Y_HOME, ARM_END_EFFECTOR_Z_HOME};
+const fp32 joint_angle_static[7] = {ARM_JOINT_0_ANGLE_STATIC, ARM_JOINT_1_ANGLE_STATIC, ARM_JOINT_2_ANGLE_STATIC, ARM_JOINT_3_ANGLE_STATIC, ARM_JOINT_4_ANGLE_STATIC, ARM_JOINT_5_ANGLE_STATIC, ARM_JOINT_6_ANGLE_STATIC};
 
 // const fp32 yaw_offset = 0;
 // const fp32 pitch_offset = 0;
@@ -79,6 +80,11 @@ void robot_arm_state_transition(void)
 				robot_arm_all_motors_return_home();
 				break;
 			}
+			case ARM_STATE_STATIC:
+            {
+                robot_arm_return_static(0, JOINT_ID_LAST - 1);
+                break;
+            }   
 			case ARM_STATE_ZERO_FORCE:
 			case ARM_STATE_MOVE:
 			default:
@@ -134,9 +140,13 @@ void robot_arm_control(void)
 			{
 				robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
 			}
-			else if (fIsStateHoldTimePassed && robot_arm.fHoming)
+			else if (fIsStateHoldTimePassed && robot_arm.fHoming && (robot_arm.fStatic == 0))
 			{
 				robot_arm.arm_state = ARM_STATE_HOMING;
+			}
+			else if (fIsStateHoldTimePassed && robot_arm.fStatic && (robot_arm.fHoming == 0))
+			{
+				robot_arm.arm_state = ARM_STATE_STATIC;
 			}
 			arm_joints_cmd_position(robot_arm.joint_angle_target, robot_arm.time_step_s);
 			break;
@@ -147,9 +157,13 @@ void robot_arm_control(void)
 			{
 				robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
 			}
-			else if (fIsStateHoldTimePassed && (robot_arm.fHoming == 0))
+			else if (fIsStateHoldTimePassed && (robot_arm.fHoming == 0) && (robot_arm.fStatic == 0))
 			{
 				robot_arm.arm_state = ARM_STATE_MOVE;
+			}
+			else if(fIsStateHoldTimePassed && (robot_arm.fHoming == 0) && (robot_arm.fStatic == 1))
+			{
+				robot_arm.arm_state = ARM_STATE_STATIC;
 			}
 			else if (fIsStateHoldTimePassed && is_joint_target_reached(DEG_TO_RAD(5.45f), NULL))
 			{
@@ -158,6 +172,27 @@ void robot_arm_control(void)
 			arm_joints_cmd_position(robot_arm.joint_angle_target, robot_arm.time_step_s);
 			break;
 		}
+		case ARM_STATE_STATIC:
+        {
+            if (robot_arm.fMasterSwitch == 0)
+			{
+				robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
+			}
+            else if (fIsStateHoldTimePassed && (robot_arm.fHoming == 0) && (robot_arm.fStatic == 0))
+			{
+				robot_arm.arm_state = ARM_STATE_MOVE;
+			}
+			else if (fIsStateHoldTimePassed && robot_arm.fHoming && (robot_arm.fStatic == 0))
+			{
+				robot_arm.arm_state = ARM_STATE_HOMING;
+			}                 
+			else if (fIsStateHoldTimePassed && is_joint_target_reached(DEG_TO_RAD(5.45f), NULL))
+			{
+				robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
+			}
+			arm_joints_cmd_position(robot_arm.joint_angle_target, robot_arm.time_step_s);
+			break;
+        }
 		case ARM_STATE_ZERO_FORCE:
 		default:
 		{
@@ -251,6 +286,7 @@ void robot_arm_init(void)
 	// robot_arm.arm_INS_accel = get_accel_data_point();
 	robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
 	robot_arm.fHoming = 0;
+	robot_arm.fStatic = 0;
 	robot_arm.fMasterSwitch = 0;
 	robot_arm.prevStateSwitchTime = osKernelSysTick();
 
@@ -270,6 +306,11 @@ void robot_arm_motors_return_home(uint8_t _start, uint8_t _end)
 	{
 		memcpy(&robot_arm.joint_angle_target[_start], &joint_angle_home[_start], (_end - _start + 1) * sizeof(joint_angle_home[0]));
 	}
+}
+
+void robot_arm_return_static(uint8_t _start, uint8_t _end)
+{
+    memcpy(&robot_arm.joint_angle_target[_start], &joint_angle_static[_start], (_end - _start + 1) * sizeof(joint_angle_static[0]));
 }
 
 void robot_arm_assign_current_as_target(void)

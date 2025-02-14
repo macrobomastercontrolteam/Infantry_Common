@@ -282,7 +282,7 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 {
 	uint8_t fIsSpecialCmd = 0;
 	uint8_t specialCmd = data[0];
-	if ((specialCmd == 0x00) || (specialCmd == 0xFF))
+	if ((specialCmd == 0x00) || (specialCmd == 0xFF) || (specialCmd == 0xAA))
 	{
 		fIsSpecialCmd = 1;
 		for (uint8_t i = 1; i < 8; i++)
@@ -304,11 +304,20 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 			{
 				robot_arm.fMasterSwitch = 0;
 				robot_arm.fHoming = 0;
+				robot_arm.fStatic = 0;
 				break;
 			}
 			case 0xFF:
 			{
 				robot_arm.fHoming = 1;
+				robot_arm.fStatic = 0;
+				robot_arm_switch_on_power();
+				break;
+			}
+			case 0xAA:
+			{
+				robot_arm.fHoming = 0;
+				robot_arm.fStatic = 1;
 				robot_arm_switch_on_power();
 				break;
 			}
@@ -317,6 +326,7 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 	else
 	{
 		robot_arm.fHoming = 0;
+		robot_arm.fStatic = 0;
 		robot_arm_switch_on_power();
 
 		switch (id)

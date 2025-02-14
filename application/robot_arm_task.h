@@ -17,6 +17,13 @@
 
 #define ROBOT_ARM_JSCOPE_DEBUG 1
 /*********** Robot Configs End ***********/
+#define ARM_JOINT_0_ANGLE_STATIC 0.12226295471191406f       
+#define ARM_JOINT_1_ANGLE_STATIC -0.12252672016620636f
+#define ARM_JOINT_2_ANGLE_STATIC -0.9702428579330444f
+#define ARM_JOINT_3_ANGLE_STATIC 0.21572399139404297f
+#define ARM_JOINT_4_ANGLE_STATIC 0.0165939331054687f
+#define ARM_JOINT_5_ANGLE_STATIC 1.5642404556274414f
+#define ARM_JOINT_6_ANGLE_STATIC -0.8927768468856f
 
 #define ROBOT_ARM_TASK_INIT_TIME 500.0f
 // task loop delay time
@@ -170,6 +177,7 @@ typedef enum
 	ARM_STATE_ZERO_FORCE = 0,
 	ARM_STATE_HOMING,
 	ARM_STATE_MOVE,
+	ARM_STATE_STATIC,
 } robot_arm_state_e;
 
 typedef struct
@@ -183,6 +191,7 @@ typedef struct
 	robot_arm_state_e arm_state;
 	uint32_t prevStateSwitchTime;
 	uint8_t fHoming;
+	uint8_t fStatic;
 	uint8_t fMasterSwitch;
 
 	const fp32 *arm_INS_angle;
