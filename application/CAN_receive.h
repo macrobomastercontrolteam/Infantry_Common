@@ -74,7 +74,7 @@ typedef struct
 
 typedef enum
 {
-  ,
+  ROBOT_ARM_CHANGEABLE,
   ROBOT_ARM_HOME,
   ROBOT_ARM_FIXED,
   ROBOT_ARM_ZERO_FORCE,
