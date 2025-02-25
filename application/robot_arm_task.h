@@ -207,6 +207,7 @@ extern const fp32 joint_angle_home[7];
 extern void robot_arm_task(void const *pvParameters);
 void robot_arm_all_motors_return_home(void);
 void robot_arm_motors_return_home(uint8_t _start, uint8_t _end);
+void robot_arm_return_static(uint8_t _start, uint8_t _end);
 void robot_arm_switch_on_power(void);
 
 extern robot_arm_t robot_arm;
