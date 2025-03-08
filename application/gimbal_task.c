@@ -199,7 +199,7 @@ void gimbal_task(void const *pvParameters)
         CAN_cmd_gimbal(0, 0, 0, 0, 0);
         osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
-    } while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE));
+    } while (toe_is_error(YAW_GIMBAL_MOTOR_TOE));
 
     while (1)
     {
@@ -227,7 +227,7 @@ void gimbal_task(void const *pvParameters)
 void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_value_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr)
 {
     // safety for gimbal
-    if (gimbal_emergency_stop() || toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
+    if (gimbal_emergency_stop() || toe_is_error(YAW_GIMBAL_MOTOR_TOE))
     {
         *yaw_can_set_value_ptr = 0;
         *pitch_can_set_value_ptr = 0;
