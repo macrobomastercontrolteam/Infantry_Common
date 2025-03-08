@@ -37,7 +37,7 @@
 #define PITCH_TURN  1
 #define YAW_TURN    0
 
-#define int_abs(x) ((x) > 0 ? (x) : (-x))
+#define int_abs(x) ((x) > 0 ? (x) : (-x))  
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 //pitch speed close-loop PID params, max out and max iout

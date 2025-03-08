@@ -988,6 +988,7 @@ fp32 yaw_speed_fp32, pitch_speed_fp32;
 fp32 yaw_speed_set_fp32, pitch_speed_set_fp32;
 fp32 yaw_speed_pid_err;
 fp32 pitch_speed_pid_err;
+fp32 yaw_angle_read;
 uint32_t gimbal_last_update_time;
 uint32_t gimbal_update_interval;
 fp32 fric_diff_fp32;
@@ -997,6 +998,7 @@ static void J_scope_gimbal_test(void)
 #if CV_INTERFACE
     yaw_cv_delta_fp32 = -CvCmdHandler.CvCmdMsg.xAngle * 180.0f / PI;
 #endif
+    yaw_angle_read = gimbal_control.gimbal_yaw_motor.absolute_angle;;
     yaw_ins_fp32 = gimbal_control.gimbal_yaw_motor.absolute_angle * 180.0f / PI;
     yaw_ins_set_fp32 = gimbal_control.gimbal_yaw_motor.absolute_angle_set * 180.0f / PI;
     yaw_speed_fp32 = gimbal_control.gimbal_yaw_motor.motor_gyro * 180.0f / PI;
