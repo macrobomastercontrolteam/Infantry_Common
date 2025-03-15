@@ -71,6 +71,13 @@
 uint32_t gimbal_high_water;
 #endif
 
+fp32 launcher_angle;
+fp32 pitch_motor_gyro_set;
+fp32 temp_add_pitch_angle;
+fp32 temp_pitch_current_angle;
+fp32 temp_pitch_target_angle;
+fp32 temp_pitch_current_angle_processed;
+
 static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init);
 static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init);
 static void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_value_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr);
@@ -199,7 +206,9 @@ void gimbal_task(void const *pvParameters)
         CAN_cmd_gimbal(0, 0, 0, 0, 0);
         osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
-    } while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE));
+    //} while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_L_TOE)||toe_is_error(PITCH_GIMBAL_MOTOR_R_TOE));
+    } while (toe_is_error(PITCH_GIMBAL_MOTOR_L_TOE)||toe_is_error(PITCH_GIMBAL_MOTOR_R_TOE));
+
 
     while (1)
     {
@@ -227,7 +236,8 @@ void gimbal_task(void const *pvParameters)
 void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_value_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr)
 {
     // safety for gimbal
-    if (gimbal_emergency_stop() || toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
+    //if (gimbal_emergency_stop() || toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_L_TOE)||toe_is_error(PITCH_GIMBAL_MOTOR_R_TOE))
+    if (gimbal_emergency_stop() || toe_is_error(PITCH_GIMBAL_MOTOR_L_TOE)||toe_is_error(PITCH_GIMBAL_MOTOR_R_TOE))
     {
         *yaw_can_set_value_ptr = 0;
         *pitch_can_set_value_ptr = 0;
@@ -610,6 +620,7 @@ static void gimbal_init(gimbal_control_t *init)
     init->gimbal_pitch_motor.absolute_angle_offset = 0;
     init->gimbal_pitch_motor.relative_angle_set = init->gimbal_pitch_motor.relative_angle;
     init->gimbal_pitch_motor.motor_gyro_set = init->gimbal_pitch_motor.motor_gyro;
+    pitch_motor_gyro_set = init->gimbal_pitch_motor.motor_gyro_set;
 #if ENABLE_LASER
     laser_enable(1);
 #endif
@@ -639,8 +650,10 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     {
         return;
     }
-    feedback_update->gimbal_pitch_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
-
+    feedback_update->gimbal_pitch_motor.absolute_angle = asin(sin(*(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET))*270/330);
+    temp_pitch_current_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
+    temp_pitch_current_angle_processed = asin(sin(*(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET))*270/330);
+    launcher_angle = asin(270*sin(feedback_update->gimbal_pitch_motor.absolute_angle)/330); //caculate launcher angle
 #if PITCH_TURN
     feedback_update->gimbal_pitch_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
                                                                                           feedback_update->gimbal_pitch_motor.offset_ecd);
@@ -811,6 +824,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     else if ((set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         gimbal_absolute_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
+        temp_add_pitch_angle = add_pitch_angle;
     }
     else if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
     {
@@ -831,10 +845,10 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
     }
     //present angle error
     bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
-#if ROBOT_YAW_HAS_SLIP_RING
-    // Remove yaw motor limit for robots with slip ring
-    if (motor_select != GIMBAL_YAW_MOTOR)
-#endif
+// #if ROBOT_YAW_HAS_SLIP_RING
+//     // Remove yaw motor limit for robots with slip ring
+//     if (motor_select != GIMBAL_YAW_MOTOR)
+// #endif
     {
         //relative angle + angle error + add_angle > max_relative angle
         if (gimbal_motor->relative_angle + bias_angle + add > gimbal_motor->max_relative_angle)
@@ -1016,7 +1030,7 @@ static void J_scope_gimbal_test(void)
 
     fric_diff_fp32 = shoot_control.friction_motor1_rpm + shoot_control.friction_motor2_rpm;
 
-    fChassisSpinning = CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT);
+    //fChassisSpinning = CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT);
 }
 #endif
 
@@ -1032,14 +1046,14 @@ bool_t gimbal_emergency_stop(void)
     {
         // do nothing
     }
-#if ROBOT_YAW_IS_4310
-    else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
-#else
-    else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->feedback_current) >= YAW_6020_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
-#endif
-    {
-        fFatalError = 1;
-    }
+// #if ROBOT_YAW_IS_4310
+//     else if ((int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+// #else
+//     else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->feedback_current) >= YAW_6020_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+// // #endif
+//     {
+//         fFatalError = 1;
+//     }
 	else
 	{
 		fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL) && toe_is_error(DBUS_TOE));

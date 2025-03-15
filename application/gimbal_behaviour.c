@@ -168,6 +168,8 @@ static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *
 // Watchout for the default value
 gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
 
+fp32 remote_pitch;
+
 #if GIMBAL_TEST_MODE
 static void J_scope_gimbal_behavior_test(void)
 {
@@ -404,7 +406,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 #else
     if (gimbal_emergency_stop())
     {
-        gimbal_behaviour = GIMBAL_ZERO_FORCE;
+        //gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
 #if CV_INTERFACE
     else if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT))
@@ -413,10 +415,10 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
     }
 #endif
 #endif
-    else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_gimbal_output == 0))
-	{
-		gimbal_behaviour = GIMBAL_ZERO_FORCE;
-	}
+    // else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_gimbal_output == 0))
+	// {
+	// 	gimbal_behaviour = GIMBAL_ZERO_FORCE;
+	// }
     else
 	{
 		switch (gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL])
@@ -609,13 +611,13 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 		fLastKeyRSignal = fIsKeyRPressed;
 	}
 
-	if (fCenterGimbal)
-	{
-		*yaw = -gimbal_control_set->gimbal_yaw_motor.relative_angle;
-		*pitch = -gimbal_control_set->gimbal_pitch_motor.absolute_angle_set;
-	}
-	else
-	{
+	// if (fCenterGimbal)
+	// {
+	// 	*yaw = -gimbal_control_set->gimbal_yaw_motor.relative_angle;
+	// 	*pitch = -gimbal_control_set->gimbal_pitch_motor.absolute_angle_set;
+	// }
+	//else
+	//{
 		int16_t yaw_channel = 0;
 		int16_t pitch_channel = 0;
         deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
@@ -623,8 +625,9 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 
 		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
 		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
-	}
-
+        remote_pitch = pitch_channel;
+	//}
+    
 	// {
     //     static uint16_t last_turn_keyboard = 0;
     //     static uint8_t gimbal_turn_flag = 0;

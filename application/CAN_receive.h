@@ -46,7 +46,8 @@ typedef enum
 #endif
 
     /********Gimbal CAN IDs********/
-    CAN_PIT_MOTOR_ID = 0x206,
+    CAN_PIT_MOTOR_L_ID = 0x205,
+    CAN_PIT_MOTOR_R_ID = 0x206,
 
     /********Other CAN IDs: Location depends on Model********/
     // By default: On chassis

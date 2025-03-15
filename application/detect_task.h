@@ -53,7 +53,8 @@ enum errorList
     CHASSIS_MOTOR4_TOE,
     // "gimbal" motors
     YAW_GIMBAL_MOTOR_TOE,
-    PITCH_GIMBAL_MOTOR_TOE,
+    PITCH_GIMBAL_MOTOR_L_TOE,
+    PITCH_GIMBAL_MOTOR_R_TOE,
     // shoot motors
     TRIGGER_MOTOR_TOE,
     FRIC1_MOTOR_TOE,

@@ -74,6 +74,8 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
 
+
+int16_t can_pitch;
 /**
  * @brief motor feedback data
  * Chassis CAN:
@@ -149,11 +151,18 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		switch (rx_header.StdId)
 		{
-			case CAN_PIT_MOTOR_ID:
+			case CAN_PIT_MOTOR_L_ID:
 			{
         		bMotorId = MOTOR_INDEX_PITCH;
 				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(PITCH_GIMBAL_MOTOR_TOE);
+				detect_hook(PITCH_GIMBAL_MOTOR_L_TOE);
+				break;
+			}
+			case CAN_PIT_MOTOR_R_ID:
+			{
+        		bMotorId = MOTOR_INDEX_PITCH;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(PITCH_GIMBAL_MOTOR_R_TOE);
 				break;
 			}
 			case CAN_FRICTION_MOTOR_LEFT_ID:
@@ -608,12 +617,12 @@ void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, in
 	gimbal_can_send_data[3] = fric_right;
 	
 	gimbal_tx_message.StdId = CAN_3508_OR_2006_HIGH_RANGE_TX_ID;
-
+	
 	gimbal_can_send_data[0] = ((int16_t)pitch >> 8);
 	gimbal_can_send_data[1] = (int16_t)pitch;
 	gimbal_can_send_data[2] = ((int16_t)pitch >> 8);
 	gimbal_can_send_data[3] = (int16_t)pitch;
-	
+	can_pitch = pitch;
 	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
 #if ROBOT_YAW_IS_4310

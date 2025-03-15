@@ -134,16 +134,24 @@ int16_t shoot_control_loop(void)
 		}
 		case SHOOT_READY_FRIC:
 		{
-			shoot_control.trigger_speed_set = 0;
+			if (toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+			{
+				shoot_control.shoot_mode = SHOOT_STOP;
+			}
+			else
+			{
+				shoot_control.trigger_speed_set = 0;
 
-			PID_clear(&shoot_control.friction_motor1_pid);
-			PID_clear(&shoot_control.friction_motor2_pid);
+				PID_clear(&shoot_control.friction_motor1_pid);
+				PID_clear(&shoot_control.friction_motor2_pid);
 
-			shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
-			shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
+				shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
+				shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
 
-			shoot_control.friction_motor1_rpm_set = -LAUNCHER_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-			shoot_control.friction_motor2_rpm_set = -LAUNCHER_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+				shoot_control.friction_motor1_rpm_set = -LAUNCHER_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+				shoot_control.friction_motor2_rpm_set = -LAUNCHER_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+			}
+
 			break;
 		}
 		default:
