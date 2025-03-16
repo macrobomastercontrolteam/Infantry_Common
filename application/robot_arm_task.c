@@ -186,10 +186,10 @@ void robot_arm_control(void)
 			{
 				robot_arm.arm_state = ARM_STATE_HOMING;
 			}                 
-			else if (fIsStateHoldTimePassed && is_joint_target_reached(DEG_TO_RAD(5.45f), NULL))
-			{
-				robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
-			}
+			//else if (fIsStateHoldTimePassed && is_joint_target_reached(DEG_TO_RAD(5.45f), NULL))
+			//{
+				//robot_arm.arm_state = ARM_STATE_ZERO_FORCE;
+			//}
 			arm_joints_cmd_position(robot_arm.joint_angle_target, robot_arm.time_step_s);
 			break;
         }
