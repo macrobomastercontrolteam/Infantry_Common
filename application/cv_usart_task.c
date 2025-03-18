@@ -216,7 +216,20 @@ void CvCmder_EchoTxMsgToUsb(void)
 #endif
 }
 
-
+void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
+{
+	// no need to debounce because keyboard signal is clean
+	static uint8_t fLastKeySignal = 0;
+	if (fLastKeySignal != fIsKeyPressed)
+	{
+		if (fIsKeyPressed)
+		{
+			// keyboard "G" button toggles auto-aim mode
+			CvCmder_ToggleMode(CV_MODE_AUTO_AIM_BIT);
+		}
+		fLastKeySignal = fIsKeyPressed;
+	}
+}
 
 static void CvCmder_SendAck(uint8_t msgType)
 {

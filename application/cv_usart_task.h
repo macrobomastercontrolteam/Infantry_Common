@@ -54,7 +54,7 @@ uint8_t CvCmder_GetMode(uint8_t bCvModeBit);
 void CvCmder_ToggleMode(uint8_t bCvModeBit);
 void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag);
 tCvCmdHandler* CvCmder_GetHandler(void);
-//void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd);
+void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd);
 void CvCmder_toe_solve_lost_fun(void);
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void);
