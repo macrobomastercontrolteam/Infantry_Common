@@ -685,8 +685,8 @@ static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_c
     if (checkAndResetFlag(&CvCmdHandler.fCvCmdValid))
     {
 #if CV_ABS_ANGLE_INPUT
-		yaw_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.xAngle + gimbal_control_set->gimbal_yaw_motor.absolute_angle_offset - gimbal_control_set->gimbal_yaw_motor.absolute_angle_set);        
-		pitch_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.yAngle + gimbal_control_set->gimbal_pitch_motor.absolute_angle_offset - gimbal_control_set->gimbal_pitch_motor.absolute_angle_set);
+		//yaw_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.xAngle + gimbal_control_set->gimbal_yaw_motor.absolute_angle_offset - gimbal_control_set->gimbal_yaw_motor.absolute_angle_set);        
+		//pitch_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.yAngle + gimbal_control_set->gimbal_pitch_motor.absolute_angle_offset - gimbal_control_set->gimbal_pitch_motor.absolute_angle_set);
 #else
 		yaw_target_adjustment = -CvCmdHandler.CvCmdMsg.xAngle - rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle_set - gimbal_control_set->gimbal_yaw_motor.absolute_angle);
 		pitch_target_adjustment = -CvCmdHandler.CvCmdMsg.yAngle - rad_format(gimbal_control_set->gimbal_pitch_motor.absolute_angle_set - gimbal_control_set->gimbal_pitch_motor.absolute_angle);
