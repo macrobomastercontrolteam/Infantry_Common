@@ -49,6 +49,7 @@ typedef enum
 	//MSG_ACK = 0x40,
 	MSG_CONTROL_SPINNNG = 0x02,
 	MSG_AIM_ERROR = 0x03,
+	MSG_SHOOT_CMD = 0x04,
 } eMsgTypes;
 
 //
@@ -260,6 +261,11 @@ static void CvCmder_SendAck(uint8_t msgType)
 			ackBuf[2] = 0xFF;
 			break;
 		}
+		
+		case MSG_SHOOT_CMD:
+		{
+			//TODO: Return the correct response
+		}
 	}
 
 
@@ -334,6 +340,18 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
                 // TODO: handle aim error
             }
             break;
+		case MSG_SHOOT_CMD:
+			if(length == 1){
+				uint8_t shootCmd = pData[2];
+				if(shootCmd == 0xFF){
+					CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 1);
+				} else {
+					CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
+				}
+				CvCmder_SendAck(MSG_SHOOT_CMD);
+				detect_hook(CV_TOE);
+			}
+			break;
         default:
             // unknown tag
             break;
