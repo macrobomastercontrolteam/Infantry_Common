@@ -238,6 +238,31 @@ static void CvCmder_SendAck(uint8_t msgType)
     ackBuf[0] = msgType; // Tag
     ackBuf[1] = 1;       // Length
     ackBuf[2] = 0xFF;    // Value (ACK)
+	switch(msgType){
+		case MSG_CV_CHASSIS_MOVE_STATE:
+		{
+			ackBuf[2] = 0xFF;
+			break;
+		}
+
+		case MSG_CONTROL_SPINNNG:
+		{
+			if(CV_MODE_CHASSIS_SPINNING_BIT == 1){
+				ackBuf[2] = 0xFF;
+			}
+			else{
+				ackBuf[2] = 0x00;
+			}
+		}
+
+		case MSG_AIM_ERROR:
+		{
+			ackBuf[2] = 0xFF;
+			break;
+		}
+	}
+
+
     // Byte 3 could remain unused or contain a CRC etc. Set to 0xFF or 0 if you like
     //ackBuf[3] = 0xFF;
 
