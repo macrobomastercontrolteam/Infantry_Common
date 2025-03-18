@@ -37,7 +37,7 @@
 
 // Test result with pyserial: 0 to 2 millisecond of cv msg receiving interval; Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
 uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE];
-eMsgTypes CV_CMD_TYPE;
+//eMsgTypes CV_CMD_TYPE;
 uint8_t CvCmdLength;
 
 #if CV_INTERFACE
@@ -62,56 +62,6 @@ typedef enum
 } eInfoBits;
 STATIC_ASSERT(CV_INFO_LAST_BIT <= (1 << 8));
 
-//Keep this
-typedef struct __attribute__((packed))
-{
-	uint8_t abAckAscii[3];
-	uint16_t uiReqTimestamp; ///< corresponding request timestamp
-	uint16_t uiExecDelta;    ///< execution time of request
-	uint16_t uiCvSyncTime;   ///< native synchronization time of CV
-	uint8_t abUnusedPayload[];
-} tCvAckMsgPayload;
-STATIC_ASSERT(sizeof(tCvAckMsgPayload) <= DATA_PACKAGE_PAYLOAD_SIZE);
-
-//Keep this
-typedef struct __attribute__((packed))
-{
-	uint8_t infobit;
-	uint8_t game_progress;
-	uint8_t team_color;
-	uint16_t time_remain;
-	uint16_t current_HP;
-	uint16_t red_outpost_HP;
-	uint16_t blue_outpost_HP;
-} tRefStatusMsgPayload;
-STATIC_ASSERT(sizeof(tRefStatusMsgPayload) <= DATA_PACKAGE_PAYLOAD_SIZE);
-
-typedef struct __attribute__((packed))
-{
-	uint8_t infobit;
-	fp32 gimbal_yaw_angle;
-	fp32 gimbal_pitch_angle;
-} tGimbalAngleMsgPayload;
-STATIC_ASSERT(sizeof(tGimbalAngleMsgPayload) <= DATA_PACKAGE_PAYLOAD_SIZE);
-
-typedef union __attribute__((packed))
-{
-	struct __attribute__((packed))
-	{
-		//uint8_t abMessageHeader[DATA_PACKAGE_HEADER_SIZE]; ///< always '>>'
-		//uint16_t uiTimestamp;
-		uint8_t bMsgType;
-		union __attribute__((packed))
-		{
-			uint8_t abPayload[DATA_PACKAGE_PAYLOAD_SIZE];
-			tCvAckMsgPayload CvAckMsgPayload;
-			tRefStatusMsgPayload RefStatusMsgPayload;
-			tGimbalAngleMsgPayload GimbalAngleMsgPayload;
-		};
-	} tData;
-	uint8_t abData[DATA_PACKAGE_SIZE];
-} tCvMsg;
-
 typedef struct
 {
 	moving_average_type_t TranDeltaFilter;
@@ -123,21 +73,19 @@ typedef struct
 
 void CvCmder_Init(void);
 void CvCmder_PollForModeChange(void);
-void CvCmder_RxParser(void);
+static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size);
 void CvCmder_EchoTxMsgToUsb(void);
-void CvCmder_SendSetModeRequest(void);
-void CvCmder_SendInfoData(eMsgTypes CvCmdBit);
-void CvCmder_UpdateTranDelta(void);
+//void CvCmder_SendSetModeRequest(void);
+//void CvCmder_SendInfoData(eMsgTypes CvCmdBit);
+//void CvCmder_UpdateTranDelta(void);
+static void CvCmder_SendAck(uint8_t msgType);
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_MockModeChange(void);
 #endif
 
-tCvMsg CvRxBuffer;
-tCvMsg CvTxBuffer;
 tCvCmdHandler CvCmdHandler;
 // don't compare with literal string "ACK", since it contains extra NULL char at the end
 const uint16_t abExpectedAckPayload;
-const uint8_t abExpectedMessageHeader[DATA_PACKAGE_HEADER_SIZE] = {'>', '>'};
 uint8_t abExpectedUnusedPayload[DATA_PACKAGE_PAYLOAD_SIZE];
 tCvTimestamps CvTimestamps;
 
@@ -171,8 +119,8 @@ void CvCmder_Init(void)
 	CvTimestamps.TranDeltaFilter.sum = 0;
 	CvTimestamps.uiCtrlSyncTime = 0;
 
-	memcpy(CvRxBuffer.tData.abMessageHeader, abExpectedMessageHeader, sizeof(abExpectedMessageHeader));
-	memcpy(CvTxBuffer.tData.abMessageHeader, abExpectedMessageHeader, sizeof(abExpectedMessageHeader));
+	//memcpy(CvRxBuffer.tData.abMessageHeader, abExpectedMessageHeader, sizeof(abExpectedMessageHeader));
+	//memcpy(CvTxBuffer.tData.abMessageHeader, abExpectedMessageHeader, sizeof(abExpectedMessageHeader));
 	memset(abExpectedUnusedPayload, CHAR_UNUSED, sizeof(abExpectedUnusedPayload));
 
 	memset(&CvCmdHandler, 0, sizeof(CvCmdHandler));       // clear status
@@ -191,13 +139,9 @@ void CvCmder_Init(void)
 
 void CvCmder_toe_solve_lost_fun(void)
 {
-	memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
-	CvCmder_ChangeMode(CV_MODE_ENEMY_DETECTED_BIT, 0);
-	CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
-	CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
-	CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT, 0);
+	//memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
+	//To do: set all RX parameter to 0 when CV is offline
 }
-
 /**
  * @brief if a command is received from remote controller, we keep sending set-mode requests to CV until an ACK is received
  */
@@ -220,7 +164,7 @@ void CvCmder_PollForModeChange(void)
 			if (checkAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE))
 #endif
 			{
-				CvCmder_SendSetModeRequest();
+				//CvCmder_SendSetModeRequest();
 				CvCmdHandler.fIsWaitingForAck = 1;
 				eCvCmderState = CMDER_STATE_WAIT_FOR_ACK;
 			}
@@ -230,7 +174,7 @@ void CvCmder_PollForModeChange(void)
 		{
 			if (CvCmdHandler.fIsWaitingForAck)
 			{
-				CvCmder_SendSetModeRequest();
+				//CvCmder_SendSetModeRequest();
 				// reset receive interrupt to detect new UART connection, in case CV boots up after control
 				HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
 				__HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
@@ -250,20 +194,6 @@ void CvCmder_PollForModeChange(void)
 	}
 }
 
-void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
-{
-	// no need to debounce because keyboard signal is clean
-	static uint8_t fLastKeySignal = 0;
-	if (fLastKeySignal != fIsKeyPressed)
-	{
-		if (fIsKeyPressed)
-		{
-			// keyboard "G" button toggles auto-aim mode
-			CvCmder_ToggleMode(CV_MODE_AUTO_AIM_BIT);
-		}
-		fLastKeySignal = fIsKeyPressed;
-	}
-}
 
 void CvCmder_EchoTxMsgToUsb(void)
 {
@@ -286,176 +216,82 @@ void CvCmder_EchoTxMsgToUsb(void)
 #endif
 }
 
-void CvCmder_SendSetModeRequest(void)
-{
-	CvTxBuffer.tData.bMsgType = MSG_MODE_CONTROL;
-	// If current timestamp is smaller than sync_time, add 0x10000 to it. It's automatically handled by uint16_t type
-	CvTxBuffer.tData.uiTimestamp = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime;
-	memset(CvTxBuffer.tData.abPayload, CHAR_UNUSED, DATA_PACKAGE_PAYLOAD_SIZE);
-	CvTxBuffer.tData.abPayload[0] = CvCmdHandler.fCvMode;
-	HAL_UART_Transmit(&huart1, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
 
-	CvCmder_EchoTxMsgToUsb();
+
+static void CvCmder_SendAck(uint8_t msgType)
+{
+    // For example, Tag = msgType, Length = 1, Value = 0xAA (ACK placeholder)
+    uint8_t ackBuf[3];
+    ackBuf[0] = msgType; // Tag
+    ackBuf[1] = 1;       // Length
+    ackBuf[2] = 0xFF;    // Value (ACK)
+    // Byte 3 could remain unused or contain a CRC etc. Set to 0xFF or 0 if you like
+    //ackBuf[3] = 0xFF;
+
+    HAL_UART_Transmit(&huart1, ackBuf, sizeof(ackBuf), 100);
 }
 
-void CvCmder_SendInfoData(eMsgTypes CvCmdBit)
+static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 {
-	//CvTxBuffer.tData.bMsgType = MSG_INFO_DATA;
-	// If current timestamp is smaller than sync_time, add 0x10000 to it. It's automatically handled by uint16_t type
-	///CvTxBuffer.tData.uiTimestamp = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime;
-	memset(CvTxBuffer.tData.abPayload, CHAR_UNUSED, DATA_PACKAGE_PAYLOAD_SIZE);
-	//CvTxBuffer.tData.abPayload[0] = InfoBit;
-	switch (CvCmdBit)
-	{
-		case MSG_CHECK_STATE:
-		{
-			//[ToDo]: Confirm the payload format with CV team
-			CvTxBuffer.tData.RefStatusMsgPayload.game_progress = is_game_started();
-			CvTxBuffer.tData.RefStatusMsgPayload.team_color = get_team_color();
-			CvTxBuffer.tData.RefStatusMsgPayload.time_remain = get_time_remain();
-			CvTxBuffer.tData.RefStatusMsgPayload.current_HP = get_current_HP();
-			CvTxBuffer.tData.RefStatusMsgPayload.red_outpost_HP = get_red_outpost_HP();
-			CvTxBuffer.tData.RefStatusMsgPayload.blue_outpost_HP = get_blue_outpost_HP();
-			break;
-		}
-		case MSG_CV_CHASSIS_MOVE_STATE:
-		{
-			memcpy(&CvTxBuffer.tData.abPayload[1], &CvTimestamps.uiCvSyncTime, sizeof(CvTimestamps.uiCvSyncTime));
-			break;
-		}
-		case MSG_CONTROL_SPINNNG:
-		{
+    while (size >= 2)
+    {
+        uint8_t  tag    = pData[0];
+        uint8_t  length = pData[1];
+        if (size < 2 + length)
+            break; // incomplete packet
 
-			break;
-		}
-		case MSG_AIM_ERROR:
-		{
-			CvTxBuffer.tData.GimbalAngleMsgPayload.gimbal_yaw_angle = get_gimbal_yaw_angle();
-			CvTxBuffer.tData.GimbalAngleMsgPayload.gimbal_pitch_angle = get_gimbal_pitch_angle();
-			break;
-		}
-		default:
-		{
-			// should not reach here
-			return;
-		}
-	}
-	HAL_UART_Transmit(&huart1, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
-	CvCmder_EchoTxMsgToUsb();
+        switch (tag)
+        {
+        case MSG_CHECK_STATE:
+            if (length == 1)
+            {
+                // pData[2] = state enum
+                // TODO: handle state
+				//CvCmder_SendAck(MSG_CHECK_STATE);
+				detect_hook(CV_TOE);
+            }
+            break;
+        case MSG_CV_CHASSIS_MOVE_STATE:
+            if (length == 8)
+            {
+                fp32 xSpeed, ySpeed;
+                memcpy(&xSpeed, &pData[2], 4);
+                memcpy(&ySpeed, &pData[6], 4);
+				CvCmder_SendAck(MSG_CV_CHASSIS_MOVE_STATE);
+				detect_hook(CV_TOE);
+                // TODO: handle chassis speeds
+
+            }
+            break;
+        case MSG_CONTROL_SPINNNG:
+            if (length == 1)
+            {
+                uint8_t spinCmd = pData[2]; // 0x00 or 0xFF
+				CvCmder_SendAck(MSG_CONTROL_SPINNNG);
+				detect_hook(CV_TOE);
+                // TODO: handle spinCmd
+            }
+            break;
+        case MSG_AIM_ERROR:
+            if (length == 8)
+            {
+                fp32 xError, yError;
+                memcpy(&xError, &pData[2], 4);
+                memcpy(&yError, &pData[6], 4);
+				CvCmder_SendAck(MSG_AIM_ERROR);
+				detect_hook(CV_TOE);
+                // TODO: handle aim error
+            }
+            break;
+        default:
+            // unknown tag
+            break;
+        }
+        pData += (2 + length);
+        size  -= (2 + length);
+    }
 }
 
-//Keep this but chenge the code according to the new requirements
-void CvCmder_RxParser(void)
-{
-	uint8_t fValid = 0;
-	switch (CvRxBuffer.tData.bMsgType)
-	{
-		case MSG_CV_CMD:
-		{
-			// // Check for ACK is not used, because it may be misaligned in the middle and ignored so that further msgs align
-			// // However, ACK is still helpful because it can help synchronize communication in the beginning
-			// fValid &= CvCmdHandler.fIsWaitingForAck;
-			fValid = (memcmp(&CvRxBuffer.tData.abPayload[sizeof(tCvCmdMsg)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvCmdMsg)) == 0);
-			if (fValid)
-			{
-				CvCmder_UpdateTranDelta();
-				memcpy(&(CvCmdHandler.CvCmdMsg), CvRxBuffer.tData.abPayload, sizeof(CvCmdHandler.CvCmdMsg));
-				CvCmdHandler.fCvCmdValid = 1;
-			}
-			else
-			{
-				CvCmdHandler.fCvCmdValid = 0;
-			}
-			break;
-		}
-		case MSG_ACK:
-		{
-			fValid = (memcmp(CvRxBuffer.tData.CvAckMsgPayload.abUnusedPayload, abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvAckMsgPayload)) == 0);
-			fValid &= (memcmp(CvRxBuffer.tData.CvAckMsgPayload.abAckAscii, abExpectedAckPayload, sizeof(abExpectedAckPayload)) == 0);
-			if (fValid)
-			{
-				// Synchronize time after ACK
-				uint16_t uiCtrlTimestamp = osKernelSysTick();
-				int16_t iTranDelta = ((uiCtrlTimestamp - CvTimestamps.uiCtrlSyncTime) - CvRxBuffer.tData.CvAckMsgPayload.uiReqTimestamp - CvRxBuffer.tData.CvAckMsgPayload.uiExecDelta) / 2;
-				CvTimestamps.iTranDeltaMA = moving_average_calc(iTranDelta, &CvTimestamps.TranDeltaFilter, (CvTimestamps.uiCtrlSyncTime == 0) ? MOVING_AVERAGE_RESET : MOVING_AVERAGE_CALC);
-				CvTimestamps.uiCtrlSyncTime = uiCtrlTimestamp - iTranDelta;
-				CvTimestamps.uiCvSyncTime = CvRxBuffer.tData.CvAckMsgPayload.uiCvSyncTime;
-
-				CvCmdHandler.fIsWaitingForAck = 0;
-			}
-			break;
-		}
-		case MSG_MODE_CONTROL:
-		{
-			fValid = ((CvRxBuffer.tData.abPayload[0] & (~(CV_MODE_LAST_BIT - 1))) == 0);
-			fValid &= (memcmp(&CvRxBuffer.tData.abPayload[1], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - 1) == 0);
-			if (fValid)
-			{
-				CvCmder_UpdateTranDelta();
-				// Mode bits in set-mode message cv should be all zeros except for CV_MODE_SHOOT_BIT and CV_MODE_CHASSIS_SPINNING_BIT, which is controlled by cv
-				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_SHOOT_BIT);
-				CvCmdHandler.ulShootStartTime = osKernelSysTick();
-
-				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_CHASSIS_SPINNING_BIT);
-				CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT);
-			}
-			else
-			{
-				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
-				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
-				CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT, 0);
-			}
-			break;
-		}
-		case MSG_INFO_REQUEST:
-		{
-			fValid = ((CvRxBuffer.tData.abPayload[0] & (~(CV_INFO_LAST_BIT - 1))) == 0);
-			fValid &= (memcmp(&CvRxBuffer.tData.abPayload[1], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - 1) == 0);
-			if (fValid)
-			{
-				CvCmder_UpdateTranDelta();
-				uint8_t bInfoTestBit = 1;
-				while (bInfoTestBit < CV_INFO_LAST_BIT)
-				{
-					if (CvRxBuffer.tData.abPayload[0] & bInfoTestBit)
-					{
-						CvCmder_SendInfoData((eInfoBits)bInfoTestBit);
-					}
-					bInfoTestBit = bInfoTestBit << 1;
-				}
-			}
-			break;
-		}
-	}
-//Importnt keep it here
-	if (fValid)
-	{
-		detect_hook(CV_TOE);
-	}
-//May not b eued anymore, wait till Monday for the testbench from the CV team.
-#if DEBUG_CV_WITH_USB
-	// echo to usb
-	uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fValid ? "Valid" : "Invalid");
-
-	for (uint16_t i = 0; i < sizeof(CvRxBuffer.abData); i++)
-	{
-		if (uiUsbMsgSize + (sizeof("0x00,") - 1) > sizeof(usbMsg))
-		{
-			break;
-		}
-		uiUsbMsgSize += snprintf(&usbMsg[uiUsbMsgSize], sizeof(usbMsg) - uiUsbMsgSize, "0x%02X,", CvRxBuffer.abData[i]);
-	}
-	usbMsg[uiUsbMsgSize - 1] = '\n';
-	usbMsg[uiUsbMsgSize] = 0;
-	usb_printf("%s", usbMsg);
-#endif
-}
-//Useless time sync function REMOVE
-void CvCmder_UpdateTranDelta(void)
-{
-	int16_t iTranDelta = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime - CvRxBuffer.tData.uiTimestamp;
-	CvTimestamps.iTranDeltaMA = moving_average_calc(iTranDelta, &CvTimestamps.TranDeltaFilter, MOVING_AVERAGE_CALC);
-}
 //Mo mode bit anymore, kep it here but won't be used.
 uint8_t CvCmder_GetMode(uint8_t bCvModeBit)
 {
@@ -559,47 +395,17 @@ uint8_t CvCmder_MockModeChange(void)
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
-	if (huart->Instance == USART1)
-	{
+    if (huart->Instance == USART1)
+    {
 #if CV_INTERFACE
-		uint16_t uiHeaderFinder = 0;
-		CV_CMD_TYPE = abUsartRxBuf[0];
-		CvCmdLength = abUsartRxBuf[1];
-		//memcpy(//dest, src, #of bytes want to copy)
-		memcpy(&CvRxBuffer.abData[DATA_PACKAGE_HEADER_SIZE], &abUsartRxBuf[2], CvCmdLength);
-		CvCmder_RxParser();
-
-
-//		while ((uiHeaderFinder < Size) && (Size - uiHeaderFinder >= CvCmdLength))
-//		{
-//			if (abUsartRxBuf[uiHeaderFinder] == abExpectedMessageHeader[0])
-//			{
-//				if (abUsartRxBuf[uiHeaderFinder + 1] == abExpectedMessageHeader[1])
-//				{
-//					uiHeaderFinder++;
-//				}
-//				else
-//				{
-//					// Deem msg as valid even if the first ">" header is lost
-//				}
-//				// point to msg type
-//				uiHeaderFinder++;
-//				memcpy(&CvRxBuffer.abData[DATA_PACKAGE_HEADER_SIZE], &abUsartRxBuf[uiHeaderFinder], DATA_PACKAGE_HEADLESS_SIZE);
-//				CvCmder_RxParser();
-//				uiHeaderFinder += DATA_PACKAGE_HEADLESS_SIZE;
-//			}
-//			else
-//			{
-//				uiHeaderFinder++;
-//			}
-//		}
+        // Directly parse all incoming data as TLV
+        CvCmder_RxParserTlv(abUsartRxBuf, Size);
 #endif
-		// @TODO: change to circular buffer strategy for faster restart time of DMA
-		/* start the DMA again */
-		// Do not remove this, otherwise RTOS task will stuck for unkown reasons
-		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
-		__HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
-	}
+
+        // Restart DMA reception
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
+        __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+    }
 }
 
 // End of section using anonymous unions
