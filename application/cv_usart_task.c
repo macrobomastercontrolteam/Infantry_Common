@@ -280,6 +280,15 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
             if (length == 1)
             {
                 uint8_t spinCmd = pData[2]; // 0x00 or 0xFF
+				if(spinCmd == 0xFF)
+				{
+					CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 1);
+				}
+				else
+				{
+					CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
+				}
+				
 				CvCmder_SendAck(MSG_CONTROL_SPINNNG);
 				detect_hook(CV_TOE);
                 // TODO: handle spinCmd
