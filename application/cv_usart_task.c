@@ -295,6 +295,8 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
                 fp32 xSpeed, ySpeed;
                 memcpy(&xSpeed, &pData[2], 4);
                 memcpy(&ySpeed, &pData[6], 4);
+				CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
+				CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
 				CvCmder_SendAck(MSG_CV_CHASSIS_MOVE_STATE);
 				detect_hook(CV_TOE);
                 // TODO: handle chassis speeds
