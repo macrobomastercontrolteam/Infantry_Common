@@ -325,6 +325,8 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
                 fp32 xError, yError;
                 memcpy(&xError, &pData[2], 4);
                 memcpy(&yError, &pData[6], 4);
+				CvCmdHandler.CvCmdMsg.xAimError = xError;
+				CvCmdHandler.CvCmdMsg.yAimError = yError;
 				CvCmder_SendAck(MSG_AIM_ERROR);
 				detect_hook(CV_TOE);
                 // TODO: handle aim error
