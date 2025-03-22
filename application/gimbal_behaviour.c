@@ -619,8 +619,8 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
         deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
         deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
 
-		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
-		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
+		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC + CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
+		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC + CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC;
 	}
 
 	// {
@@ -763,8 +763,8 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 		deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
 		deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
 
-		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
-		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
+		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC + CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
+		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC + CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC;
 	}
 }
 
