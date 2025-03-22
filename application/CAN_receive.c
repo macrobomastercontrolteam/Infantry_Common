@@ -32,7 +32,7 @@
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 
-#define ENABLE_ARM_MOTOR_POWER 0
+#define ENABLE_ARM_MOTOR_POWER 1
 #define ENABLE_DRIVE_MOTOR_POWER 0
 #define ENABLE_VTM_MOTOR_POWER 0
 
@@ -161,7 +161,7 @@ void CAN_cmd_robot_arm_by_end_effector(end_effector_cmd_t _end_effector_cmd, rob
     HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
-void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_type, uint8_t fHoming, uint8_t fStatic)
+void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_type, uint8_t fHoming, uint8_t fStatic, uint8_t fStorage)
 {
     uint32_t send_mail_box;
     gimbal_tx_message.IDE = CAN_ID_STD;
@@ -183,6 +183,10 @@ void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_typ
         else if (fStatic)
         {
           memset(cmd_int16, 0xAA, sizeof(cmd_int16));
+        }
+        else if (fStorage)
+        {
+          memset(cmd_int16, 0xBB, sizeof(cmd_int16));
         }
         else
         {

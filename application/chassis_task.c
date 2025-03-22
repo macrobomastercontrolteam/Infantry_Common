@@ -110,6 +110,7 @@ void CAN_cmd_robot_arm(void);
 void vtm_gimbal_control(void);
 void set_to_home(void);
 void set_static_mode(void);
+void set_storage_mode(void);
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t chassis_high_water;
@@ -120,6 +121,7 @@ const fp32 joint_angle_max[7] = {ARM_JOINT_0_ANGLE_MAX, ARM_JOINT_1_ANGLE_MAX, A
 const fp32 joint_angle_home[7] = {ARM_JOINT_0_ANGLE_HOME, ARM_JOINT_1_ANGLE_HOME, ARM_JOINT_2_ANGLE_HOME, ARM_JOINT_3_ANGLE_HOME, ARM_JOINT_4_ANGLE_HOME, ARM_JOINT_5_ANGLE_HOME, ARM_JOINT_6_ANGLE_HOME};
 const fp32 arm_end_min[6] = {ARM_END_EFFECTOR_ROLL_MIN, ARM_END_EFFECTOR_PITCH_MIN, ARM_END_EFFECTOR_YAW_MIN, ARM_END_EFFECTOR_X_MIN, ARM_END_EFFECTOR_Y_MIN, ARM_END_EFFECTOR_Z_MIN};
 const fp32 joint_angle_static[7] = {ARM_JOINT_0_ANGLE_STATIC, ARM_JOINT_1_ANGLE_STATIC, ARM_JOINT_2_ANGLE_STATIC, ARM_JOINT_3_ANGLE_STATIC, ARM_JOINT_4_ANGLE_STATIC, ARM_JOINT_5_ANGLE_STATIC, ARM_JOINT_6_ANGLE_STATIC};
+const fp32 joint_angle_storage[7] = {ARM_JOINT_0_ANGLE_STORAGE, ARM_JOINT_1_ANGLE_STORAGE, ARM_JOINT_2_ANGLE_STORAGE, ARM_JOINT_3_ANGLE_STORAGE, ARM_JOINT_4_ANGLE_STORAGE, ARM_JOINT_5_ANGLE_STORAGE, ARM_JOINT_6_ANGLE_STORAGE};
 const fp32 arm_end_max[6] = {ARM_END_EFFECTOR_ROLL_MAX, ARM_END_EFFECTOR_PITCH_MAX, ARM_END_EFFECTOR_YAW_MAX, ARM_END_EFFECTOR_X_MAX, ARM_END_EFFECTOR_Y_MAX, ARM_END_EFFECTOR_Z_MAX};
 const fp32 arm_end_home[6] = {ARM_END_EFFECTOR_ROLL_HOME, ARM_END_EFFECTOR_PITCH_HOME, ARM_END_EFFECTOR_YAW_HOME, ARM_END_EFFECTOR_X_HOME, ARM_END_EFFECTOR_Y_HOME, ARM_END_EFFECTOR_Z_HOME};
 
@@ -160,6 +162,8 @@ void chassis_task(void const *pvParameters)
 		chassis_control_loop(&chassis_move);
 
 		set_to_home();
+		set_static_mode();
+		set_storage_mode();
 		robot_arm_control();
 		vtm_gimbal_control();
 		relay_signal_manager();
@@ -233,8 +237,18 @@ void set_static_mode(void)
 {
     if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R)
     {
+		//head_pump_control(1);
         chassis_move.robot_arm_mode = ROBOT_ARM_STATIC;
     }
+}
+
+void set_storage_mode(void)
+{
+	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_Z)
+	{
+		//storage_pump_control(1);
+		chassis_move.robot_arm_mode = ROBOT_ARM_STORAGE;
+	}
 }
 
 void set_to_home(void)
@@ -284,6 +298,8 @@ void robot_arm_set_home(void)
 	}
 #endif
 	chassis_move.fHoming = 1;
+	chassis_move.fStatic = 0;
+	chassis_move.fStorage = 0;
 }
 
 void robot_arm_set_static(void)
@@ -295,6 +311,21 @@ void robot_arm_set_static(void)
 	}
 #endif
 	chassis_move.fStatic = 1;
+	chassis_move.fHoming = 0;
+	chassis_move.fStorage = 0;
+}
+
+void robot_arm_set_storage(void)
+{
+#if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
+	for (uint8_t i = 0; i < 7; i++)
+	{
+		chassis_move.robot_arm_motor_pos[i] = joint_angle_storage[i];
+	}
+#endif
+	chassis_move.fStorage = 1;
+	chassis_move.fHoming = 0;
+	chassis_move.fStatic = 0;
 }
 
 void robot_arm_control(void)
@@ -310,6 +341,11 @@ void robot_arm_control(void)
 		case ROBOT_ARM_STATIC:
 		{
 			robot_arm_set_static();
+			break;
+		}
+		case ROBOT_ARM_STORAGE:
+		{
+			robot_arm_set_storage();
 			break;
 		}
 		case ROBOT_ARM_CHANGEABLE:
@@ -793,7 +829,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 void CAN_cmd_robot_arm(void)
 {
 #if (ENGINEER_CONTROL_MODE == INDIVIDUAL_MOTOR_TEST)
-	CAN_cmd_robot_arm_by_q(chassis_move.robot_arm_motor_pos, chassis_move.robot_arm_mode, chassis_move.fHoming, chassis_move.fStatic);
+	CAN_cmd_robot_arm_by_q(chassis_move.robot_arm_motor_pos, chassis_move.robot_arm_mode, chassis_move.fHoming, chassis_move.fStatic, chassis_move.fStorage);
 #else  /* INDIVIDUAL_MOTOR_TEST */
 	CAN_cmd_robot_arm_by_end_effector(chassis_move.end_effector_cmd, chassis_move.robot_arm_mode, chassis_move.fHoming);
 #endif /* INDIVIDUAL_MOTOR_TEST */

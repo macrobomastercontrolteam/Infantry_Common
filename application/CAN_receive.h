@@ -78,7 +78,8 @@ typedef enum
   ROBOT_ARM_HOME,
   ROBOT_ARM_FIXED,
   ROBOT_ARM_ZERO_FORCE,
-  ROBOT_ARM_STATIC
+  ROBOT_ARM_STATIC,
+  ROBOT_ARM_STORAGE
 } robot_arm_behaviour_e;
 
 typedef union
@@ -97,7 +98,7 @@ typedef union
 } end_effector_cmd_t;
 
 void CAN_cmd_robot_arm_by_end_effector(end_effector_cmd_t _end_effector_cmd, robot_arm_behaviour_e arm_cmd_type, uint8_t fHoming);
-void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_type, uint8_t fHoming, uint8_t fStatic);
+void CAN_cmd_robot_arm_by_q(fp32 motor_pos[7], robot_arm_behaviour_e arm_cmd_type, uint8_t fHoming, uint8_t fStatic, uint8_t fStorage);
 
 /**
   * @brief          send CAN packet of ID 0x700, it will set chassis motor 3508 to quick ID setting
