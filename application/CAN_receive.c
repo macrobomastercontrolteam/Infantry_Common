@@ -282,7 +282,7 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 {
 	uint8_t fIsSpecialCmd = 0;
 	uint8_t specialCmd = data[0];
-	if ((specialCmd == 0x00) || (specialCmd == 0xFF) || (specialCmd == 0xAA))
+	if ((specialCmd == 0x00) || (specialCmd == 0xFF) || (specialCmd == 0xAA) || (specialCmd == 0xBB))
 	{
 		fIsSpecialCmd = 1;
 		for (uint8_t i = 1; i < 8; i++)
@@ -305,12 +305,14 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 				robot_arm.fMasterSwitch = 0;
 				robot_arm.fHoming = 0;
 				robot_arm.fStatic = 0;
+				robot_arm.fStorage = 0;
 				break;
 			}
 			case 0xFF:
 			{
 				robot_arm.fHoming = 1;
 				robot_arm.fStatic = 0;
+				robot_arm.fStorage = 0;
 				robot_arm_switch_on_power();
 				break;
 			}
@@ -318,6 +320,15 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 			{
 				robot_arm.fHoming = 0;
 				robot_arm.fStatic = 1;
+				robot_arm.fStorage = 0;
+				robot_arm_switch_on_power();
+				break;
+			}
+			case 0xBB:
+			{
+				robot_arm.fHoming = 0;
+				robot_arm.fStatic = 0;
+				robot_arm.fStorage = 1;
 				robot_arm_switch_on_power();
 				break;
 			}
@@ -327,6 +338,7 @@ void decode_chassis_controller_rx(uint8_t *data, uint32_t id)
 	{
 		robot_arm.fHoming = 0;
 		robot_arm.fStatic = 0;
+		robot_arm.fStorage = 0;
 		robot_arm_switch_on_power();
 
 		switch (id)
@@ -474,6 +486,7 @@ uint8_t arm_joints_cmd_position(float joint_angle_target_ptr[7], fp32 dt)
 	{
 		if (joint_angle_target_ptr[pos_index] != joint_angle_target_ptr[pos_index])
 		{
+			robot_arm.fdebug = 10;
 			robot_arm.fMasterSwitch = 0;
 			fValidInput = 0;
 			break;

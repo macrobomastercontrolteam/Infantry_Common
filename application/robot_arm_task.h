@@ -17,13 +17,21 @@
 
 #define ROBOT_ARM_JSCOPE_DEBUG 1
 /*********** Robot Configs End ***********/
-#define ARM_JOINT_0_ANGLE_STATIC 0.12226295471191406f       
-#define ARM_JOINT_1_ANGLE_STATIC -0.12252672016620636f
-#define ARM_JOINT_2_ANGLE_STATIC -0.9702428579330444f
-#define ARM_JOINT_3_ANGLE_STATIC 0.21572399139404297f
-#define ARM_JOINT_4_ANGLE_STATIC 0.0165939331054687f
-#define ARM_JOINT_5_ANGLE_STATIC 1.5642404556274414f
-#define ARM_JOINT_6_ANGLE_STATIC -0.8927768468856f
+#define ARM_JOINT_0_ANGLE_STATIC   0.00f//0.12226295471191406f       
+#define ARM_JOINT_1_ANGLE_STATIC -0.3996978700f//-0.12252672016620636f
+#define ARM_JOINT_2_ANGLE_STATIC -1.5853692293167114f//-0.9702428579330444f
+#define ARM_JOINT_3_ANGLE_STATIC 0.9836349487304688f //0.21572399139404297f
+#define ARM_JOINT_4_ANGLE_STATIC 0.00f //3.084038734436035f//0.0165939331054687f
+#define ARM_JOINT_5_ANGLE_STATIC 1.6035327911376953f //1.5642404556274414f
+#define ARM_JOINT_6_ANGLE_STATIC 1.1842331886291504f //-0.8927768468856f
+
+#define ARM_JOINT_0_ANGLE_STORAGE 2.077003479004f       
+#define ARM_JOINT_1_ANGLE_STORAGE -0.18379007279872894f
+#define ARM_JOINT_2_ANGLE_STORAGE -0.975803554058075f
+#define ARM_JOINT_3_ANGLE_STORAGE 1.1385135650634766f
+#define ARM_JOINT_4_ANGLE_STORAGE -0.039864540100097656f
+#define ARM_JOINT_5_ANGLE_STORAGE 1.0049972534179688f
+#define ARM_JOINT_6_ANGLE_STORAGE 1.7625439167022705f
 
 #define ROBOT_ARM_TASK_INIT_TIME 500.0f
 // task loop delay time
@@ -44,8 +52,8 @@
 #define ARM_JOINT_2_ANGLE_MAX (0.0f - ARM_JOINT_CLEARANCE)
 #define ARM_JOINT_2_ANGLE_HOME ARM_JOINT_2_ANGLE_MIN
 
-#define ARM_JOINT_3_ANGLE_MIN (-80.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
-#define ARM_JOINT_3_ANGLE_MAX (80.0f / 180.0f * PI - ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_3_ANGLE_MIN (-88.0f / 180.0f * PI + ARM_JOINT_CLEARANCE)
+#define ARM_JOINT_3_ANGLE_MAX (88.0f / 180.0f * PI - ARM_JOINT_CLEARANCE)
 #define ARM_JOINT_3_ANGLE_HOME 0.0f
 
 #define ARM_JOINT_4_ANGLE_MIN (-0.5f * PI + ARM_JOINT_CLEARANCE)
@@ -178,6 +186,7 @@ typedef enum
 	ARM_STATE_HOMING,
 	ARM_STATE_MOVE,
 	ARM_STATE_STATIC,
+	ARM_STATE_STORAGE,
 } robot_arm_state_e;
 
 typedef struct
@@ -191,8 +200,10 @@ typedef struct
 	robot_arm_state_e arm_state;
 	uint32_t prevStateSwitchTime;
 	uint8_t fHoming;
-	uint8_t fStatic;
+	uint8_t fStatic, fStaticPrev;
+	uint8_t fStorage;
 	uint8_t fMasterSwitch;
+	uint8_t fdebug;
 
 	const fp32 *arm_INS_angle;
 	const fp32 *arm_INS_speed;
@@ -208,6 +219,7 @@ extern void robot_arm_task(void const *pvParameters);
 void robot_arm_all_motors_return_home(void);
 void robot_arm_motors_return_home(uint8_t _start, uint8_t _end);
 void robot_arm_return_static(uint8_t _start, uint8_t _end);
+void robot_arm_return_storage(uint8_t _start, uint8_t _end);
 void robot_arm_switch_on_power(void);
 
 extern robot_arm_t robot_arm;
