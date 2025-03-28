@@ -298,7 +298,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 
 static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 {
-    while (size >= 2)
+    while (size >= 2)	
     {
         uint8_t  tag    = pData[0];
         uint8_t  length = pData[1];
@@ -312,7 +312,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
             {
                 // pData[2] = state enum
                 // TODO: handle state
-				//CvCmder_SendAck(MSG_CHECK_STATE);
+				CvCmder_SendAck(MSG_CHECK_STATE);
 				detect_hook(CV_TOE);
             }
             break;
