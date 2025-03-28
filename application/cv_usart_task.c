@@ -38,7 +38,9 @@
 // Test result with pyserial: 0 to 2 millisecond of cv msg receiving interval; Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
 uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE];
 //eMsgTypes CV_CMD_TYPE;
-uint8_t CvCmdLength;
+uint8_t CvCmdLength, fQpresses;
+uint8_t fIsKeyPressingEdge = 0;
+
 
 #if CV_INTERFACE
 

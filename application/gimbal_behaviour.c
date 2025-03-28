@@ -167,6 +167,8 @@ static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *
 
 // Watchout for the default value
 gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
+uint8_t fLastKeyVSignal = 0;
+fp32 cvAidedX, cvAidedY, debugx, debugy;
 
 #if GIMBAL_TEST_MODE
 static void J_scope_gimbal_behavior_test(void)
@@ -598,6 +600,7 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 	uint8_t fCenterGimbal = 0;
 	static uint8_t fLastKeyRSignal = 0;
 	uint8_t fIsKeyRPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) != 0);
+    uint8_t fIsKeyVPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V) != 0);
 	if (fLastKeyRSignal != fIsKeyRPressed)
 	{
 		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
@@ -606,6 +609,24 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 		}
 		fLastKeyRSignal = fIsKeyRPressed;
 	}
+	if (fLastKeyVSignal != fIsKeyVPressed)
+	{
+		if (fIsKeyVPressed)
+		{
+
+                cvAidedX = CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
+                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC;
+                // cvAidedX = debugx * YAW_RC_CV_SEN_INC;
+                // cvAidedY = debugy * PITCH_RC_CV_SEN_INC;
+        
+		}
+        else{
+            cvAidedX = 0.0f;
+            cvAidedY = 0.0f;
+        }
+		fLastKeyVSignal = fIsKeyVPressed;
+    }
+
 
 	if (fCenterGimbal)
 	{
@@ -619,8 +640,8 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
         deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
         deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
 
-		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC + CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
-		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC + CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC;
+		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC + cvAidedX;
+		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC + cvAidedY;
 	}
 
 	// {
@@ -741,6 +762,7 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 	uint8_t fCenterGimbal = 0;
 	static uint8_t fLastKeyRSignal = 0;
 	uint8_t fIsKeyRPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) != 0);
+    uint8_t fIsKeyVPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V) != 0);
 	if (fLastKeyRSignal != fIsKeyRPressed)
 	{
 		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
@@ -749,6 +771,21 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 		}
 		fLastKeyRSignal = fIsKeyRPressed;
 	}
+	if (fLastKeyVSignal != fIsKeyVPressed)
+	{
+		if (fIsKeyVPressed)
+		{
+
+                cvAidedX = CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
+                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC;
+        
+		}
+        else{
+            cvAidedX = 0.0f;
+            cvAidedY = 0.0f;
+        }
+		fLastKeyVSignal = fIsKeyVPressed;
+    }
 
 	if (fCenterGimbal)
 	{
@@ -763,8 +800,8 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 		deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], yaw_channel, RC_DEADBAND);
 		deadband_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], pitch_channel, RC_DEADBAND);
 
-		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC + CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
-		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC + CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC;
+		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC + cvAidedX;
+		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC + cvAidedY;
 	}
 }
 
