@@ -238,29 +238,47 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
 static void CvCmder_SendAck(uint8_t msgType)
 {
     // For example, Tag = msgType, Length = 1, Value = 0xAA (ACK placeholder)
-    uint8_t ackBuf[3];
+    uint8_t ackBuf[4];
     ackBuf[0] = msgType; // Tag
-    ackBuf[1] = 1;       // Length
+          // Length
     ackBuf[2] = 0xFF;    // Value (ACK)
 	switch(msgType){
 		case MSG_CV_CHASSIS_MOVE_STATE:
 		{
+			ackBuf[1] = 1;  
 			ackBuf[2] = 0xFF;
+			break;
+		}
+
+		case MSG_CHECK_STATE:
+		{
+			ackBuf[1] = 2; 
+			ackBuf[2] = 0x00;
+			if(is_game_started()){
+				ackBuf[3] = 0x00;
+			}
+			else{
+				ackBuf[3] = 0xFF;
+			}
+
 			break;
 		}
 
 		case MSG_CONTROL_SPINNNG:
 		{
 			if(CV_MODE_CHASSIS_SPINNING_BIT == 1){
+				ackBuf[1] = 1; 
 				ackBuf[2] = 0xFF;
 			}
 			else{
+				ackBuf[1] = 1; 
 				ackBuf[2] = 0x00;
 			}
 		}
 
 		case MSG_AIM_ERROR:
 		{
+			ackBuf[1] = 1; 
 			ackBuf[2] = 0xFF;
 			break;
 		}
@@ -275,7 +293,7 @@ static void CvCmder_SendAck(uint8_t msgType)
     // Byte 3 could remain unused or contain a CRC etc. Set to 0xFF or 0 if you like
     //ackBuf[3] = 0xFF;
 
-    HAL_UART_Transmit(&huart1, ackBuf, sizeof(ackBuf), 100);
+    HAL_UART_Transmit(&huart1, ackBuf, (uint16_t)ackBuf[1] + 2, 100);
 }
 
 static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
