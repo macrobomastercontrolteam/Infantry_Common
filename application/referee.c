@@ -368,6 +368,21 @@ uint8_t get_team_color(void)
 	return team_color;
 }
 
+void get_remaining_gold_coins(uint16_t *gold_coins)
+{
+	*gold_coins = projectile_allowance_t.remaining_gold_coin;
+}
+
+void get_projectile_allowance_17mm(uint16_t *projectile_allowance_17)
+{
+	*projectile_allowance_17 = projectile_allowance_t.projectile_allowance_17mm;
+}
+
+void get_projectile_allowance_42mm(uint16_t *projectile_allowance_42)
+{
+	*projectile_allowance_42 = projectile_allowance_t.projectile_allowance_42mm;
+} 
+
 void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0)
 {
 	*heat_limit = robot_state.shooter_barrel_heat_limit;

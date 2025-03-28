@@ -387,6 +387,10 @@ extern uint8_t get_team_color(void);
 extern uint16_t get_red_outpost_HP(void);
 extern uint16_t get_blue_outpost_HP(void);
 
+extern void get_remaining_gold_coins(uint16_t *gold_coins);
+extern void get_projectile_allowance_17mm(uint16_t *projectile_allowance_17);
+extern void get_projectile_allowance_42mm(uint16_t *projectile_allowance_42);
+
 extern void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0);
 extern void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1);
 uint8_t is_game_started(void);
