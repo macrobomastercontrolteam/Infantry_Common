@@ -227,10 +227,11 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
 	{
 		if (fIsKeyPressed)
 		{
-			// keyboard "G" button toggles auto-aim mode
+			fQpresses = 1;
 			CvCmder_ToggleMode(CV_MODE_AUTO_AIM_BIT);
 		}
 		fLastKeySignal = fIsKeyPressed;
+		fQpresses = 0;
 	}
 }
 
