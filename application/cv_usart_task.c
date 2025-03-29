@@ -40,8 +40,7 @@ uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE];
 //eMsgTypes CV_CMD_TYPE;
 uint8_t CvCmdLength, fQpresses;
 uint8_t fIsKeyPressingEdge = 0;
-
-
+uint16_t shoot_heat_limit, shoot_heat, remaining_gold_coin, projectile_allowance_17mm, gold_coins;
 #if CV_INTERFACE
 
 typedef enum
@@ -285,6 +284,19 @@ static void CvCmder_SendAck(uint8_t msgType)
 		
 		case MSG_SHOOT_CMD:
 		{
+			ackBuf[1] = 1;
+			if((projectile_allowance_17mm == 0 && gold_coins < 50)){
+				ackBuf[2] = 0x00;
+			}
+			else if(shoot_heat_limit <= shoot_heat-15){
+				ackBuf[2] = 0xAA;
+			}
+			else if((gold_coins > 50)&& (projectile_allowance_17mm == 0)){
+				ackBuf[2] = 0xBB;
+			}
+			else{
+				ackBuf[2] = 0xFF  ;
+			}
 			//TODO: Return the correct response
 		}
 	}
@@ -362,9 +374,12 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
             }
             break;
 		case MSG_SHOOT_CMD:
+			get_shoot_heat0_limit_and_heat(&shoot_heat_limit, &shoot_heat);
+			get_remaining_gold_coins(&gold_coins);
+			get_projectile_allowance_17mm(&projectile_allowance_17mm);
 			if(length == 1){
 				uint8_t shootCmd = pData[2];
-				if(shootCmd == 0xFF){
+				if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-10)< shoot_heat_limit)){
 					CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 1);
 				} else {
 					CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
