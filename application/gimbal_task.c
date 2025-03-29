@@ -653,7 +653,6 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     feedback_update->gimbal_pitch_motor.absolute_angle = asin(sin(*(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET))*270/330);
     temp_pitch_current_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
     temp_pitch_current_angle_processed = asin(sin(*(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET))*270/330);
-    launcher_angle = asin(270*sin(feedback_update->gimbal_pitch_motor.absolute_angle)/330); //caculate launcher angle
 #if PITCH_TURN
     feedback_update->gimbal_pitch_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
                                                                                           feedback_update->gimbal_pitch_motor.offset_ecd);
@@ -851,7 +850,7 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
 // #endif
     {
         //relative angle + angle error + add_angle > max_relative angle
-        if (gimbal_motor->relative_angle + bias_angle + add > gimbal_motor->max_relative_angle)
+        if (gimbal_motor->relative_angle + bias_angle + add > HERO_PITCH_MAX_ANGLE) //gimbal_motor->max_relative_angle)
         {
             // if true, turn towards the maximum mechanical angle
             if (add > 0.0f)
@@ -860,7 +859,7 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
                 add = gimbal_motor->max_relative_angle - gimbal_motor->relative_angle - bias_angle;
             }
         }
-        else if (gimbal_motor->relative_angle + bias_angle + add < gimbal_motor->min_relative_angle)
+        else if (gimbal_motor->relative_angle + bias_angle + add < HERO_PITCH_MIN_ANGLE) // gimbal_motor->min_relative_angle)
         {
             if (add < 0.0f)
             {

@@ -54,6 +54,7 @@
 #include "bsp_buzzer.h"
 #include "detect_task.h"
 #include "referee.h"
+#include "bsp_gpio.h"
 
 #include "user_lib.h"
 #include "cv_usart_task.h"
