@@ -178,6 +178,10 @@ static fp32 yaw_can_set_value = 0;
 static fp32 pitch_can_set_value = 0;
 static int16_t trigger_set_current = 0;
 
+uint8_t fLastKeyVSignal = 0;
+fp32 cvAidedX, cvAidedY, debugx, debugy;
+fp32 cv_coeff_x = 0.5, cv_coeff_y = 0.5;
+
 /**
   * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME_MS (1ms) 
   * @param[in]      pvParameters: null
@@ -783,10 +787,29 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         return;
     }
 
+    uint8_t fIsKeyVPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V) != 0);
+
+		if (fIsKeyVPressed)
+		{
+
+                cvAidedX = CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
+                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC;
+                // cvAidedX = debugx * YAW_RC_CV_SEN_INC;
+                // cvAidedY = debugy * PITCH_RC_CV_SEN_INC;
+        
+		}
+        else{
+            cvAidedX = 0.0f;
+            cvAidedY = 0.0f;
+        }
+
+    
+
     fp32 add_yaw_angle = 0.0f;
     fp32 add_pitch_angle = 0.0f;
-
     gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, set_control);
+    add_yaw_angle += cvAidedX;
+    add_pitch_angle += cvAidedY;
     // yaw motor mode control
     if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
