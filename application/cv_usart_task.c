@@ -53,16 +53,23 @@ typedef enum
 	MSG_SHOOT_CMD = 0x04,
 } eMsgTypes;
 
-//
 typedef enum
 {
-	CV_INFO_TRANDELTA_BIT = 1 << 0,
-	CV_INFO_CVSYNCTIME_BIT = 1 << 1,
-	CV_INFO_REF_STATUS_BIT = 1 << 2,
-	CV_INFO_GIMBAL_ANGLE_BIT = 1 << 3,
-	CV_INFO_LAST_BIT = 1 << 4,
-} eInfoBits;
-STATIC_ASSERT(CV_INFO_LAST_BIT <= (1 << 8));
+	CV_INFO_GAME_PROGRESS = 0x00,
+	CV_INFO_TEAM_COLOR = 0x01,
+	CV_INFO_ROBOT_TYPE = 0x02,
+} eMsgTypeAckInfo;
+
+//
+// typedef enum
+// {
+// 	CV_INFO_TRANDELTA_BIT = 1 << 0,
+// 	CV_INFO_CVSYNCTIME_BIT = 1 << 1,
+// 	CV_INFO_REF_STATUS_BIT = 1 << 2,
+// 	CV_INFO_GIMBAL_ANGLE_BIT = 1 << 3,
+// 	CV_INFO_LAST_BIT = 1 << 4,
+// } eInfoBits;
+// STATIC_ASSERT(CV_INFO_LAST_BIT <= (1 << 8));
 
 typedef struct
 {
@@ -252,14 +259,36 @@ static void CvCmder_SendAck(uint8_t msgType)
 		case MSG_CHECK_STATE:
 		{
 			ackBuf[1] = 2; 
-			ackBuf[2] = 0x00;
-			if(is_game_started()){
-				ackBuf[3] = 0x00;
+			switch(CvCmdHandler.CvCmdMsg.cv_info_type){
+				case CV_INFO_GAME_PROGRESS:{
+					ackBuf[2] = 0x00;
+					if(is_game_started()){
+						ackBuf[3] = 0x00;
+					}
+					else{
+						ackBuf[3] = 0xFF;
+					}
+					break;
+				}
+				case CV_INFO_TEAM_COLOR:{
+					ackBuf[2] = 0x01;
+					if(get_team_color() == 1){
+						ackBuf[3] = 0x00;
+					}
+					else{
+						ackBuf[3] = 0xFF;
+					}
+					break;
+				}
+				case CV_INFO_ROBOT_TYPE:
+					ackBuf[2] = 0x02;
+#if SENTRY_2023_MECANUM
+					ackBuf[3] = 0x00;
+#else
+					ackBuf[3] = 0xFF;
+#endif
+					break;
 			}
-			else{
-				ackBuf[3] = 0xFF;
-			}
-
 			break;
 		}
 
@@ -324,6 +353,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
             {
                 // pData[2] = state enum
                 // TODO: handle state
+				CvCmdHandler.CvCmdMsg.cv_info_type = pData[2];
 				CvCmder_SendAck(MSG_CHECK_STATE);
 				detect_hook(CV_TOE);
             }

@@ -21,6 +21,7 @@ typedef struct __attribute__((packed))
     fp32 yAimError; ///< unit: rad
     fp32 xSpeed;
     fp32 ySpeed;
+    uint8_t cv_info_type;
 } tCvCmdMsg;
 
 typedef enum
