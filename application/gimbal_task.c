@@ -788,13 +788,14 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     }
 
     uint8_t fIsKeyVPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V) != 0);
-#if !CV_INTERFACE
+
+#if (ROBOT_TYPE != SENTRY_2023_MECANUM)
 
 		if (fIsKeyVPressed)
 		{
 
-                cvAidedX = CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
-                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC * 0.1f;
+                cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC *0.5f;
+                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC * 0.25f;
                 // cvAidedX = debugx * YAW_RC_CV_SEN_INC;
                 // cvAidedY = debugy * PITCH_RC_CV_SEN_INC;
         
