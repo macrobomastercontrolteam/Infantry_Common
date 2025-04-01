@@ -344,8 +344,17 @@ void robot_arm_init(void)
 }
 
 void robot_arm_all_motors_return_home(void)
+	{
+		robot_arm_motors_return_home(0, JOINT_ID_LAST - 1);
+	}
+
+
+void robot_arm_motors_return_home_2(uint8_t _start, uint8_t _end)
 {
-	robot_arm_motors_return_home(0, JOINT_ID_LAST - 1);
+	if (_start > _end)
+	{
+		memcpy(&robot_arm.joint_angle_target[_start], &joint_angle_home[_start], (_end - _start + 1) * sizeof(joint_angle_home[0]));
+	}
 }
 
 void robot_arm_motors_return_home(uint8_t _start, uint8_t _end)
