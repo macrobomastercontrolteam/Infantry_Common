@@ -805,8 +805,8 @@ static void gimbal_set_control(gimbal_control_t *set_control)
             cvAidedY = 0.0f;
         }
 #else if
-    cvAidedX = CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
-    cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC;
+    cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC*0.5f;
+    cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC *0.35f;
 #endif
 
     
