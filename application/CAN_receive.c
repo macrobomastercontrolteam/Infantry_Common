@@ -390,7 +390,7 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
 	HAL_StatusTypeDef ret_value = HAL_ERROR;
-	// Note: error_id = 0ï¼Œ 1 means motor power is disabled/enabled
+	// Note: error_id = 0£¬ 1 means motor power is disabled/enabled
 	uint8_t error_id = data[0] >> 4;
 	if ((error_id != 0) && (error_id != 1))
 	{
