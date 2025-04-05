@@ -143,7 +143,8 @@ void chassis_behaviour_set_mode(void)
 		}
 		case CHASSIS_CV_CONTROL_MODE:
 		{
-			chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_FOLLOW_CHASSIS_ABSOLUTE_FRONT;
+			//chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_FOLLOW_CHASSIS_ABSOLUTE_FRONT;
+			chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_FOLLOW_GIMBAL;
 			break;
 		}
 		case CHASSIS_ZERO_FORCE:
