@@ -75,11 +75,11 @@
 #elif (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 
 //pitch speed close-loop PID params, max out and max iout
-#define PITCH_SPEED_PID_KP        35.0f
+#define PITCH_SPEED_PID_KP        500.0f
 #define PITCH_SPEED_PID_KI        0.0f
 #define PITCH_SPEED_PID_KD        0.0f
-#define PITCH_SPEED_PID_MAX_OUT   1000.0f
-#define PITCH_SPEED_PID_MAX_IOUT  500.0f
+#define PITCH_SPEED_PID_MAX_OUT   10000.0f
+#define PITCH_SPEED_PID_MAX_IOUT  9000.0f
 
 #if ROBOT_YAW_IS_4310
 #define YAW_SPEED_PID_KP        0.7f

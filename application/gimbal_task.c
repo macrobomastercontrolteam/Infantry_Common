@@ -251,7 +251,7 @@ void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_valu
 #endif
 
 #if PITCH_TURN
-        *pitch_can_set_value_ptr = -gimbal_control.gimbal_pitch_motor.cmd_value;
+        *pitch_can_set_value_ptr =  gimbal_control.gimbal_pitch_motor.cmd_value;
 #else
         *pitch_can_set_value_ptr = gimbal_control.gimbal_pitch_motor.cmd_value;
 #endif
@@ -650,12 +650,12 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     {
         return;
     }
-    feedback_update->gimbal_pitch_motor.absolute_angle = asin(sin(*(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET))*270/330);
+    feedback_update->gimbal_pitch_motor.absolute_angle = asin(sin( *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET)) * 270.0f/330.0f);
+
     temp_pitch_current_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
-    temp_pitch_current_angle_processed = asin(sin(*(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET))*270/330);
+    temp_pitch_current_angle_processed = asin(sin(*(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET))*270.0f/330.0f);
 #if PITCH_TURN
-    feedback_update->gimbal_pitch_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
-                                                                                          feedback_update->gimbal_pitch_motor.offset_ecd);
+    //feedback_update->gimbal_pitch_motor.relative_angle = feedback_update->gimbal_pitch_motor.absolute_angle - (chassis angle sent back)
 #else
 
     feedback_update->gimbal_pitch_motor.relative_angle = motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
@@ -842,38 +842,24 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
     {
         return;
     }
-    //present angle error
+    // present angle error
     bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
-// #if ROBOT_YAW_HAS_SLIP_RING
-//     // Remove yaw motor limit for robots with slip ring
-//     if (motor_select != GIMBAL_YAW_MOTOR)
-// #endif
-    {
-        //relative angle + angle error + add_angle > max_relative angle
-        if (gimbal_motor->relative_angle + bias_angle + add > HERO_PITCH_MAX_ANGLE) //gimbal_motor->max_relative_angle)
-        {
-            // if true, turn towards the maximum mechanical angle
-            if (add > 0.0f)
-            {
-                // calculate for the max add_angle
-                add = gimbal_motor->max_relative_angle - gimbal_motor->relative_angle - bias_angle;
-            }
-        }
-        else if (gimbal_motor->relative_angle + bias_angle + add < HERO_PITCH_MIN_ANGLE) // gimbal_motor->min_relative_angle)
-        {
-            if (add < 0.0f)
-            {
-                add = gimbal_motor->min_relative_angle - gimbal_motor->relative_angle - bias_angle;
-            }
-        }
-    }
-    gimbal_motor->absolute_angle_set = rad_format(gimbal_motor->absolute_angle_set + add);
 
-    // Relative angle implementation for chassis spinning mode
-    // if ((motor_select == GIMBAL_YAW_MOTOR) && ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE))
-    // {
-    //     chassis_move.chassis_relative_angle_set = rad_format(chassis_move.chassis_relative_angle_set + add);
-    // }
+    // relative angle + angle error + add_angle > max_relative angle
+    if (gimbal_motor->absolute_angle_set + add > HERO_PITCH_MAX_ANGLE) // gimbal_motor->max_relative_angle)
+    {
+        gimbal_motor->absolute_angle_set = HERO_PITCH_MAX_ANGLE;
+    }
+    else if (gimbal_motor->absolute_angle_set + add< HERO_PITCH_MIN_ANGLE) // gimbal_motor->min_relative_angle)
+    {
+        gimbal_motor->absolute_angle_set = HERO_PITCH_MIN_ANGLE;
+    }
+    else
+    {
+        gimbal_motor->absolute_angle_set += add;
+    }
+
+    //gimbal_motor->absolute_angle_set = rad_format(gimbal_motor->absolute_angle_set + add);
 }
 /**
   * @brief          gimbal control mode :GIMBAL_MOTOR_ENCODER, use the encode relative angle  to control. 
@@ -938,6 +924,7 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
     else if ((control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         gimbal_motor_absolute_angle_control(&control_loop->gimbal_pitch_motor);
+        temp_pitch_target_angle = control_loop->gimbal_pitch_motor.absolute_angle_set;
     }
     else if (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
     {
