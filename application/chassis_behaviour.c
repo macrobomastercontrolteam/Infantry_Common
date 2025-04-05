@@ -82,6 +82,8 @@ chassis_behaviour_e chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
  */
 void chassis_behaviour_set_mode(void)
 {
+
+#if !DEBUG_CV
 	if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE) && toe_is_error(DBUS_TOE))
 	{
 		; // CV fully automatic mode without RC: do not switch out of cv state
