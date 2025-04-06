@@ -177,6 +177,7 @@ gimbal_control_t gimbal_control;
 static fp32 yaw_can_set_value = 0;
 static fp32 pitch_can_set_value = 0;
 static int16_t trigger_set_current = 0;
+fp32 CAN_cmd_pitch_add = 0.0f;
 
 /**
   * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME_MS (1ms) 
@@ -788,6 +789,8 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     fp32 add_pitch_angle = 0.0f;
 
     gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, set_control);
+
+    CAN_cmd_pitch_add = add_pitch_angle;
     // yaw motor mode control
     if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
@@ -830,39 +833,26 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
     {
         return;
     }
-    //present angle error
+    // present angle error
     bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
-#if ROBOT_YAW_HAS_SLIP_RING
-    // Remove yaw motor limit for robots with slip ring
-    if (motor_select != GIMBAL_YAW_MOTOR)
-#endif
-    {
-        //relative angle + angle error + add_angle > max_relative angle
-        if (gimbal_motor->relative_angle + bias_angle + add > gimbal_motor->max_relative_angle)
-        {
-            // if true, turn towards the maximum mechanical angle
-            if (add > 0.0f)
-            {
-                // calculate for the max add_angle
-                add = gimbal_motor->max_relative_angle - gimbal_motor->relative_angle - bias_angle;
-            }
-        }
-        else if (gimbal_motor->relative_angle + bias_angle + add < gimbal_motor->min_relative_angle)
-        {
-            if (add < 0.0f)
-            {
-                add = gimbal_motor->min_relative_angle - gimbal_motor->relative_angle - bias_angle;
-            }
-        }
-    }
-    gimbal_motor->absolute_angle_set = rad_format(gimbal_motor->absolute_angle_set + add);
 
-    // Relative angle implementation for chassis spinning mode
-    // if ((motor_select == GIMBAL_YAW_MOTOR) && ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE))
-    // {
-    //     chassis_move.chassis_relative_angle_set = rad_format(chassis_move.chassis_relative_angle_set + add);
-    // }
+    // relative angle + angle error + add_angle > max_relative angle
+    if (gimbal_motor->absolute_angle_set + add > HERO_YAW_ANGLE_MAX_LIMIT) // gimbal_motor->max_relative_angle)
+    {
+        gimbal_motor->absolute_angle_set = HERO_YAW_ANGLE_MAX_LIMIT;
+    }
+    else if (gimbal_motor->absolute_angle_set + add< HERO_YAW_ANGLE_MIN_LIMIT) // gimbal_motor->min_relative_angle)
+    {
+        gimbal_motor->absolute_angle_set = HERO_YAW_ANGLE_MIN_LIMIT;
+    }
+    else
+    {
+        gimbal_motor->absolute_angle_set += add;
+    }
+
+    //gimbal_motor->absolute_angle_set = rad_format(gimbal_motor->absolute_angle_set + add);
 }
+
 /**
   * @brief          gimbal control mode :GIMBAL_MOTOR_ENCODER, use the encode relative angle  to control. 
   * @param[out]     gimbal_motor: yaw motor or pitch motor

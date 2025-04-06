@@ -358,7 +358,7 @@
 #define YAW_RC_MOUSE_SEN_INC -(PI / YAW_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / MOUSE_X_EFFECTIVE_SPEED)
 
 #define PITCH_RC_CHANGE_TIME_S 0.35f
-#define PITCH_RC_SEN_INC -(PI / 4.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
+#define PITCH_RC_SEN_INC -(PI / 20.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
 #define PITCH_RC_MOUSE_SEN_INC (PI / 4.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / MOUSE_Y_EFFECTIVE_SPEED)
 
 #define GIMBAL_INIT_ANGLE_ERROR     0.05f
@@ -449,6 +449,8 @@ typedef struct
     gimbal_motor_t gimbal_pitch_motor;
     gimbal_step_cali_t gimbal_cali;
 } gimbal_control_t;
+
+extern fp32 CAN_cmd_pitch_add;
 
 /**
   * @brief          return yaw motor data point

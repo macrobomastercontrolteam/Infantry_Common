@@ -30,6 +30,7 @@
 #include "chassis_behaviour.h"
 #include "string.h"
 #include "shoot.h"
+#include "gimbal_task.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
@@ -40,6 +41,7 @@
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
 #define ENABLE_FRICTION_2_MOTOR_POWER 0
+#define ENABLE_LAUNCHER_MOTOR_POWER 1
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define ENABLE_UPPER_HEAD_POWER 0
@@ -91,6 +93,7 @@ static CAN_TxHeaderTypeDef gimbal_tx_message;
 static uint8_t gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef chassis_tx_message;
 static uint8_t chassis_can_send_data[8];
+static uint8_t launcher_can_send_data[8];
 const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 12.5f};
@@ -755,6 +758,8 @@ void CAN_cmd_chassis(void)
 	CAN_cmd_swerve_steer();
 	osDelay(1);
 	CAN_cmd_swerve_hip();
+	osDelay(1);
+	CAN_cmd_hero_launcher();
 #elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_cmd_3508_chassis();
 	osDelay(1);
@@ -889,6 +894,38 @@ void CAN_cmd_swerve_hip(void)
 		memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
 	}
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+void CAN_cmd_hero_launcher(void)
+{
+    uint32_t send_mail_box;
+
+    chassis_tx_message.StdId = CAN_HERO_LAUNCHER_TX_ID;
+#if ENABLE_LAUNCHER_MOTOR_POWER
+    // if (chassis_move.fHipEnabled)
+    // {
+        // Scale CAN_cmd_pitch_add to fit within the range of a 16-bit integer
+        const fp32 scale_factor = 32767.0f / 0.0087959872047901f; // Scale factor to map ±0.0087959872047901 to ±32767
+        int16_t scaled_pitch_add = (int16_t)(CAN_cmd_pitch_add * scale_factor);
+        // Populate the CAN message data
+        launcher_can_send_data[0] = (scaled_pitch_add >> 8); // High byte
+        launcher_can_send_data[1] = scaled_pitch_add;        // Low byte
+        //launcher_can_send_data[2] = (scaled_pitch_add >> 8); // High byte (repeated for redundancy or other use)
+        //launcher_can_send_data[3] = scaled_pitch_add;        // Low byte (repeated for redundancy or other use)
+        //launcher_can_send_data[4] = 0;                       // Reserved or unused
+        //launcher_can_send_data[5] = 0;                       // Reserved or unused
+        //launcher_can_send_data[6] = 0;                       // Reserved or unused
+        //launcher_can_send_data[7] = 0;                       // Reserved or unused
+    //}
+    //else
+#endif
+    // {
+    //     // If the launcher motor power is disabled, send a default message
+    //     memset(launcher_can_send_data, 0xFF, sizeof(launcher_can_send_data));
+    // }
+
+    // Send the CAN message
+    HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, launcher_can_send_data, &send_mail_box);
 }
 #endif
 
