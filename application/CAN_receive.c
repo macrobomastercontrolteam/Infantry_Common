@@ -253,14 +253,32 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
                 break;
             }
 
-			case SUPCAP_RX_ID:
-			{
-        		bMotorId = MOTOR_INDEX_YAW;
-				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(YAW_GIMBAL_MOTOR_TOE);
-				break;
-			}
-#endif
+			// case SUPCAP_RX_ID:
+			// {
+        	// 	bMotorId = MOTOR_INDEX_YAW;
+			// 	decode_rm_motor_feedback(rx_data, bMotorId);
+			// 	detect_hook(YAW_GIMBAL_MOTOR_TOE);
+			// 	break;
+			// }
+// #if ROBOT_YAW_IS_4310
+// 			case CAN_YAW_MOTOR_4310_RX_ID:
+// 			{
+// 				bMotorId = MOTOR_INDEX_YAW;
+// 				if (decode_4310_motor_feedback(rx_data, bMotorId) == HAL_OK)
+// 				{
+// 					detect_hook(YAW_GIMBAL_MOTOR_TOE);
+// 				}
+// 				break;
+// 			}
+// #else
+			// case CAN_YAW_MOTOR_6020_RX_ID:
+			// {
+        	// 	bMotorId = MOTOR_INDEX_YAW;
+			// 	decode_rm_motor_feedback(rx_data, bMotorId);
+			// 	detect_hook(YAW_GIMBAL_MOTOR_TOE);
+			// 	break;
+			// }
+//#endif
 #if (IS_TRIGGER_ON_GIMBAL == 0)
 			case CAN_TRIGGER_MOTOR_ID:
 			{
@@ -634,9 +652,9 @@ void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, in
 	gimbal_can_send_data[3] = (int16_t)pitch;
 	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
-#if ROBOT_YAW_IS_4310
-	encode_MIT_motor_control(CAN_YAW_MOTOR_4310_TX_ID, 0, 0, 0, 0, yaw, DM_4310, &CHASSIS_CAN);
-#endif
+// #if ROBOT_YAW_IS_4310
+// 	encode_MIT_motor_control(CAN_YAW_MOTOR_4310_TX_ID, 0, 0, 0, 0, yaw, DM_4310, &CHASSIS_CAN);
+// #endif
 }
 
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr)

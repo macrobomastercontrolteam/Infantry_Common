@@ -200,9 +200,9 @@ void gimbal_task(void const *pvParameters)
 
     do
     {
-#if ROBOT_YAW_IS_4310
-        enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN);
-#endif
+// #if ROBOT_YAW_IS_4310
+//         enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN);
+// #endif
         CAN_cmd_gimbal(0, 0, 0, 0, 0);
         osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
@@ -795,25 +795,25 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         return;
     }
 
-    fp32 add_yaw_angle = 0.0f;
-    fp32 add_pitch_angle = 0.0f;
+    // fp32 add_yaw_angle = 0.0f;
+    // fp32 add_pitch_angle = 0.0f;
 
-    gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, set_control);
+    // gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, set_control);
     // yaw motor mode control
-    if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
-    {
-        // send control value directly in raw mode
-        set_control->gimbal_yaw_motor.raw_cmd_current = add_yaw_angle;
-    }
-    else if ((set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
-    {
-        // gyro mode control
-        gimbal_absolute_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
-    }
-    else if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
-    {
-        gimbal_relative_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
-    }
+    // if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
+    // {
+    //     // send control value directly in raw mode
+    //     set_control->gimbal_yaw_motor.raw_cmd_current = add_yaw_angle;
+    // }
+    // else if ((set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
+    // {
+    //     // gyro mode control
+    //     gimbal_absolute_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
+    // }
+    // else if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
+    // {
+    //     gimbal_relative_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
+    // }
 
     // pitch motor mode control
     if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)

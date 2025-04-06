@@ -38,12 +38,12 @@ typedef enum
     CAN_3508_M2_ID = 0x202,
     CAN_3508_M3_ID = 0x203,
     CAN_3508_M4_ID = 0x204,
-#if ROBOT_YAW_IS_4310
-    CAN_YAW_MOTOR_4310_TX_ID = 0x005,
-    CAN_YAW_MOTOR_4310_RX_ID = 0x0FF,
-#else
-    CAN_YAW_MOTOR_6020_RX_ID = 0x205,
-#endif
+// #if ROBOT_YAW_IS_4310
+//     // CAN_YAW_MOTOR_4310_TX_ID = 0x001,
+//     // CAN_YAW_MOTOR_4310_RX_ID = 0x000,
+// #else
+//     CAN_YAW_MOTOR_6020_RX_ID = 0x205,
+// #endif
 
     /********Gimbal CAN IDs********/
     CAN_PIT_MOTOR_L_ID = 0x205,
