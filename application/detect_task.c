@@ -240,6 +240,7 @@ static void detect_init(uint32_t time)
             {100, 0, 11},    // super capacitor
             {50, 0, 8},    // swerve controller
             {25, 0, 8},    // biped controller feedback (normally < 3)
+            {40, 200, 7},
             // {100, 100, 1},  //oled
         };
 

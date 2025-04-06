@@ -74,6 +74,7 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
 
+fp32 CAN_cmd_pitch_add = 0.0f; // pitch gimbal motor control current, range [-30000,30000]
 
 int16_t can_pitch;
 /**
@@ -227,24 +228,32 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			// 	detect_hook(CHASSIS_MOTOR4_TOE);
 			// 	break;
 			// }
-			case SUPCAP_RX_ID:
-			{
-				memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
-				detect_hook(SUPCAP_TOE);
-				break;
-			}
-#if ROBOT_YAW_IS_4310
-			case CAN_YAW_MOTOR_4310_RX_ID:
-			{
-				bMotorId = MOTOR_INDEX_YAW;
-				if (decode_4310_motor_feedback(rx_data, bMotorId) == HAL_OK)
-				{
-					detect_hook(YAW_GIMBAL_MOTOR_TOE);
+
+			case CAN_HERO_LAUNCHER_RX_ID: // Handle data sent by CAN_cmd_hero_launcher
+            {
+                // Decode the received data
+				
+                const fp32 scale_factor = 32767.0f / 0.0087959872047901f; // Same scale factor used in CAN_cmd_hero_launcher
+                int16_t received_scaled_pitch_add = (int16_t)((rx_data[0] << 8) | rx_data[1]); // Combine high and low bytes
+				if (((fp32)received_scaled_pitch_add / scale_factor)>0.0018){
+					CAN_cmd_pitch_add = 0.0f; // Decode back to floating-point value
 				}
-				break;
-			}
-#else
-			case CAN_YAW_MOTOR_6020_RX_ID:
+
+				else if((fp32)received_scaled_pitch_add / scale_factor<-0.0018){
+					CAN_cmd_pitch_add = 0.0f;
+				}
+
+				else{
+					CAN_cmd_pitch_add = (fp32)received_scaled_pitch_add / scale_factor; // Decode back to floating-point value
+				}
+                
+				detect_hook(MAIN_BOARD_TOE);
+                // Optional: Add debug or logging here
+                // printf("Received CAN_cmd_pitch_add: %f\n", CAN_cmd_pitch_add);
+                break;
+            }
+
+			case SUPCAP_RX_ID:
 			{
         		bMotorId = MOTOR_INDEX_YAW;
 				decode_rm_motor_feedback(rx_data, bMotorId);
@@ -399,7 +408,7 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
 	HAL_StatusTypeDef ret_value = HAL_ERROR;
-	// Note: error_id = 0， 1 means motor power is disabled/enabled
+	// Note: error_id = 0?? 1 means motor power is disabled/enabled
 	uint8_t error_id = data[0] >> 4;
 	if ((error_id != 0) && (error_id != 1))
 	{

@@ -818,16 +818,15 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     // pitch motor mode control
     if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
-        set_control->gimbal_pitch_motor.raw_cmd_current = add_pitch_angle;
+        set_control->gimbal_pitch_motor.raw_cmd_current = CAN_cmd_pitch_add;
     }
     else if ((set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
-        gimbal_absolute_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
-        temp_add_pitch_angle = add_pitch_angle;
+        gimbal_absolute_angle_limit(&set_control->gimbal_pitch_motor, CAN_cmd_pitch_add, GIMBAL_PITCH_MOTOR);
     }
     else if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
     {
-        gimbal_relative_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
+        gimbal_relative_angle_limit(&set_control->gimbal_pitch_motor, CAN_cmd_pitch_add, GIMBAL_PITCH_MOTOR);
     }
 }
 /**
@@ -1042,7 +1041,8 @@ bool_t gimbal_emergency_stop(void)
 //     }
 	else
 	{
-		fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL) && toe_is_error(DBUS_TOE));
+		//fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL) && toe_is_error(DBUS_TOE));
+        fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL));
 	}
 	return fEStop;
 }

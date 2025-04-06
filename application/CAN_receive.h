@@ -85,7 +85,7 @@ typedef enum
   CAN_3508_OR_2006_HIGH_RANGE_TX_ID = 0x1FF,
   CAN_6020_LOW_RANGE_TX_ID = 0x1FF,
   CAN_6020_HIGH_RANGE_TX_ID = 0x2FF,
-
+  CAN_HERO_LAUNCHER_RX_ID = 0x117,
   SUPCAP_RX_ID = 0x301,
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
@@ -202,4 +202,5 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
+extern fp32 CAN_cmd_pitch_add;
 #endif
