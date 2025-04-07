@@ -358,14 +358,6 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					CvCmder_SendAck(MSG_CHECK_STATE);
 					detect_hook(CV_TOE);
         	    }
-
-				CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
-				CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
-				CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
-				CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
-				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
-				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
-				CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 0);
         	    break;
 			}
         	case MSG_CV_CHASSIS_MOVE_STATE:
@@ -375,15 +367,13 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
         	        fp32 xSpeed, ySpeed;
         	        memcpy(&xSpeed, &pData[2], 4);
         	        memcpy(&ySpeed, &pData[6], 4);
+					CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
+					CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
 					CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 1);
+					CvCmder_SendAck(MSG_CV_CHASSIS_MOVE_STATE);
         	    }
 
-				CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
-				CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
-				CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
-				CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
-				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
-				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
+
         	    break;
 			}
         	case MSG_CONTROL_SPINNNG:
@@ -404,12 +394,6 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					detect_hook(CV_TOE);
         	    }
 
-				CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
-				CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
-				CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
-				CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
-				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
-				CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 0);
         	    break;
 			}
         	case MSG_AIM_ERROR:
@@ -425,11 +409,6 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					detect_hook(CV_TOE);
         	        // TODO: handle aim error
         	    }
-				CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
-				CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
-				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
-				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
-				CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 0);
         	    break;
 			}
 			case MSG_SHOOT_CMD:
@@ -437,8 +416,6 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				get_shoot_heat0_limit_and_heat(&shoot_heat_limit, &shoot_heat);
 				get_remaining_gold_coins(&gold_coins);
 				get_projectile_allowance_17mm(&projectile_allowance_17mm);
-				CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
-				CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
 				if(length == 1){
 					uint8_t shootCmd = pData[2];
 					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-10)< shoot_heat_limit)){
@@ -450,12 +427,6 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					detect_hook(CV_TOE);
 				}
 
-				CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
-				CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
-				CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
-				CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
-				CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
-				CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 0);
 				break;
 			}
         	default:
