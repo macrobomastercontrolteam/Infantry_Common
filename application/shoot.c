@@ -336,10 +336,10 @@ static void shoot_set_mode(void)
 		{
 			shoot_control.shoot_mode = SHOOT_STOP;
 		}
+		else if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
 #else
 		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
 #endif
-		else if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
 		{
 			if (shoot_control.shoot_mode != SHOOT_AUTO_FIRE)
 			{
