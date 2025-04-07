@@ -313,6 +313,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 		
 		case MSG_SHOOT_CMD:
 		{
+#if !DEBUG_CV
 			ackBuf[1] = 1;
 			if((projectile_allowance_17mm == 0 && gold_coins < 50)){
 				ackBuf[2] = 0x00;
@@ -326,6 +327,9 @@ static void CvCmder_SendAck(uint8_t msgType)
 			else{
 				ackBuf[2] = 0xFF  ;
 			}
+#else
+			ackBuf[2] = 0xFF;
+#endif
 			//TODO: Return the correct response
 		}
 	}
@@ -418,7 +422,11 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				get_projectile_allowance_17mm(&projectile_allowance_17mm);
 				if(length == 1){
 					uint8_t shootCmd = pData[2];
+#if !DEBUG_CV
 					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-10)< shoot_heat_limit)){
+#else
+					if((shootCmd == 0xFF)){
+#endif
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 1);
 					} else {
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);

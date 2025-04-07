@@ -331,10 +331,14 @@ static void shoot_set_mode(void)
 	}
 	else if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // auto aim mode
 	{
+#if !DEBUG_CV
 		if (is_game_started() == 0)
 		{
 			shoot_control.shoot_mode = SHOOT_STOP;
 		}
+#else
+		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
+#endif
 		else if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
 		{
 			if (shoot_control.shoot_mode != SHOOT_AUTO_FIRE)
