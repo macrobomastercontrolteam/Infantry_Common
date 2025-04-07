@@ -191,7 +191,7 @@ int16_t shoot_control_loop(void)
 			{
 				if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // Auto aim
 				{
-					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
+					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && chassis_move.chassis_RC->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_MID)
 					{
 						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
 					}
