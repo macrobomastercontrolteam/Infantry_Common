@@ -405,6 +405,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
     }
 #else
+//TODO add gimbal_emergency_stop
     if (gimbal_emergency_stop())
     {
         //gimbal_behaviour = GIMBAL_ZERO_FORCE;
@@ -422,6 +423,10 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 	// }
     else
 	{
+
+#if CONTROL_BY_CAN
+    gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
+#else
 		switch (gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL])
 		{
 			case RC_SW_UP:
@@ -445,6 +450,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 				break;
 			}
 		}
+#endif
 	}
 
     //enter init mode (gimbal back to center)

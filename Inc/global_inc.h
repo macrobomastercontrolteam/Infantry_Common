@@ -12,6 +12,8 @@
 #define DEBUG_CV_WITH_USB 0
 #define ENABLE_LASER 1
 #define USE_SERVO_TO_STIR_AMMO 0
+
+#define CONTROL_BY_CAN 1 
 //use uart1 port for-
 #define CV_INTERFACE 0
 #define USART_VOFA 0

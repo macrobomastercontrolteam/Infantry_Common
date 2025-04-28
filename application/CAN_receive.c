@@ -74,7 +74,7 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
 
-fp32 CAN_cmd_pitch_add = 0.0f; // pitch gimbal motor control current, range [-30000,30000]
+fp32 CAN_cmd_pitch_add = 0.0f; 
 
 int16_t can_pitch;
 /**

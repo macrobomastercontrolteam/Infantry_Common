@@ -788,47 +788,54 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
   * @param[out]     gimbal_set_control: "gimbal_control" valiable point
   * @retval         none
   */
-static void gimbal_set_control(gimbal_control_t *set_control)
-{
-    if (set_control == NULL)
-    {
-        return;
-    }
+ static void gimbal_set_control(gimbal_control_t *set_control)
+ {
+     if (set_control == NULL)
+     {
+         return;
+     }
+ 
+     fp32 add_yaw_angle = 0.0f;
+     fp32 add_pitch_angle = 0.0f;
+ 
+#if CONTROL_BY_CAN
+    add_pitch_angle = CAN_cmd_pitch_add;
+#else     
+     gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, set_control);
+#endif
+     // yaw motor mode control
+     if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
+     {
+         // send control value directly in raw mode
+         set_control->gimbal_yaw_motor.raw_cmd_current = add_yaw_angle;
+     }
+     else if ((set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
+     {
+         // gyro mode control
+         gimbal_absolute_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
+     }
+     else if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
+     {
+         gimbal_relative_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
+     }
+ 
+     // pitch motor mode control
+     if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
+     {
+         set_control->gimbal_pitch_motor.raw_cmd_current = add_pitch_angle;
+     }
+     else if ((set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
+     {
+         gimbal_absolute_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
+         temp_add_pitch_angle = add_pitch_angle;
+     }
+     else if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
+     {
+         gimbal_relative_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
+     }
+     
+ }
 
-    // fp32 add_yaw_angle = 0.0f;
-    // fp32 add_pitch_angle = 0.0f;
-
-    // gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, set_control);
-    // yaw motor mode control
-    // if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
-    // {
-    //     // send control value directly in raw mode
-    //     set_control->gimbal_yaw_motor.raw_cmd_current = add_yaw_angle;
-    // }
-    // else if ((set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
-    // {
-    //     // gyro mode control
-    //     gimbal_absolute_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
-    // }
-    // else if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
-    // {
-    //     gimbal_relative_angle_limit(&set_control->gimbal_yaw_motor, add_yaw_angle, GIMBAL_YAW_MOTOR);
-    // }
-
-    // pitch motor mode control
-    if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
-    {
-        set_control->gimbal_pitch_motor.raw_cmd_current = CAN_cmd_pitch_add;
-    }
-    else if ((set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
-    {
-        gimbal_absolute_angle_limit(&set_control->gimbal_pitch_motor, CAN_cmd_pitch_add, GIMBAL_PITCH_MOTOR);
-    }
-    else if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
-    {
-        gimbal_relative_angle_limit(&set_control->gimbal_pitch_motor, CAN_cmd_pitch_add, GIMBAL_PITCH_MOTOR);
-    }
-}
 /**
   * @brief          gimbal control mode :GIMBAL_MOTOR_GYRO, use euler angle calculated by gyro sensor to control. 
   * @param[out]     gimbal_motor: yaw motor or pitch motor
@@ -1042,9 +1049,22 @@ bool_t gimbal_emergency_stop(void)
 	else
 	{
 		//fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL) && toe_is_error(DBUS_TOE));
-        fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL));
+        if(toe_is_error(MAIN_BOARD_TOE))
+        {
+            fEStop = 1;
+        }
+#if CV_INTERFACE
+        else if (gimbal_behaviour != GIMBAL_AUTO_AIM && gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL)
+        {
+            fEStop = 1;
+        }
+#endif
+        else
+        {
+            fEStop = 0;
+        }
 	}
-	return fEStop;
+	return 0;
 }
 
 fp32 get_gimbal_yaw_angle(void)
