@@ -49,7 +49,7 @@ ext_radar_cmd_t radar_cmd_t;
 // ext_map_robot_data_t map_robot_data_t;
 // ext_robot_keyboard_mouse_command_t robot_keyboard_mouse_command_t;
 // ext_client_map_command_t client_map_command_t;
-ext_custom_client_data_t custom_client_data_t;
+//ext_custom_client_data_t custom_client_data_t;
 ext_map_data_t map_data_t;
 ext_custom_info_t custom_info_t;
 
@@ -77,7 +77,7 @@ void init_referee_struct_data(void)
 	memset(&robot_state, 0, sizeof(ext_game_robot_state_t));
 	memset(&power_heat_data_t, 0, sizeof(ext_power_heat_data_t));
 	memset(&game_robot_pos_t, 0, sizeof(ext_game_robot_pos_t));
-	memset(&buff_musk_t, 0, sizeof(ext_buff_musk_t));
+	//memset(&buff_musk_t, 0, sizeof(ext_buff_musk_t));
 	// memset(&robot_energy_t, 0, sizeof(aerial_robot_energy_t));
 	memset(&robot_hurt_t, 0, sizeof(ext_robot_hurt_t));
 	memset(&shoot_data_t, 0, sizeof(ext_shoot_data_t));
@@ -88,10 +88,10 @@ void init_referee_struct_data(void)
 	memset(&radar_info_t, 0, sizeof(ext_radar_info_t));
 	memset(&sentry_cmd_t, 0, sizeof(ext_sentry_cmd_t));
 	memset(&radar_cmd_t, 0, sizeof(ext_radar_cmd_t));
-	// memset(&map_command_t, 0, sizeof(ext_map_command_t));
+	// memset(& , 0, sizeof(ext_map_command_t));
 	// memset(&map_robot_data_t, 0, sizeof(ext_map_robot_data_t));
 	memset(&custom_info_t, 0, sizeof(ext_custom_info_t));
-	memset(&custom_client_data_t, 0, sizeof(ext_custom_client_data_t));
+	//memset(&custom_client_data_t, 0, sizeof(ext_custom_client_data_t));
 
 	memset(&student_interactive_data_t, 0, sizeof(ext_student_interactive_data_t));
 	// memset(&diy_controller, 0, sizeof(custom_robot_data_t));
@@ -266,11 +266,11 @@ void referee_data_solve(uint8_t *frame)
 			memcpy(&custom_info_t, frame + index, sizeof(custom_info_t));
 			break;
 		}
-		case CUSTOM_CLIENT_DATA_CMD_ID:
-		{
-			memcpy(&custom_client_data_t, frame + index, sizeof(custom_client_data_t));
-			break;
-		}
+		// case CUSTOM_CLIENT_DATA_CMD_ID:
+		// {
+		// 	memcpy(&custom_client_data_t, frame + index, sizeof(custom_client_data_t));
+		// 	break;
+		// }
 		// case DART_ROBOT_INSTRUCTIONS_ID:
 		// {
 		//     memcpy(&dart_client_cmd_t, frame + index, sizeof(dart_client_cmd_t));
@@ -430,4 +430,16 @@ uint16_t get_red_outpost_HP(void)
 uint16_t get_blue_outpost_HP(void)
 {
 	return game_robot_HP_t.blue_outpost_HP;
+}
+
+void get_sentry_info(uint16_t *exchanged_projectile_allowance, uint8_t *remote_projectile_exchanges, uint8_t *remote_hp_exchanges)
+{
+    // Extract the projectile allowance (bits 0-10)
+    *exchanged_projectile_allowance = sentry_info_t.sentry_info & 0x7FF;
+
+    // Extract the number of remote projectile exchanges (bits 11-14)
+    *remote_projectile_exchanges = (sentry_info_t.sentry_info >> 11) & 0x0F;
+
+    // Extract the number of remote HP exchanges (bits 15-18)
+    *remote_hp_exchanges = (sentry_info_t.sentry_info >> 15) & 0x0F;
 }
