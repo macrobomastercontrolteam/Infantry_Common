@@ -390,7 +390,7 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
 	HAL_StatusTypeDef ret_value = HAL_ERROR;
-	// Note: error_id = 0£¬ 1 means motor power is disabled/enabled
+	// Note: error_id = 0ï¿½ï¿½ 1 means motor power is disabled/enabled
 	uint8_t error_id = data[0] >> 4;
 	if ((error_id != 0) && (error_id != 1))
 	{
@@ -594,10 +594,10 @@ void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, in
 #if (ENABLE_PITCH_MOTOR_POWER == 0)
 	pitch = 0;
 #endif
-#if ((ENABLE_FRICTION_1_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+#if ((ENABLE_FRICTION_1_MOTOR_POWER == 0))
 	fric_left = 0;
 #endif
-#if ((ENABLE_FRICTION_2_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+#if ((ENABLE_FRICTION_2_MOTOR_POWER == 0))
 	fric_right = 0;
 #endif
 
