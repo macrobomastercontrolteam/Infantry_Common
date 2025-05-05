@@ -40,7 +40,7 @@ uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE];
 //eMsgTypes CV_CMD_TYPE;
 uint8_t CvCmdLength, fQpresses;
 uint8_t fIsKeyPressingEdge = 0;
-uint16_t shoot_heat_limit, shoot_heat, remaining_gold_coin, projectile_allowance_17mm, gold_coins;
+uint16_t shoot_heat_limit, shoot_heat, projectile_allowance_17mm, gold_coins;
 #if CV_INTERFACE
 
 typedef enum
