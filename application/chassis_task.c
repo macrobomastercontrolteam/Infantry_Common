@@ -130,6 +130,9 @@ void chassis_task(void const *pvParameters)
 		chassis_control_loop();
 		// send CAN msg
 		CAN_cmd_chassis();
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+		CAN_cmd_supercap();
+#endif
 
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
 

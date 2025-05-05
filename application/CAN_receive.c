@@ -74,6 +74,16 @@ HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
 
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+capcan_rx_t capcan_rx_msg;
+capcan_tx_t capcan_tx_msg;
+void decode_ubc_cap_tx_data(uint8_t *data);
+#elif (SUPERCAP_TYPE == HRB_SUPERCAP)
+supcap_t cap_message_rx;
+#elif (SUPERCAP_TYPE == SJTU_SUPERCAP)
+supcap_t cap_message_rx;
+#endif
+
 /**
  * @brief motor feedback data
  * Chassis CAN:
@@ -220,7 +230,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			}
 			case SUPCAP_RX_ID:
 			{
-				memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
+				decode_supercap(rx_data);
 				detect_hook(SUPCAP_TOE);
 				break;
 			}
@@ -966,4 +976,100 @@ void chassis_enable_platform_flag(uint8_t fEnabled)
 #endif
 
 #endif
+}
+
+#if (SUPERCAP_TYPE == MACRM_SUPERCAP)
+void CAN_cmd_supercap(void)
+{
+	uint32_t send_mail_box;
+
+	chassis_tx_message.StdId = SUPCAP_TX_ID;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
+
+   	fp32 chassis_power;
+	fp32 chassis_power_buffer;
+    fp32 chassis_power_limit;
+    get_chassis_power_data(&chassis_power, &chassis_power_buffer, &chassis_power_limit);
+
+	chassis_can_send_data[0] = chassis_power_limit;
+	// reserved
+	// chassis_can_send_data[1] = rev;
+	// chassis_can_send_data[2] = rev;
+	// chassis_can_send_data[3] = rev;
+	// chassis_can_send_data[4] = rev;
+	// chassis_can_send_data[5] = rev;
+	// chassis_can_send_data[6] = rev;
+	// chassis_can_send_data[7] = rev;
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+#endif
+
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+void CAN_cmd_supercap(void)
+{
+	uint32_t send_mail_box;
+
+	chassis_tx_message.StdId = SUPCAP_TX_ID;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
+
+	fp32 chassis_power;
+	fp32 chassis_power_buffer;
+	fp32 chassis_power_limit;
+	get_chassis_power_data(&chassis_power, &chassis_power_buffer, &chassis_power_limit);
+	capcan_rx_msg.power_target = chassis_power_limit;
+	capcan_rx_msg.referee_power = chassis_power * 100;
+	capcan_rx_msg.rsvd1 = 0x2012;
+	capcan_rx_msg.rsvd2 = 0x0712;
+
+	chassis_can_send_data[0] = capcan_rx_msg.power_target >> 8;
+	chassis_can_send_data[1] = capcan_rx_msg.power_target;
+	chassis_can_send_data[2] = capcan_rx_msg.referee_power >> 8;
+	chassis_can_send_data[3] = capcan_rx_msg.referee_power;
+	chassis_can_send_data[4] = capcan_rx_msg.rsvd1 >> 8;
+	chassis_can_send_data[5] = capcan_rx_msg.rsvd1;
+	chassis_can_send_data[6] = capcan_rx_msg.rsvd2 >> 8;
+	chassis_can_send_data[7] = capcan_rx_msg.rsvd2;
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+void decode_ubc_cap_tx_data(uint8_t *data)
+{
+	capcan_tx_msg.max_discharge_power = (data[0] << 8) | data[1];
+	capcan_tx_msg.base_power = (data[2] << 8) | data[3];
+	capcan_tx_msg.cap_energy_percentage = (data[4] << 8) | data[5];
+	capcan_tx_msg.cap_state = (data[6] << 8) | data[7];
+}
+
+uint16_t get_max_discharge_power(void)
+{
+	return capcan_tx_msg.max_discharge_power;
+}
+uint16_t get_base_power(void)
+{
+	return capcan_tx_msg.base_power;
+}
+int16_t get_cap_energy_percentage(void)
+{
+	return capcan_tx_msg.cap_energy_percentage;
+}
+uint16_t get_cap_state(void)
+{
+	return capcan_tx_msg.cap_state;
+}
+#endif
+
+void decode_supercap(uint8_t *data)
+{
+#if (SUPERCAP_TYPE == SJTU_SUPERCAP)
+	memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
+#elif (SUPERCAP_TYPE == MACRM_SUPERCAP)
+	memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
+#elif (SUPERCAP_TYPE == UBC_SUPERCAP)
+	decode_ubc_cap_tx_data(data);
+#endif
+	detect_hook(SUPCAP_TOE);
 }
