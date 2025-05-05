@@ -173,6 +173,9 @@ static void J_scope_gimbal_test(void);
 gimbal_control_t gimbal_control;
 static int16_t yaw_can_set_current = 0, pitch_can_set_current = 0, trigger_set_current = 0;
 
+fp32 cvAidedX, cvAidedY, debugx, debugy;
+fp32 cv_coeff_x = 0.5, cv_coeff_y = 0.5;
+
 /**
   * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME_MS (1ms) 
   * @param[in]      pvParameters: null
@@ -773,11 +776,28 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         return;
     }
 
+#if DEBUG_CV
+        if(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
+#else
+        if(gimbal_behaviour = GIMBAL_AUTO_AIM)
+#endif
+        {
+            cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_CV_SEN_INC*0.35f;
+            cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_CV_SEN_INC *0.35f;
+        }
+        else{
+            cvAidedX = 0.0f;
+            cvAidedY = 0.0f;
+        }
     fp32 add_yaw_angle = 0.0f;
     fp32 add_pitch_angle = 0.0f;
 
     gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, set_control);
     // yaw motor mode control
+
+    add_yaw_angle += cvAidedX;
+    add_pitch_angle += cvAidedY;
+    
     if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         // send control value directly in raw mode
