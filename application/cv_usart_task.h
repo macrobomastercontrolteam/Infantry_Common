@@ -106,8 +106,10 @@ typedef struct
     uint8_t team_color;
     uint16_t stage_remain_time;
     uint8_t game_progress;
-    uint16_t blue_outpost_HP;
-    uint16_t red_outpost_HP;
+    uint16_t gold_coins;
+    fp32 heat_limit, heat;
+
+    uint16_t projectile_allowance;
 } tCvCmdHandler;
 
 void cv_usart_task(void const *argument);
@@ -119,6 +121,7 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd);
 void CvCmder_toe_solve_lost_fun(void);
 
 uint8_t is_game_started(void);
+void CvCmder_set_ref_status(uint16_t _current_HP, uint8_t _team_color, uint16_t _stage_remain_time, uint8_t _game_progress, uint16_t _projectile_allowance, uint16_t _gold_coins, fp32 _heat_limit, fp32 _heat);
 
 
 #if DEBUG_CV_WITH_USB

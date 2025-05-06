@@ -153,14 +153,14 @@ void decode_lower_head_data(uint8_t *data)
     shoot_control.heat = (fp32)data[1] * SHOOT_HEAT_DECODE_RATIO;
     shoot_control.bullet_init_speed = (fp32)data[2] * BULLET_SPEED_DECODE_RATIO;
 
-    uint16_t blue_outpost_HP = (data[3] << 8) | data[4];
-	uint16_t red_outpost_HP = (data[5] << 8) | data[6];
+    uint16_t projectile_allowance = (data[3] << 8) | data[4];
+	uint16_t gold_coins = (data[5] << 8) | data[6];
 	uint8_t team_color = ((data[7] & (1 << 7)) != 0);
 	// 4 represents game start
     uint8_t game_progress = 4;
 	uint16_t current_HP = 100;
 	uint16_t stage_remain_time = 100;
-	CvCmder_set_ref_status(current_HP, team_color, stage_remain_time, game_progress, red_outpost_HP, blue_outpost_HP);
+	CvCmder_set_ref_status(current_HP, team_color, stage_remain_time, game_progress, projectile_allowance, gold_coins, shoot_control.heat_limit, shoot_control.heat);
 }
 
 /**

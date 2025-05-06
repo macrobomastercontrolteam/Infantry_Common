@@ -38,7 +38,8 @@ uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE];
 //eMsgTypes CV_CMD_TYPE;
 uint8_t CvCmdLength, fQpresses;
 uint8_t fIsKeyPressingEdge = 0;
-uint16_t shoot_heat_limit, shoot_heat, remaining_gold_coin, projectile_allowance_17mm, gold_coins;
+uint16_t remaining_gold_coin, projectile_allowance_17mm, gold_coins;
+fp32 shoot_heat_limit, shoot_heat;
 
 #if CV_INTERFACE
 
@@ -699,10 +700,11 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				break;
 			}
 			case MSG_SHOOT_CMD:
-			{
-				get_shoot_heat0_limit_and_heat(&shoot_heat_limit, &shoot_heat); //TODO: implement getter functions for heat and coins in CANBUS
-				get_remaining_gold_coins(&gold_coins);
-				get_projectile_allowance_17mm(&projectile_allowance_17mm);
+			{	
+				shoot_heat_limit = CvCmdHandler.heat_limit;
+				shoot_heat = CvCmdHandler.heat;
+				gold_coins = CvCmdHandler.gold_coins;
+				projectile_allowance_17mm = CvCmdHandler.projectile_allowance;
 				if(length == 1){
 					uint8_t shootCmd = pData[2];
 #if !DEBUG_CV
@@ -773,14 +775,16 @@ tCvCmdHandler *CvCmder_GetHandler(void)
 }
 
 //This is called in CAN_recieve to get the Referee information for CANBUS
-void CvCmder_set_ref_status(uint16_t _current_HP, uint8_t _team_color, uint16_t _stage_remain_time, uint8_t _game_progress, uint16_t _red_outpost_HP, uint16_t _blue_outpost_HP)
+void CvCmder_set_ref_status(uint16_t _current_HP, uint8_t _team_color, uint16_t _stage_remain_time, uint8_t _game_progress, uint16_t _projectile_allowance, uint16_t _gold_coins, fp32 _heat_limit, fp32 _heat)
 {
 	CvCmdHandler.game_progress = _game_progress;
 	CvCmdHandler.team_color = _team_color;
 	CvCmdHandler.stage_remain_time = _stage_remain_time;
 	CvCmdHandler.current_HP = _current_HP;
-	CvCmdHandler.red_outpost_HP = _red_outpost_HP;
-	CvCmdHandler.blue_outpost_HP = _blue_outpost_HP;
+	CvCmdHandler.projectile_allowance = _projectile_allowance;
+	CvCmdHandler.gold_coins = _gold_coins;
+	CvCmdHandler.heat_limit = _heat_limit;
+	CvCmdHandler.heat = _heat;
 }
 
 uint8_t is_game_started(void)
@@ -803,15 +807,15 @@ uint8_t get_team_color(void)
 	return CvCmdHandler.team_color;
 }
 
-// uint16_t get_red_outpost_HP(void)
-// {
-// 	return CvCmdHandler.red_outpost_HP;
-// }
+uint16_t get_projectile_allowance(void)
+{
+	return CvCmdHandler.projectile_allowance;
+}
 
-// uint16_t get_blue_outpost_HP(void)
-// {
-// 	return CvCmdHandler.blue_outpost_HP;
-// }
+uint16_t get_gold_coins(void)
+{
+	return CvCmdHandler.gold_coins;
+}
 
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void)
