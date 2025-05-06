@@ -779,7 +779,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 #if DEBUG_CV
         if(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
 #else
-        if(gimbal_behaviour = GIMBAL_AUTO_AIM)
+        if(gimbal_behaviour == GIMBAL_AUTO_AIM)
 #endif
         {
             cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_CV_SEN_INC*0.35f;
