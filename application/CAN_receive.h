@@ -270,6 +270,7 @@ extern uint16_t get_base_power(void);
 extern int16_t get_cap_energy_percentage(void);
 extern uint16_t get_cap_state(void);
 void CAN_cmd_supercap(void);
+void decode_supercap(uint8_t *data);
 #endif
 
 #endif
