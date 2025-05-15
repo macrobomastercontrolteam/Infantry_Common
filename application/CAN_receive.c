@@ -142,6 +142,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	CAN_RxHeaderTypeDef rx_header;
 	uint8_t rx_data[8];
 	uint8_t bMotorId = 0;
+	uint8_t ref_info_id = 0;
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
@@ -222,6 +223,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			{
 				memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
 				detect_hook(SUPCAP_TOE);
+				break;
+			}
+			case CAN_REF_INFO_PULL_TX_ID:
+			{
+				ref_info_id = rx_data[0];
+				return_ref_info(ref_info_id);
+				detect_hook(MAIN_BOARD_TOE);
 				break;
 			}
 #if ROBOT_YAW_IS_4310
@@ -966,4 +974,52 @@ void chassis_enable_platform_flag(uint8_t fEnabled)
 #endif
 
 #endif
+}
+
+void return_ref_info(uint8_t info_code)
+{	
+	uint32_t send_mail_box;
+	chassis_tx_message.StdId = CAN_REF_INFO_PULL_RX_ID;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
+
+	chassis_can_send_data[0] = info_code;
+
+	switch(info_code)
+	{
+		case ALL:
+		{
+			uint16_t heat_limit = get_heat_limit();
+			uint16_t barrel_1_heat = get_barrel_1_heat();
+			fp32 chassis_power_buffer = get_chassis_power_buffer();
+			
+			uint16_t chassis_power_buffer_compressed = (uint16_t)(chassis_power_buffer * 100); 
+
+			memcpy(&chassis_can_send_data[1], &heat_limit, 2);
+			memcpy(&chassis_can_send_data[3], &barrel_1_heat, 2);
+			memcpy(&chassis_can_send_data[5], &chassis_power_buffer_compressed, 2);
+			break;
+		}
+		case BARREL_HEAT_LIMIT:
+		{
+			uint16_t val = get_heat_limit();
+			memcpy(&chassis_can_send_data[1], &val, sizeof(val));  
+			break;
+		}
+		case BARREL_1_HEAT:
+		{
+			uint16_t val = get_barrel_1_heat();
+			memcpy(&chassis_can_send_data[1], &val, sizeof(val));  
+			break;
+		}
+		case CHASSIS_POWER_BUFFER:
+		{
+			fp32 val = get_chassis_power_buffer();
+			memcpy(&chassis_can_send_data[1], &val, sizeof(val));  
+			break;
+		}
+		
+	}
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }

@@ -162,14 +162,14 @@ void MX_FREERTOS_Init(void) {
     osThreadDef(DETECT, detect_task, osPriorityNormal, 0, 256);
     detect_handle = osThreadCreate(osThread(DETECT), NULL);
 
-    osThreadDef(gimbalTask, gimbal_task, osPriorityHigh, 0, 512);
-    gimbalTaskHandle = osThreadCreate(osThread(gimbalTask), NULL);
+    // osThreadDef(gimbalTask, gimbal_task, osPriorityHigh, 0, 512);
+    // gimbalTaskHandle = osThreadCreate(osThread(gimbalTask), NULL);
 
     osThreadDef(imuTask, INS_task, osPriorityRealtime, 0, 1024);
     imuTaskHandle = osThreadCreate(osThread(imuTask), NULL);
 
-    osThreadDef(led, led_RGB_flow_task, osPriorityBelowNormal, 0, 256);
-    led_RGB_flow_handle = osThreadCreate(osThread(led), NULL);
+    // osThreadDef(led, led_RGB_flow_task, osPriorityBelowNormal, 0, 256);
+    // led_RGB_flow_handle = osThreadCreate(osThread(led), NULL);
 
 
     // osThreadDef(OLED, oled_task, osPriorityLow, 0, 256);

@@ -68,7 +68,10 @@ enum errorList
     SUPCAP_TOE,
     SWERVE_CTRL_TOE,
     BIPED_CTRL_TOE,
+    
+    MAIN_BOARD_TOE,
     // OLED_TOE,
+
     ERROR_LIST_LENGTH,
 };
 

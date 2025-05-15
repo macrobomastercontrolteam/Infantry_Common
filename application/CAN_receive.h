@@ -75,6 +75,25 @@ typedef enum
 	MOTOR_LIST_LENGTH,
 } can_motor_id_e;
 
+typedef enum { //also update receiving end after change
+  ALL = 1,
+  
+  ROBOT_ID,
+  ROBOT_LEVEL,
+
+  CURRENT_HP,
+  MAXIMUM_HP,
+
+  BARREL_HEAT_LIMIT,
+  BARREL_1_HEAT,
+
+  PROJECTILE_ALLOWANCE_17MM,
+  
+  CHASSIS_POWER_BUFFER,
+
+} request_ref_info_code_t;
+
+
 typedef enum
 {
 	/*******Tx CAN IDs********/
@@ -84,6 +103,10 @@ typedef enum
   CAN_6020_HIGH_RANGE_TX_ID = 0x2FF,
 
   SUPCAP_RX_ID = 0x301,
+
+  CAN_REF_INFO_PULL_RX_ID = 0x130,
+  CAN_REF_INFO_PULL_TX_ID = 0x131,
+
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
@@ -199,4 +222,5 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
+extern void return_ref_info(uint8_t info_code);
 #endif

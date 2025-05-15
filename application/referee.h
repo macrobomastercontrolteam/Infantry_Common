@@ -154,7 +154,7 @@ typedef __packed struct // 0x0202
 {
 	uint16_t chassis_voltage;
 	uint16_t chassis_current;
-	float chassis_power;
+	fp32 chassis_power;
 	uint16_t buffer_energy;
 	uint16_t shooter_17mm_1_barrel_heat;
 	uint16_t shooter_17mm_2_barrel_heat;
@@ -393,6 +393,11 @@ extern void get_projectile_allowance_42mm(uint16_t *projectile_allowance_42);
 
 extern void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0);
 extern void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1);
+extern uint16_t get_heat_limit(void);
+extern uint16_t get_barrel_1_heat(void);
+extern uint16_t get_barrel_2_heat(void);
+extern fp32 get_chassis_power_buffer(void);
+
 uint8_t is_game_started(void);
 uint8_t get_time_remain(void);
 uint16_t get_current_HP(void);

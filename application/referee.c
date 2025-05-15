@@ -395,6 +395,24 @@ void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1)
 	*heat1 = power_heat_data_t.shooter_17mm_2_barrel_heat;
 }
 
+uint16_t get_heat_limit(void)
+{
+	return robot_state.shooter_barrel_heat_limit;
+}
+uint16_t get_barrel_1_heat(void)
+{
+	return power_heat_data_t.shooter_17mm_1_barrel_heat;
+}
+uint16_t get_barrel_2_heat(void)
+{
+	return power_heat_data_t.shooter_17mm_2_barrel_heat;;
+}
+fp32 get_chassis_power_buffer(void)
+{
+	return power_heat_data_t.buffer_energy;
+}
+
+
 uint8_t is_game_started(void)
 {
 	return ((game_state.game_progress == 4) && (toe_is_error(REFEREE_TOE) == 0));

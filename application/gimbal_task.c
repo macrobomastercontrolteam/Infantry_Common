@@ -804,7 +804,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
             cvAidedX = 0.0f;
             cvAidedY = 0.0f;
         }
-#else if
+#else
 #if DEBUG_CV
         if(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
 #else
