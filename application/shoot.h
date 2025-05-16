@@ -72,8 +72,8 @@
 #endif
 
 // Unit: ammo per minute
-#define SEMI_AUTO_FIRE_RATE 1200.0f
-#define AUTO_FIRE_RATE     1200.0f
+#define SEMI_AUTO_FIRE_RATE 1800.0f
+#define AUTO_FIRE_RATE     1800.0f
 #define READY_TRIGGER_RATE 400.0f
 
 // Speed unit: rpm
