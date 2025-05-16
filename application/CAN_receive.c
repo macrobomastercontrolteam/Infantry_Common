@@ -85,6 +85,8 @@ void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
  */
 motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
+can_ref_info_t can_ref_info;
+
 static CAN_TxHeaderTypeDef gimbal_tx_message;
 static uint8_t gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef chassis_tx_message;
@@ -224,6 +226,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(SUPCAP_TOE);
 				break;
 			}
+#if CAN_PASS_REF_INFO
+			case CAN_REF_INFO_PULL_RX_ID:
+			{
+				decode_ref_info(rx_data);
+				break;
+			}
+#endif
 #if ROBOT_YAW_IS_4310
 			case CAN_YAW_MOTOR_4310_RX_ID:
 			{
@@ -967,3 +976,54 @@ void chassis_enable_platform_flag(uint8_t fEnabled)
 
 #endif
 }
+
+#if CAN_PASS_REF_INFO
+void pull_ref_info(uint8_t info_code)
+{	
+	uint32_t send_mail_box;
+	chassis_tx_message.StdId = CAN_REF_INFO_PULL_TX_ID;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
+
+	chassis_can_send_data[0] = info_code;
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+void decode_ref_info(uint8_t *rx_data)
+{
+
+	uint8_t info_code = rx_data[0];
+
+	switch (info_code)
+	{
+		case ALL:
+		{
+			memcpy(&can_ref_info.barrel_heat_limit, rx_data + 1, 2);
+			memcpy(&can_ref_info.barrel_1_heat, rx_data + 3, 2);
+
+			uint16_t compressed_power_buffer;
+			memcpy(&compressed_power_buffer, rx_data + 5, 2);
+			can_ref_info.chassis_power_buffer = (fp32)compressed_power_buffer / 100.0f; // Decompress
+
+			break;
+		}
+		case BARREL_HEAT_LIMIT:
+		{
+			memcpy(&can_ref_info.barrel_heat_limit, rx_data + 1, sizeof(uint16_t));
+			break;
+		}
+		case BARREL_1_HEAT:
+		{
+			memcpy(&can_ref_info.barrel_1_heat, rx_data + 1, sizeof(uint16_t));
+			break;
+		}
+		case CHASSIS_POWER_BUFFER:
+		{
+			memcpy(&can_ref_info.chassis_power_buffer, rx_data + 1, sizeof(fp32));
+			break;
+		}
+	}
+}
+#endif
+

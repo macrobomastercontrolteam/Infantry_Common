@@ -75,6 +75,25 @@ typedef enum
 	MOTOR_LIST_LENGTH,
 } can_motor_id_e;
 
+typedef enum { //also update transmitting end after change
+  ALL = 1,
+  
+  ROBOT_ID,
+  ROBOT_LEVEL,
+
+  CURRENT_HP,
+  MAXIMUM_HP,
+
+  BARREL_HEAT_LIMIT,
+  BARREL_1_HEAT,
+
+  PROJECTILE_ALLOWANCE_17MM,
+  
+  CHASSIS_POWER_BUFFER,
+
+} request_ref_info_code_t;
+
+
 typedef enum
 {
 	/*******Tx CAN IDs********/
@@ -84,6 +103,10 @@ typedef enum
   CAN_6020_HIGH_RANGE_TX_ID = 0x2FF,
 
   SUPCAP_RX_ID = 0x301,
+#if CAN_PASS_REF_INFO
+  CAN_REF_INFO_PULL_RX_ID = 0x130,
+  CAN_REF_INFO_PULL_TX_ID = 0x131,
+#endif
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
@@ -123,7 +146,12 @@ typedef struct
     fp32 torque;       // Nm
 } motor_measure_t;
 
-
+typedef struct
+{
+    uint16_t barrel_heat_limit;
+    uint16_t barrel_1_heat;
+    fp32 chassis_power_buffer; 
+} can_ref_info_t;
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
   * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000] 
@@ -198,5 +226,10 @@ extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_inde
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr);
 
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
+
+#if CAN_PASS_REF_INFO
+extern void pull_ref_info(uint8_t info_code);
+void decode_ref_info(uint8_t *rx_data);
+#endif
 
 #endif
