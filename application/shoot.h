@@ -94,7 +94,7 @@
 
 #define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / TRIGGER_WHEEL_CAPACITY)
 
-#define TRIGGER_ANGLE_PID_KP        800.0f
+#define TRIGGER_ANGLE_PID_KP        900.0f
 #define TRIGGER_ANGLE_PID_KI        100.0f
 #define TRIGGER_ANGLE_PID_KD        0.002f
 
