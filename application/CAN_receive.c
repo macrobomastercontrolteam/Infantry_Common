@@ -988,35 +988,26 @@ void return_ref_info(uint8_t info_code)
 
 	switch(info_code)
 	{
-		case ALL:
+		
+		case BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT:
 		{
-			uint16_t heat_limit = get_heat_limit();
-			uint16_t barrel_1_heat = get_barrel_1_heat();
-			fp32 chassis_power_buffer = get_chassis_power_buffer();
-			
-			uint16_t chassis_power_buffer_compressed = (uint16_t)(chassis_power_buffer * 100); 
+			uint16_t heat_limit;
+			uint16_t barrel_1_heat;
+			get_shoot_heat0_limit_and_heat(&heat_limit, &barrel_1_heat);
 
-			memcpy(&chassis_can_send_data[1], &heat_limit, 2);
+			memcpy(&chassis_can_send_data[1], &heat_limit, 2); //sizeof(heat_limit) = 2
 			memcpy(&chassis_can_send_data[3], &barrel_1_heat, 2);
-			memcpy(&chassis_can_send_data[5], &chassis_power_buffer_compressed, 2);
 			break;
 		}
-		case BARREL_HEAT_LIMIT:
-		{
-			uint16_t val = get_heat_limit();
-			memcpy(&chassis_can_send_data[1], &val, sizeof(val));  
-			break;
-		}
-		case BARREL_1_HEAT:
-		{
-			uint16_t val = get_barrel_1_heat();
-			memcpy(&chassis_can_send_data[1], &val, sizeof(val));  
-			break;
-		}
-		case CHASSIS_POWER_BUFFER:
+		
+		case CHASSIS_POWER_INFO:
 		{
 			fp32 val = get_chassis_power_buffer();
-			memcpy(&chassis_can_send_data[1], &val, sizeof(val));  
+
+			memcpy(&chassis_can_send_data[1], &val, 4);
+			chassis_can_send_data[5] = robot_state.power_management_chassis_output;
+			chassis_can_send_data[6] = robot_state.power_management_shooter_output;
+			chassis_can_send_data[7] = robot_state.power_management_gimbal_output;
 			break;
 		}
 		

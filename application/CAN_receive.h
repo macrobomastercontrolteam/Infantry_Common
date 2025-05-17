@@ -84,11 +84,13 @@ typedef enum { //also update receiving end after change
   CURRENT_HP,
   MAXIMUM_HP,
 
+  BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT,
   BARREL_HEAT_LIMIT,
   BARREL_1_HEAT,
 
   PROJECTILE_ALLOWANCE_17MM,
   
+  CHASSIS_POWER_INFO,
   CHASSIS_POWER_BUFFER,
 
 } request_ref_info_code_t;
