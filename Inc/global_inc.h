@@ -10,6 +10,7 @@
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE SENTRY_2023_MECANUM
 #define CV_INTERFACE 1
+#define DEBUG_CV 0 //DeEBUG_CV MUST be set to 0 before the competition begins
 #define DEBUG_CV_WITH_USB 0
 #define ENABLE_LASER 1
 #define ROBOT_UPPER_HEAD 1
