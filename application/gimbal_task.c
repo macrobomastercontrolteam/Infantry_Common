@@ -777,7 +777,8 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     }
 
 #if DEBUG_CV
-        if(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
+        if(set_control->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
+        #warning "CV_DEBUG is enabled please make sure it is DISABLE for competition""
 #else
         if(gimbal_behaviour == GIMBAL_AUTO_AIM)
 #endif
