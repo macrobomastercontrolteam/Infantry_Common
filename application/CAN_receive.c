@@ -230,9 +230,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			case CAN_REF_INFO_PULL_RX_ID:
 			{
 				decode_ref_info(rx_data);
+				detect_hook(REFEREE_TOE);
 				break;
 			}
 #endif
+
 #if ROBOT_YAW_IS_4310
 			case CAN_YAW_MOTOR_4310_RX_ID:
 			{
@@ -997,33 +999,29 @@ void decode_ref_info(uint8_t *rx_data)
 
 	switch (info_code)
 	{
-		case ALL:
+		case BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT:
 		{
 			memcpy(&can_ref_info.barrel_heat_limit, rx_data + 1, 2);
 			memcpy(&can_ref_info.barrel_1_heat, rx_data + 3, 2);
+			break;
+		}
+		
+		case CHASSIS_POWER_INFO:
+		{
+			memcpy(&can_ref_info.chassis_power_buffer, rx_data + 1, 4);
+			robot_state.power_management_chassis_output = rx_data[5];
+			robot_state.power_management_shooter_output = rx_data[6];
+			robot_state.power_management_gimbal_output = rx_data[7];
+			break;
+		}
 
-			uint16_t compressed_power_buffer;
-			memcpy(&compressed_power_buffer, rx_data + 5, 2);
-			can_ref_info.chassis_power_buffer = (fp32)compressed_power_buffer / 100.0f; // Decompress
-
-			break;
-		}
-		case BARREL_HEAT_LIMIT:
-		{
-			memcpy(&can_ref_info.barrel_heat_limit, rx_data + 1, sizeof(uint16_t));
-			break;
-		}
-		case BARREL_1_HEAT:
-		{
-			memcpy(&can_ref_info.barrel_1_heat, rx_data + 1, sizeof(uint16_t));
-			break;
-		}
-		case CHASSIS_POWER_BUFFER:
-		{
-			memcpy(&can_ref_info.chassis_power_buffer, rx_data + 1, sizeof(fp32));
-			break;
-		}
 	}
+}
+
+void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat)
+{
+	*heat_limit = can_ref_info.barrel_heat_limit;
+	*heat = can_ref_info.barrel_1_heat;
 }
 #endif
 

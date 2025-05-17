@@ -84,11 +84,13 @@ typedef enum { //also update transmitting end after change
   CURRENT_HP,
   MAXIMUM_HP,
 
+  BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT,
   BARREL_HEAT_LIMIT,
   BARREL_1_HEAT,
 
   PROJECTILE_ALLOWANCE_17MM,
   
+  CHASSIS_POWER_INFO,
   CHASSIS_POWER_BUFFER,
 
 } request_ref_info_code_t;
@@ -230,6 +232,7 @@ extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 #if CAN_PASS_REF_INFO
 extern void pull_ref_info(uint8_t info_code);
 void decode_ref_info(uint8_t *rx_data);
+extern void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat);
 #endif
 
 #endif
