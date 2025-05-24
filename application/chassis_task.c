@@ -132,6 +132,9 @@ void chassis_task(void const *pvParameters)
 		CAN_cmd_chassis();
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
 		CAN_cmd_supercap();
+
+#else if (SUPERCAP_TYPE == MACRM_SUPERCAP)
+		CAN_cmd_supercap();
 #endif
 
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);

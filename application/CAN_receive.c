@@ -1014,6 +1014,31 @@ void CAN_cmd_supercap(void)
 	// chassis_can_send_data[7] = rev;
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
+
+void decode_macrm_cap_tx_data(uint8_t *data)
+{
+	capcan_tx_msg.current_chassis_power = (data[0] << 8) | data[1];
+	capcan_tx_msg.current_battery_power = (data[2] << 8) | data[3];
+	capcan_tx_msg.cap_voltage = (data[4] << 8) | data[5];
+	capcan_tx_msg.cap_state = (data[6] << 8) | data[7];
+}
+
+uint16_t get_current_chassis_power(void)
+{
+	return capcan_tx_msg.current_chassis_power;
+}
+uint16_t get_current_battery_power(void)
+{
+	return capcan_tx_msg.current_battery_power;
+}
+int16_t get_cap_voltage(void)
+{
+	return capcan_tx_msg.cap_voltage;
+}
+uint16_t get_cap_state(void)
+{
+	return capcan_tx_msg.cap_state;
+}
 #endif
 
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
@@ -1079,7 +1104,7 @@ void decode_supercap(uint8_t *data)
 #if (SUPERCAP_TYPE == SJTU_SUPERCAP)
 	memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
 #elif (SUPERCAP_TYPE == MACRM_SUPERCAP)
-	memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
+	decode_macrm_cap_tx_data(data);
 #elif (SUPERCAP_TYPE == UBC_SUPERCAP)
 	decode_ubc_cap_tx_data(data);
 #endif
