@@ -1075,10 +1075,10 @@ void CAN_cmd_supercap(void)
 
 void decode_ubc_cap_tx_data(uint8_t *data)
 {
-	capcan_tx_msg.max_discharge_power = (data[0] << 8) | data[1];
-	capcan_tx_msg.base_power = (data[2] << 8) | data[3];
-	capcan_tx_msg.cap_energy_percentage = (data[4] << 8) | data[5];
-	capcan_tx_msg.cap_state = (data[6] << 8) | data[7];
+	capcan_tx_msg.max_discharge_power = (data[1] << 8) | data[0];
+	capcan_tx_msg.base_power = (data[3] << 8) | data[2];
+	capcan_tx_msg.cap_energy_percentage = (data[5] << 8) | data[4];
+	capcan_tx_msg.cap_state = (data[7] << 8) | data[6];
 }
 
 uint16_t get_max_discharge_power(void)
