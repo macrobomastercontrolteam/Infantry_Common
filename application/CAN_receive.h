@@ -92,6 +92,7 @@ typedef enum { //also update transmitting end after change
   
   CHASSIS_POWER_INFO,
   CHASSIS_POWER_BUFFER,
+  CHASSIS_POWER_LIMIT,
 
 } request_ref_info_code_t;
 
@@ -153,6 +154,7 @@ typedef struct
     uint16_t barrel_heat_limit;
     uint16_t barrel_1_heat;
     fp32 chassis_power_buffer; 
+    uint16_t chassis_power_limit;
 } can_ref_info_t;
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)

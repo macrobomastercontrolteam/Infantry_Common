@@ -41,7 +41,7 @@
 #include "cv_usart_task.h"
 #include "custom_ui_task.h"
 
-#include "uart_to_can_task.h"
+#include "referee_can_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,7 +61,7 @@ osThreadId usb_task_handle;
 osThreadId cv_usart_task_handle;
 osThreadId custom_ui_task_handle;
 
-osThreadId uart_to_can_task_handle;
+osThreadId referee_can_task_handle;
 
 /* USER CODE END PTD */
 
@@ -179,11 +179,11 @@ void MX_FREERTOS_Init(void) {
     // oled_handle = osThreadCreate(osThread(OLED), NULL);
 
 #ifdef CAN_PASS_REF_INFO
-    osThreadDef(uart_to_can, uart_to_can_task, osPriorityNormal, 0, 128);
-    uart_to_can_task_handle = osThreadCreate(osThread(uart_to_can), NULL);
+    osThreadDef(refree_can, referee_can_task, osPriorityNormal, 0, 128);
+    referee_can_task_handle = osThreadCreate(osThread(refree_can), NULL);
 #else
-    osThreadDef(REFEREE, referee_usart_task, osPriorityNormal, 0, 128);
-    referee_usart_task_handle = osThreadCreate(osThread(REFEREE), NULL);
+    osThreadDef(refree_uart, referee_usart_task, osPriorityNormal, 0, 128);
+    referee_usart_task_handle = osThreadCreate(osThread(refree_uart), NULL);
 #endif
     osThreadDef(customUITask, custom_ui_task, osPriorityBelowNormal, 0, 512);
     custom_ui_task_handle = osThreadCreate(osThread(customUITask), NULL);

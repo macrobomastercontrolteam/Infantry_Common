@@ -1015,6 +1015,11 @@ void decode_ref_info(uint8_t *rx_data)
 			break;
 		}
 
+		case CHASSIS_POWER_LIMIT:
+		{
+			memcpy(&can_ref_info.chassis_power_limit, rx_data + 1, 2);
+			break;
+		}
 	}
 }
 

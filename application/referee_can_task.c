@@ -18,23 +18,24 @@
 
 #include "cmsis_os.h"
 
-#include "uart_to_can_task.h"
+#include "referee_can_task.h"
 #include "CAN_receive.h"
 #include "user_lib.h"
 #include "referee.h"
 
-void uart_to_can_task(void const *pvParameters)
+void referee_can_task(void const *pvParameters)
 {
+#if CAN_PASS_REF_INFO
   uint32_t ulSystemTime = osKernelSysTick();
+  init_referee_struct_data();
 
   while (1)
   {
-#if CAN_PASS_REF_INFO
-
     pull_ref_info(CHASSIS_POWER_INFO);
     pull_ref_info(BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT);
+    pull_ref_info(CHASSIS_POWER_LIMIT);
     osDelayUntil(&ulSystemTime, UART_TO_CAN_DELAY_TIME_MS);
+  }
 
 #endif
-  }
 }

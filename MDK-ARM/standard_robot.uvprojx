@@ -694,14 +694,14 @@
               <FilePath>..\application\graphic.c</FilePath>
             </File>
             <File>
-              <FileName>uart_to_can_task.c</FileName>
+              <FileName>referee_can_task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\application\uart_to_can_task.c</FilePath>
+              <FilePath>..\application\referee_can_task.c</FilePath>
             </File>
             <File>
-              <FileName>uart_to_can_task.h</FileName>
+              <FileName>referee_can_task.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\application\uart_to_can_task.h</FilePath>
+              <FilePath>..\application\referee_can_task.h</FilePath>
             </File>
           </Files>
         </Group>
