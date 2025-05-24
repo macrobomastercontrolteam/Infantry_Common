@@ -73,13 +73,16 @@ int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits);
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
-
+void decode_power_meter(uint8_t *data);
+fp32 get_chassis_power_meter_data(void);
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
 capcan_rx_t capcan_rx_msg;
 capcan_tx_t capcan_tx_msg;
 void decode_ubc_cap_tx_data(uint8_t *data);
-#elif (SUPERCAP_TYPE == HRB_SUPERCAP)
-supcap_t cap_message_rx;
+power_meter_can_rx_t power_meter_can_rx_msg;
+#elif (SUPERCAP_TYPE == MACRM_SUPERCAP)
+capcan_rx_t capcan_rx_msg;
+capcan_tx_t capcan_tx_msg;
 #elif (SUPERCAP_TYPE == SJTU_SUPERCAP)
 supcap_t cap_message_rx;
 #endif
@@ -232,6 +235,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			{
 				decode_supercap(rx_data);
 				detect_hook(SUPCAP_TOE);
+				break;
+			}
+
+			case CAN_POWER_METER_RX_ID:
+			{
+				decode_power_meter(rx_data);
+				detect_hook(POWER_METER_TOE);
 				break;
 			}
 #if ROBOT_YAW_IS_4310
@@ -1019,9 +1029,11 @@ void CAN_cmd_supercap(void)
 	fp32 chassis_power;
 	fp32 chassis_power_buffer;
 	fp32 chassis_power_limit;
+	fp32 chassis_power_raw;
+	chassis_power_raw = get_chassis_power_meter_data();
 	get_chassis_power_data(&chassis_power, &chassis_power_buffer, &chassis_power_limit);
 	capcan_rx_msg.power_target = chassis_power_limit;
-	capcan_rx_msg.referee_power = chassis_power * 100;
+	capcan_rx_msg.referee_power = chassis_power_raw * 100;
 	capcan_rx_msg.rsvd1 = 0x2012;
 	capcan_rx_msg.rsvd2 = 0x0712;
 
@@ -1072,4 +1084,17 @@ void decode_supercap(uint8_t *data)
 	decode_ubc_cap_tx_data(data);
 #endif
 	detect_hook(SUPCAP_TOE);
+}
+
+void decode_power_meter(uint8_t *data)
+{
+    power_meter_can_rx_msg.chassis_current = (fp32)((int32_t)((data[3] << 8) | (int32_t)(data[2]))) / 100.0f;
+	power_meter_can_rx_msg.chassis_voltage = (fp32)((int32_t)((data[1] << 8) | (int32_t)data[0])) / 100.0f;
+	power_meter_can_rx_msg.chassis_power = power_meter_can_rx_msg.chassis_current * power_meter_can_rx_msg.chassis_voltage;
+
+}
+
+fp32 get_chassis_power_meter_data(void)
+{
+	return power_meter_can_rx_msg.chassis_power;
 }
