@@ -396,7 +396,7 @@ extern void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1
 extern uint16_t get_heat_limit(void);
 extern uint16_t get_barrel_1_heat(void);
 extern uint16_t get_barrel_2_heat(void);
-extern fp32 get_chassis_power_buffer(void);
+extern uint16_t get_chassis_power_buffer(void);
 
 uint8_t is_game_started(void);
 uint8_t get_time_remain(void);

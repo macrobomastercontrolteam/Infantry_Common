@@ -1002,20 +1002,18 @@ void return_ref_info(uint8_t info_code)
 		
 		case CHASSIS_POWER_INFO:
 		{
-			fp32 val = get_chassis_power_buffer();
+			uint16_t power_buffer = get_chassis_power_buffer();
+			uint16_t power_limit = get_chassis_power_limit();
 
-			memcpy(&chassis_can_send_data[1], &val, 4);
+			memcpy(&chassis_can_send_data[1], &power_buffer, 2);
+			memcpy(&chassis_can_send_data[3], &power_limit, 2);
+
 			chassis_can_send_data[5] = robot_state.power_management_chassis_output;
 			chassis_can_send_data[6] = robot_state.power_management_shooter_output;
 			chassis_can_send_data[7] = robot_state.power_management_gimbal_output;
 			break;
 		}
-		case CHASSIS_POWER_LIMIT:
-		{
-			uint16_t power_limit = get_chassis_power_limit();
-			memcpy(&chassis_can_send_data[1], &power_limit, 2);
-			break;
-		}
+
 		
 	}
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);

@@ -407,11 +407,11 @@ uint16_t get_barrel_2_heat(void)
 {
 	return power_heat_data_t.shooter_17mm_2_barrel_heat;;
 }
-fp32 get_chassis_power_buffer(void)
+uint16_t get_chassis_power_buffer(void)
 {
 	return power_heat_data_t.buffer_energy;
 }
-fp32 get_chassis_power_limit(void)
+uint16_t get_chassis_power_limit(void)
 {
 	return robot_state.chassis_power_limit;
 }
