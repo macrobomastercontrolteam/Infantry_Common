@@ -1057,15 +1057,15 @@ void CAN_cmd_supercap(void)
 	fp32 chassis_power_raw;
 	chassis_power_raw = get_chassis_power_meter_data();
 	get_chassis_power_data(&chassis_power, &chassis_power_buffer, &chassis_power_limit);
-	capcan_rx_msg.power_target = chassis_power_limit;
+	capcan_rx_msg.power_target = chassis_power_limit*100;
 	capcan_rx_msg.referee_power = chassis_power_raw * 100;
 	capcan_rx_msg.rsvd1 = 0x2012;
 	capcan_rx_msg.rsvd2 = 0x0712;
 
-	chassis_can_send_data[0] = capcan_rx_msg.power_target >> 8;
-	chassis_can_send_data[1] = capcan_rx_msg.power_target;
-	chassis_can_send_data[2] = capcan_rx_msg.referee_power >> 8;
-	chassis_can_send_data[3] = capcan_rx_msg.referee_power;
+	chassis_can_send_data[0] = capcan_rx_msg.power_target;
+	chassis_can_send_data[1] = capcan_rx_msg.power_target >> 8;
+	chassis_can_send_data[2] = capcan_rx_msg.referee_power;
+	chassis_can_send_data[3] = capcan_rx_msg.referee_power >> 8;
 	chassis_can_send_data[4] = capcan_rx_msg.rsvd1 >> 8;
 	chassis_can_send_data[5] = capcan_rx_msg.rsvd1;
 	chassis_can_send_data[6] = capcan_rx_msg.rsvd2 >> 8;
