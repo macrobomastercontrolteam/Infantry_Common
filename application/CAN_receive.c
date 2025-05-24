@@ -1010,6 +1010,12 @@ void return_ref_info(uint8_t info_code)
 			chassis_can_send_data[7] = robot_state.power_management_gimbal_output;
 			break;
 		}
+		case CHASSIS_POWER_LIMIT:
+		{
+			uint16_t power_limit = get_chassis_power_limit();
+			memcpy(&chassis_can_send_data[1], &power_limit, 2);
+			break;
+		}
 		
 	}
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);

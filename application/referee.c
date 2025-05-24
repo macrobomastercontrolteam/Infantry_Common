@@ -411,6 +411,10 @@ fp32 get_chassis_power_buffer(void)
 {
 	return power_heat_data_t.buffer_energy;
 }
+fp32 get_chassis_power_limit(void)
+{
+	return robot_state.chassis_power_limit;
+}
 
 
 uint8_t is_game_started(void)

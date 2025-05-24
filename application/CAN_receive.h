@@ -92,6 +92,7 @@ typedef enum { //also update receiving end after change
   
   CHASSIS_POWER_INFO,
   CHASSIS_POWER_BUFFER,
+  CHASSIS_POWER_LIMIT,
 
 } request_ref_info_code_t;
 
