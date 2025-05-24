@@ -16,7 +16,7 @@
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define ENABLE_LASER 1
-#define ENABLE_POWER_METER 1
+
 #define USE_SERVO_TO_STIR_AMMO 0
 /********************* Only Modify this area (end) *********************/
 

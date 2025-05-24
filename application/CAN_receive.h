@@ -82,7 +82,7 @@ typedef enum
   CAN_3508_OR_2006_HIGH_RANGE_TX_ID = 0x1FF,
   CAN_6020_LOW_RANGE_TX_ID = 0x1FF,
   CAN_6020_HIGH_RANGE_TX_ID = 0x2FF,
-
+  CAN_POWER_METER_RX_ID = 0x212,
 #if (SUPERCAP_TYPE == MACRM_SUPERCAP)
   SUPCAP_TX_ID = 0x302,
   SUPCAP_RX_ID = 0x301,
@@ -107,10 +107,17 @@ typedef enum
 	CAN_BIPED_CONTROLLER_TX_ID = 0x117,
 	CAN_BIPED_CONTROLLER_RX_ID = 0x118,
 	CAN_BIPED_CONTROLLER_MODE_TX_ID = 0x119,
-#elif (ENABLE_POWER_METER)
-  CAN_POWER_METER_RX_ID = 0x212,
+
+
 #endif
 } can_other_msg_id_e;
+
+typedef struct 
+{
+    fp32 chassis_current;
+    fp32 chassis_voltage;
+    fp32 chassis_power;
+}power_meter_can_rx_t;
 
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
 typedef struct 
@@ -121,12 +128,6 @@ typedef struct
     uint16_t rsvd2; //Must be 0x0712
 }capcan_rx_t;
 
-typedef struct 
-{
-    fp32 chassis_current;
-    fp32 chassis_voltage;
-    fp32 chassis_power;
-}power_meter_can_rx_t;
 /*Message come from capacitor module */
 /*Expected message frequency = 100Hz */
 typedef struct

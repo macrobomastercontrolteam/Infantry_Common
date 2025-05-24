@@ -33,9 +33,9 @@
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
-#define ENABLE_DRIVE_MOTOR_POWER 0
-#define ENABLE_YAW_MOTOR_POWER 0
-#define ENABLE_PITCH_MOTOR_POWER 0
+#define ENABLE_DRIVE_MOTOR_POWER 1
+#define ENABLE_YAW_MOTOR_POWER 1
+#define ENABLE_PITCH_MOTOR_POWER 1
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
@@ -66,6 +66,7 @@
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
+power_meter_can_rx_t power_meter_can_rx_msg;
 
 void CAN_cmd_3508_chassis(void);
 fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits);
@@ -79,7 +80,6 @@ fp32 get_chassis_power_meter_data(void);
 capcan_rx_t capcan_rx_msg;
 capcan_tx_t capcan_tx_msg;
 void decode_ubc_cap_tx_data(uint8_t *data);
-power_meter_can_rx_t power_meter_can_rx_msg;
 #elif (SUPERCAP_TYPE == MACRM_SUPERCAP)
 capcan_rx_t capcan_rx_msg;
 capcan_tx_t capcan_tx_msg;
