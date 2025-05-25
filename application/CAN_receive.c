@@ -1008,18 +1008,14 @@ void decode_ref_info(uint8_t *rx_data)
 		
 		case CHASSIS_POWER_INFO:
 		{
-			memcpy(&can_ref_info.chassis_power_buffer, rx_data + 1, 4);
+			memcpy(&can_ref_info.chassis_power_buffer, rx_data + 1, 2);
+			memcpy(&can_ref_info.chassis_power_limit, rx_data + 3, 2);
 			robot_state.power_management_chassis_output = rx_data[5];
 			robot_state.power_management_shooter_output = rx_data[6];
 			robot_state.power_management_gimbal_output = rx_data[7];
 			break;
 		}
-
-		case CHASSIS_POWER_LIMIT:
-		{
-			memcpy(&can_ref_info.chassis_power_limit, rx_data + 1, 2);
-			break;
-		}
+	
 	}
 }
 

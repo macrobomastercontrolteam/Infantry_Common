@@ -153,7 +153,7 @@ typedef struct
 {
     uint16_t barrel_heat_limit;
     uint16_t barrel_1_heat;
-    fp32 chassis_power_buffer; 
+    uint16_t chassis_power_buffer; 
     uint16_t chassis_power_limit;
 } can_ref_info_t;
 /**

@@ -33,7 +33,7 @@ void referee_can_task(void const *pvParameters)
   {
     pull_ref_info(CHASSIS_POWER_INFO);
     pull_ref_info(BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT);
-    pull_ref_info(CHASSIS_POWER_LIMIT);
+    
     osDelayUntil(&ulSystemTime, UART_TO_CAN_DELAY_TIME_MS);
   }
 
