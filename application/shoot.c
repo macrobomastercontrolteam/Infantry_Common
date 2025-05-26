@@ -34,7 +34,7 @@
 // microswitch
 #define BUTTEN_TRIG_PIN HAL_GPIO_ReadPin(BUTTON_TRIG_GPIO_Port, BUTTON_TRIG_Pin)
 #define AUTOAIM_READY_TIMEOUT 4000
-#define TRIGGER_ANTI_STALL_BY_WAIT 1
+#define TRIGGER_ANTI_STALL_BY_WAIT 0
 
 /**
  * @brief          Set the mode of the shoot control state machine. Corresponding states for left lever of remote controller: up - fast shooting, middle - idle, down - disabled
@@ -446,7 +446,12 @@ static void shoot_feedback_update(void)
 	{
 		shoot_control.left_click_hold_time = 0;
 	}
+#ifdef CAN_PASS_REF_INFO
+	
+	CAN_get_heat_limit_and_barrel_1_heat(&shoot_control.heat_limit, &shoot_control.heat);
+#else
 	get_shoot_heat0_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
+#endif
 }
 
 static void trigger_motor_stall_handler(void)

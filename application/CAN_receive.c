@@ -85,14 +85,16 @@ void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
  */
 motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
+can_ref_info_t can_ref_info;
+
 static CAN_TxHeaderTypeDef gimbal_tx_message;
 static uint8_t gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef chassis_tx_message;
 static uint8_t chassis_can_send_data[8];
 const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 12.5f};
-const fp32 MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -12.5f};
+const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 4.0f*PI};  //value needs to match to which in motor setting software
+const fp32 MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -4.0f*PI};
 const fp32 MIT_CONTROL_V_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {25.0f, 45.0f, 30.0f};
 const fp32 MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-25.0f, -45.0f, -30.0f};
 const fp32 MIT_CONTROL_T_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {20.0f, 24.0f, 10.0f};
@@ -224,6 +226,15 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(SUPCAP_TOE);
 				break;
 			}
+#if CAN_PASS_REF_INFO
+			case CAN_REF_INFO_PULL_RX_ID:
+			{
+				decode_ref_info(rx_data);
+				detect_hook(REFEREE_TOE);
+				break;
+			}
+#endif
+
 #if ROBOT_YAW_IS_4310
 			case CAN_YAW_MOTOR_4310_RX_ID:
 			{
@@ -398,12 +409,12 @@ HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 	}
 	else
 	{
-		uint16_t p_int = (data[1] << 8) | data[2];		   // rad
+		uint16_t p_int = (data[1] << 8) | data[2];		   // rad (+-4*pi)
 		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
 		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
 
 		motor_chassis[bMotorId].output_angle = uint_to_fp32_motor(p_int, MIT_CONTROL_P_MIN[DM_4310], MIT_CONTROL_P_MAX[DM_4310], 16);
-		motor_chassis[bMotorId].ecd = loop_fp32_constrain(motor_chassis[bMotorId].output_angle, 0, 2 * PI) * MOTOR_RAD_TO_ECD;
+		motor_chassis[bMotorId].ecd = loop_fp32_constrain(motor_chassis[bMotorId].output_angle, 0, 2 * PI) * MOTOR_RAD_TO_ECD; //no actual ecd reading used 
 		motor_chassis[bMotorId].velocity = uint_to_fp32_motor(v_int, MIT_CONTROL_V_MIN[DM_4310], MIT_CONTROL_V_MAX[DM_4310], 12);
 		motor_chassis[bMotorId].torque = uint_to_fp32_motor(t_int, MIT_CONTROL_T_MIN[DM_4310], MIT_CONTROL_T_MAX[DM_4310], 12);
 		motor_chassis[bMotorId].temperate = data[6];
@@ -967,3 +978,51 @@ void chassis_enable_platform_flag(uint8_t fEnabled)
 
 #endif
 }
+
+#if CAN_PASS_REF_INFO
+void pull_ref_info(uint8_t info_code)
+{	
+	uint32_t send_mail_box;
+	chassis_tx_message.StdId = CAN_REF_INFO_PULL_TX_ID;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
+
+	chassis_can_send_data[0] = info_code;
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+void decode_ref_info(uint8_t *rx_data)
+{
+
+	uint8_t info_code = rx_data[0];
+
+	switch (info_code)
+	{
+		case BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT:
+		{
+			memcpy(&can_ref_info.barrel_heat_limit, rx_data + 1, 2);
+			memcpy(&can_ref_info.barrel_1_heat, rx_data + 3, 2);
+			break;
+		}
+		
+		case CHASSIS_POWER_INFO:
+		{
+			memcpy(&can_ref_info.chassis_power_buffer, rx_data + 1, 2);
+			memcpy(&can_ref_info.chassis_power_limit, rx_data + 3, 2);
+			robot_state.power_management_chassis_output = rx_data[5];
+			robot_state.power_management_shooter_output = rx_data[6];
+			robot_state.power_management_gimbal_output = rx_data[7];
+			break;
+		}
+	
+	}
+}
+
+void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat)
+{
+	*heat_limit = can_ref_info.barrel_heat_limit;
+	*heat = can_ref_info.barrel_1_heat;
+}
+#endif
+

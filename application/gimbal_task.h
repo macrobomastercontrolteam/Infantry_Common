@@ -34,8 +34,8 @@
 
 #define GIMBAL_TEST_MODE 0
 
-#define PITCH_TURN  1
-#define YAW_TURN    0
+#define PITCH_REVERSED  1
+#define YAW_REVERSED    0
 
 #define int_abs(x) ((x) > 0 ? (x) : (-x))
 
@@ -85,7 +85,7 @@
 #define YAW_SPEED_PID_KP        0.7f
 #define YAW_SPEED_PID_KI        1.0f
 #define YAW_SPEED_PID_KD        0.0f
-#define YAW_SPEED_PID_MAX_OUT   7.0f
+#define YAW_SPEED_PID_MAX_OUT   6.5f
 #define YAW_SPEED_PID_MAX_IOUT  2.33f
 #else
 #error "6020 yaw pid not defined for this robot type"
