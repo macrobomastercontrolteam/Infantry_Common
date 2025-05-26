@@ -234,13 +234,13 @@ void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_valu
     }
     else
     {
-#if YAW_TURN
+#if YAW_REVERSED
         *yaw_can_set_value_ptr = -gimbal_control.gimbal_yaw_motor.cmd_value;
 #else
         *yaw_can_set_value_ptr = gimbal_control.gimbal_yaw_motor.cmd_value;
 #endif
 
-#if PITCH_TURN
+#if PITCH_REVERSED
         *pitch_can_set_value_ptr = -gimbal_control.gimbal_pitch_motor.cmd_value;
 #else
         *pitch_can_set_value_ptr = gimbal_control.gimbal_pitch_motor.cmd_value;
@@ -353,7 +353,7 @@ static void calc_gimbal_cali(const gimbal_step_cali_t *gimbal_cali, uint16_t *ya
     *min_yaw = motor_ecd_to_angle_change(gimbal_cali->min_yaw_ecd, *yaw_offset);
 #else
 
-#if YAW_TURN
+#if YAW_REVERSED
     temp_ecd = gimbal_cali->min_yaw_ecd - gimbal_cali->max_yaw_ecd;
 
     if (temp_ecd < 0)
@@ -385,7 +385,7 @@ static void calc_gimbal_cali(const gimbal_step_cali_t *gimbal_cali, uint16_t *ya
 
 #endif
 
-#if PITCH_TURN
+#if PITCH_REVERSED
 
     temp_ecd = (int16_t)(gimbal_cali->max_pitch / MOTOR_ECD_TO_RAD);
     temp_max_ecd = gimbal_cali->max_pitch_ecd + temp_ecd;
@@ -641,7 +641,7 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     }
     feedback_update->gimbal_pitch_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
 
-#if PITCH_TURN
+#if PITCH_REVERSED
     feedback_update->gimbal_pitch_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
                                                                                           feedback_update->gimbal_pitch_motor.offset_ecd);
 #else
@@ -654,7 +654,7 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
 
     feedback_update->gimbal_yaw_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_YAW_ADDRESS_OFFSET);
 
-#if YAW_TURN
+#if YAW_REVERSED
     feedback_update->gimbal_yaw_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_yaw_motor.gimbal_motor_measure->ecd,
                                                                                         feedback_update->gimbal_yaw_motor.offset_ecd);
 
