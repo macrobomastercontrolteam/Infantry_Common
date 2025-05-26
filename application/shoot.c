@@ -446,7 +446,7 @@ static void shoot_feedback_update(void)
 	{
 		shoot_control.left_click_hold_time = 0;
 	}
-#ifdef CAN_PASS_REF_INFO
+#if CAN_PASS_REF_INFO
 	
 	CAN_get_heat_limit_and_barrel_1_heat(&shoot_control.heat_limit, &shoot_control.heat);
 #else
