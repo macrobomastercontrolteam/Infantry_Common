@@ -229,8 +229,13 @@ static void detect_init(uint32_t time)
             {20, 3, 14},     //yaw
             {20, 3, 13},     //pitch
             {20, 10, 12},   //trigger
-            {20, 10, 16},   //fric 1
-            {20, 10, 17},   //fric 2
+            {20, 10, 16},   //fric 1 (left)
+            {20, 10, 17},   //fric 2 (right)
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+            {20, 10, 16},   //fric 3 (up)
+            {20, 10, 17},   //fric 4 (down)
+            {20, 10, 16},   //piston
+#endif
             {20, 3, 7},      //board gyro
             {20, 5, 7},      //board accel
             {40, 200, 7},   //board mag

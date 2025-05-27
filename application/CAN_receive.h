@@ -55,10 +55,18 @@ typedef enum
     // INFANTRY_2023_SWERVE: On chassis
     // SENTRY_2023_MECANUM: On chassis
     // INFANTRY_2024_BIPED: On chassis
+    // HERO_2025_MECANUM: On chassis
     CAN_TRIGGER_MOTOR_ID = 0x207,
 
     CAN_FRICTION_MOTOR_LEFT_ID = 0x205, // friction1
     CAN_FRICTION_MOTOR_RIGHT_ID = 0x208, // friction2
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+    CAN_FRICTION_MOTOR_UP_ID = 0x203, //friction3
+    CAN_FRICTION_MOTOR_DOWN_ID = 0x204, //friction4
+
+    CAN_PISTON_MOTOR_ID = 0x207, //On gimbal
+#endif
+
 } can_msg_id_e;
 
 typedef enum
@@ -72,6 +80,11 @@ typedef enum
 	MOTOR_INDEX_TRIGGER,
   MOTOR_INDEX_FRICTION_LEFT,
   MOTOR_INDEX_FRICTION_RIGHT,
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+  MOTOR_INDEX_FRICTION_UP,
+  MOTOR_INDEX_FRICTION_DOWN,
+  MOTOR_INDEX_PISTON,
+#endif
 	MOTOR_LIST_LENGTH,
 } can_motor_id_e;
 

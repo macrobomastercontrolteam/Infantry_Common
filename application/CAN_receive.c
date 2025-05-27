@@ -55,7 +55,7 @@
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 1
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 0
 #else
 #define IS_TRIGGER_ON_GIMBAL 0
@@ -162,16 +162,39 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			{
 				bMotorId = MOTOR_INDEX_FRICTION_LEFT;
 				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(FRIC1_MOTOR_TOE);
+				detect_hook(FRICTIONAL_MOTOR_LEFT_TOE);
 				break;
 			}
 			case CAN_FRICTION_MOTOR_RIGHT_ID:
 			{
 				bMotorId = MOTOR_INDEX_FRICTION_RIGHT;
 				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(FRIC2_MOTOR_TOE);
+				detect_hook(FRICTIONAL_MOTOR_RIGHT_TOE);
 				break;
 			}
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+			case CAN_FRICTION_MOTOR_UP_ID:
+			{
+				bMotorId = MOTOR_INDEX_FRICTION_UP;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(FRICTIONAL_MOTOR_UP_TOE);
+				break;
+			}
+			case CAN_FRICTION_MOTOR_DOWN_ID:
+			{
+				bMotorId = MOTOR_INDEX_FRICTION_DOWN;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(FRICTIONAL_MOTOR_DOWN_TOE);
+				break;
+			}
+			case CAN_PISTON_MOTOR_ID:
+			{
+				bMotorId = MOTOR_INDEX_PISTON;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(PISTON_MOTOR_TOE);
+				break;
+			}
+#endif
 #if IS_TRIGGER_ON_GIMBAL
 			case CAN_TRIGGER_MOTOR_ID:
 			{
