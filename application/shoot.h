@@ -41,6 +41,9 @@
 #elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO  1.0f
 #define TRIGGER_WHEEL_CAPACITY  9.0f
+#elif(ROBOT_TYPE == HERO_2025_MECANUM)
+#define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO 1.0f
+#define TRIGGER_WHEEL_CAPACITY 6.0f
 #endif
 
 #define TRIGGER_MOTOR_GEAR_RATIO  36.0f
@@ -109,19 +112,36 @@
 
 #define SHOOT_HEAT_LIMIT_CLEARANCE     60
 
-//Frictional wheel 1 PID
+//Frictional wheel 1 PID (LEFT)
 #define FRICTION_1_SPEED_PID_KP        20.0f
 #define FRICTION_1_SPEED_PID_KI        0.0f
 #define FRICTION_1_SPEED_PID_KD        0.0f
 #define FRICTION_1_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
 #define FRICTION_1_SPEED_PID_MAX_IOUT  200.0f
 
-//Frictional wheel 2 PID
+//Frictional wheel 2 PID (RIGHT)
 #define FRICTION_2_SPEED_PID_KP        20.0f
 #define FRICTION_2_SPEED_PID_KI        0.0f
 #define FRICTION_2_SPEED_PID_KD        0.0f
 #define FRICTION_2_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
 #define FRICTION_2_SPEED_PID_MAX_IOUT  200.0f
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+//DUMMY VALUES
+//Frictional wheel 3 PID (UP)
+#define FRICTION_3_SPEED_PID_KP        20.0f
+#define FRICTION_3_SPEED_PID_KI        0.0f
+#define FRICTION_3_SPEED_PID_KD        0.0f
+#define FRICTION_3_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
+#define FRICTION_3_SPEED_PID_MAX_IOUT  200.0f
+
+//Frictional wheel 4 PID (DOWN)
+#define FRICTION_4_SPEED_PID_KP        20.0f
+#define FRICTION_4_SPEED_PID_KI        0.0f
+#define FRICTION_4_SPEED_PID_KD        0.0f
+#define FRICTION_4_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
+#define FRICTION_4_SPEED_PID_MAX_IOUT  200.0f
+#endif
 
 typedef enum
 {
@@ -151,6 +171,19 @@ typedef struct
     fp32 friction_motor2_rpm_set;
     fp32 friction_motor2_rpm;
     // fp32 friction_motor2_angle;
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+    int16_t fric3_given_current;
+    int16_t fric4_given_current;
+    
+    pid_type_def friction_motor3_pid;
+    fp32 friction_motor3_rpm_set;
+    fp32 friction_motor3_rpm;
+
+    pid_type_def friction_motor4_pid;
+    fp32 friction_motor4_rpm_set;
+    fp32 friction_motor4_rpm;
+#endif
 
 	pid_type_def trigger_motor_pid;
     fp32 trigger_speed_set;    

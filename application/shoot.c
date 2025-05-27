@@ -72,16 +72,27 @@ void shoot_init(void)
 	// initialize PID
 	static const fp32 shoot_speed_pid1[3] = {FRICTION_1_SPEED_PID_KP, FRICTION_1_SPEED_PID_KI, FRICTION_1_SPEED_PID_KD};
 	static const fp32 shoot_speed_pid2[3] = {FRICTION_2_SPEED_PID_KP, FRICTION_2_SPEED_PID_KI, FRICTION_2_SPEED_PID_KD};
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	static const fp32 shoot_speed_pid3[3] = {FRICTION_3_SPEED_PID_KP, FRICTION_3_SPEED_PID_KI, FRICTION_3_SPEED_PID_KD};
+	static const fp32 shoot_speed_pid4[3] = {FRICTION_4_SPEED_PID_KP, FRICTION_4_SPEED_PID_KI, FRICTION_4_SPEED_PID_KD};
+#endif
 	static const fp32 trigger_speed_pid[3] = {TRIGGER_ANGLE_PID_KP, TRIGGER_ANGLE_PID_KI, TRIGGER_ANGLE_PID_KD};
 	PID_init(&shoot_control.friction_motor1_pid, PID_POSITION, shoot_speed_pid1, FRICTION_1_SPEED_PID_MAX_OUT, FRICTION_1_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 	PID_init(&shoot_control.friction_motor2_pid, PID_POSITION, shoot_speed_pid2, FRICTION_2_SPEED_PID_MAX_OUT, FRICTION_2_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 	PID_init(&shoot_control.trigger_motor_pid, PID_POSITION, trigger_speed_pid, TRIGGER_BULLET_PID_MAX_OUT, TRIGGER_BULLET_PID_MAX_IOUT, 0, &raw_err_handler);
-
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	PID_init(&shoot_control.friction_motor3_pid, PID_POSITION, shoot_speed_pid3, FRICTION_3_SPEED_PID_MAX_OUT, FRICTION_3_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
+	PID_init(&shoot_control.friction_motor4_pid, PID_POSITION, shoot_speed_pid4, FRICTION_4_SPEED_PID_MAX_OUT, FRICTION_4_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
+#endif
 	// update data
 	shoot_feedback_update();
 
 	shoot_control.friction_motor1_rpm_set = 0.0f;
 	shoot_control.friction_motor2_rpm_set = 0.0f;
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	shoot_control.friction_motor3_rpm_set = 0.0f;
+	shoot_control.friction_motor4_rpm_set = 0.0f;
+#endif
 	shoot_control.ecd_count = 0;
 	shoot_control.angle = motor_chassis[MOTOR_INDEX_TRIGGER].ecd * TRIGGER_MOTOR_ECD_TO_ANGLE;
 	shoot_control.cmd_value = 0;
@@ -146,6 +157,18 @@ int16_t shoot_control_loop(void)
 
 				shoot_control.friction_motor1_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
 				shoot_control.friction_motor2_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+				PID_clear(&shoot_control.friction_motor3_pid);
+				PID_clear(&shoot_control.friction_motor4_pid);
+
+				shoot_control.friction_motor3_pid.max_out = FRICTION_3_SPEED_PID_MAX_OUT;
+				shoot_control.friction_motor4_pid.max_out = FRICTION_4_SPEED_PID_MAX_OUT;
+
+				shoot_control.friction_motor3_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+				shoot_control.friction_motor4_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+#endif
+
 				break;
 			}
 			case SHOOT_AUTO_FIRE:
@@ -173,6 +196,26 @@ int16_t shoot_control_loop(void)
 			shoot_control.friction_motor1_rpm_set = 0.0f;
 			shoot_control.friction_motor2_rpm_set = 0.0f;
 			shoot_control.trigger_speed_set = 0;
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+			shoot_control.friction_motor3_rpm_set = 0.0f;
+			shoot_control.friction_motor4_rpm_set = 0.0f;
+#endif
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+			if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60) && (fabs(shoot_control.friction_motor3_rpm) < 60) && (fabs(shoot_control.friction_motor4_rpm) < 60))
+			{
+				shoot_control.friction_motor1_pid.max_out = 0;
+				shoot_control.friction_motor2_pid.max_out = 0;
+				shoot_control.friction_motor3_pid.max_out = 0;
+				shoot_control.friction_motor4_pid.max_out = 0;
+			}
+			else
+			{
+				shoot_control.friction_motor1_pid.max_out = 1000;
+				shoot_control.friction_motor2_pid.max_out = 1000;
+				shoot_control.friction_motor3_pid.max_out = 1000;
+				shoot_control.friction_motor4_pid.max_out = 1000;
+			}
+#else
 			if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
 			{
 				shoot_control.friction_motor1_pid.max_out = 0;
@@ -183,12 +226,18 @@ int16_t shoot_control_loop(void)
 				shoot_control.friction_motor1_pid.max_out = 1000;
 				shoot_control.friction_motor2_pid.max_out = 1000;
 			}
+#endif
 			break;
 		}
 		case SHOOT_READY_FRIC:
 		{
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+			{
+#else
 			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 			{
+#endif
 				if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // Auto aim
 				{
 					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
@@ -309,6 +358,14 @@ int16_t shoot_control_loop(void)
 	PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set, SHOOT_CONTROL_TIME_S);
 	shoot_control.cmd_value = (int16_t)(shoot_control.trigger_motor_pid.out);
 
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	PID_calc(&shoot_control.friction_motor3_pid, shoot_control.friction_motor3_rpm, shoot_control.friction_motor3_rpm_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.fric3_given_current = (int16_t)(shoot_control.friction_motor3_pid.out);
+
+	PID_calc(&shoot_control.friction_motor2_pid, shoot_control.friction_motor2_rpm, shoot_control.friction_motor2_rpm_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.fric4_given_current = (int16_t)(shoot_control.friction_motor4_pid.out);
+#endif
+
 	return shoot_control.cmd_value;
 }
 
@@ -321,7 +378,11 @@ static void shoot_set_mode(void)
 {
 
 	// normal RC control
-	if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
+#if (ROBOT_TYPE == HERO_2025_MECANUM) 
+	if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRICTIONAL_MOTOR_LEFT_TOE) || toe_is_error(FRICTIONAL_MOTOR_RIGHT_TOE) || toe_is_error(FRICTIONAL_MOTOR_UP_TOE) || toe_is_error(FRICTIONAL_MOTOR_DOWN_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))	
+#else
+	if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRICTIONAL_MOTOR_LEFT_TOE) || toe_is_error(FRICTIONAL_MOTOR_RIGHT_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
+#endif	
 	{
 		shoot_control.shoot_mode = SHOOT_STOP;
 	}
@@ -408,6 +469,11 @@ static void shoot_feedback_update(void)
 
 	shoot_control.friction_motor1_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm, shoot_control.friction_motor1_rpm, 0.8f);
 	shoot_control.friction_motor2_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm, shoot_control.friction_motor2_rpm, 0.8f);
+#if (ROBOT_TYPE == HERO_2025_MECANUM) 
+	shoot_control.friction_motor3_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm, shoot_control.friction_motor3_rpm, 0.8f);
+	shoot_control.friction_motor4_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm, shoot_control.friction_motor4_rpm, 0.8f);
+#endif
+
 
 	// reset the motor count, because when the output shaft rotates one turn, the motor shaft rotates 36 turns, process the motor shaft data into output shaft data, used to control the output shaft angle
 	if (motor_chassis[MOTOR_INDEX_TRIGGER].ecd - motor_chassis[MOTOR_INDEX_TRIGGER].last_ecd > HALF_ECD_RANGE)
