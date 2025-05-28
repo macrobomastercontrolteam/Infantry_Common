@@ -34,8 +34,12 @@
 // microswitch
 #define BUTTEN_TRIG_PIN HAL_GPIO_ReadPin(BUTTON_TRIG_GPIO_Port, BUTTON_TRIG_Pin)
 #define AUTOAIM_READY_TIMEOUT 4000
-#define TRIGGER_ANTI_STALL_BY_WAIT 0
 
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#define TRIGGER_ANTI_STALL_BY_WAIT 1
+#else
+#define TRIGGER_ANTI_STALL_BY_WAIT 0
+#endif
 /**
  * @brief          Set the mode of the shoot control state machine. Corresponding states for left lever of remote controller: up - fast shooting, middle - idle, down - disabled
  * @param[in]      void
@@ -59,13 +63,14 @@ bool_t isOverheated(void);
 
 shoot_control_t shoot_control;
 
+launcher_status_t launcher_status;
+
 /**
  * @brief          Initialize the shoot control, including PID, remote control pointer, and motor pointer
  * @param[in]      void
  */
 void shoot_init(void)
 {
-
 	shoot_control.shoot_mode = SHOOT_STOP;
 	shoot_control.shoot_rc = get_remote_control_point();
 
@@ -116,6 +121,10 @@ void shoot_init(void)
 
 	memset(&shoot_control.launching_frequency, 0, sizeof(shoot_control.launching_frequency));
 	memset(&shoot_control.bullet_init_speed, 0, sizeof(shoot_control.bullet_init_speed));
+
+	launcher_status.Chain_Loaded = 0;
+	launcher_status.Launcher_Loaded = 0;
+	launcher_status.Launcher_Opened = 0;
 }
 
 /**
@@ -242,17 +251,26 @@ int16_t shoot_control_loop(void)
 				{
 					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
 					{
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+						shoot_control.shoot_mode = HERO_LAUNCHER_SHOOT;
+#else
 						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
+#endif
 					}
 				}
 				else // Manual control
 				{
-					if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
+
+					// if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
+					// {
+					// 	shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
+					// }
+					// else 
+					if (shoot_control.press_l)
 					{
-						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-					}
-					else if (shoot_control.press_l)
-					{
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+						shoot_control.shoot_mode = HERO_LAUNCHER_SHOOT;
+#else
 						if (shoot_control.left_click_hold_time >= RC_S_LONG_TIME)
 						{
 							shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
@@ -261,6 +279,7 @@ int16_t shoot_control_loop(void)
 						{
 							shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
 						}
+#endif
 					}
 				}
 			}
@@ -269,23 +288,17 @@ int16_t shoot_control_loop(void)
 		// rotate trigger motor until a bullet is loaded and ready to fire, therefore, requires a microswitch to function
 		case SHOOT_READY_TRIGGER:
 		{
-			if (shoot_control.key == SWITCH_TRIGGER_OFF)
+			if (launcher_status.Chain_Loaded == 0)
 			{
 				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
 			}
-			// else
-			// {
-			//     shoot_control.trigger_speed_set = 0.0f;
-			//     shoot_control.shoot_mode = SHOOT_READY;
-			// }
+			
 			break;
 		}
-		case SHOOT_READY:
+		case HERO_LAUNCHER_SHOOT:
 		{
-			if (shoot_control.key == SWITCH_TRIGGER_OFF)
-			{
-				shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
-			}
+
+			
 			break;
 		}
 		case SHOOT_SEMI_AUTO_FIRE:
@@ -319,7 +332,7 @@ int16_t shoot_control_loop(void)
 			{
 				if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
 				{
-					; // stay in auto fire mode
+					// stay in auto fire mode
 				}
 				else
 				{
@@ -427,17 +440,28 @@ static void shoot_set_mode(void)
 			}
 			case RC_SW_MID:
 			{
-				if (shoot_control.press_r)
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+				if (launcher_status.Chain_Loaded == 0)
 				{
-					if (shoot_control.last_press_r == 0)
-					{
-						shoot_control.shoot_mode = SHOOT_READY_FRIC; // start rotatiing friction wheel
-					}
+					shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
 				}
 				else
+#endif
 				{
-					shoot_control.shoot_mode = SHOOT_STOP;
+					if (shoot_control.press_r)
+					{
+
+						if (shoot_control.last_press_r == 0)
+						{
+							shoot_control.shoot_mode = SHOOT_READY_FRIC; // start rotatiing friction wheel
+						}
+					}
+					else
+					{
+						shoot_control.shoot_mode = SHOOT_STOP;
+					}
 				}
+
 				break;
 			}
 			case RC_SW_DOWN:
@@ -549,6 +573,7 @@ static void trigger_motor_stall_handler(void)
 		{
 #if TRIGGER_ANTI_STALL_BY_WAIT
 			shoot_control.speed_set = 0;
+			launcher_status.Chain_Loaded = 1;
 #else
 			shoot_control.speed_set = -shoot_control.speed_set;
 #endif
@@ -589,3 +614,13 @@ bool_t isOverheated(void)
 	}
 	return out;
 }
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+
+
+void piston_shoot(void)
+{
+
+}
+
+#endif

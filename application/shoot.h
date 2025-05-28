@@ -151,6 +151,7 @@ typedef enum
     SHOOT_READY,
     SHOOT_SEMI_AUTO_FIRE,
     SHOOT_AUTO_FIRE,
+    HERO_LAUNCHER_SHOOT,
 } shoot_mode_e;
 
 
@@ -183,6 +184,8 @@ typedef struct
     pid_type_def friction_motor4_pid;
     fp32 friction_motor4_rpm_set;
     fp32 friction_motor4_rpm;
+
+    int16_t piston_given_current;
 #endif
 
 	pid_type_def trigger_motor_pid;
@@ -217,10 +220,19 @@ typedef struct
 	fp32 bullet_init_speed[2];
 } shoot_control_t;
 
+//flags for launcher status
+typedef struct
+{
+    //=1 for loaded/opened
+    uint8_t Chain_Loaded;
+    uint8_t Launcher_Loaded;
+    uint8_t Launcher_Opened;
+
+}launcher_status_t;
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
 extern void shoot_init(void);
 extern int16_t shoot_control_loop(void);
 
 extern shoot_control_t shoot_control;
-
+extern launcher_status_t launcher_status;
 #endif
