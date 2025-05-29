@@ -291,13 +291,8 @@ int16_t shoot_control_loop(void)
 					{
 						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
 					}
-#endif
-                    // Check for left mouse button press.
 					else if (shoot_control.press_l)
 					{
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
-						shoot_control.shoot_mode = HERO_LAUNCHER_SHOOT; // HERO_2025_MECANUM specific launcher mode.
-#else
                         // Standard robots: differentiate between short and long press for semi-auto/auto.
 						if (shoot_control.left_click_hold_time >= RC_S_LONG_TIME)
 						{
@@ -307,8 +302,14 @@ int16_t shoot_control_loop(void)
 						{
 							shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
 						}
-#endif
 					}
+#else
+                    // Check for left mouse button press.
+					if (shoot_control.press_l)
+					{
+						shoot_control.shoot_mode = HERO_LAUNCHER_SHOOT; // HERO_2025_MECANUM specific launcher mode.
+					}
+#endif
 				}
 			}
 			break;
