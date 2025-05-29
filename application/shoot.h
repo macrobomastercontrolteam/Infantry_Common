@@ -30,6 +30,8 @@
 // After the shooting is enabled, the bullet is continuously fired for a period of time, used to clear the bullet
 #define RC_S_LONG_TIME              250
 
+#define REVERSE_PISTON_DIRECTION 0
+
 // TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO: gear ratio between trigger motor and trigger wheel
 // TRIGGER_WHEEL_CAPACITY: ammo per revolution of trigger wheel
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
@@ -94,6 +96,9 @@
 #define BLOCK_TIME                  100
 #define REVERSE_TIME                150
 #define REVERSE_SPEED_LIMIT         13.0f
+
+#define PISTON_BLOCK_TIME           100
+#define BLOCK_PISTON_SPEED         0.5f
 
 #define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / TRIGGER_WHEEL_CAPACITY)
 
@@ -184,7 +189,12 @@ typedef struct
     fp32 friction_motor4_rpm_set;
     fp32 friction_motor4_rpm;
 
-    int16_t piston_given_current;
+    pid_type_def piston_motor_pid; //PID variable for piston motor
+    fp32 piston_speed_target; //Target speed in the state machine
+    fp32 piston_speed_set; //Speed defined by the piston motor contro function
+    fp32 piston_speed; //Speed feedback from the motor ESC
+    int8_t piston_direction; //Direction of the piston motor, 0 for forward, 1 for reverse
+    uint16_t piston_given_current;
 
 	pid_type_def trigger_motor_pid;
     fp32 trigger_speed_set;    
@@ -202,6 +212,7 @@ typedef struct
     uint16_t left_click_hold_time;
 
     uint16_t block_time;
+    uint16_t piston_block_time;
     uint16_t reverse_time;
 
     bool_t key;
