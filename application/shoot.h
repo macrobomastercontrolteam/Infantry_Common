@@ -93,8 +93,8 @@
 
 #define BLOCK_TRIGGER_SPEED         0.5f
 #define IDLE_TRIGGER_SPEED          2.0f
-#define BLOCK_TIME                  100
-#define REVERSE_TIME                150
+#define TRIGGER_BLOCK_TIME          100
+#define TRIGGER_REVERSE_TIME        150
 #define REVERSE_SPEED_LIMIT         13.0f
 
 #define PISTON_BLOCK_TIME           100

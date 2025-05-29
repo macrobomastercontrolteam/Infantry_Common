@@ -633,7 +633,7 @@ static void trigger_motor_stall_handler(void)
 	{
 		shoot_control.trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
 
-		if (shoot_control.block_time >= BLOCK_TIME)
+		if (shoot_control.block_time >= TRIGGER_BLOCK_TIME)
 		{
 #if TRIGGER_ANTI_STALL_BY_WAIT
 			shoot_control.speed_set = 0;
@@ -643,12 +643,12 @@ static void trigger_motor_stall_handler(void)
 #endif
 		}
 		// jam detection
-		if ((fabs(shoot_control.speed) < BLOCK_TRIGGER_SPEED) && (shoot_control.block_time < BLOCK_TIME))
+		if ((fabs(shoot_control.speed) < BLOCK_TRIGGER_SPEED) && (shoot_control.block_time < TRIGGER_BLOCK_TIME))
 		{
 			shoot_control.block_time += SHOOT_CONTROL_TIME_MS;
 			shoot_control.reverse_time = 0;
 		}
-		else if ((shoot_control.block_time >= BLOCK_TIME) && (shoot_control.reverse_time < REVERSE_TIME))
+		else if ((shoot_control.block_time >= TRIGGER_BLOCK_TIME) && (shoot_control.reverse_time < TRIGGER_REVERSE_TIME))
 		{
 			shoot_control.reverse_time += SHOOT_CONTROL_TIME_MS;
 		}
