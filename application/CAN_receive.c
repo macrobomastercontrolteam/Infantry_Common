@@ -610,7 +610,7 @@ uint8_t decode_biped_chassis_feedback(uint8_t *data)
  * @param[in]      fric_right: 3508 motor control current when used as friction motor
  * @retval         none
  */
-void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, int16_t fric_right)
+void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, int16_t fric_right, int16_t piston_motor)
 {
 	uint32_t send_mail_box;
 	// CAN_6020_LOW_RANGE_TX_ID same as CAN_3508_OR_2006_HIGH_RANGE_TX_ID
