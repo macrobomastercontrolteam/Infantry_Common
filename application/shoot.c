@@ -284,8 +284,16 @@ int16_t shoot_control_loop(void)
 				}
 				else // Manual control
 				{
+
+#if !(ROBOT_TYPE == HERO_2025_MECANUM) //NOT FOR HERO_2025_MECANUM
+					// Check for left lever position on remote controller.
+					if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
+					{
+						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
+					}
+#endif
                     // Check for left mouse button press.
-					if (shoot_control.press_l)
+					else if (shoot_control.press_l)
 					{
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 						shoot_control.shoot_mode = HERO_LAUNCHER_SHOOT; // HERO_2025_MECANUM specific launcher mode.
@@ -668,9 +676,6 @@ bool_t isOverheated(void)
 	}
 	return out;
 }
-
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
-
 
 void piston_shoot(void)
 {

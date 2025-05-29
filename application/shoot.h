@@ -173,7 +173,6 @@ typedef struct
     fp32 friction_motor2_rpm;
     // fp32 friction_motor2_angle;
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
     int16_t fric3_given_current;
     int16_t fric4_given_current;
     
@@ -186,7 +185,6 @@ typedef struct
     fp32 friction_motor4_rpm;
 
     int16_t piston_given_current;
-#endif
 
 	pid_type_def trigger_motor_pid;
     fp32 trigger_speed_set;    
