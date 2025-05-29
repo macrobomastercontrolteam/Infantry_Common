@@ -196,7 +196,10 @@ void gimbal_task(void const *pvParameters)
 #if ROBOT_YAW_IS_4310
         enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN);
 #endif
-        CAN_cmd_gimbal(0, 0, 0, 0, 0);
+        CAN_cmd_gimbal_upper_can_ID(0, 0, 0, 0, 0, 0);
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+        CAN_cmd_gimbal_lower_can_id(0, 0);
+#endif
         osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
     } while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE));
@@ -210,7 +213,10 @@ void gimbal_task(void const *pvParameters)
         gimbal_control_loop(&gimbal_control);
         trigger_set_current = shoot_control_loop();
         gimbal_safety_manager(&yaw_can_set_value, &pitch_can_set_value, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
-        CAN_cmd_gimbal(yaw_can_set_value, pitch_can_set_value, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
+        CAN_cmd_gimbal_upper_can_ID(yaw_can_set_value, pitch_can_set_value, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current, shoot_control.piston_given_current);
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+        CAN_cmd_gimbal_lower_can_id(shoot_control.fric3_given_current, shoot_control.fric_given_current);
+#endif
 
 #if GIMBAL_TEST_MODE
         J_scope_gimbal_test();

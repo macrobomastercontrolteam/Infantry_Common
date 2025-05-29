@@ -668,8 +668,14 @@ void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, in
 	gimbal_can_send_data[4] = (trigger >> 8);
 	gimbal_can_send_data[5] = trigger;
 #else
-	// gimbal_can_send_data[4] = (rev >> 8);
-	// gimbal_can_send_data[5] = rev;
+//Piston motor for hero 2023
+#if (ROBOT_TYPE == HERO_2025_MECANUM) //This is for the piston motor with higher can ID 7
+	gimbal_can_send_data[4] = (piston_motor >> 8); //Higher 8-bit
+	gimbal_can_send_data[5] = piston_motor; //Lower 8-bit
+	//gimbal_can_send_data[4] = (rev >> 8);
+	//gimbal_can_send_data[5] = rev;
+#endif
+
 #endif
 	gimbal_can_send_data[6] = (fric_right >> 8);
 	gimbal_can_send_data[7] = fric_right;
@@ -678,6 +684,33 @@ void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, in
 #if ROBOT_YAW_IS_4310
 	encode_MIT_motor_control(CAN_YAW_MOTOR_4310_TX_ID, 0, 0, 0, 0, yaw, DM_4310, &CHASSIS_CAN);
 #endif
+}
+
+void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down)
+{
+	uint32_t send_mail_box;
+	gimbal_tx_message.StdId = CAN_3508_OR_2006_LOW_RANGE_TX_ID;
+	gimbal_tx_message.IDE = CAN_ID_STD;
+	gimbal_tx_message.RTR = CAN_RTR_DATA;
+	gimbal_tx_message.DLC = 0x08;
+
+
+	//Motor ID 1
+	// gimbal_can_send_data[0] = (rev >> 8);
+	// gimbal_can_send_data[1] = rev;
+
+	//Motor ID 2
+	// gimbal_can_send_data[2] = (rev >> 8);
+	// gimbal_can_send_data[3] = rev;
+
+	//Motor ID 3
+	gimbal_can_send_data[4] = (fric_up >> 8);
+	gimbal_can_send_data[5] = fric_up;
+
+	//Motor ID 4
+	gimbal_can_send_data[6] = (fric_down >> 8);
+	gimbal_can_send_data[7] = fric_down;
+	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr)
