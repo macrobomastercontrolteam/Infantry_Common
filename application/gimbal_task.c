@@ -215,7 +215,7 @@ void gimbal_task(void const *pvParameters)
         gimbal_safety_manager(&yaw_can_set_value, &pitch_can_set_value, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
         CAN_cmd_gimbal_upper_can_ID(yaw_can_set_value, pitch_can_set_value, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current, shoot_control.piston_given_current);
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-        CAN_cmd_gimbal_lower_can_id(shoot_control.fric3_given_current, shoot_control.fric_given_current);
+        CAN_cmd_gimbal_lower_can_id(shoot_control.fric3_given_current, shoot_control.fric4_given_current);
 #endif
 
 #if GIMBAL_TEST_MODE
