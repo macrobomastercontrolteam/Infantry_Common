@@ -1024,5 +1024,18 @@ void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat)
 	*heat_limit = can_ref_info.barrel_heat_limit;
 	*heat = can_ref_info.barrel_1_heat;
 }
+
+void CAN_get_chassis_power_info(fp32 *buffer, fp32 *power_limit)  //safe to convert by fp32 data = uint data
+{
+	*buffer = can_ref_info.chassis_power_buffer;
+	if (can_ref_info.chassis_power_limit > 0)
+	{
+		*power_limit = can_ref_info.chassis_power_limit;
+	}
+	else
+	{
+		*power_limit = 45;
+	}
+}
 #endif
 
