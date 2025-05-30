@@ -146,6 +146,14 @@
 #define FRICTION_4_SPEED_PID_KD        0.0f
 #define FRICTION_4_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
 #define FRICTION_4_SPEED_PID_MAX_IOUT  200.0f
+
+//Piston Motor PID
+#define PISTON_SPEED_PID_KP            20.0f
+#define PISTON_SPEED_PID_KI            0.0f
+#define PISTON_SPEED_PID_KD            0.0f
+#define PISTON_SPEED_PID_MAX_OUT       MAX_3508_MOTOR_CAN_CURRENT
+#define PISTON_SPEED_PID_MAX_IOUT      200.0f
+
 #endif
 
 typedef enum
