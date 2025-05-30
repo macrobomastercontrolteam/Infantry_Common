@@ -681,27 +681,32 @@ bool_t isOverheated(void)
 
 static void piston_motor_control(void)
 {
-	//Start the piston motor once the function is called
+	uint8_t isPistonBlocked = 0;
+	do
+	{
 #if REVERSE_PISTON_DIRECTION
-	shoot_control.piston_speed_set = (-shoot_control.piston_speed_target) * shoot_control.piston_direction;
+		shoot_control.piston_speed_set = (-shoot_control.piston_speed_target) * shoot_control.piston_direction;
 #else
-	shoot_control.piston_speed_set = shoot_control.piston_speed_target * shoot_control.piston_direction;
+		shoot_control.piston_speed_set = shoot_control.piston_speed_target * shoot_control.piston_direction;
 #endif
-		//Jam detection
+		// Jam detection
 		if (fabs(shoot_control.speed) < BLOCK_PISTON_SPEED)
 		{
 
-			if (shoot_control.piston_block_time < PISTON_BLOCK_TIME) //Time constraint for perventing false positive)
+			if (shoot_control.piston_block_time < PISTON_BLOCK_TIME) // Time constraint for perventing false positive)
 			{
 				shoot_control.piston_block_time += SHOOT_CONTROL_TIME_MS;
 			}
-			else if(shoot_control.piston_block_time > PISTON_BLOCK_TIME)
+			else if (shoot_control.piston_block_time > PISTON_BLOCK_TIME)
 			{
-				shoot_control.piston_speed_set = 0; //Stop the piston motor if reached the end
-				shoot_control.piston_direction = shoot_control.piston_direction * -1; //Reverse the direction of the piston
+				shoot_control.piston_speed_set = 0;									  // Stop the piston motor if reached the end
+				shoot_control.piston_direction = shoot_control.piston_direction * -1; // Reverse the direction of the piston
 				shoot_control.piston_block_time = 0;
-				return;
+				isPistonBlocked = 1;
 			}
-		} 
+		}
+	} while (!isPistonBlocked); // Start the piston motor once the function is called
 
+	isPistonBlocked = 0; // Reset the piston block flag
+	return;
 }
