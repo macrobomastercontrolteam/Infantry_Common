@@ -178,7 +178,7 @@ void MX_FREERTOS_Init(void) {
     // osThreadDef(OLED, oled_task, osPriorityLow, 0, 256);
     // oled_handle = osThreadCreate(osThread(OLED), NULL);
 
-#ifdef CAN_PASS_REF_INFO
+#if CAN_PASS_REF_INFO
     osThreadDef(refree_can, referee_can_task, osPriorityNormal, 0, 128);
     referee_can_task_handle = osThreadCreate(osThread(refree_can), NULL);
 #else
