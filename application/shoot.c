@@ -719,7 +719,7 @@ static void piston_motor_control(void)
 				isPistonBlocked = 1;
 			}
 		}
-	} while (!isPistonBlocked); // Start the piston motor once the function is called
+	} while ((!isPistonBlocked)&&(toe_is_error(PISTON_MOTOR_TOE) == 0)); // Start the piston motor once the function is called
 
 	isPistonBlocked = 0; // Reset the piston block flag
 	return;
