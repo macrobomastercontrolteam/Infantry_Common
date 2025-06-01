@@ -74,8 +74,10 @@
 #define FRICTION_MOTOR_SPEED  26.0f
 #else
 #define FRICTION_MOTOR_SPEED  1.0f
+#define FRICTON_MOTOR_INIT_SPEED 3.0f
 #endif
 
+#define PISTON_MOTOR_SPEED 20.0f // Piston motor speed in m/s
 // Unit: ammo per minute
 #define SEMI_AUTO_FIRE_RATE 1800.0f
 #define AUTO_FIRE_RATE     1800.0f
@@ -160,10 +162,12 @@ typedef enum
 {
     SHOOT_STOP = 0,
     SHOOT_READY_FRIC,
+    HERO_INIT_LAUNCHER,
     SHOOT_READY_TRIGGER,
     SHOOT_READY,
     SHOOT_SEMI_AUTO_FIRE,
     SHOOT_AUTO_FIRE,
+    HERO_LAUNCHER_READY,
     HERO_LAUNCHER_SHOOT,
 } shoot_mode_e;
 

@@ -29,6 +29,7 @@
 #include "cv_usart_task.h"
 #include "detect_task.h"
 #include "gimbal_behaviour.h"
+#include "bsp_gpio.h"
 #include "pid.h"
 
 // microswitch
@@ -161,6 +162,23 @@ int16_t shoot_control_loop(void)
 #endif
 				break;
 			}
+			case HERO_INIT_LAUNCHER:
+			{
+
+				PID_clear(&shoot_control.friction_motor1_pid);
+				PID_clear(&shoot_control.friction_motor2_pid);
+				PID_clear(&shoot_control.friction_motor3_pid);
+				PID_clear(&shoot_control.friction_motor4_pid);
+				PID_clear(&shoot_control.piston_motor_pid);
+				
+				shoot_control.piston_direction = 1;
+				shoot_control.piston_speed_target = PISTON_MOTOR_SPEED; // Set target speed for piston motor.
+				shoot_control.friction_motor1_rpm_set = -FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+				shoot_control.friction_motor2_rpm_set = FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+				shoot_control.friction_motor3_rpm_set = -FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+				shoot_control.friction_motor4_rpm_set = FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+				break;
+			}
 			case SHOOT_READY_FRIC:
 			{
 				// Actions for preparing friction wheels.
@@ -183,7 +201,7 @@ int16_t shoot_control_loop(void)
 
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
                 // Additional friction motors for HERO_2025_MECANUM.
-				shoot_control.piston_speed_target = 0;
+				shoot_control.piston_speed_target = PISTON_MOTOR_SPEED; // Set target speed for piston motor.
 				
 				PID_clear(&shoot_control.friction_motor3_pid);
 				PID_clear(&shoot_control.friction_motor4_pid);
@@ -269,6 +287,16 @@ int16_t shoot_control_loop(void)
 #endif
 			break;
 		}
+		case HERO_INIT_LAUNCHER:
+		{
+			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+			{
+				piston_motor_control();							// Control piston motor to load the launcher.
+				piston_motor_control();							// Control piston motor to load the launcher.
+				shoot_control.shoot_mode = SHOOT_READY_TRIGGER; // Transition to friction ready mode.
+			}
+			break;
+		}
 		case SHOOT_READY_FRIC:
 		{
             // In SHOOT_READY_FRIC mode:
@@ -288,7 +316,8 @@ int16_t shoot_control_loop(void)
 					{
 						// If CV is requesting shoot, transition to auto fire mode.
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-						shoot_control.shoot_mode = HERO_LAUNCHER_SHOOT; // HERO_2025_MECANUM has a specific launcher shoot mode.
+						piston_motor_control();
+						shoot_control.shoot_mode = HERO_LAUNCHER_READY; // HERO_2025_MECANUM has a specific launcher shoot mode.
 #else
                         shoot_control.shoot_mode = SHOOT_AUTO_FIRE; // Standard robots go to auto fire.
 #endif
@@ -335,13 +364,53 @@ int16_t shoot_control_loop(void)
 			{
 				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
 			}
+
+			else
+			{
+				shoot_control.trigger_speed_set = 0.0f; // Stop trigger motor if chain is loaded.
+			}
             // Once Chain_Loaded becomes 1 (presumably by a sensor/microswitch),
             // the trigger motor will stop due to trigger_motor_stall_handler logic or mode change.
 			break;
 		}
+		case HERO_LAUNCHER_READY: // Specific ready mode for HERO_2025_MECANUM.
+		{
+			// In HERO_LAUNCHER_READY mode:
+			// This mode is used to prepare the launcher for shooting.
+			if (launcher_status.Launcher_Loaded == 0) // If launcher is not loaded
+			{
+				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED; // Set trigger motor to load the launcher.
+				shoot_control.shoot_mode = HERO_LAUNCHER_READY;
+
+			}
+			else
+			{
+				shoot_control.trigger_speed_set = 0.0f; // Stop trigger motor if launcher is loaded.
+				shoot_control.shoot_mode = HERO_LAUNCHER_SHOOT;
+			}
+			break;
+		}
 		case HERO_LAUNCHER_SHOOT: // Specific shooting mode for HERO_2025_MECANUM.
 		{
-            // Logic for HERO_LAUNCHER_SHOOT mode.
+			// Logic for HERO_LAUNCHER_SHOOT mode.
+			piston_motor_control();
+			if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP) // Remote controller left lever is UP (force auto fire)
+			{
+				shoot_control.shoot_mode = HERO_LAUNCHER_READY;
+			}
+			else // Remote controller left lever is not UP
+			{
+				if ((shoot_control.press_r == 0)) // Right mouse button released (stop/cancel)
+				{
+					shoot_control.shoot_mode = SHOOT_STOP;
+				}
+				else if ((shoot_control.press_l == 0)) // Left mouse button released
+				{
+					// shoot_control.trigger_speed_set = 0; // Stop trigger motor.
+					shoot_control.shoot_mode = SHOOT_READY_FRIC; // Return to ready state.
+				}
+				// If left mouse button is still pressed, stay in auto fire.
+			}
 
 			break;
 		}
@@ -514,8 +583,9 @@ static void shoot_set_mode(void)
                 // For HERO_2025_MECANUM, if ammo chain is not loaded, enter SHOOT_READY_TRIGGER to load it.
 				if (launcher_status.Chain_Loaded == 0)
 				{
-					shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
+					shoot_control.shoot_mode = HERO_INIT_LAUNCHER;//Spinn the trigger motor until the block detection is triggered
 				}
+
 				else // Chain is loaded, proceed to check mouse input.
 #endif
 				{
