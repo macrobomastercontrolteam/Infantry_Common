@@ -40,6 +40,9 @@
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
 #define ENABLE_FRICTION_2_MOTOR_POWER 0
+#define ENABLE_FRICTION_3_MOTOR_POWER 0
+#define ENABLE_FRICTION_4_MOTOR_POWER 0
+#define ENABLE_PISTON_MOTOR_POWER 0
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define ENABLE_UPPER_HEAD_POWER 0
@@ -634,6 +637,9 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 #if ((ENABLE_FRICTION_2_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
 	fric_right = 0;
 #endif
+#if ((ENABLE_PISTON_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+	piston_motor = 0;
+#endif
 
 	// control yaw motor and trigger motor
 #if ROBOT_YAW_IS_4310
@@ -688,6 +694,12 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 
 void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down)
 {
+#if ((ENABLE_FRICTION_3_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+	fric_up = 0;
+#endif
+#if ((ENABLE_FRICTION_4_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+	fric_down = 0;
+#endif
 	uint32_t send_mail_box;
 	gimbal_tx_message.StdId = CAN_3508_OR_2006_LOW_RANGE_TX_ID;
 	gimbal_tx_message.IDE = CAN_ID_STD;
