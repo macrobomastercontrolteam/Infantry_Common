@@ -31,6 +31,8 @@
 #define RC_S_LONG_TIME              250
 
 #define REVERSE_PISTON_DIRECTION 0
+#define PISTON_FORWARD 1
+#define PISTON_BACKWARD -1
 
 // TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO: gear ratio between trigger motor and trigger wheel
 // TRIGGER_WHEEL_CAPACITY: ammo per revolution of trigger wheel
@@ -77,7 +79,7 @@
 #define FRICTON_MOTOR_INIT_SPEED 3.0f
 #endif
 
-#define PISTON_MOTOR_SPEED 20.0f // Piston motor speed in m/s
+#define PISTON_MOTOR_SPEED 10.0f // Piston motor speed in m/s
 // Unit: ammo per minute
 #define SEMI_AUTO_FIRE_RATE 1800.0f
 #define AUTO_FIRE_RATE     1800.0f
@@ -95,12 +97,20 @@
 
 #define BLOCK_TRIGGER_SPEED         0.5f
 #define IDLE_TRIGGER_SPEED          2.0f
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#define TRIGGER_BLOCK_TIME          50
+#define TRIGGER_REVERSE_TIME        0
+#define REVERSE_SPEED_LIMIT         0
+#else
 #define TRIGGER_BLOCK_TIME          100
 #define TRIGGER_REVERSE_TIME        150
 #define REVERSE_SPEED_LIMIT         13.0f
+#endif
 
-#define PISTON_BLOCK_TIME           100
 #define BLOCK_PISTON_SPEED         0.5f
+#define IDLE_PISTON_SPEED          2.0f
+#define PISTON_BLOCK_TIME           50
 
 #define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / TRIGGER_WHEEL_CAPACITY)
 
@@ -160,13 +170,14 @@
 
 typedef enum
 {
-    SHOOT_STOP = 0,
-    SHOOT_READY_FRIC,
-    HERO_INIT_LAUNCHER,
-    SHOOT_READY_TRIGGER,
+    SHOOT_STOP = 0, // Stop all shooting activity.
+    SHOOT_READY_FRIC, // Start spinning friction wheels. Actual shooting mode will be set corespondingly inside this mode.
+    SHOOT_READY_TRIGGER, //spain trigger motor to load the ammo chain
     SHOOT_READY,
-    SHOOT_SEMI_AUTO_FIRE,
+    SHOOT_SEMI_AUTO_FIRE, 
     SHOOT_AUTO_FIRE,
+
+    HERO_INIT_LAUNCHER, //clear and close the launcher
     HERO_LAUNCHER_READY,
     HERO_LAUNCHER_SHOOT,
 } shoot_mode_e;
@@ -175,6 +186,8 @@ typedef enum
 typedef struct
 {
     shoot_mode_e shoot_mode;
+    shoot_mode_e previous_shoot_mode;
+
     const RC_ctrl_t *shoot_rc;
 
     int16_t fric1_given_current;
@@ -202,10 +215,10 @@ typedef struct
     fp32 friction_motor4_rpm;
 
     pid_type_def piston_motor_pid; //PID variable for piston motor
-    fp32 piston_speed_target; //Target speed in the state machine
+    //fp32 piston_speed_target; //Target speed in the state machine
     fp32 piston_speed_set; //Speed defined by the piston motor contro function
     fp32 piston_speed; //Speed feedback from the motor ESC
-    int8_t piston_direction; //Direction of the piston motor, 0 for forward, 1 for reverse
+    //int8_t piston_direction; //Direction of the piston motor, 1 for forward, -1 for reverse
     uint16_t piston_given_current;
 
 	pid_type_def trigger_motor_pid;
@@ -245,10 +258,13 @@ typedef struct
 typedef struct
 {
     //=1 for loaded/opened
+    uint8_t Launcher_Initialized;
     uint8_t Chain_Loaded;
     uint8_t Launcher_Loaded;
     uint8_t Launcher_Opened;
 
+    uint8_t piston_moving;
+    uint8_t piston_feedback;
 }launcher_status_t;
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
 extern void shoot_init(void);

@@ -59,7 +59,7 @@ static void shoot_feedback_update(void);
  * @retval         void
  */
 static void trigger_motor_stall_handler(void);
-static void piston_motor_control(void);
+static bool_t piston_motor_control(uint8_t move_direction);
 
 bool_t isOverheated(void);
 
@@ -104,7 +104,12 @@ void shoot_init(void)
 
 	shoot_control.piston_speed = 0.0f;
 	shoot_control.piston_speed_set = 0.0f;
-	shoot_control.piston_direction = 1;
+
+	launcher_status.Launcher_Opened = 0;
+	launcher_status.Chain_Loaded = 0;
+	launcher_status.Launcher_Loaded = 0;
+	launcher_status.piston_moving = 0; 
+	 
 #endif
 	shoot_control.ecd_count = 0;
 	shoot_control.angle = motor_chassis[MOTOR_INDEX_TRIGGER].ecd * TRIGGER_MOTOR_ECD_TO_ANGLE;
@@ -129,10 +134,6 @@ void shoot_init(void)
 
 	memset(&shoot_control.launching_frequency, 0, sizeof(shoot_control.launching_frequency));
 	memset(&shoot_control.bullet_init_speed, 0, sizeof(shoot_control.bullet_init_speed));
-
-	launcher_status.Chain_Loaded = 0;
-	launcher_status.Launcher_Loaded = 0;
-	launcher_status.Launcher_Opened = 0;
 }
 
 /**
@@ -162,7 +163,7 @@ int16_t shoot_control_loop(void)
 #endif
 				break;
 			}
-			case HERO_INIT_LAUNCHER:
+			case HERO_INIT_LAUNCHER: 
 			{
 
 				PID_clear(&shoot_control.friction_motor1_pid);
@@ -170,13 +171,15 @@ int16_t shoot_control_loop(void)
 				PID_clear(&shoot_control.friction_motor3_pid);
 				PID_clear(&shoot_control.friction_motor4_pid);
 				PID_clear(&shoot_control.piston_motor_pid);
-				
-				shoot_control.piston_direction = 1;
-				shoot_control.piston_speed_target = PISTON_MOTOR_SPEED; // Set target speed for piston motor.
-				shoot_control.friction_motor1_rpm_set = -FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-				shoot_control.friction_motor2_rpm_set = FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-				shoot_control.friction_motor3_rpm_set = -FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-				shoot_control.friction_motor4_rpm_set = FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+
+				if (launcher_status.Launcher_Opened == 1) //retract piston to open launcher first
+				{
+					shoot_control.friction_motor1_rpm_set = -FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+					shoot_control.friction_motor2_rpm_set = FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+					shoot_control.friction_motor3_rpm_set = -FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+					shoot_control.friction_motor4_rpm_set = FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+				}
+
 				break;
 			}
 			case SHOOT_READY_FRIC:
@@ -201,7 +204,6 @@ int16_t shoot_control_loop(void)
 
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
                 // Additional friction motors for HERO_2025_MECANUM.
-				shoot_control.piston_speed_target = PISTON_MOTOR_SPEED; // Set target speed for piston motor.
 				
 				PID_clear(&shoot_control.friction_motor3_pid);
 				PID_clear(&shoot_control.friction_motor4_pid);
@@ -253,7 +255,6 @@ int16_t shoot_control_loop(void)
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 			shoot_control.friction_motor3_rpm_set = 0.0f;
 			shoot_control.friction_motor4_rpm_set = 0.0f;
-			shoot_control.piston_speed_target = 0;
 #endif
             // If friction motors are almost stopped, set PID max_out to 0 to prevent oscillation.
             // Otherwise, set a small max_out to allow them to brake.
@@ -289,17 +290,30 @@ int16_t shoot_control_loop(void)
 		}
 		case HERO_INIT_LAUNCHER:
 		{
-			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+			if(launcher_status.Launcher_Opened == 0)
 			{
-				piston_motor_control();							// Control piston motor to load the launcher.
-				piston_motor_control();							// Control piston motor to load the launcher.
-				shoot_control.shoot_mode = SHOOT_READY_TRIGGER; // Transition to friction ready mode.
+				piston_motor_control(PISTON_BACKWARD);
 			}
+			else
+			{
+				if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+				{
+					if (launcher_status.Launcher_Opened == 1)
+					{
+						piston_motor_control(PISTON_FORWARD); // Control piston motor to clear and close the launcher.
+					}
+					else
+					{
+						launcher_status.Launcher_Initialized = 1;
+						shoot_control.shoot_mode = SHOOT_STOP;
+					}
+				}
+			}
+
 			break;
 		}
 		case SHOOT_READY_FRIC:
 		{
-            // In SHOOT_READY_FRIC mode:
             // Wait for friction wheels to reach target speed.
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
             // HERO_2025_MECANUM has four friction motors.
@@ -316,7 +330,6 @@ int16_t shoot_control_loop(void)
 					{
 						// If CV is requesting shoot, transition to auto fire mode.
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-						piston_motor_control();
 						shoot_control.shoot_mode = HERO_LAUNCHER_READY; // HERO_2025_MECANUM has a specific launcher shoot mode.
 #else
                         shoot_control.shoot_mode = SHOOT_AUTO_FIRE; // Standard robots go to auto fire.
@@ -326,15 +339,21 @@ int16_t shoot_control_loop(void)
 				else // Manual control
 				{
 
-#if !(ROBOT_TYPE == HERO_2025_MECANUM) //NOT FOR HERO_2025_MECANUM
 					// Check for left lever position on remote controller.
 					if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
 					{
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+						shoot_control.shoot_mode = HERO_LAUNCHER_READY;
+#else
 						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
+#endif
 					}
 					else if (shoot_control.press_l)
 					{
-                        // Standard robots: differentiate between short and long press for semi-auto/auto.
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+						shoot_control.shoot_mode = HERO_LAUNCHER_READY;
+#else
+						// Standard robots: differentiate between short and long press for semi-auto/auto.
 						if (shoot_control.left_click_hold_time >= RC_S_LONG_TIME)
 						{
 							shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
@@ -343,44 +362,34 @@ int16_t shoot_control_loop(void)
 						{
 							shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
 						}
-					}
-#else
-                    // Check for left mouse button press.
-					if (shoot_control.press_l)
-					{
-						shoot_control.shoot_mode = HERO_LAUNCHER_SHOOT; // HERO_2025_MECANUM specific launcher mode.
-					}
 #endif
+					}
 				}
 			}
 			break;
 		}
-        // rotate trigger motor until a bullet is loaded and ready to fire, therefore, requires a microswitch to function
 		case SHOOT_READY_TRIGGER: // This mode is primarily for HERO_2025_MECANUM or robots with similar loading mechanisms.
 		{
-            // In SHOOT_READY_TRIGGER mode:
-            // If the ammo chain is not loaded, run the trigger motor to load it.
-			if (launcher_status.Chain_Loaded == 0)
+			if (launcher_status.Chain_Loaded == 0)  // If the ammo chain is not loaded, run the trigger motor to load it.
 			{
 				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
 			}
-
 			else
 			{
 				shoot_control.trigger_speed_set = 0.0f; // Stop trigger motor if chain is loaded.
 			}
-            // Once Chain_Loaded becomes 1 (presumably by a sensor/microswitch),
-            // the trigger motor will stop due to trigger_motor_stall_handler logic or mode change.
 			break;
 		}
 		case HERO_LAUNCHER_READY: // Specific ready mode for HERO_2025_MECANUM.
 		{
-			// In HERO_LAUNCHER_READY mode:
 			// This mode is used to prepare the launcher for shooting.
-			if (launcher_status.Launcher_Loaded == 0) // If launcher is not loaded
+			if(launcher_status.Launcher_Opened == 0)
+			{
+				piston_motor_control(PISTON_BACKWARD);
+			}
+			else if (launcher_status.Launcher_Loaded == 0) // If launcher is not loaded
 			{
 				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED; // Set trigger motor to load the launcher.
-				shoot_control.shoot_mode = HERO_LAUNCHER_READY;
 
 			}
 			else
@@ -392,24 +401,37 @@ int16_t shoot_control_loop(void)
 		}
 		case HERO_LAUNCHER_SHOOT: // Specific shooting mode for HERO_2025_MECANUM.
 		{
-			// Logic for HERO_LAUNCHER_SHOOT mode.
-			piston_motor_control();
+
 			if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP) // Remote controller left lever is UP (force auto fire)
 			{
-				shoot_control.shoot_mode = HERO_LAUNCHER_READY;
+				if (launcher_status.Launcher_Opened == 1)
+				{
+					piston_motor_control(PISTON_FORWARD);
+				}
+				else
+				{
+					launcher_status.Launcher_Loaded = 0;
+					shoot_control.shoot_mode = SHOOT_READY_FRIC; // Return to ready state.
+				}
 			}
-			else // Remote controller left lever is not UP
+			else // mouse control mode
 			{
-				if ((shoot_control.press_r == 0)) // Right mouse button released (stop/cancel)
+				if ((shoot_control.press_r == 0))
 				{
 					shoot_control.shoot_mode = SHOOT_STOP;
 				}
-				else if ((shoot_control.press_l == 0)) // Left mouse button released
+				else if ((shoot_control.press_l == 1))
 				{
-					// shoot_control.trigger_speed_set = 0; // Stop trigger motor.
-					shoot_control.shoot_mode = SHOOT_READY_FRIC; // Return to ready state.
+					if (launcher_status.Launcher_Opened == 1)
+					{
+						piston_motor_control(PISTON_FORWARD);
+					}
+					else
+					{
+						launcher_status.Launcher_Loaded = 0;
+						shoot_control.shoot_mode = SHOOT_READY_FRIC; // Return to ready state.
+					}
 				}
-				// If left mouse button is still pressed, stay in auto fire.
 			}
 
 			break;
@@ -460,7 +482,7 @@ int16_t shoot_control_loop(void)
 					}
 					else if ((shoot_control.press_l == 0)) // Left mouse button released
 					{
-						// shoot_control.trigger_speed_set = 0; // Stop trigger motor.
+						shoot_control.trigger_speed_set = 0; // Stop trigger motor.
 						shoot_control.shoot_mode = SHOOT_READY_FRIC; // Return to ready state.
 					}
 					// If left mouse button is still pressed, stay in auto fire.
@@ -542,15 +564,11 @@ static void shoot_set_mode(void)
 		}
 		else if (CvCmder_GetMode(CV_MODE_SHOOT_BIT)) // CV requests shooting.
 		{
-            // If not already in auto fire, transition to ready friction wheels.
-            // This ensures friction wheels spin up before firing.
 			if (shoot_control.shoot_mode != SHOOT_AUTO_FIRE)
 			{
 				shoot_control.shoot_mode = SHOOT_READY_FRIC; // prepare to shoot
 			}
-			// reset the auto shoot start time while CV is requesting shoot.
-			// This is used for a timeout if CV stops requesting shoot.
-			shoot_control.cv_auto_shoot_start_time = osKernelSysTick();
+			shoot_control.cv_auto_shoot_start_time = osKernelSysTick(); // reset the auto shoot start time while CV is requesting shoot，used for a timeout if CV stops requesting shoot.
 		}
 		// If CV is not requesting shoot and it has been some time since it last requested.
 		else if ((osKernelSysTick() - shoot_control.cv_auto_shoot_start_time) > AUTOAIM_READY_TIMEOUT)
@@ -559,66 +577,62 @@ static void shoot_set_mode(void)
 		}
 		// If CV_MODE_SHOOT_BIT is 0 but timeout hasn't occurred, maintain current mode (likely SHOOT_READY_FRIC or SHOOT_AUTO_FIRE from previous cycle).
 	}
-	else // Manual control mode (not auto aim).
+	else // Manual control mode based on remote controller's left lever (S1 switch).
 	{
-		// Logic based on remote controller's left lever (S1 switch).
-		static int8_t last_s = RC_SW_UP; // Stores the previous state of the S1 switch.
-		int8_t new_s = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL]; // Current state of S1 switch.
-		switch (new_s)
+		static int8_t last_switch_state = RC_SW_UP; 
+		int8_t new_switch_state = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL]; // Current state of S1 switch.
+		switch (new_switch_state)
 		{
-			case RC_SW_UP: // Lever is UP (typically continuous/auto fire mode by RC).
+			case RC_SW_UP: // Lever is UP, auto fire mode by RC (for testing).
 			{
-				// If the switch was just moved to UP.
-				if (last_s != RC_SW_UP)
+				if (last_switch_state != RC_SW_UP) // If already in RC_SW_UP, the mode stays in auto fire mode without checking again
 				{
-					shoot_control.shoot_mode = SHOOT_READY_FRIC; // Prepare friction wheels.
-                                                                 // Actual auto fire will be triggered by mouse press in SHOOT_READY_FRIC or directly in SHOOT_AUTO_FIRE.
+					shoot_control.shoot_mode = SHOOT_READY_FRIC; // Prepare friction wheels. Actual fire mode will be set inside depend on controller input.                                            
 				}
-				// If already in RC_SW_UP, the mode (e.g. SHOOT_AUTO_FIRE if mouse is pressed) is handled by the main switch in shoot_control_loop.
 				break;
 			}
-			case RC_SW_MID: // Lever is MIDDLE (typically mouse-controlled fire mode).
+			case RC_SW_MID: // mouse-controlled fire mode
 			{
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-                // For HERO_2025_MECANUM, if ammo chain is not loaded, enter SHOOT_READY_TRIGGER to load it.
-				if (launcher_status.Chain_Loaded == 0)
+                // For HERO_2025_MECANUM, initialize to clear launcher and load the ammo chain first
+				if (launcher_status.Launcher_Initialized == 0)
 				{
-					shoot_control.shoot_mode = HERO_INIT_LAUNCHER;//Spinn the trigger motor until the block detection is triggered
+					shoot_control.shoot_mode = HERO_INIT_LAUNCHER;
+				}
+				//if ammo chain is not loaded, enter SHOOT_READY_TRIGGER to load it.
+				else if(launcher_status.Chain_Loaded == 0)
+				{
+					shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
 				}
 
 				else // Chain is loaded, proceed to check mouse input.
 #endif
 				{
-                    // Check right mouse button press (often used for aiming or enabling shooting).
-                    // Note: The code uses shoot_control.press_r, which is typically right mouse.
-                    // However, shooting is usually triggered by press_l (left mouse). This might be specific logic
-                    // where right mouse press enables the friction wheels.
-					if (shoot_control.press_r) // If right mouse is pressed.
+                    // hold right mouse to keep friction wheels rotating. 
+					if (shoot_control.press_r) 
 					{
                         // If right mouse was just pressed.
 						if (shoot_control.last_press_r == 0)
 						{
-							shoot_control.shoot_mode = SHOOT_READY_FRIC; // Start spinning friction wheels.
-                                                                         // Actual shooting (semi/auto) will be triggered by left mouse in SHOOT_READY_FRIC.
+							shoot_control.shoot_mode = SHOOT_READY_FRIC; // Start spinning friction wheels. Actual shooting mode will be set corespondingly inside this mode.
 						}
-                        // If right mouse is held, maintain current mode (likely SHOOT_READY_FRIC or a shooting state if left mouse is also active).
 					}
-					else // Right mouse is not pressed.
+					else 
 					{
-						shoot_control.shoot_mode = SHOOT_STOP; // Stop shooting if right mouse is released.
+						shoot_control.shoot_mode = SHOOT_STOP; 
 					}
 				}
 
 				break;
 			}
-			case RC_SW_DOWN: // Lever is DOWN (typically safe/disabled mode).
-			default: // Default case, also treated as safe mode.
+			case RC_SW_DOWN: // Lever is DOWN (safe/disabled mode).
+			default: 
 			{
 				shoot_control.shoot_mode = SHOOT_STOP; // Stop all shooting activity.
 				break;
 			}
 		}
-		last_s = new_s; // Update last switch state.
+		last_switch_state = new_switch_state; // Update last switch state.
 	}
 }
 
@@ -694,6 +708,16 @@ static void shoot_feedback_update(void)
 
 static void trigger_motor_stall_handler(void)
 {
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	if (is_launcher_loaded() == 1)
+	{
+		launcher_status.Launcher_Loaded = 1;
+		shoot_control.speed_set = 0;
+		shoot_control.block_time = 0;
+		return;
+	}
+#endif
+
 #if REVERSE_TRIGGER_DIRECTION
 	shoot_control.speed_set = -shoot_control.trigger_speed_set;
 #else
@@ -763,34 +787,47 @@ bool_t isOverheated(void)
 	return out;
 }
 
-static void piston_motor_control(void)
+static bool_t piston_motor_control(uint8_t move_direction)
 {
-	uint8_t isPistonBlocked = 0;
-	do
+	//initialize set value for one motion
+	if (launcher_status.piston_moving == 0) //when first entering the control process for one motion
 	{
-#if REVERSE_PISTON_DIRECTION
-		shoot_control.piston_speed_set = (-shoot_control.piston_speed_target) * shoot_control.piston_direction;
-#else
-		shoot_control.piston_speed_set = shoot_control.piston_speed_target * shoot_control.piston_direction;
-#endif
-		// Jam detection
-		if (fabs(shoot_control.speed) < BLOCK_PISTON_SPEED)
-		{
+		launcher_status.piston_moving = 1;
 
-			if (shoot_control.piston_block_time < PISTON_BLOCK_TIME) // Time constraint for perventing false positive)
+#if REVERSE_PISTON_DIRECTION
+		shoot_control.piston_speed_set = (-PISTON_MOTOR_SPEED) * move_direction;
+#else
+		shoot_control.piston_speed_set = PISTON_MOTOR_SPEED * move_direction;
+#endif
+		shoot_control.piston_motor_pid.max_out = PISTON_SPEED_PID_MAX_OUT;
+	}
+
+	// control process
+	if (fabs(shoot_control.piston_speed) < BLOCK_PISTON_SPEED)
+	{
+
+		if (shoot_control.piston_block_time < PISTON_BLOCK_TIME) // Time constraint for perventing false positive)
+		{
+			shoot_control.piston_block_time += SHOOT_CONTROL_TIME_MS;
+		}
+		else if (shoot_control.piston_block_time >= PISTON_BLOCK_TIME)
+		{
+			shoot_control.piston_speed_set = 0; // Stop the piston motor if reached the end
+			shoot_control.piston_block_time = 0;
+			
+			//update status flags when finished motion
+			launcher_status.piston_moving = 0;
+
+			if (move_direction == -1)
 			{
-				shoot_control.piston_block_time += SHOOT_CONTROL_TIME_MS;
+				launcher_status.Launcher_Opened = 1;
 			}
-			else if (shoot_control.piston_block_time > PISTON_BLOCK_TIME)
+			else
 			{
-				shoot_control.piston_speed_set = 0;									  // Stop the piston motor if reached the end
-				shoot_control.piston_direction = shoot_control.piston_direction * -1; // Reverse the direction of the piston
-				shoot_control.piston_block_time = 0;
-				isPistonBlocked = 1;
+				launcher_status.Launcher_Opened = 0;
 			}
 		}
-	} while ((!isPistonBlocked)&&(toe_is_error(PISTON_MOTOR_TOE) == 0)); // Start the piston motor once the function is called
+	}
 
-	isPistonBlocked = 0; // Reset the piston block flag
-	return;
+	return launcher_status.piston_moving;
 }
