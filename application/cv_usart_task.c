@@ -51,6 +51,7 @@ typedef enum
 	MSG_CONTROL_SPINNNG = 0x02,
 	MSG_AIM_ERROR = 0x03,
 	MSG_SHOOT_CMD = 0x04,
+	MSG_CV_IMU_INFO = 0x05,
 } eMsgTypes;
 
 typedef enum
@@ -244,7 +245,7 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
 static void CvCmder_SendAck(uint8_t msgType)
 {
     // For example, Tag = msgType, Length = 1, Value = 0xAA (ACK placeholder)
-    uint8_t ackBuf[4];
+    uint8_t ackBuf[10];
     ackBuf[0] = msgType; // Tag
           // Length
     ackBuf[2] = 0xFF;    // Value (ACK)
@@ -330,7 +331,24 @@ static void CvCmder_SendAck(uint8_t msgType)
 #else
 			ackBuf[2] = 0xFF;
 #endif
-			//TODO: Return the correct response
+		}
+
+		case MSG_CV_IMU_INFO:
+		{
+			fp32 yaw_angle;
+			fp32 pitch_angle;
+
+			// Get gimbal angles using the functions from gimbal_task.c
+			// Ensure get_gimbal_abs_yaw_angle() and get_gimbal_abs_pitch_angle() are declared in gimbal_task.h
+			// and gimbal_task.h is included in this file.
+			yaw_angle = get_gimbal_abs_yaw_angle();
+			pitch_angle = get_gimbal_abs_pitch_angle();
+
+			ackBuf[1] = sizeof(fp32) + sizeof(fp32); // Length of the value part (yaw + pitch)
+
+			memcpy(&ackBuf[2], &yaw_angle, sizeof(fp32));
+			memcpy(&ackBuf[2 + sizeof(fp32)], &pitch_angle, sizeof(fp32));
+			break;
 		}
 	}
 

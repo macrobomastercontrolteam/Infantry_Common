@@ -1086,12 +1086,22 @@ bool_t gimbal_emergency_stop(void)
 	return fEStop;
 }
 
-fp32 get_gimbal_yaw_angle(void)
+fp32 get_gimbal_relative_yaw_angle(void)
 {
     return rad_format(gimbal_control.gimbal_yaw_motor.absolute_angle - gimbal_control.gimbal_yaw_motor.absolute_angle_offset);
 }
 
-fp32 get_gimbal_pitch_angle(void)
+fp32 get_gimbal_relative_pitch_angle(void)
 {
     return rad_format(gimbal_control.gimbal_pitch_motor.absolute_angle - gimbal_control.gimbal_pitch_motor.absolute_angle_offset);
+}
+
+fp32 get_gimbal_abs_yaw_angle(void)
+{
+    return rad_format(gimbal_control.gimbal_yaw_motor.absolute_angle);
+}
+
+fp32 get_gimbal_abs_pitch_angle(void)
+{
+    return rad_format(gimbal_control.gimbal_pitch_motor.absolute_angle);
 }
