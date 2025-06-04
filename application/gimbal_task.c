@@ -787,9 +787,8 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         return;
     }
 
-    uint8_t fIsKeyVPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V) != 0);
-
 #if (ROBOT_TYPE != SENTRY_2023_MECANUM)
+        uint8_t fIsKeyVPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V) != 0);
 
 		if (fIsKeyVPressed)
 		{
@@ -804,7 +803,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
             cvAidedX = 0.0f;
             cvAidedY = 0.0f;
         }
-#else if
+#else
 #if DEBUG_CV
         if(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
 #else
