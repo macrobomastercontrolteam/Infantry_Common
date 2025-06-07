@@ -19,6 +19,7 @@
 #include "usart.h"
 #include "referee.h"
 #include "gimbal_task.h"
+#include "INS_task.h"
 #if DEBUG_CV_WITH_USB
 #include "usb_task.h"
 #include <stdio.h>
@@ -51,7 +52,9 @@ typedef enum
 	MSG_CONTROL_SPINNNG = 0x02,
 	MSG_AIM_ERROR = 0x03,
 	MSG_SHOOT_CMD = 0x04,
-	MSG_CV_IMU_INFO = 0x05,
+	MSG_CV_IMU_ACCELE = 0x05,
+	MSG_CV_IMU_VELOCITY = 0x06,
+	MSG_CV_IMU_POSITION = 0x07,
 } eMsgTypes;
 
 typedef enum
@@ -245,7 +248,7 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
 static void CvCmder_SendAck(uint8_t msgType)
 {
     // For example, Tag = msgType, Length = 1, Value = 0xAA (ACK placeholder)
-    uint8_t ackBuf[10];
+    uint8_t ackBuf[14];
     ackBuf[0] = msgType; // Tag
           // Length
     ackBuf[2] = 0xFF;    // Value (ACK)
@@ -333,23 +336,38 @@ static void CvCmder_SendAck(uint8_t msgType)
 #endif
 		}
 
-		case MSG_CV_IMU_INFO:
-		{
-			fp32 yaw_angle;
-			fp32 pitch_angle;
+        case MSG_CV_IMU_ACCELE:
+        {
+            fp32 accel_data[3];
+            get_world_linear_accel(accel_data); // Get world frame linear acceleration
 
-			// Get gimbal angles using the functions from gimbal_task.c
-			// Ensure get_gimbal_abs_yaw_angle() and get_gimbal_abs_pitch_angle() are declared in gimbal_task.h
-			// and gimbal_task.h is included in this file.
-			yaw_angle = get_gimbal_abs_yaw_angle();
-			pitch_angle = get_gimbal_abs_pitch_angle();
+            ackBuf[1] = 3 * sizeof(fp32); // Length of the value part (x, y, z acceleration)
 
-			ackBuf[1] = sizeof(fp32) + sizeof(fp32); // Length of the value part (yaw + pitch)
+            memcpy(&ackBuf[2], accel_data, 3 * sizeof(fp32));
+            break;
+        }
 
-			memcpy(&ackBuf[2], &yaw_angle, sizeof(fp32));
-			memcpy(&ackBuf[2 + sizeof(fp32)], &pitch_angle, sizeof(fp32));
-			break;
-		}
+        case MSG_CV_IMU_VELOCITY:
+        {
+            fp32 velocity_data[3];
+            get_world_velocity(velocity_data); // Get world frame velocity
+
+            ackBuf[1] = 3 * sizeof(fp32); // Length of the value part (x, y, z velocity)
+
+            memcpy(&ackBuf[2], velocity_data, 3 * sizeof(fp32));
+            break;
+        }
+
+        case MSG_CV_IMU_POSITION:
+        {
+            fp32 position_data[3];
+            get_world_position(position_data); // Get world frame position
+
+            ackBuf[1] = 3 * sizeof(fp32); // Length of the value part (x, y, z position)
+
+            memcpy(&ackBuf[2], position_data, 3 * sizeof(fp32));
+            break;
+        }
 	}
 
 

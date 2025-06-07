@@ -33,6 +33,9 @@
 
 #include "calibrate_task.h"
 #include "detect_task.h"
+#include <math.h> // For sqrtf if needed, though direct quaternion math avoids it here
+
+#define GRAVITY_MAGNITUDE 9.80665f // Standard gravity in m/s^2
 
 
 #define IMU_temp_PWM(pwm)  imu_pwm_set(pwm)
@@ -133,11 +136,13 @@ static const fp32 fliter_num[3] = {1.929454039488895f, -0.93178349823448126f, 0.
 static fp32 INS_gyro[3] = {0.0f, 0.0f, 0.0f};
 static fp32 INS_accel[3] = {0.0f, 0.0f, 0.0f};
 static fp32 INS_mag[3] = {0.0f, 0.0f, 0.0f};
-static fp32 INS_quat[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+static fp32 INS_quat[4] = {1.0f, 0.0f, 0.0f, 0.0f}; // Initialize quaternion to identity [w,x,y,z]
 fp32 INS_angle[3] = {0.0f, 0.0f, 0.0f};      //euler angle, unit rad.
 
-
-
+// Static variables to store world frame linear acceleration, velocity, and position
+static fp32 world_linear_accel[3] = {0.0f, 0.0f, 0.0f}; // m/s^2
+static fp32 world_velocity[3] = {0.0f, 0.0f, 0.0f};     // m/s
+static fp32 world_position[3] = {0.0f, 0.0f, 0.0f};     // m
 
 
 /**
@@ -164,6 +169,9 @@ void INS_task(void const *pvParameters)
 
     PID_init(&imu_temp_pid, PID_POSITION, imu_temp_PID, TEMPERATURE_PID_MAX_OUT, TEMPERATURE_PID_MAX_IOUT, 0, &raw_err_handler);
     AHRS_init(INS_quat, INS_accel, INS_mag);
+    // Ensure INS_quat is identity if AHRS_init doesn't set it or if it's called before first sensor read
+    INS_quat[0] = 1.0f; INS_quat[1] = 0.0f; INS_quat[2] = 0.0f; INS_quat[3] = 0.0f;
+
 
     accel_fliter_1[0] = accel_fliter_2[0] = accel_fliter_3[0] = INS_accel[0];
     accel_fliter_1[1] = accel_fliter_2[1] = accel_fliter_3[1] = INS_accel[1];
@@ -235,9 +243,61 @@ void INS_task(void const *pvParameters)
         AHRS_update(INS_quat, timing_time, INS_gyro, accel_fliter_3, INS_mag);
         get_angle(INS_quat, INS_angle + INS_YAW_ADDRESS_OFFSET, INS_angle + INS_PITCH_ADDRESS_OFFSET, INS_angle + INS_ROLL_ADDRESS_OFFSET);
 
+        // Calculate linear acceleration, velocity, and position in world frame
+        {
+            // accel_fliter_3 contains accelerometer data in body frame [x, y, z]
+            fp32 accel_body_frame_x = accel_fliter_3[0];
+            fp32 accel_body_frame_y = accel_fliter_3[1];
+            fp32 accel_body_frame_z = accel_fliter_3[2];
+
+            // INS_quat is [w, qx, qy, qz]
+            fp32 q0 = INS_quat[0]; // w
+            fp32 q1 = INS_quat[1]; // x
+            fp32 q2 = INS_quat[2]; // y
+            fp32 q3 = INS_quat[3]; // z
+
+            // Rotate acceleration from body frame to world frame
+            // Using rotation matrix derived from quaternion:
+            // R = [ q0^2+q1^2-q2^2-q3^2   2(q1q2-q0q3)          2(q1q3+q0q2)     ]
+            //     [ 2(q1q2+q0q3)          q0^2-q1^2+q2^2-q3^2   2(q2q3-q0q1)     ]
+            //     [ 2(q1q3-q0q2)          2(q2q3+q0q1)          q0^2-q1^2-q2^2+q3^2 ]
+
+            fp32 accel_world_x = (q0*q0 + q1*q1 - q2*q2 - q3*q3) * accel_body_frame_x + \
+                                 2.0f * (q1*q2 - q0*q3) * accel_body_frame_y + \
+                                 2.0f * (q1*q3 + q0*q2) * accel_body_frame_z;
+
+            fp32 accel_world_y = 2.0f * (q1*q2 + q0*q3) * accel_body_frame_x + \
+                                 (q0*q0 - q1*q1 + q2*q2 - q3*q3) * accel_body_frame_y + \
+                                 2.0f * (q2*q3 - q0*q1) * accel_body_frame_z;
+
+            fp32 accel_world_z = 2.0f * (q1*q3 - q0*q2) * accel_body_frame_x + \
+                                 2.0f * (q2*q3 + q0*q1) * accel_body_frame_y + \
+                                 (q0*q0 - q1*q1 - q2*q2 + q3*q3) * accel_body_frame_z;
+
+            // Compensate for gravity (assuming ENU world frame, Z is Up)
+            world_linear_accel[0] = accel_world_x;
+            world_linear_accel[1] = accel_world_y;
+            world_linear_accel[2] = accel_world_z - GRAVITY_MAGNITUDE;
+            // If NED world frame (Z is Down), it would be: 
+            // world_linear_accel[2] = accel_world_z + GRAVITY_MAGNITUDE; 
+            // or world_linear_accel[2] = accel_world_z - (-GRAVITY_MAGNITUDE);
+
+
+            // Integrate linear acceleration to get velocity (Euler integration)
+            // timing_time is the loop interval (e.g., 0.001f for 1kHz)
+            world_velocity[0] += world_linear_accel[0] * timing_time;
+            world_velocity[1] += world_linear_accel[1] * timing_time;
+            world_velocity[2] += world_linear_accel[2] * timing_time;
+
+            // Integrate velocity to get position (Euler integration)
+            world_position[0] += world_velocity[0] * timing_time;
+            world_position[1] += world_velocity[1] * timing_time;
+            world_position[2] += world_velocity[2] * timing_time;
+        }
+
 
         //because no use ist8310 and save time, no use
-        if(mag_update_flag &= 1 << IMU_DR_SHFITS)
+        if(mag_update_flag &= 1 << IMU_DR_SHFITS) // This line has a potential bug: should be (mag_update_flag & (1 << IMU_DR_SHFITS))
         {
             mag_update_flag &= ~(1<< IMU_DR_SHFITS);
             mag_update_flag |= (1 << IMU_SPI_SHFITS);
@@ -404,7 +464,7 @@ extern const fp32 *get_gyro_data_point(void)
   */
 extern const fp32 *get_accel_data_point(void)
 {
-    return INS_accel;
+    return INS_accel; // Note: This returns body-frame accel before gravity compensation
 }
 /**
   * @brief          get mag, 0:x-axis, 1:y-axis, 2:roll-axis unit ut
@@ -414,6 +474,51 @@ extern const fp32 *get_accel_data_point(void)
 extern const fp32 *get_mag_data_point(void)
 {
     return INS_mag;
+}
+
+/**
+  * @brief          Get the world frame linear acceleration (gravity compensated) by reference.
+  * @param[out]     accel_out: Pointer to a 3-element array to store [x, y, z] acceleration in m/s^2.
+  * @retval         None
+  */
+void get_world_linear_accel(fp32 accel_out[3])
+{
+    if (accel_out != NULL)
+    {
+        accel_out[0] = world_linear_accel[0];
+        accel_out[1] = world_linear_accel[1];
+        accel_out[2] = world_linear_accel[2];
+    }
+}
+
+/**
+  * @brief          Get the world frame velocity by reference.
+  * @param[out]     velocity_out: Pointer to a 3-element array to store [x, y, z] velocity in m/s.
+  * @retval         None
+  */
+void get_world_velocity(fp32 velocity_out[3])
+{
+    if (velocity_out != NULL)
+    {
+        velocity_out[0] = world_velocity[0];
+        velocity_out[1] = world_velocity[1];
+        velocity_out[2] = world_velocity[2];
+    }
+}
+
+/**
+  * @brief          Get the world frame position by reference.
+  * @param[out]     position_out: Pointer to a 3-element array to store [x, y, z] position in m.
+  * @retval         None
+  */
+void get_world_position(fp32 position_out[3])
+{
+    if (position_out != NULL)
+    {
+        position_out[0] = world_position[0];
+        position_out[1] = world_position[1];
+        position_out[2] = world_position[2];
+    }
 }
 
 
