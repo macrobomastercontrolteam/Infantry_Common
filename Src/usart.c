@@ -46,7 +46,7 @@ void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-#if SENDING_IMU_INFO_TO_CV
+#if ENABLE_HIGHER_BAUD_RATE_FOR_CV
   huart1.Init.BaudRate = 1000000;
 #else
   huart1.Init.BaudRate = 115200;
