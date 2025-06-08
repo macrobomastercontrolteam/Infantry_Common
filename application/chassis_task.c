@@ -133,7 +133,7 @@ void chassis_task(void const *pvParameters)
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
 		CAN_cmd_supercap();
 
-#else if (SUPERCAP_TYPE == MACRM_SUPERCAP)
+#elif (SUPERCAP_TYPE == MACRM_SUPERCAP)
 		CAN_cmd_supercap();
 #endif
 
