@@ -317,7 +317,7 @@ void chassis_speed_max_adj(void)
 	fp32 ref_chassis_power = 0;
 	fp32 ref_chassis_power_buffer = 0;
 	fp32 ref_chassis_power_limit = 0;
-	get_chassis_power_data(&ref_chassis_power, &ref_chassis_power_buffer, &ref_chassis_power_limit);
+	get_chassis_power_data(&ref_chassis_power_buffer, &ref_chassis_power_limit);
 
 	// Tuning guide: normal mode only uses 10% power buffer; sprint mode only use 75%
 	fp32 vx_speed_limit = 0;
