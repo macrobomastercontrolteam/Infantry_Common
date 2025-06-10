@@ -154,6 +154,17 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		switch (rx_header.StdId)
 		{
+#if ROBOT_PITCH_IS_4310
+			case CAN_PITCH_MOTOR_4310_RX_ID:
+			{
+				bMotorId = MOTOR_INDEX_PITCH;
+				if (decode_4310_motor_feedback(rx_data, bMotorId) == HAL_OK)
+				{
+					detect_hook(PITCH_GIMBAL_MOTOR_TOE);
+				}
+				break;
+			}
+#else
 			case CAN_PIT_MOTOR_ID:
 			{
         		bMotorId = MOTOR_INDEX_PITCH;
@@ -161,6 +172,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(PITCH_GIMBAL_MOTOR_TOE);
 				break;
 			}
+#endif
 			case CAN_FRICTION_MOTOR_LEFT_ID:
 			{
 				bMotorId = MOTOR_INDEX_FRICTION_LEFT;
@@ -641,35 +653,41 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 	piston_motor = 0;
 #endif
 
+//**************** Chassis CAN packet ******************
 	// control yaw motor and trigger motor
 #if ROBOT_YAW_IS_4310
-	// gimbal_can_send_data[0] = (rev >> 8);
-	// gimbal_can_send_data[1] = rev;
+	//encode and send MIT control saperately
 #else
 	gimbal_can_send_data[0] = ((int16_t)yaw >> 8);
 	gimbal_can_send_data[1] = (int16_t)yaw;
 #endif
-	// gimbal_can_send_data[2] = (rev >> 8);
-	// gimbal_can_send_data[3] = rev;
+	// gimbal_can_send_data[2] = (open >> 8);
+	// gimbal_can_send_data[3] = open;
 #if IS_TRIGGER_ON_GIMBAL
-	// gimbal_can_send_data[4] = (rev >> 8);
-	// gimbal_can_send_data[5] = rev;
+	// gimbal_can_send_data[4] = (open >> 8);
+	// gimbal_can_send_data[5] = open;
 #else
 	gimbal_can_send_data[4] = (trigger >> 8);
 	gimbal_can_send_data[5] = trigger;
 #endif
-	// gimbal_can_send_data[6] = (rev >> 8);
-	// gimbal_can_send_data[7] = rev;
+	// gimbal_can_send_data[6] = (open >> 8);
+	// gimbal_can_send_data[7] = open;
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
-#if ROBOT_YAW_IS_4310
-	osDelay(1);
-#endif
 
+//**************** Gimbal CAN packet *******************
 	// control pitch motor and fric_left and fric_right
 	gimbal_can_send_data[0] = (fric_left >> 8);
 	gimbal_can_send_data[1] = fric_left;
+
+#if ROBOT_PITCH_IS_4310
+	//encode and send MIT control saperately
+	//gimbal_can_send_data[2] = (open >> 8);
+	//gimbal_can_send_data[3] = open;
+#else
 	gimbal_can_send_data[2] = ((int16_t)pitch >> 8);
 	gimbal_can_send_data[3] = (int16_t)pitch;
+#endif
+
 #if IS_TRIGGER_ON_GIMBAL
 	gimbal_can_send_data[4] = (trigger >> 8);
 	gimbal_can_send_data[5] = trigger;
@@ -678,8 +696,6 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 #if (ROBOT_TYPE == HERO_2025_MECANUM) //This is for the piston motor with higher can ID 7
 	gimbal_can_send_data[4] = (piston_motor >> 8); //Higher 8-bit
 	gimbal_can_send_data[5] = piston_motor; //Lower 8-bit
-	//gimbal_can_send_data[4] = (rev >> 8);
-	//gimbal_can_send_data[5] = rev;
 #endif
 
 #endif
@@ -687,9 +703,16 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 	gimbal_can_send_data[7] = fric_right;
 	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
+//*************** MIT_control massage******************
+	osDelay((ROBOT_YAW_IS_4310||ROBOT_PITCH_IS_4310));//delay 1 ms if need to send MIT cmds in same CAN bus to other standard motor
 #if ROBOT_YAW_IS_4310
 	encode_MIT_motor_control(CAN_YAW_MOTOR_4310_TX_ID, 0, 0, 0, 0, yaw, DM_4310, &CHASSIS_CAN);
 #endif
+
+#if ROBOT_PITCH_IS_4310
+	encode_MIT_motor_control(CAN_PITCH_MOTOR_4310_TX_ID, 0, 0, 0, 0, pitch, DM_4310, &GIMBAL_CAN);
+#endif
+
 }
 
 void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down)
@@ -708,12 +731,12 @@ void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down)
 
 
 	//Motor ID 1
-	// gimbal_can_send_data[0] = (rev >> 8);
-	// gimbal_can_send_data[1] = rev;
+	// gimbal_can_send_data[0] = (open >> 8);
+	// gimbal_can_send_data[1] = open;
 
 	//Motor ID 2
-	// gimbal_can_send_data[2] = (rev >> 8);
-	// gimbal_can_send_data[3] = rev;
+	// gimbal_can_send_data[2] = (open >> 8);
+	// gimbal_can_send_data[3] = open;
 
 	//Motor ID 3
 	gimbal_can_send_data[4] = (fric_up >> 8);
