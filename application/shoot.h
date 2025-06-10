@@ -265,6 +265,8 @@ typedef struct
 
     uint8_t piston_moving;
     uint8_t piston_feedback;
+
+    uint8_t trigger_moving;
 }launcher_status_t;
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
 extern void shoot_init(void);

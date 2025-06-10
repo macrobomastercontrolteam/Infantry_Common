@@ -59,7 +59,7 @@ static void shoot_feedback_update(void);
  * @retval         void
  */
 static void trigger_motor_stall_handler(void);
-static bool_t piston_motor_control(uint8_t move_direction);
+static bool_t piston_motor_control(int8_t move_direction);
 
 bool_t isOverheated(void);
 
@@ -109,6 +109,7 @@ void shoot_init(void)
 	launcher_status.Chain_Loaded = 0;
 	launcher_status.Launcher_Loaded = 0;
 	launcher_status.piston_moving = 0; 
+	launcher_status.trigger_moving = 0;
 	 
 #endif
 	shoot_control.ecd_count = 0;
@@ -146,9 +147,8 @@ int16_t shoot_control_loop(void)
 	shoot_set_mode();
 	shoot_feedback_update();
 
-	// detect case switch edge
 	// This block executes when the shooting mode changes.
-	// It performs initial setup for the new mode.
+	// performs initial setup when first entered one mode, only executes in the first loop when entered in a mode
 	static shoot_mode_e pre_shoot_mode = SHOOT_STOP;
 	if (pre_shoot_mode != shoot_control.shoot_mode)
 	{
@@ -219,10 +219,17 @@ int16_t shoot_control_loop(void)
 
 				break;
 			}
+
+			case SHOOT_READY_TRIGGER: // This mode is primarily for HERO_2025_MECANUM or robots with similar loading mechanisms.
+			{
+				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
+				break;
+			}
+
 			case SHOOT_AUTO_FIRE:
 			{
-                // No specific setup needed when entering auto fire directly,
-                // as friction wheels should already be ready.
+				// No specific setup needed when entering auto fire directly,
+				// as friction wheels should already be ready.
 				break;
 			}
 			case SHOOT_SEMI_AUTO_FIRE:
@@ -247,17 +254,17 @@ int16_t shoot_control_loop(void)
 	{
 		case SHOOT_STOP:
 		{
-            // In SHOOT_STOP mode:
-            // Set all friction motor RPM targets to 0.
+			//friction motor 
 			shoot_control.friction_motor1_rpm_set = 0.0f;
 			shoot_control.friction_motor2_rpm_set = 0.0f;
-			shoot_control.trigger_speed_set = 0; // Stop trigger motor.
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 			shoot_control.friction_motor3_rpm_set = 0.0f;
 			shoot_control.friction_motor4_rpm_set = 0.0f;
 #endif
-            // If friction motors are almost stopped, set PID max_out to 0 to prevent oscillation.
-            // Otherwise, set a small max_out to allow them to brake.
+			// trigger motor.
+			shoot_control.trigger_speed_set = 0.0f;
+
+			// If friction motors are almost stopped, set PID max_out to 0 to prevent oscillation, Otherwise, set a small max_out to allow them to brake.
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 			if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60) && (fabs(shoot_control.friction_motor3_rpm) < 60) && (fabs(shoot_control.friction_motor4_rpm) < 60))
 			{
@@ -274,9 +281,9 @@ int16_t shoot_control_loop(void)
 				shoot_control.friction_motor4_pid.max_out = 1000;
 			}
 #else
-            // Standard robot types have two friction motors.
-        	if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
-        	{
+			// Standard robot types have two friction motors.
+			if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
+			{
 				shoot_control.friction_motor1_pid.max_out = 0;
 				shoot_control.friction_motor2_pid.max_out = 0;
 			}
@@ -368,16 +375,8 @@ int16_t shoot_control_loop(void)
 			}
 			break;
 		}
-		case SHOOT_READY_TRIGGER: // This mode is primarily for HERO_2025_MECANUM or robots with similar loading mechanisms.
+		case SHOOT_READY_TRIGGER: // trigger speed changed in pre shoot mode
 		{
-			if (launcher_status.Chain_Loaded == 0)  // If the ammo chain is not loaded, run the trigger motor to load it.
-			{
-				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
-			}
-			else
-			{
-				shoot_control.trigger_speed_set = 0.0f; // Stop trigger motor if chain is loaded.
-			}
 			break;
 		}
 		case HERO_LAUNCHER_READY: // Specific ready mode for HERO_2025_MECANUM.
@@ -505,17 +504,19 @@ int16_t shoot_control_loop(void)
     // Handle trigger motor stall and set its speed based on trigger_speed_set.
 	trigger_motor_stall_handler();
 
-    // Calculate PID outputs for friction motors.
-	PID_calc(&shoot_control.friction_motor1_pid, shoot_control.friction_motor1_rpm, shoot_control.friction_motor1_rpm_set, SHOOT_CONTROL_TIME_S);
-	shoot_control.fric1_given_current = (int16_t)(shoot_control.friction_motor1_pid.out);
-
-	PID_calc(&shoot_control.friction_motor2_pid, shoot_control.friction_motor2_rpm, shoot_control.friction_motor2_rpm_set, SHOOT_CONTROL_TIME_S);
-	shoot_control.fric2_given_current = (int16_t)(shoot_control.friction_motor2_pid.out);
+	
 
     // Calculate PID output for trigger motor.
     // Note: PID is calculated based on 'shoot_control.speed' (filtered actual speed) and 'shoot_control.speed_set' (target speed from stall handler).
 	PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set, SHOOT_CONTROL_TIME_S);
 	shoot_control.cmd_value = (int16_t)(shoot_control.trigger_motor_pid.out); // This is the command value for the trigger motor.
+
+	// Calculate PID outputs for friction motors.
+	PID_calc(&shoot_control.friction_motor1_pid, shoot_control.friction_motor1_rpm, shoot_control.friction_motor1_rpm_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.fric1_given_current = (int16_t)(shoot_control.friction_motor1_pid.out);
+
+	PID_calc(&shoot_control.friction_motor2_pid, shoot_control.friction_motor2_rpm, shoot_control.friction_motor2_rpm_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.fric2_given_current = (int16_t)(shoot_control.friction_motor2_pid.out);
 
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
     // Calculate PID outputs for additional friction motors on HERO_2025_MECANUM.
@@ -709,7 +710,7 @@ static void shoot_feedback_update(void)
 static void trigger_motor_stall_handler(void)
 {
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-	if (is_launcher_loaded() == 1)
+	if ((is_launcher_loaded() == 1) && (launcher_status.Launcher_Opened == 1))
 	{
 		launcher_status.Launcher_Loaded = 1;
 		shoot_control.speed_set = 0;
@@ -745,7 +746,7 @@ static void trigger_motor_stall_handler(void)
 		{
 #if TRIGGER_ANTI_STALL_BY_WAIT
 			shoot_control.speed_set = 0;
-			launcher_status.Chain_Loaded = 1;
+			launcher_status.Chain_Loaded = 1; //for hero robot only
 #else
 			shoot_control.speed_set = -shoot_control.speed_set;
 #endif
@@ -787,8 +788,21 @@ bool_t isOverheated(void)
 	return out;
 }
 
-static bool_t piston_motor_control(uint8_t move_direction)
+static bool_t trigger_motor_control(void)
 {
+
+}
+
+static bool_t piston_motor_control(int8_t move_direction) // direction = +-1
+{
+	if ((move_direction == PISTON_BACKWARD && launcher_status.Launcher_Opened == 1) ||
+        (move_direction == PISTON_FORWARD && launcher_status.Launcher_Opened == 0))  //if already in desired state, return directly
+    {
+		shoot_control.piston_speed_set = 0;
+		launcher_status.piston_moving = 0;
+		return launcher_status.piston_moving;
+	}
+
 	//initialize set value for one motion
 	if (launcher_status.piston_moving == 0) //when first entering the control process for one motion
 	{
@@ -818,7 +832,7 @@ static bool_t piston_motor_control(uint8_t move_direction)
 			//update status flags when finished motion
 			launcher_status.piston_moving = 0;
 
-			if (move_direction == -1)
+			if (move_direction == PISTON_BACKWARD)
 			{
 				launcher_status.Launcher_Opened = 1;
 			}
@@ -827,6 +841,10 @@ static bool_t piston_motor_control(uint8_t move_direction)
 				launcher_status.Launcher_Opened = 0;
 			}
 		}
+	}
+	else
+	{
+		shoot_control.piston_block_time = 0;
 	}
 
 	return launcher_status.piston_moving;
