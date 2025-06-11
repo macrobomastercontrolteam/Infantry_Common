@@ -23,6 +23,7 @@
 
 #include "gimbal_task.h"
 
+#include "can.h"
 #include "main.h"
 
 #include "cmsis_os.h"
@@ -72,6 +73,7 @@ static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init);
 static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init);
 static void gimbal_safety_manager(int16_t *yaw_can_set_current_ptr, int16_t *pitch_can_set_current_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr);
 
+uint32_t debug = 0;
 /**
   * @brief          "gimbal_control" valiable initialization, include pid initialization, remote control data point initialization, gimbal motors
   *                 data point initialization, and gyro sensor angle point initialization.
@@ -188,11 +190,18 @@ void gimbal_task(void const *pvParameters)
     gimbal_init(&gimbal_control);
     shoot_init();
     //wait until all motors are online
-    while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
-    {
+
+    do{
+
+#if PITCH_IS_4310
+        enable_DaMiao_motor(CAN_PIT_MOTOR_TX_ID, 1, &GIMBAL_CAN);
+#endif
+        CAN_cmd_gimbal(0, 0, 0, 0, 0);
         osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
-    }
+        debug ++;
+    } 
+    while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE));
 
     while (1)
     {
@@ -1032,7 +1041,11 @@ bool_t gimbal_emergency_stop(void)
     {
         // do nothing
     }
+#if PITCH_IS_4310
+    else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->given_current) >= YAW_MOTOR_CURRENT_LIMIT) || (fabs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->torque) >= PITCH_4310_MOTOR_TORQUE_LIMIT))
+#else
     else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->given_current) >= YAW_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->given_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+#endif
     {
         fFatalError = 1;
     }

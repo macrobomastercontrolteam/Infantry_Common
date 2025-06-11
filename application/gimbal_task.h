@@ -72,13 +72,23 @@
 
 #elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 
+#define PITCH_4310_MOTOR_TORQUE_LIMIT 10.0f
 //pitch speed close-loop PID params, max out and max iout
+#if PITCH_IS_4310
+#define PITCH_SPEED_PID_KP        7.5f
+#define PITCH_SPEED_PID_KI        14.5f
+#define PITCH_SPEED_PID_KD        0.035f
+#define PITCH_SPEED_PID_MAX_OUT   9.5f
+#define PITCH_SPEED_PID_MAX_IOUT  9.5f
+#endif
+
+#if (!PITCH_IS_4310)
 #define PITCH_SPEED_PID_KP        10000.0f // pitch starts shaking at 2600
 #define PITCH_SPEED_PID_KI        0.0f
 #define PITCH_SPEED_PID_KD        0.0f
 #define PITCH_SPEED_PID_MAX_OUT   30000.0f
 #define PITCH_SPEED_PID_MAX_IOUT  10000.0f
-
+#endif
 //yaw speed close-loop PID params, max out and max iout
 #define YAW_SPEED_PID_KP        20000.0f
 #define YAW_SPEED_PID_KI        1000.0f
@@ -87,11 +97,11 @@
 #define YAW_SPEED_PID_MAX_IOUT  10000.0f
 
 //pitch gyro angle close-loop PID params, max out and max iout
-#define PITCH_ANGLE_PID_KP 30.0f
-#define PITCH_ANGLE_PID_KI 10.0f
-#define PITCH_ANGLE_PID_KD 0.0f
+#define PITCH_ANGLE_PID_KP 3.0f
+#define PITCH_ANGLE_PID_KI 10.5f
+#define PITCH_ANGLE_PID_KD 0.90f
 #define PITCH_ANGLE_PID_MAX_OUT 10.0f
-#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 15.0f
 
 //yaw gyro angle close-loop PID params, max out and max iout
 #define YAW_ANGLE_PID_KP        10.0f

@@ -20,6 +20,7 @@
 #ifndef CAN_RECEIVE_H
 #define CAN_RECEIVE_H
 
+#include "stm32f4xx_hal.h"
 #include "global_inc.h"
 
 // Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
@@ -34,7 +35,13 @@ typedef enum
     // GM6020 CAN ID = 0x204 + ID, M2006 and M3508 CAN ID = 0x200 + ID
     // gimbal can rx
     CAN_YAW_MOTOR_ID = 0x205,
-    CAN_PIT_MOTOR_ID = 0x206,
+#if PITCH_IS_4310
+    CAN_PIT_MOTOR_TX_ID = 0x006,
+    CAN_PIT_MOTOR_RX_ID = 0x0FF,
+
+#else
+    CAN_PIT_MOTOR_TX_ID = 0x206,
+#endif
     CAN_TRIGGER_MOTOR_ID = 0x207,
     CAN_FRICTION_MOTOR_LEFT_ID = 0x208, // friction1
     CAN_FRICTION_MOTOR_RIGHT_ID = 0x204, // friction2
@@ -65,8 +72,21 @@ typedef struct
     int16_t given_current;
     uint8_t temperate;
     int16_t last_ecd;
+    int16_t feedback_current;
+    fp32 output_angle; // rad
+    fp32 velocity;     // rad/s
+    fp32 torque;       // Nm
 } motor_measure_t;
 
+typedef enum
+{
+    DM_8006 = 0,
+    MA_9015 = 1,
+    DM_4310 = 2,
+    LAST_MIT_CONTROLLED_MOTOR_TYPE,
+} MIT_controlled_motor_type_e;
+
+//rm motor data
 
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
@@ -92,6 +112,8 @@ extern void CAN_cmd_gimbal(int16_t yaw, int16_t pitch, int16_t trigger, int16_t 
   * @retval         none
   */
 extern void CAN_cmd_chassis(void);
+
+HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr);
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 extern void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes);
