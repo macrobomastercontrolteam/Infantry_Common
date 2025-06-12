@@ -121,9 +121,10 @@ static uint8_t first_temperate;
 static const fp32 imu_temp_PID[3] = {TEMPERATURE_PID_KP, TEMPERATURE_PID_KI, TEMPERATURE_PID_KD};
 static pid_type_def imu_temp_pid;
 
+static uint32_t last_integration_ticks = 0; 
 static const float timing_time = 0.001f;   //tast run time , unit s.
 
-
+static fp32 dt = 0.001f; 
 
 static fp32 accel_fliter_1[3] = {0.0f, 0.0f, 0.0f};
 static fp32 accel_fliter_2[3] = {0.0f, 0.0f, 0.0f};
@@ -191,9 +192,35 @@ void INS_task(void const *pvParameters)
     SPI1_DMA_init((uint32_t)gyro_dma_tx_buf, (uint32_t)gyro_dma_rx_buf, SPI_DMA_GYRO_LENGTH);
 
     imu_start_dma_flag = 1;
+
+    last_integration_ticks = osKernelSysTick(); 
     
     while (1)
     {
+
+        uint32_t current_ticks = osKernelSysTick();
+        uint32_t tick_diff = current_ticks - last_integration_ticks;
+        
+        // Handle potential tick counter overflow if it's a concern for very long uptimes,
+        // though for typical IMU rates and 32-bit counters, direct subtraction works due to modular arithmetic.
+        // If tick_diff is 0, it means the loop ran faster than a tick, use a small default dt or skip.
+        if (tick_diff == 0) {
+            // Optionally, use a very small dt or skip integration if this happens frequently
+            // For now, let's assume it won't be zero if task is properly waiting for notification.
+            // If it can be zero, you might want to use the previous dt or a minimal dt.
+        }
+
+        // dt = (fp32)tick_diff / (fp32)configTICK_RATE_HZ; // If using FreeRTOS directly and know configTICK_RATE_HZ
+        dt = (fp32)tick_diff / (fp32)configTICK_RATE_HZ; // CMSIS OS function to get tick frequency (usually 1000Hz)
+        last_integration_ticks = current_ticks;
+
+        // Ensure dt is not excessively large (e.g., if there was a long stall)
+        if (dt > 0.1f) { // Max expected dt, e.g., 100ms. Adjust as needed.
+            dt = 0.001f; // Fallback to a default small dt to prevent large integration errors
+        }
+        if (dt <= 0.0f) { // Should not be zero or negative if tick_diff > 0
+             dt = 0.000001f; // Prevent division by zero or negative time, use a tiny positive value
+        }
         //wait spi DMA tansmit done
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS)
         {
@@ -240,7 +267,7 @@ void INS_task(void const *pvParameters)
         accel_fliter_3[2] = accel_fliter_2[2] * fliter_num[0] + accel_fliter_1[2] * fliter_num[1] + INS_accel[2] * fliter_num[2];
 
 
-        AHRS_update(INS_quat, timing_time, INS_gyro, accel_fliter_3, INS_mag);
+        AHRS_update(INS_quat, dt, INS_gyro, accel_fliter_3, INS_mag);
         get_angle(INS_quat, INS_angle + INS_YAW_ADDRESS_OFFSET, INS_angle + INS_PITCH_ADDRESS_OFFSET, INS_angle + INS_ROLL_ADDRESS_OFFSET);
 
         // Calculate linear acceleration, velocity, and position in world frame
@@ -285,14 +312,14 @@ void INS_task(void const *pvParameters)
 
             // Integrate linear acceleration to get velocity (Euler integration)
             // timing_time is the loop interval (e.g., 0.001f for 1kHz)
-            world_velocity[0] += world_linear_accel[0] * timing_time;
-            world_velocity[1] += world_linear_accel[1] * timing_time;
-            world_velocity[2] += world_linear_accel[2] * timing_time;
+            world_velocity[0] += world_linear_accel[0] * dt;
+            world_velocity[1] += world_linear_accel[1] * dt;
+            world_velocity[2] += world_linear_accel[2] * dt;
 
             // Integrate velocity to get position (Euler integration)
-            world_position[0] += world_velocity[0] * timing_time;
-            world_position[1] += world_velocity[1] * timing_time;
-            world_position[2] += world_velocity[2] * timing_time;
+            world_position[0] += world_velocity[0] * dt;
+            world_position[1] += world_velocity[1] * dt;
+            world_position[2] += world_velocity[2] * dt;
         }
 
 
