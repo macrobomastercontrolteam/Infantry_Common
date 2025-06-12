@@ -643,12 +643,12 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     {
         return;
     }
-
+#if ROBOT_YAW_IS_4310
     if(toe_is_error(YAW_GIMBAL_MOTOR_TOE))
     {
         enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN); // attempt re-enable yaw motor when offline
     }
-    
+#endif 
     feedback_update->gimbal_pitch_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
 
 #if PITCH_REVERSED
