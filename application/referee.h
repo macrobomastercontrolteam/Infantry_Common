@@ -360,15 +360,15 @@ typedef __packed struct // 0x0121
 //     float target_position_y;
 // } ext_map_robot_data_t;
 
-typedef __packed struct // 0x0306
-{
-	uint16_t key_value;
-	uint16_t x_position : 12;
-	uint16_t mouse_left : 4;
-	uint16_t y_position : 12;
-	uint16_t mouse_right : 4;
-	uint16_t reserved;
-} ext_custom_client_data_t;
+// typedef __packed struct // 0x0306
+// {
+// 	uint16_t key_value;
+// 	uint16_t x_position : 12;
+// 	uint16_t mouse_left : 4;
+// 	uint16_t y_position : 12;
+// 	uint16_t mouse_right : 4;
+// 	uint16_t reserved;
+// } ext_custom_client_data_t;
 
 typedef __packed struct // 0x0307
 {
@@ -462,13 +462,17 @@ extern uint8_t get_team_color(void);
 extern uint16_t get_red_outpost_HP(void);
 extern uint16_t get_blue_outpost_HP(void);
 
+extern void get_remaining_gold_coins(uint16_t *gold_coins);
+extern void get_projectile_allowance_17mm(uint16_t *projectile_allowance_17);
+extern void get_projectile_allowance_42mm(uint16_t *projectile_allowance_42);
+
 extern void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0);
 extern void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1);
 uint8_t is_game_started(void);
 uint8_t get_time_remain(void);
 uint16_t get_current_HP(void);
 armor_damage_info_t get_armor_hurt(void);
-
+extern void get_sentry_info(uint16_t *exchanged_projectile_allowance, uint8_t *remote_projectile_exchanges, uint8_t *remote_hp_exchanges);
 extern ext_game_robot_state_t robot_state;
 extern ext_robot_hurt_t robot_hurt_t;
 #endif

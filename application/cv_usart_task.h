@@ -17,10 +17,11 @@
 
 typedef struct __attribute__((packed))
 {
-    fp32 xAngle; ///< unit: rad
-    fp32 yAngle; ///< unit: rad
+    fp32 xAimError; ///< unit: rad
+    fp32 yAimError; ///< unit: rad
     fp32 xSpeed;
     fp32 ySpeed;
+    uint8_t cv_info_type;
 } tCvCmdMsg;
 
 typedef enum

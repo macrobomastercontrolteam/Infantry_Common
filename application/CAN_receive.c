@@ -605,10 +605,10 @@ void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, in
 #if (ENABLE_PITCH_MOTOR_POWER == 0)
 	pitch = 0;
 #endif
-#if ((ENABLE_FRICTION_1_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+#if ((ENABLE_FRICTION_1_MOTOR_POWER == 0))
 	fric_left = 0;
 #endif
-#if ((ENABLE_FRICTION_2_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+#if ((ENABLE_FRICTION_2_MOTOR_POWER == 0))
 	fric_right = 0;
 #endif
 
@@ -734,8 +734,10 @@ void CAN_cmd_upper_head(void)
 		uint16_t shoot_heat_limit = 0;
 
 		const fp32 shoot_heat_limit_max = 400.0f;
-		uint16_t shoot_heat1_int16 = 0;
+		uint16_t shoot_heat1_int16 = 0, projectile_allowance_17mm, gold_coins;
 		get_shoot_heat1_limit_and_heat(&shoot_heat_limit, &shoot_heat1_int16);
+		get_remaining_gold_coins(&gold_coins);
+		get_projectile_allowance_17mm(&projectile_allowance_17mm);
 		uint8_t shoot_heat_limit_uint8 = fp32_abs_constrain(shoot_heat_limit, shoot_heat_limit_max) / shoot_heat_limit_max * 255.0f;
 		uint8_t shoot_heat1_uint8 = fp32_abs_constrain(shoot_heat1_int16, shoot_heat_limit_max) / shoot_heat_limit_max * 255.0f;
 
@@ -745,10 +747,10 @@ void CAN_cmd_upper_head(void)
 		chassis_can_send_data[0] = shoot_heat_limit_uint8;
 		chassis_can_send_data[1] = shoot_heat1_uint8;
 		chassis_can_send_data[2] = _bullet_speed;
-		chassis_can_send_data[3] = (blueOutPostHP >> 8);
-		chassis_can_send_data[4] = blueOutPostHP;
-		chassis_can_send_data[5] = (redOutPostHP >> 8);
-		chassis_can_send_data[6] = redOutPostHP;
+		chassis_can_send_data[3] = (projectile_allowance_17mm >> 8);
+		chassis_can_send_data[4] = projectile_allowance_17mm;
+		chassis_can_send_data[5] = (gold_coins >> 8);
+		chassis_can_send_data[6] = gold_coins;
 		chassis_can_send_data[7] = (team_color << 7);
 		HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 	}
