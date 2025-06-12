@@ -467,6 +467,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					if((shootCmd == 0xFF)){
 #endif
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 1);
+						CvCmdHandler.ulShootStartTime = osKernelSysTick();
 					} else {
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 					}
