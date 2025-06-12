@@ -112,6 +112,9 @@ void cv_usart_task(void const *argument)
 {
 	uint32_t ulSystemTime = osKernelSysTick();
 	CvCmder_Init();
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)	
+	CvCmder_ToggleMode(CV_MODE_AUTO_AIM_BIT);
+#endif
 	while (1)
 	{
 		CvCmder_PollForModeChange();
