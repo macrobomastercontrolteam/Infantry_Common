@@ -189,9 +189,14 @@ int16_t shoot_control_loop(void)
 		{
 			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 			{
+#if ROBOT_TYPE == SENTRY_2023_MECANUM
+				if(chassis_move.chassis_RC->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_MID){
+					shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
+				}
+#endif
 				if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // Auto aim
 				{
-					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && chassis_move.chassis_RC->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_MID)
+					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
 					{
 						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
 					}
