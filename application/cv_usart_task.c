@@ -322,6 +322,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 		{
 #if !DEBUG_CV
 			ackBuf[1] = 1;
+#if COMPETITION_TYPE == RMUC
 			if((projectile_allowance_17mm == 0 && gold_coins < 50)){
 				ackBuf[2] = 0x00;
 			}
@@ -332,8 +333,19 @@ static void CvCmder_SendAck(uint8_t msgType)
 				ackBuf[2] = 0xBB;
 			}
 			else{
-				ackBuf[2] = 0xFF  ;
+				ackBuf[2] = 0xFF;
 			}
+#else //For RMUL there is no economy system and projectial limit
+			if (shoot_heat_limit <= shoot_heat - 15)
+			{
+				ackBuf[2] = 0xAA;
+			}
+			else
+			{
+				ackBuf[2] = 0xFF;
+			}
+
+#endif
 #else
 			ackBuf[2] = 0xFF;
 #endif
@@ -410,8 +422,20 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
         	        fp32 xSpeed, ySpeed;
         	        memcpy(&xSpeed, &pData[2], 4);
         	        memcpy(&ySpeed, &pData[6], 4);
+#if DEBUG_CV
 					CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
 					CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
+
+#else
+					if (is_game_started()){
+						CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
+						CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
+					}
+					else{
+						CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
+						CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
+					}
+#endif
 					CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 1);
 					CvCmder_SendAck(MSG_CV_CHASSIS_MOVE_STATE);
         	    }
@@ -446,8 +470,19 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
         	        fp32 xError, yError;
         	        memcpy(&xError, &pData[2], 4);
         	        memcpy(&yError, &pData[6], 4);
+#if DEBUG_CV
 					CvCmdHandler.CvCmdMsg.xAimError = xError;
 					CvCmdHandler.CvCmdMsg.yAimError = yError;
+#else
+					if(is_game_started()){
+						CvCmdHandler.CvCmdMsg.xAimError = xError;
+						CvCmdHandler.CvCmdMsg.yAimError = yError;
+					}
+					else{
+						CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
+						CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
+					}
+#endif
 					CvCmder_SendAck(MSG_AIM_ERROR);
 					detect_hook(CV_TOE);
         	        // TODO: handle aim error
@@ -462,7 +497,11 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				if(length == 1){
 					uint8_t shootCmd = pData[2];
 #if !DEBUG_CV
-					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-10)< shoot_heat_limit)){
+#if (COMPETITION_TYPE == RMUC)
+					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-10)< shoot_heat_limit) && is_game_started()){
+#else
+					if((shootCmd == 0xFF) && ((shoot_heat-10)< shoot_heat_limit) && is_game_started()){
+#endif
 #else
 					if((shootCmd == 0xFF)){
 #endif
