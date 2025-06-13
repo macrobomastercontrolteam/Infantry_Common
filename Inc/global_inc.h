@@ -7,8 +7,11 @@
 #define INFANTRY_2024_BIPED 3
 #define SENTRY_2023_MECANUM 4
 
+#define RMUL 0
+#define RMUC 1
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE INFANTRY_2024_MECANUM
+#define COMPETITION_TYPE RMUL
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define DEBUG_CV 1
