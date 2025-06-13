@@ -58,8 +58,8 @@ void chassis_power_control(void)
         fp32 chassis_power_buffer;
         
         //fp32 cap_voltage = cap_message_rx.cap_message.cap_milivoltage / 1000.0f;
-        get_chassis_power_data(&chassis_power, &chassis_power_buffer, &chassis_power_limit);
-
+        get_chassis_power_data(&chassis_power_buffer, &chassis_power_limit);
+        //chassis_power = get_chassis_power_meter_data();
         // Not use supercap
         if (toe_is_error(SUPCAP_TOE))
         {

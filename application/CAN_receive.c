@@ -1001,7 +1001,7 @@ void CAN_cmd_supercap(void)
    	fp32 chassis_power;
 	fp32 chassis_power_buffer;
     fp32 chassis_power_limit;
-    get_chassis_power_data(&chassis_power, &chassis_power_buffer, &chassis_power_limit);
+    get_chassis_power_data(&chassis_power_buffer, &chassis_power_limit);
 
 	chassis_can_send_data[0] = capcan_rx_msg.power_target;
 	chassis_can_send_data[1] = capcan_rx_msg.power_target >> 8;
@@ -1050,12 +1050,11 @@ void CAN_cmd_supercap(void)
 	chassis_tx_message.RTR = CAN_RTR_DATA;
 	chassis_tx_message.DLC = 0x08;
 
-	fp32 chassis_power;
 	fp32 chassis_power_buffer;
 	fp32 chassis_power_limit;
 	fp32 chassis_power_raw;
 	chassis_power_raw = get_chassis_power_meter_data();
-	get_chassis_power_data(&chassis_power, &chassis_power_buffer, &chassis_power_limit);
+	get_chassis_power_data(&chassis_power_buffer, &chassis_power_limit);
 	capcan_rx_msg.power_target = chassis_power_limit*100;
 	capcan_rx_msg.referee_power = chassis_power_raw * 100;
 	capcan_rx_msg.rsvd1 = 0x2012;
