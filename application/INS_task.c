@@ -122,7 +122,7 @@ static const fp32 imu_temp_PID[3] = {TEMPERATURE_PID_KP, TEMPERATURE_PID_KI, TEM
 static pid_type_def imu_temp_pid;
 
 static uint32_t last_integration_ticks = 0; 
-static const float timing_time = 0.001f;   //tast run time , unit s.
+//static const float timing_time = 0.001f;   //tast run time , unit s.
 
 static fp32 dt = 0.001f; 
 
