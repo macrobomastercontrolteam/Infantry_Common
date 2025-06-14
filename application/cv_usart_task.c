@@ -438,7 +438,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 		{
 			ackBuf[1] = 1;
 #if !DEBUG_CV
-#if(COMPETITION_TYPE == RMUL)
+#if(COMPETITION_TYPE == RMUC)
 			if((projectile_allowance_17mm == 0 && gold_coins < 50)){
 				ackBuf[2] = 0x00;
 			}
