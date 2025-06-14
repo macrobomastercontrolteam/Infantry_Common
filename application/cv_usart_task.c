@@ -227,6 +227,8 @@ void cv_usart_task(void const *argument)
 {
 	uint32_t ulSystemTime = osKernelSysTick();
 	CvCmder_Init();
+	CvCmder_ToggleMode(CV_MODE_AUTO_AIM_BIT);
+
 	while (1)
 	{
 		CvCmder_PollForModeChange();
