@@ -175,8 +175,7 @@ static void J_scope_gimbal_test(void);
 gimbal_control_t gimbal_control;
 static int16_t yaw_can_set_current = 0, pitch_can_set_current = 0, trigger_set_current = 0;
 
-fp32 cvAidedX, cvAidedY, debugx, debugy;
-fp32 cv_coeff_x = 0.5, cv_coeff_y = 0.5;
+fp32 cvAidedX, cvAidedY;
 
 /**
   * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME_MS (1ms) 
@@ -199,7 +198,7 @@ void gimbal_task(void const *pvParameters)
         CAN_cmd_gimbal(0, 0, 0, 0, 0);
         osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
-        debug ++;
+        
     } 
     while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE));
 
@@ -786,8 +785,9 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     }
 
 #if DEBUG_CV
-        if(set_control->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
+        //if(set_control->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
         #warning "CV_DEBUG is enabled please make sure it is DISABLE for competition""
+        if(gimbal_behaviour == GIMBAL_AUTO_AIM)
 #else
         if(gimbal_behaviour == GIMBAL_AUTO_AIM)
 #endif
