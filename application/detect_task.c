@@ -217,8 +217,8 @@ static void detect_init(uint32_t time)
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
-            {20, 3, 14},     //yaw
-            {20, 3, 13},     //pitch
+            {40, 3, 14},     //yaw
+            {40, 3, 13},     //pitch
             {20, 10, 12},   //trigger
             {20, 10, 16},   //fric 1
             {20, 10, 17},   //fric 2
