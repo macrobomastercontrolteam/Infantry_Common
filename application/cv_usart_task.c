@@ -703,8 +703,22 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					fp32 xError, yError;
 					memcpy(&xError, &pData[2], 4);
 					memcpy(&yError, &pData[6], 4);
+#if !DEBUG_CV
+					if (is_game_started())
+					{
+						CvCmdHandler.CvCmdMsg.xAimError = xError;
+						CvCmdHandler.CvCmdMsg.yAimError = yError;
+					}
+					else
+					{
+						xError = 0.0f;
+						yError = 0.0f;
+					}
+#else
 					CvCmdHandler.CvCmdMsg.xAimError = xError;
 					CvCmdHandler.CvCmdMsg.yAimError = yError;
+#endif
+
 					CvCmder_SendAck(MSG_AIM_ERROR);
 					detect_hook(CV_TOE);
 					// TODO: handle aim error
@@ -720,7 +734,11 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				if(length == 1){
 					uint8_t shootCmd = pData[2];
 #if !DEBUG_CV
+#if(COMPETITION_TYPE == RMUC)
 					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-10)< shoot_heat_limit)){
+#else
+					if((shootCmd == 0xFF) && ((shoot_heat-10)< shoot_heat_limit)){
+#endif
 #else
 					if((shootCmd == 0xFF)){
 #endif
