@@ -449,10 +449,15 @@ static void CvCmder_SendAck(uint8_t msgType)
 				ackBuf[2] = 0xBB;
 			}
 			else{
-				ackBuf[2] = 0xFF  ;
+				ackBuf[2] = 0xFF;
 			}
 #else
-			ackBuf[2] = 0xFF;
+			if(shoot_heat_limit <= shoot_heat-15){
+				ackBuf[2] = 0xAA;
+			}
+			else{
+				ackBuf[2] = 0xFF;
+			}
 #endif
 #else
 			ackBuf[2] = 0xFF;
