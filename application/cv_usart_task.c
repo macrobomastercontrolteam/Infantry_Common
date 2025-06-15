@@ -241,7 +241,7 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
 		if (fIsKeyPressed)
 		{
 			fQpresses = 1;
-			CvCmder_ToggleMode(CV_MODE_AUTO_AIM_BIT);
+			CvCmder_ToggleMode(CV_MODE_ASSIST_BIT);
 		}
 		fLastKeySignal = fIsKeyPressed;
 		fQpresses = 0;
