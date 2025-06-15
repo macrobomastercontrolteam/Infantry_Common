@@ -17,7 +17,7 @@
 #define DEBUG_CV 1
 #define ENABLE_LASER 1
 #define USE_SERVO_TO_STIR_AMMO 0
-#define ENABLE_HIGHER_BAUD_RATE_FOR_CV 1
+#define ENABLE_HIGHER_BAUD_RATE_FOR_CV 0
 /********************* Only Modify this area (end) *********************/
 
 #if (ROBOT_TYPE == INFANTRY_2024_MECANUM)
