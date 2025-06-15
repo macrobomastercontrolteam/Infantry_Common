@@ -795,7 +795,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 
 #if (ROBOT_TYPE != SENTRY_2023_MECANUM)
 
-		if (CvCmder_GetMode(CV_MODE_ASSIST_BIT))
+		if (CvCmder_GetMode(CV_MODE_ASSIST_BIT) && fCvAutoAim())
 		{
 
                 cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC *0.5f;
