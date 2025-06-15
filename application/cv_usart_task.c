@@ -43,111 +43,6 @@ fp32 shoot_heat_limit, shoot_heat;
 
 #if CV_INTERFACE
 
-// typedef enum
-// {
-// 	MSG_MODE_CONTROL = 0x10,
-// 	MSG_CV_CMD = 0x20,
-// 	MSG_ACK = 0x40,
-// 	MSG_INFO_REQUEST = 0x50,
-// 	MSG_INFO_DATA = 0x51,
-// } eMsgTypes;
-
-// typedef enum
-// {
-// 	CV_INFO_TRANDELTA_BIT = 1 << 0,
-// 	CV_INFO_CVSYNCTIME_BIT = 1 << 1,
-// 	CV_INFO_REF_STATUS_BIT = 1 << 2,
-// 	CV_INFO_GIMBAL_ANGLE_BIT = 1 << 3,
-// 	CV_INFO_LAST_BIT = 1 << 4,
-// } eInfoBits;
-// STATIC_ASSERT(CV_INFO_LAST_BIT <= (1 << 8));
-
-// typedef struct __attribute__((packed))
-// {
-// 	uint8_t abAckAscii[3];
-// 	uint16_t uiReqTimestamp; ///< corresponding request timestamp
-// 	uint16_t uiExecDelta;    ///< execution time of request
-// 	uint16_t uiCvSyncTime;   ///< native synchronization time of CV
-// 	uint8_t abUnusedPayload[];
-// } tCvAckMsgPayload;
-// STATIC_ASSERT(sizeof(tCvAckMsgPayload) <= DATA_PACKAGE_PAYLOAD_SIZE);
-
-// typedef struct __attribute__((packed))
-// {
-// 	uint8_t infobit;
-// 	uint8_t game_progress;
-// 	uint8_t team_color;
-// 	uint16_t time_remain;
-// 	uint16_t current_HP;
-// 	uint16_t red_outpost_HP;
-// 	uint16_t blue_outpost_HP;
-// } tRefStatusMsgPayload;
-// STATIC_ASSERT(sizeof(tRefStatusMsgPayload) <= DATA_PACKAGE_PAYLOAD_SIZE);
-
-// typedef struct __attribute__((packed))
-// {
-// 	uint8_t infobit;
-// 	fp32 gimbal_yaw_angle;
-// 	fp32 gimbal_pitch_angle;
-// } tGimbalAngleMsgPayload;
-// STATIC_ASSERT(sizeof(tGimbalAngleMsgPayload) <= DATA_PACKAGE_PAYLOAD_SIZE);
-
-// typedef union __attribute__((packed))
-// {
-// 	struct __attribute__((packed))
-// 	{
-// 		uint8_t abMessageHeader[DATA_PACKAGE_HEADER_SIZE]; ///< always '>>'
-// 		uint16_t uiTimestamp;
-// 		uint8_t bMsgType;
-// 		union __attribute__((packed))
-// 		{
-// 			uint8_t abPayload[DATA_PACKAGE_PAYLOAD_SIZE];
-// 			tCvAckMsgPayload CvAckMsgPayload;
-// 			tRefStatusMsgPayload RefStatusMsgPayload;
-// 			tGimbalAngleMsgPayload GimbalAngleMsgPayload;
-// 		};
-// 	} tData;
-// 	uint8_t abData[DATA_PACKAGE_SIZE];
-// } tCvMsg;
-
-// typedef struct
-// {
-// 	moving_average_type_t TranDeltaFilter;
-// 	fp32 adTranDeltaFilterBuffer[CV_TRANDELTA_FILTER_SIZE];
-// 	int16_t iTranDeltaMA;
-// 	uint16_t uiCtrlSyncTime;
-// 	uint16_t uiCvSyncTime;
-// } tCvTimestamps;
-
-// void CvCmder_Init(void);
-// void CvCmder_PollForModeChange(void);
-// void CvCmder_RxParser(void);
-// void CvCmder_EchoTxMsgToUsb(void);
-// void CvCmder_SendSetModeRequest(void);
-// void CvCmder_SendInfoData(eInfoBits InfoBit);
-// void CvCmder_UpdateTranDelta(void);
-// uint8_t get_time_remain(void);
-// uint16_t get_current_HP(void);
-// uint8_t get_team_color(void);
-// #if DEBUG_CV_WITH_USB
-// uint8_t CvCmder_MockModeChange(void);
-// #endif
-
-// tCvMsg CvRxBuffer;
-// tCvMsg CvTxBuffer;
-// tCvCmdHandler CvCmdHandler;
-// // don't compare with literal string "ACK", since it contains extra NULL char at the end
-// const uint8_t abExpectedAckPayload[3] = {'A', 'C', 'K'};
-// const uint8_t abExpectedMessageHeader[DATA_PACKAGE_HEADER_SIZE] = {'>', '>'};
-// uint8_t abExpectedUnusedPayload[DATA_PACKAGE_PAYLOAD_SIZE];
-// tCvTimestamps CvTimestamps;
-
-// #if DEBUG_CV_WITH_USB
-// uint8_t fIsUserKeyPressingEdge = 0;
-// char usbMsg[500];
-// volatile uint16_t uiUsbMsgSize;
-// #endif
-
 /* #############################################################################
    ## 						START OF UPDATED VAR							####
    ############################################################################# */
@@ -168,17 +63,6 @@ typedef enum
 	CV_INFO_ROBOT_TYPE = 0x02,
 } eMsgTypeAckInfo;
 
-//
-// typedef enum
-// {
-// 	CV_INFO_TRANDELTA_BIT = 1 << 0,
-// 	CV_INFO_CVSYNCTIME_BIT = 1 << 1,
-// 	CV_INFO_REF_STATUS_BIT = 1 << 2,
-// 	CV_INFO_GIMBAL_ANGLE_BIT = 1 << 3,
-// 	CV_INFO_LAST_BIT = 1 << 4,
-// } eInfoBits;
-// STATIC_ASSERT(CV_INFO_LAST_BIT <= (1 << 8));
-
 typedef struct
 {
 	moving_average_type_t TranDeltaFilter;
@@ -192,9 +76,6 @@ void CvCmder_Init(void);
 void CvCmder_PollForModeChange(void);
 static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size);
 void CvCmder_EchoTxMsgToUsb(void);
-//void CvCmder_SendSetModeRequest(void);
-//void CvCmder_SendInfoData(eMsgTypes CvCmdBit);
-//void CvCmder_UpdateTranDelta(void);
 static void CvCmder_SendAck(uint8_t msgType);
 
 uint8_t get_team_color(void);
@@ -243,14 +124,7 @@ void cv_usart_task(void const *argument)
 
 void CvCmder_Init(void)
 {
-	// CvTimestamps.TranDeltaFilter.size = CV_TRANDELTA_FILTER_SIZE;
-	// CvTimestamps.TranDeltaFilter.cursor = 0;
-	// CvTimestamps.TranDeltaFilter.ring = CvTimestamps.adTranDeltaFilterBuffer;
-	// CvTimestamps.TranDeltaFilter.sum = 0;
-	// CvTimestamps.uiCtrlSyncTime = 0;
 
-	//memcpy(CvRxBuffer.tData.abMessageHeader, abExpectedMessageHeader, sizeof(abExpectedMessageHeader));
-	//memcpy(CvTxBuffer.tData.abMessageHeader, abExpectedMessageHeader, sizeof(abExpectedMessageHeader));
 	memset(abExpectedUnusedPayload, CHAR_UNUSED, sizeof(abExpectedUnusedPayload));
 
 	memset(&CvCmdHandler, 0, sizeof(CvCmdHandler));       // clear status
@@ -324,13 +198,7 @@ void CvCmder_PollForModeChange(void)
 	}
 }
 
-/* ##########################################################################
-	#### 						END OF UPDATED SECTION					#####
-	######################################################################### */
 
-/* ###################################################################
-	##						START OF NEW SECTION				######
-	#################################################################*/
 void CvCmder_EchoTxMsgToUsb(void)
 {
 #if DEBUG_CV_WITH_USB
@@ -477,165 +345,6 @@ static void CvCmder_SendAck(uint8_t msgType)
     HAL_UART_Transmit(&huart1, ackBuf, (uint16_t)ackBuf[1] + 2, 100);
 }
 
-/* ##########################################################################
-	#### 						END OF UPDATED SECTION					#####
-	######################################################################### */
-/* #############################################################################
-	###					OLD RX FUNCTION 									####
-	############################################################################
-*/
-//
-// void CvCmder_SendInfoData(eInfoBits InfoBit)
-// {
-// 	CvTxBuffer.tData.bMsgType = MSG_INFO_DATA;
-// 	// If current timestamp is smaller than sync_time, add 0x10000 to it. It's automatically handled by uint16_t type
-// 	CvTxBuffer.tData.uiTimestamp = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime;
-// 	memset(CvTxBuffer.tData.abPayload, CHAR_UNUSED, DATA_PACKAGE_PAYLOAD_SIZE);
-// 	CvTxBuffer.tData.abPayload[0] = InfoBit;
-// 	switch (InfoBit)
-// 	{
-// 		case CV_INFO_TRANDELTA_BIT:
-// 		{
-// 			memcpy(&CvTxBuffer.tData.abPayload[1], &CvTimestamps.iTranDeltaMA, sizeof(CvTimestamps.iTranDeltaMA));
-// 			break;
-// 		}
-// 		case CV_INFO_CVSYNCTIME_BIT:
-// 		{
-// 			memcpy(&CvTxBuffer.tData.abPayload[1], &CvTimestamps.uiCvSyncTime, sizeof(CvTimestamps.uiCvSyncTime));
-// 			break;
-// 		}
-// 		case CV_INFO_REF_STATUS_BIT:
-// 		{
-// 			CvTxBuffer.tData.RefStatusMsgPayload.game_progress = is_game_started();
-// 			CvTxBuffer.tData.RefStatusMsgPayload.team_color = get_team_color();
-// 			CvTxBuffer.tData.RefStatusMsgPayload.time_remain = get_time_remain();
-// 			CvTxBuffer.tData.RefStatusMsgPayload.current_HP = get_current_HP();
-// 			CvTxBuffer.tData.RefStatusMsgPayload.red_outpost_HP  = get_red_outpost_HP();
-// 			CvTxBuffer.tData.RefStatusMsgPayload.blue_outpost_HP = get_blue_outpost_HP();
-// 			break;
-// 		}
-// 		case CV_INFO_GIMBAL_ANGLE_BIT:
-// 		{
-// 			CvTxBuffer.tData.GimbalAngleMsgPayload.gimbal_yaw_angle = get_gimbal_yaw_angle();
-// 			CvTxBuffer.tData.GimbalAngleMsgPayload.gimbal_pitch_angle = get_gimbal_pitch_angle();
-// 			break;
-// 		}
-// 		default:
-// 		{
-// 			// should not reach here
-// 			return;
-// 		}
-// 	}
-// 	HAL_UART_Transmit(&huart1, CvTxBuffer.abData, sizeof(CvTxBuffer.abData), 100);
-// 	CvCmder_EchoTxMsgToUsb();
-// }
-
-// void CvCmder_RxParser(void)
-// {
-// 	uint8_t fValid = 0;
-// 	switch (CvRxBuffer.tData.bMsgType)
-// 	{
-// 		case MSG_CV_CMD:
-// 		{
-// 			// // Check for ACK is not used, because it may be misaligned in the middle and ignored so that further msgs align
-// 			// // However, ACK is still helpful because it can help synchronize communication in the beginning
-// 			// fValid &= CvCmdHandler.fIsWaitingForAck;
-// 			fValid = (memcmp(&CvRxBuffer.tData.abPayload[sizeof(tCvCmdMsg)], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvCmdMsg)) == 0);
-// 			if (fValid)
-// 			{
-// 				CvCmder_UpdateTranDelta();
-// 				memcpy(&(CvCmdHandler.CvCmdMsg), CvRxBuffer.tData.abPayload, sizeof(CvCmdHandler.CvCmdMsg));
-// 				CvCmdHandler.fCvCmdValid = 1;
-// 			}
-// 			else
-// 			{
-// 				CvCmdHandler.fCvCmdValid = 0;
-// 			}
-// 			break;
-// 		}
-// 		case MSG_ACK:
-// 		{
-// 			fValid = (memcmp(CvRxBuffer.tData.CvAckMsgPayload.abUnusedPayload, abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - sizeof(tCvAckMsgPayload)) == 0);
-// 			fValid &= (memcmp(CvRxBuffer.tData.CvAckMsgPayload.abAckAscii, abExpectedAckPayload, sizeof(abExpectedAckPayload)) == 0);
-// 			if (fValid)
-// 			{
-// 				// Synchronize time after ACK
-// 				uint16_t uiCtrlTimestamp = osKernelSysTick();
-// 				int16_t iTranDelta = ((uiCtrlTimestamp - CvTimestamps.uiCtrlSyncTime) - CvRxBuffer.tData.CvAckMsgPayload.uiReqTimestamp - CvRxBuffer.tData.CvAckMsgPayload.uiExecDelta) / 2;
-// 				CvTimestamps.iTranDeltaMA = moving_average_calc(iTranDelta, &CvTimestamps.TranDeltaFilter, (CvTimestamps.uiCtrlSyncTime == 0) ? MOVING_AVERAGE_RESET : MOVING_AVERAGE_CALC);
-// 				CvTimestamps.uiCtrlSyncTime = uiCtrlTimestamp - iTranDelta;
-// 				CvTimestamps.uiCvSyncTime = CvRxBuffer.tData.CvAckMsgPayload.uiCvSyncTime;
-
-// 				CvCmdHandler.fIsWaitingForAck = 0;
-// 			}
-// 			break;
-// 		}
-// 		case MSG_MODE_CONTROL:
-// 		{
-// 			// Mode bits in set-mode message cv should be all zeros except for CV_MODE_SHOOT_BIT, which is controlled by cv
-// 			fValid = ((CvRxBuffer.tData.abPayload[0] & (~(CV_MODE_LAST_BIT - 1))) == 0);
-// 			fValid &= (memcmp(&CvRxBuffer.tData.abPayload[1], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - 1) == 0);
-// 			if (fValid)
-// 			{
-// 				CvCmder_UpdateTranDelta();
-// 				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, CvRxBuffer.tData.abPayload[0] & CV_MODE_SHOOT_BIT);
-// 				CvCmdHandler.ulShootStartTime = osKernelSysTick();
-// 			}
-// 			else
-// 			{
-// 				CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
-// 			}
-// 			break;
-// 		}
-// 		case MSG_INFO_REQUEST:
-// 		{
-// 			fValid = ((CvRxBuffer.tData.abPayload[0] & (~(CV_INFO_LAST_BIT - 1))) == 0);
-// 			fValid &= (memcmp(&CvRxBuffer.tData.abPayload[1], abExpectedUnusedPayload, DATA_PACKAGE_PAYLOAD_SIZE - 1) == 0);
-// 			if (fValid)
-// 			{
-// 				CvCmder_UpdateTranDelta();
-// 				uint8_t bInfoTestBit = 1;
-// 				while (bInfoTestBit < CV_INFO_LAST_BIT)
-// 				{
-// 					if (CvRxBuffer.tData.abPayload[0] & bInfoTestBit)
-// 					{
-// 						CvCmder_SendInfoData((eInfoBits)bInfoTestBit);
-// 					}
-// 					bInfoTestBit = bInfoTestBit << 1;
-// 				}
-// 			}
-// 			break;
-// 		}
-// 	}
-
-// 	if (fValid)
-// 	{
-// 		detect_hook(CV_TOE);
-// 	}
-
-// #if DEBUG_CV_WITH_USB
-// 	// echo to usb
-// 	uiUsbMsgSize = snprintf(usbMsg, sizeof(usbMsg), "Received: (%s) ", fValid ? "Valid" : "Invalid");
-
-// 	for (uint16_t i = 0; i < sizeof(CvRxBuffer.abData); i++)
-// 	{
-// 		if (uiUsbMsgSize + (sizeof("0x00,") - 1) > sizeof(usbMsg))
-// 		{
-// 			break;
-// 		}
-// 		uiUsbMsgSize += snprintf(&usbMsg[uiUsbMsgSize], sizeof(usbMsg) - uiUsbMsgSize, "0x%02X,", CvRxBuffer.abData[i]);
-// 	}
-// 	usbMsg[uiUsbMsgSize - 1] = '\n';
-// 	usbMsg[uiUsbMsgSize] = 0;
-// 	usb_printf("%s", usbMsg);
-// #endif
-// }
-
-// void CvCmder_UpdateTranDelta(void)
-// {
-// 	int16_t iTranDelta = (uint16_t)osKernelSysTick() - CvTimestamps.uiCtrlSyncTime - CvRxBuffer.tData.uiTimestamp;
-// 	CvTimestamps.iTranDeltaMA = moving_average_calc(iTranDelta, &CvTimestamps.TranDeltaFilter, MOVING_AVERAGE_CALC);
-// }
 
 /* ###################################################################
 	##						START OF NEW SECTION				######
@@ -774,9 +483,6 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 	}
 }
 
-/* ##########################################################################
-	#### 						END OF UPDATED SECTION					#####
-	######################################################################### */
 uint8_t CvCmder_GetMode(uint8_t bCvModeBit)
 {
 	return (CvCmdHandler.fCvMode & bCvModeBit);
