@@ -110,12 +110,14 @@ void shoot_init(void)
 	launcher_status.Launcher_Loaded = 0;
 	launcher_status.piston_moving = 0; 
 	launcher_status.trigger_moving = 0;
+	launcher_status.Launcher_Jamed = 0;
+	launcher_status.init_step = 0;
 	 
 #endif
-	shoot_control.ecd_count = 0;
-	shoot_control.angle = motor_chassis[MOTOR_INDEX_TRIGGER].ecd * TRIGGER_MOTOR_ECD_TO_ANGLE;
+	shoot_control.trigger_ecd_count = 0;
+	shoot_control.trigger_angle = motor_chassis[MOTOR_INDEX_TRIGGER].ecd * TRIGGER_MOTOR_ECD_TO_ANGLE;
 	shoot_control.cmd_value = 0;
-	shoot_control.set_angle = shoot_control.angle;
+	shoot_control.set_angle = shoot_control.trigger_angle;
 	shoot_control.speed = 0.0f;
 	shoot_control.speed_set = 0.0f;
 	// shoot_control.key_time = 0;
@@ -171,14 +173,11 @@ int16_t shoot_control_loop(void)
 				PID_clear(&shoot_control.friction_motor3_pid);
 				PID_clear(&shoot_control.friction_motor4_pid);
 				PID_clear(&shoot_control.piston_motor_pid);
-
-				if (launcher_status.Launcher_Opened == 1) //retract piston to open launcher first
-				{
-					shoot_control.friction_motor1_rpm_set = -FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-					shoot_control.friction_motor2_rpm_set = FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-					shoot_control.friction_motor3_rpm_set = -FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-					shoot_control.friction_motor4_rpm_set = FRICTON_MOTOR_INIT_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-				}
+				
+				shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
+				shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
+				shoot_control.friction_motor3_pid.max_out = FRICTION_3_SPEED_PID_MAX_OUT;
+				shoot_control.friction_motor4_pid.max_out = FRICTION_4_SPEED_PID_MAX_OUT;
 
 				break;
 			}
@@ -213,8 +212,11 @@ int16_t shoot_control_loop(void)
 				shoot_control.friction_motor4_pid.max_out = FRICTION_4_SPEED_PID_MAX_OUT;
 				shoot_control.piston_motor_pid.max_out = PISTON_SPEED_PID_MAX_OUT;
 
-				shoot_control.friction_motor3_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-				shoot_control.friction_motor4_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+				// Set target RPM for friction motors.
+				shoot_control.friction_motor1_rpm_set = HERO_FRICTION_MOTOR_SPEED * HORI_FRICTION_MOTOR_SPEED_TO_RPM;
+				shoot_control.friction_motor2_rpm_set = -HERO_FRICTION_MOTOR_SPEED * HORI_FRICTION_MOTOR_SPEED_TO_RPM;
+				shoot_control.friction_motor3_rpm_set = -HERO_FRICTION_MOTOR_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+				shoot_control.friction_motor4_rpm_set = HERO_FRICTION_MOTOR_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
 #endif
 
 				break;
@@ -236,7 +238,7 @@ int16_t shoot_control_loop(void)
 			{
                 // Setup for semi-automatic fire.
                 // Set target angle for trigger motor to advance one bullet.
-				shoot_control.set_angle = rad_format(shoot_control.angle + TRIGGER_ANGLE_INCREMENT);
+				shoot_control.set_angle = rad_format(shoot_control.trigger_angle + TRIGGER_ANGLE_INCREMENT);
                 // Set trigger motor speed for semi-auto.
 				shoot_control.trigger_speed_set = SEMI_AUTO_FIRE_TRIGGER_SPEED;
 				break;
@@ -263,6 +265,10 @@ int16_t shoot_control_loop(void)
 #endif
 			// trigger motor.
 			shoot_control.trigger_speed_set = 0.0f;
+
+			// piston motor for 2025 Hero
+			shoot_control.piston_speed_set = 0.0f;
+			launcher_status.piston_moving = 0;
 
 			// If friction motors are almost stopped, set PID max_out to 0 to prevent oscillation, Otherwise, set a small max_out to allow them to brake.
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
@@ -297,26 +303,75 @@ int16_t shoot_control_loop(void)
 		}
 		case HERO_INIT_LAUNCHER:
 		{
-			if(launcher_status.Launcher_Opened == 0)
+			if (launcher_status.init_step == 0)
 			{
-				piston_motor_control(PISTON_BACKWARD);
-			}
-			else
-			{
-				if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+				if (launcher_status.Launcher_Opened == 0)
 				{
-					if (launcher_status.Launcher_Opened == 1)
+					piston_motor_control(PISTON_BACKWARD);
+				}
+				else
+				{	
+					launcher_status.init_step = 1;//normal process
+				}
+			}
+			else if (launcher_status.init_step == 1)
+			{
+				shoot_control.friction_motor1_rpm_set = HERO_FRICTON_MOTOR_INIT_SPEED * HORI_FRICTION_MOTOR_SPEED_TO_RPM;
+				shoot_control.friction_motor2_rpm_set = -HERO_FRICTON_MOTOR_INIT_SPEED * HORI_FRICTION_MOTOR_SPEED_TO_RPM;
+
+				//rotate backward for a while to avoid jam
+				// shoot_control.friction_motor3_rpm_set = HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+				// shoot_control.friction_motor4_rpm_set = -HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+
+				if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+				{
+					shoot_control.friction_motor3_rpm_set = -HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+					shoot_control.friction_motor4_rpm_set = HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+
+					if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 					{
-						piston_motor_control(PISTON_FORWARD); // Control piston motor to clear and close the launcher.
-					}
-					else
-					{
-						launcher_status.Launcher_Initialized = 1;
-						shoot_control.shoot_mode = SHOOT_STOP;
+						if (launcher_status.Launcher_Jamed == 1) // manually triggered jam flag(key'B') to hendel ball stucked outside launcher
+						{
+							shoot_control.trigger_speed_set = JAM_RESOVE_TRIGGER_SPEED;
+						}
+						else
+						{
+							shoot_control.trigger_speed_set = 0;
+							launcher_status.init_step = 2;
+						}
 					}
 				}
 			}
+			else if (launcher_status.init_step == 2)
+			{
+				if (launcher_status.Launcher_Opened == 1)
+				{
+					piston_motor_control(PISTON_FORWARD); // Control piston motor to clear and close the launcher.
+				}
+				else
+				{
+					launcher_status.init_step = 3;
+				}
+			}
+			else if (launcher_status.init_step == 3)
+			{
+				// if ammo chain is not loaded, enter SHOOT_READY_TRIGGER to load it.
+				if (launcher_status.Chain_Loaded == 0)
+				{
+					shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
+				}
+				else
+				{
+					launcher_status.init_step = 0;
+					shoot_control.trigger_speed_set = 0.0f;
+					launcher_status.Launcher_Loaded = 0;
+					launcher_status.Launcher_Jamed = 0;
 
+					launcher_status.Launcher_Initialized = 1;
+					shoot_control.shoot_mode = SHOOT_STOP;
+	
+				}
+			}
 			break;
 		}
 		case SHOOT_READY_FRIC:
@@ -447,10 +502,10 @@ int16_t shoot_control_loop(void)
 				shoot_control.shoot_mode = SHOOT_AUTO_FIRE; // Switch to auto fire.
 			}
             // If the trigger motor has reached the target angle for one shot, or if overheated:
-			else if ((rad_format(shoot_control.set_angle - shoot_control.angle) <= TRIGGER_MOTOR_ANGLE_THRESHOLD) || isOverheated())
+			else if ((rad_format(shoot_control.set_angle - shoot_control.trigger_angle) <= TRIGGER_MOTOR_ANGLE_THRESHOLD) || isOverheated())
 			{
 				shoot_control.trigger_speed_set = 0.0f; // Stop trigger motor.
-				shoot_control.set_angle = shoot_control.angle; // Update set_angle to current angle.
+				shoot_control.set_angle = shoot_control.trigger_angle; // Update set_angle to current angle.
 				shoot_control.shoot_mode = SHOOT_READY_FRIC; // Return to ready state.
 			}
             // Otherwise, trigger motor continues to run at SEMI_AUTO_FIRE_TRIGGER_SPEED (set when entering this state).
@@ -528,6 +583,7 @@ int16_t shoot_control_loop(void)
 	shoot_control.fric4_given_current = (int16_t)(shoot_control.friction_motor4_pid.out);
 
 	PID_calc(&shoot_control.piston_motor_pid, shoot_control.piston_speed, shoot_control.piston_speed_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.piston_given_current = (int16_t)(shoot_control.piston_motor_pid.out);
 #endif
 
 	return shoot_control.cmd_value; // Returns the command value for the trigger motor.
@@ -600,11 +656,6 @@ static void shoot_set_mode(void)
 				{
 					shoot_control.shoot_mode = HERO_INIT_LAUNCHER;
 				}
-				//if ammo chain is not loaded, enter SHOOT_READY_TRIGGER to load it.
-				else if(launcher_status.Chain_Loaded == 0)
-				{
-					shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
-				}
 
 				else // Chain is loaded, proceed to check mouse input.
 #endif
@@ -618,6 +669,13 @@ static void shoot_set_mode(void)
 							shoot_control.shoot_mode = SHOOT_READY_FRIC; // Start spinning friction wheels. Actual shooting mode will be set corespondingly inside this mode.
 						}
 					}
+					else if (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_B) //rerun the clearing process to handel jam
+					{
+						launcher_status.Launcher_Initialized = 0;
+						launcher_status.init_step = 0;
+						launcher_status.Launcher_Jamed = 1;
+					}
+
 					else 
 					{
 						shoot_control.shoot_mode = SHOOT_STOP; 
@@ -658,30 +716,35 @@ static void shoot_feedback_update(void)
 #if (ROBOT_TYPE == HERO_2025_MECANUM) 
 	shoot_control.friction_motor3_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm, shoot_control.friction_motor3_rpm, 0.8f);
 	shoot_control.friction_motor4_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm, shoot_control.friction_motor4_rpm, 0.8f);
-	shoot_control.piston_speed = first_order_filter(motor_chassis[MOTOR_INDEX_PISTON].speed_rpm, shoot_control.piston_speed, 0.8f);
+	shoot_control.piston_speed = first_order_filter(motor_chassis[MOTOR_INDEX_PISTON].speed_rpm * PISTON_MOTOR_RPM_TO_SPEED, shoot_control.piston_speed, 0.8f);
+
+	if((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_gimbal_output == 0))
+	{
+		launcher_status.Launcher_Initialized = 0; //require launcher re-initialization when gimbal powered off by refree
+	}
 #endif
 
 
 	// reset the motor count, because when the output shaft rotates one turn, the motor shaft rotates 36 turns, process the motor shaft data into output shaft data, used to control the output shaft angle
 	if (motor_chassis[MOTOR_INDEX_TRIGGER].ecd - motor_chassis[MOTOR_INDEX_TRIGGER].last_ecd > HALF_ECD_RANGE)
 	{
-		shoot_control.ecd_count--;
+		shoot_control.trigger_ecd_count--;
 	}
 	else if (motor_chassis[MOTOR_INDEX_TRIGGER].ecd - motor_chassis[MOTOR_INDEX_TRIGGER].last_ecd < -HALF_ECD_RANGE)
 	{
-		shoot_control.ecd_count++;
+		shoot_control.trigger_ecd_count++;
 	}
 
-	if (shoot_control.ecd_count == TRIGGER_MULTILOOP_FULL_COUNT)
+	if (shoot_control.trigger_ecd_count == TRIGGER_MULTILOOP_FULL_COUNT)
 	{
-		shoot_control.ecd_count = -(TRIGGER_MULTILOOP_FULL_COUNT - 1);
+		shoot_control.trigger_ecd_count = -(TRIGGER_MULTILOOP_FULL_COUNT - 1);
 	}
-	else if (shoot_control.ecd_count == -TRIGGER_MULTILOOP_FULL_COUNT)
+	else if (shoot_control.trigger_ecd_count == -TRIGGER_MULTILOOP_FULL_COUNT)
 	{
-		shoot_control.ecd_count = TRIGGER_MULTILOOP_FULL_COUNT - 1;
+		shoot_control.trigger_ecd_count = TRIGGER_MULTILOOP_FULL_COUNT - 1;
 	}
 
-	shoot_control.angle = (shoot_control.ecd_count * ECD_RANGE + motor_chassis[MOTOR_INDEX_TRIGGER].ecd) * TRIGGER_MOTOR_ECD_TO_ANGLE;
+	shoot_control.trigger_angle = (shoot_control.trigger_ecd_count * ECD_RANGE + motor_chassis[MOTOR_INDEX_TRIGGER].ecd) * TRIGGER_MOTOR_ECD_TO_ANGLE;
 	shoot_control.key = BUTTEN_TRIG_PIN;
 	shoot_control.last_press_l = shoot_control.press_l;
 	shoot_control.last_press_r = shoot_control.press_r;
@@ -713,6 +776,7 @@ static void trigger_motor_stall_handler(void)
 	if ((is_launcher_loaded() == 1) && (launcher_status.Launcher_Opened == 1))
 	{
 		launcher_status.Launcher_Loaded = 1;
+		launcher_status.Launcher_Jamed = 0;
 		shoot_control.speed_set = 0;
 		shoot_control.block_time = 0;
 		return;
@@ -794,7 +858,9 @@ static bool_t trigger_motor_control(void)
 }
 
 static bool_t piston_motor_control(int8_t move_direction) // direction = +-1
-{
+{	
+	static int8_t current_move_direction = 0;
+
 	if ((move_direction == PISTON_BACKWARD && launcher_status.Launcher_Opened == 1) ||
         (move_direction == PISTON_FORWARD && launcher_status.Launcher_Opened == 0))  //if already in desired state, return directly
     {
@@ -806,13 +872,10 @@ static bool_t piston_motor_control(int8_t move_direction) // direction = +-1
 	//initialize set value for one motion
 	if (launcher_status.piston_moving == 0) //when first entering the control process for one motion
 	{
+		current_move_direction = move_direction;
 		launcher_status.piston_moving = 1;
 
-#if REVERSE_PISTON_DIRECTION
-		shoot_control.piston_speed_set = (-PISTON_MOTOR_SPEED) * move_direction;
-#else
 		shoot_control.piston_speed_set = PISTON_MOTOR_SPEED * move_direction;
-#endif
 		shoot_control.piston_motor_pid.max_out = PISTON_SPEED_PID_MAX_OUT;
 	}
 
@@ -824,15 +887,17 @@ static bool_t piston_motor_control(int8_t move_direction) // direction = +-1
 		{
 			shoot_control.piston_block_time += SHOOT_CONTROL_TIME_MS;
 		}
-		else if (shoot_control.piston_block_time >= PISTON_BLOCK_TIME)
+		else if (shoot_control.piston_block_time >= PISTON_BLOCK_TIME) // Stop the piston motor if confermed reached the end
 		{
-			shoot_control.piston_speed_set = 0; // Stop the piston motor if reached the end
+			//reset variables
+			shoot_control.piston_speed_set = 0; 
 			shoot_control.piston_block_time = 0;
-			
+			PID_clear(&shoot_control.piston_motor_pid);
+
 			//update status flags when finished motion
 			launcher_status.piston_moving = 0;
 
-			if (move_direction == PISTON_BACKWARD)
+			if (current_move_direction == PISTON_BACKWARD)
 			{
 				launcher_status.Launcher_Opened = 1;
 			}

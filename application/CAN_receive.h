@@ -47,7 +47,7 @@ typedef enum
 
 /********Gimbal CAN IDs********/
 #if ROBOT_PITCH_IS_4310
-  CAN_PITCH_MOTOR_4310_TX_ID = 0x003,
+  CAN_PITCH_MOTOR_4310_TX_ID = 0x006,
   CAN_PITCH_MOTOR_4310_RX_ID = 0x0FD,
 #else
   CAN_PIT_MOTOR_ID = 0x206,

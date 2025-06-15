@@ -30,9 +30,7 @@
 // After the shooting is enabled, the bullet is continuously fired for a period of time, used to clear the bullet
 #define RC_S_LONG_TIME              250
 
-#define REVERSE_PISTON_DIRECTION 0
-#define PISTON_FORWARD 1
-#define PISTON_BACKWARD -1
+
 
 // TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO: gear ratio between trigger motor and trigger wheel
 // TRIGGER_WHEEL_CAPACITY: ammo per revolution of trigger wheel
@@ -76,15 +74,51 @@
 #define FRICTION_MOTOR_SPEED  26.0f
 #else
 #define FRICTION_MOTOR_SPEED  1.0f
-#define FRICTON_MOTOR_INIT_SPEED 3.0f
 #endif
 
-#define PISTON_MOTOR_SPEED 10.0f // Piston motor speed in m/s
+//***************2025_Hero *******************/
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+
+#if ENABLE_SHOOT_REDUNDANT_SWITCH
+#define HERO_FRICTION_MOTOR_SPEED  15.0f
+#else
+#define HERO_FRICTION_MOTOR_SPEED  1.0f
+#endif
+
+#define HERO_FRICTON_MOTOR_INIT_SPEED 3.0f //m/s
+
+#define READY_TRIGGER_RATE 180.0f //ammo / minute
+#define JAM_RESOVE_TRIGGER_RATE 240.0f
+
+//piston
+#define PISTON_MOTOR_SPEED 0.6f // Piston motor speed in m/s
+#define PISTON_MOTOR_RPM_TO_SPEED (2.0f * PI / 60.0f * 0.005f)
+#define PISTON_MOTOR_SPEED_TO_RPM (1.0f / PISTON_MOTOR_RPM_TO_SPEED)
+
+#define BLOCK_PISTON_SPEED         0.1f
+#define IDLE_PISTON_SPEED          2.0f
+#define PISTON_BLOCK_TIME           200
+
+#define PISTON_FORWARD 1
+#define PISTON_BACKWARD -1
+
+#define HORI_FRICTION_MOTOR_RADIUS 0.036f
+#define HORI_FRICTION_MOTOR_RPM_TO_SPEED (2.0f * PI / 60.0f * (HORI_FRICTION_MOTOR_RADIUS * SPEED_COMPENSATION_RATIO))
+#define HORI_FRICTION_MOTOR_SPEED_TO_RPM (1.0f / HORI_FRICTION_MOTOR_RPM_TO_SPEED)
+#define HORI_FRICTION_MOTOR_SPEED_THRESHOLD 0.9f // 10% tolerance
+
+#define VERT_FRICTION_MOTOR_RADIUS 0.03f
+#define VERT_FRICTION_MOTOR_RPM_TO_SPEED (2.0f * PI / 60.0f * (VERT_FRICTION_MOTOR_RADIUS * SPEED_COMPENSATION_RATIO))
+#define VERT_FRICTION_MOTOR_SPEED_TO_RPM (1.0f / VERT_FRICTION_MOTOR_RPM_TO_SPEED)
+#define VERT_FRICTION_MOTOR_SPEED_THRESHOLD 0.9f // 10% tolerance
+
+#endif
+//************* */
+
 // Unit: ammo per minute
 #define SEMI_AUTO_FIRE_RATE 1800.0f
 #define AUTO_FIRE_RATE     1800.0f
 
-#define READY_TRIGGER_RATE 120.0f
 
 // Speed unit: rpm
 // tested approx max spinning speed: 19 rad/s, corresponding to 1632 rpm
@@ -92,6 +126,7 @@
 #define AUTO_FIRE_TRIGGER_SPEED      RPM_TO_RADS(TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * AUTO_FIRE_RATE / TRIGGER_WHEEL_CAPACITY)
 
 #define READY_TRIGGER_SPEED          RPM_TO_RADS(TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * READY_TRIGGER_RATE / TRIGGER_WHEEL_CAPACITY)
+#define JAM_RESOVE_TRIGGER_SPEED     RPM_TO_RADS(TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO * JAM_RESOVE_TRIGGER_RATE / TRIGGER_WHEEL_CAPACITY)
 
 #define KEY_OFF_JUGUE_TIME          500
 #define SWITCH_TRIGGER_ON           0
@@ -99,7 +134,7 @@
 
 
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-#define TRIGGER_BLOCK_TIME          100
+#define TRIGGER_BLOCK_TIME          200
 #define TRIGGER_REVERSE_TIME        0
 #define REVERSE_SPEED_LIMIT         0
 #else
@@ -108,9 +143,6 @@
 #define REVERSE_SPEED_LIMIT         13.0f
 #endif
 
-#define BLOCK_PISTON_SPEED         0.2f
-#define IDLE_PISTON_SPEED          2.0f
-#define PISTON_BLOCK_TIME           50
 
 #define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / TRIGGER_WHEEL_CAPACITY)
 
@@ -122,7 +154,7 @@
 #define TRIGGER_BULLET_PID_MAX_OUT  10000.0f
 #define TRIGGER_BULLET_PID_MAX_IOUT 5000.0f
 
-#define BLOCK_TRIGGER_SPEED         0.2f
+#define BLOCK_TRIGGER_SPEED         0.2f //READY_TRIGGER_SPEED * 0.5f
 #define IDLE_TRIGGER_SPEED          2.0f
 #else
 #define TRIGGER_ANGLE_PID_KP        900.0f
@@ -161,25 +193,25 @@
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 //DUMMY VALUES
 //Frictional wheel 3 PID (UP)
-#define FRICTION_3_SPEED_PID_KP        20.0f
+#define FRICTION_3_SPEED_PID_KP        55.0f
 #define FRICTION_3_SPEED_PID_KI        0.0f
 #define FRICTION_3_SPEED_PID_KD        0.0f
 #define FRICTION_3_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
-#define FRICTION_3_SPEED_PID_MAX_IOUT  200.0f
+#define FRICTION_3_SPEED_PID_MAX_IOUT  500.0f
 
 //Frictional wheel 4 PID (DOWN)
-#define FRICTION_4_SPEED_PID_KP        20.0f
+#define FRICTION_4_SPEED_PID_KP        55.0f
 #define FRICTION_4_SPEED_PID_KI        0.0f
 #define FRICTION_4_SPEED_PID_KD        0.0f
 #define FRICTION_4_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
-#define FRICTION_4_SPEED_PID_MAX_IOUT  200.0f
+#define FRICTION_4_SPEED_PID_MAX_IOUT  500.0f
 
 //Piston Motor PID
-#define PISTON_SPEED_PID_KP            20.0f
-#define PISTON_SPEED_PID_KI            0.0f
-#define PISTON_SPEED_PID_KD            0.0f
+#define PISTON_SPEED_PID_KP            13500.0f
+#define PISTON_SPEED_PID_KI            500.0f
+#define PISTON_SPEED_PID_KD            1.5f
 #define PISTON_SPEED_PID_MAX_OUT       MAX_3508_MOTOR_CAN_CURRENT
-#define PISTON_SPEED_PID_MAX_IOUT      200.0f
+#define PISTON_SPEED_PID_MAX_IOUT      1000.0f
 
 #endif
 
@@ -240,10 +272,10 @@ typedef struct
     fp32 trigger_speed_set;    
     fp32 speed; // unit: rad/s
     fp32 speed_set;
-    fp32 angle;
+    fp32 trigger_angle;
     fp32 set_angle;
     int16_t cmd_value;
-    int8_t ecd_count;
+    int8_t trigger_ecd_count;
     
     bool_t press_l;
     bool_t press_r;
@@ -277,11 +309,15 @@ typedef struct
     uint8_t Chain_Loaded;
     uint8_t Launcher_Loaded;
     uint8_t Launcher_Opened;
+    uint8_t Launcher_Jamed;
 
     uint8_t piston_moving;
     uint8_t piston_feedback;
 
     uint8_t trigger_moving;
+
+    uint8_t init_step;
+    
 }launcher_status_t;
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
 extern void shoot_init(void);

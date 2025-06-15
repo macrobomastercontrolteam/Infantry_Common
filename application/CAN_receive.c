@@ -767,7 +767,9 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 		// disable
 		gimbal_can_send_data[7] = 0xFD;
 	}
-	return HAL_CAN_AddTxMessage(hcan_ptr, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+	HAL_StatusTypeDef hal_status = HAL_CAN_AddTxMessage(hcan_ptr, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+	memset(gimbal_can_send_data, 0, sizeof(gimbal_can_send_data));
+	return hal_status;
 }
 
 /**
