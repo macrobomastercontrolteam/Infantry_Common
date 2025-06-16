@@ -217,8 +217,8 @@
 #warning "PID for this robot type HERO_2025_MECNUM is not defined yet all values are set to 0"
 
 //pitch speed close-loop PID params, max out and max iout
-#if ROBOT_PITCH_IS_4310
-#define PITCH_SPEED_PID_KP        0.0f
+#if ROBOT_PITCH_IS_4340
+#define PITCH_SPEED_PID_KP        1.5f
 #define PITCH_SPEED_PID_KI        0.0f
 #define PITCH_SPEED_PID_KD        0.0f
 #define PITCH_SPEED_PID_MAX_OUT   0.0f
@@ -292,11 +292,19 @@
 #define YAW_ANGLE_PID_MAX_IOUT  0.0f
 #endif
 
+#if ROBOT_PITCH_IS_4340
+#define PITCH_CAMERA_SPEED_PID_KP 0.7f
+#define PITCH_CAMERA_SPEED_PID_KI 0.0f
+#define PITCH_CAMERA_SPEED_PID_KD 0.0f
+#define PITCH_CAMERA_SPEED_PID_MAX_OUT 9.5f
+#define PITCH_CAMERA_SPEED_PID_MAX_IOUT 9.5f
+#else
 #define PITCH_CAMERA_SPEED_PID_KP 15000.0f
 #define PITCH_CAMERA_SPEED_PID_KI 15000.0f
 #define PITCH_CAMERA_SPEED_PID_KD 0.0f
 #define PITCH_CAMERA_SPEED_PID_MAX_OUT 30000.0f
 #define PITCH_CAMERA_SPEED_PID_MAX_IOUT 10000.0f
+#endif
 
 #if ROBOT_YAW_IS_4310
 #define YAW_CAMERA_SPEED_PID_KP        0.7f

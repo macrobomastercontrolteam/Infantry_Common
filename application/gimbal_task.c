@@ -196,8 +196,8 @@ void gimbal_task(void const *pvParameters)
 #if ROBOT_YAW_IS_4310
         enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN);
 #endif
-#if ROBOT_PITCH_IS_4310
-        enable_DaMiao_motor(CAN_PITCH_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN);
+#if ROBOT_PITCH_IS_4340
+        enable_DaMiao_motor(CAN_PITCH_MOTOR_4340_TX_ID, 1, &GIMBAL_CAN);
 #endif
         CAN_cmd_gimbal_upper_can_ID(0, 0, 0, 0, 0, 0);
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
@@ -654,10 +654,10 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
         enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN); // attempt re-enable yaw motor when offline
     }
 #endif
-#if ROBOT_PITCH_IS_4310
+#if ROBOT_PITCH_IS_4340
     if (toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
     {
-        enable_DaMiao_motor(CAN_PITCH_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
+        enable_DaMiao_motor(CAN_PITCH_MOTOR_4340_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
     }
 #endif
 
@@ -1055,7 +1055,7 @@ bool_t gimbal_emergency_stop(void)
         // do nothing
     }
 #if ROBOT_YAW_IS_4310
-    #if ROBOT_PITCH_IS_4310
+    #if ROBOT_PITCH_IS_4340
         else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_4310_MOTOR_TORQUE_LIMIT))
     #else
         else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))

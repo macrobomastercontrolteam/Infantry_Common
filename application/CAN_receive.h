@@ -46,9 +46,9 @@ typedef enum
 #endif
 
 /********Gimbal CAN IDs********/
-#if ROBOT_PITCH_IS_4310
-  CAN_PITCH_MOTOR_4310_TX_ID = 0x006,
-  CAN_PITCH_MOTOR_4310_RX_ID = 0x0FD,
+#if ROBOT_PITCH_IS_4340
+  CAN_PITCH_MOTOR_4340_TX_ID = 0x006,
+  CAN_PITCH_MOTOR_4340_RX_ID = 0x0FD,
 #else
   CAN_PIT_MOTOR_ID = 0x206,
 #endif
@@ -151,6 +151,7 @@ typedef enum
     DM_8006 = 0,
     MA_9015 = 1,
     DM_4310 = 2,
+    DM_4340 = 3,
     LAST_MIT_CONTROLLED_MOTOR_TYPE,
 } MIT_controlled_motor_type_e;
 
