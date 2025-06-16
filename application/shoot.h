@@ -74,6 +74,7 @@
 #define FRICTION_MOTOR_SPEED  26.0f
 #else
 #define FRICTION_MOTOR_SPEED  1.0f
+#warning "turn-on redundant switch before competition, currently shoot in low speed "
 #endif
 
 //***************2025_Hero *******************/
@@ -137,10 +138,12 @@
 #define TRIGGER_BLOCK_TIME          200
 #define TRIGGER_REVERSE_TIME        0
 #define REVERSE_SPEED_LIMIT         0
+#define SHOOT_HEAT_LIMIT_CLEARANCE     100
 #else
 #define TRIGGER_BLOCK_TIME          100
 #define TRIGGER_REVERSE_TIME        150
 #define REVERSE_SPEED_LIMIT         13.0f
+#define SHOOT_HEAT_LIMIT_CLEARANCE     60
 #endif
 
 
@@ -174,7 +177,6 @@
 #define REVERSE_TRIGGER_DIRECTION 0
 #endif
 
-#define SHOOT_HEAT_LIMIT_CLEARANCE     60
 
 //Frictional wheel 1 PID (LEFT)
 #define FRICTION_1_SPEED_PID_KP        20.0f
@@ -249,10 +251,11 @@ typedef struct
     fp32 friction_motor2_rpm_set;
     fp32 friction_motor2_rpm;
     // fp32 friction_motor2_angle;
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
 
     int16_t fric3_given_current;
     int16_t fric4_given_current;
-    
+
     pid_type_def friction_motor3_pid;
     fp32 friction_motor3_rpm_set;
     fp32 friction_motor3_rpm;
@@ -261,14 +264,17 @@ typedef struct
     fp32 friction_motor4_rpm_set;
     fp32 friction_motor4_rpm;
 
-    pid_type_def piston_motor_pid; //PID variable for piston motor
-    //fp32 piston_speed_target; //Target speed in the state machine
-    fp32 piston_speed_set; //Speed defined by the piston motor contro function
-    fp32 piston_speed; //Speed feedback from the motor ESC
-    //int8_t piston_direction; //Direction of the piston motor, 1 for forward, -1 for reverse
+    pid_type_def piston_motor_pid; // PID variable for piston motor
+    // fp32 piston_speed_target; //Target speed in the state machine
+    fp32 piston_speed_set; // Speed defined by the piston motor contro function
+    fp32 piston_speed;     // Speed feedback from the motor ESC
+    // int8_t piston_direction; //Direction of the piston motor, 1 for forward, -1 for reverse
+    
+
+#endif
     uint16_t piston_given_current;
 
-	pid_type_def trigger_motor_pid;
+    pid_type_def trigger_motor_pid;
     fp32 trigger_speed_set;    
     fp32 speed; // unit: rad/s
     fp32 speed_set;
@@ -309,7 +315,11 @@ typedef struct
     uint8_t Chain_Loaded;
     uint8_t Launcher_Loaded;
     uint8_t Launcher_Opened;
+
     uint8_t Launcher_Jamed;
+    uint8_t Loader_Jamed;
+
+    uint8_t Limit_Ignored;
 
     uint8_t piston_moving;
     uint8_t piston_feedback;

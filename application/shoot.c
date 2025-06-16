@@ -59,7 +59,10 @@ static void shoot_feedback_update(void);
  * @retval         void
  */
 static void trigger_motor_stall_handler(void);
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
 static bool_t piston_motor_control(int8_t move_direction);
+#endif
 
 bool_t isOverheated(void);
 
@@ -110,8 +113,12 @@ void shoot_init(void)
 	launcher_status.Launcher_Loaded = 0;
 	launcher_status.piston_moving = 0; 
 	launcher_status.trigger_moving = 0;
+
 	launcher_status.Launcher_Jamed = 0;
+	launcher_status.Loader_Jamed = 0;
+
 	launcher_status.init_step = 0;
+	launcher_status.Limit_Ignored = 0;
 	 
 #endif
 	shoot_control.trigger_ecd_count = 0;
@@ -165,6 +172,7 @@ int16_t shoot_control_loop(void)
 #endif
 				break;
 			}
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
 			case HERO_INIT_LAUNCHER: 
 			{
 
@@ -181,6 +189,7 @@ int16_t shoot_control_loop(void)
 
 				break;
 			}
+#endif
 			case SHOOT_READY_FRIC:
 			{
 				// Actions for preparing friction wheels.
@@ -192,7 +201,7 @@ int16_t shoot_control_loop(void)
                 // Clear PID controllers for friction motors.
 				PID_clear(&shoot_control.friction_motor1_pid);
 				PID_clear(&shoot_control.friction_motor2_pid);
-
+				PID_clear(&shoot_control.trigger_motor_pid);
                 // Set max output for friction motor PIDs.
 				shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
 				shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
@@ -222,12 +231,13 @@ int16_t shoot_control_loop(void)
 				break;
 			}
 
-			case SHOOT_READY_TRIGGER: // This mode is primarily for HERO_2025_MECANUM or robots with similar loading mechanisms.
+			case HERO_LAUNCHER_READY:
 			{
-				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
+				shoot_control.trigger_speed_set = 0.0f;
+				PID_clear(&shoot_control.trigger_motor_pid);
 				break;
 			}
-
+			
 			case SHOOT_AUTO_FIRE:
 			{
 				// No specific setup needed when entering auto fire directly,
@@ -256,22 +266,22 @@ int16_t shoot_control_loop(void)
 	{
 		case SHOOT_STOP:
 		{
+			// trigger motor.
+			shoot_control.trigger_speed_set = 0.0f;
+
 			//friction motor 
 			shoot_control.friction_motor1_rpm_set = 0.0f;
 			shoot_control.friction_motor2_rpm_set = 0.0f;
+			// If friction motors are almost stopped, set PID max_out to 0 to prevent oscillation, Otherwise, set a small max_out to allow them to brake.
+
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 			shoot_control.friction_motor3_rpm_set = 0.0f;
 			shoot_control.friction_motor4_rpm_set = 0.0f;
-#endif
-			// trigger motor.
-			shoot_control.trigger_speed_set = 0.0f;
 
 			// piston motor for 2025 Hero
 			shoot_control.piston_speed_set = 0.0f;
 			launcher_status.piston_moving = 0;
 
-			// If friction motors are almost stopped, set PID max_out to 0 to prevent oscillation, Otherwise, set a small max_out to allow them to brake.
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
 			if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60) && (fabs(shoot_control.friction_motor3_rpm) < 60) && (fabs(shoot_control.friction_motor4_rpm) < 60))
 			{
 				shoot_control.friction_motor1_pid.max_out = 0;
@@ -301,6 +311,7 @@ int16_t shoot_control_loop(void)
 #endif
 			break;
 		}
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
 		case HERO_INIT_LAUNCHER:
 		{
 			if (launcher_status.init_step == 0)
@@ -328,9 +339,13 @@ int16_t shoot_control_loop(void)
 					shoot_control.friction_motor3_rpm_set = -HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
 					shoot_control.friction_motor4_rpm_set = HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
 
-					if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+					if(launcher_status.Launcher_Jamed == 1)
 					{
-						if (launcher_status.Launcher_Jamed == 1) // manually triggered jam flag(key'B') to hendel ball stucked outside launcher
+						launcher_status.init_step = 2;
+					}
+					else if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+					{
+						if (launcher_status.Loader_Jamed == 1) // manually triggered jam flag(key'B') to hendel ball stucked outside launcher
 						{
 							shoot_control.trigger_speed_set = JAM_RESOVE_TRIGGER_SPEED;
 						}
@@ -355,30 +370,31 @@ int16_t shoot_control_loop(void)
 			}
 			else if (launcher_status.init_step == 3)
 			{
-				// if ammo chain is not loaded, enter SHOOT_READY_TRIGGER to load it.
-				if (launcher_status.Chain_Loaded == 0)
-				{
-					shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
-				}
-				else
-				{
-					launcher_status.init_step = 0;
-					shoot_control.trigger_speed_set = 0.0f;
-					launcher_status.Launcher_Loaded = 0;
-					launcher_status.Launcher_Jamed = 0;
+				launcher_status.init_step = 0;
+				shoot_control.trigger_speed_set = 0.0f;
+				launcher_status.Launcher_Loaded = 0;
+				launcher_status.Launcher_Jamed = 0;
+				launcher_status.Loader_Jamed = 0;
 
-					launcher_status.Launcher_Initialized = 1;
-					shoot_control.shoot_mode = SHOOT_STOP;
-	
-				}
+				launcher_status.Launcher_Initialized = 1;
+				shoot_control.shoot_mode = SHOOT_STOP;
 			}
 			break;
 		}
+#endif
 		case SHOOT_READY_FRIC:
 		{
             // Wait for friction wheels to reach target speed.
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-            // HERO_2025_MECANUM has four friction motors.
+			if (launcher_status.Chain_Loaded == 0)
+			{
+				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
+			}
+			else
+			{
+				shoot_control.trigger_speed_set = 0.0f;
+			}
+			// HERO_2025_MECANUM has four friction motors.
 			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 #else
             // Standard robot types have two friction motors.
@@ -413,7 +429,10 @@ int16_t shoot_control_loop(void)
 					else if (shoot_control.press_l)
 					{
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-						shoot_control.shoot_mode = HERO_LAUNCHER_READY;
+						if(isOverheated() == 0)
+						{
+							shoot_control.shoot_mode = HERO_LAUNCHER_READY;
+						}
 #else
 						// Standard robots: differentiate between short and long press for semi-auto/auto.
 						if (shoot_control.left_click_hold_time >= RC_S_LONG_TIME)
@@ -430,10 +449,7 @@ int16_t shoot_control_loop(void)
 			}
 			break;
 		}
-		case SHOOT_READY_TRIGGER: // trigger speed changed in pre shoot mode
-		{
-			break;
-		}
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
 		case HERO_LAUNCHER_READY: // Specific ready mode for HERO_2025_MECANUM.
 		{
 			// This mode is used to prepare the launcher for shooting.
@@ -490,6 +506,7 @@ int16_t shoot_control_loop(void)
 
 			break;
 		}
+#endif
 		case SHOOT_SEMI_AUTO_FIRE: // Standard robot semi-automatic fire.
 		{
             // In SHOOT_SEMI_AUTO_FIRE mode:
@@ -674,6 +691,14 @@ static void shoot_set_mode(void)
 						launcher_status.Launcher_Initialized = 0;
 						launcher_status.init_step = 0;
 						launcher_status.Launcher_Jamed = 1;
+						launcher_status.Loader_Jamed = 0; //un-jam one at a time
+					}
+					else if (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_V) 
+					{
+						launcher_status.Launcher_Initialized = 0;
+						launcher_status.init_step = 0;
+						launcher_status.Loader_Jamed = 1;
+						launcher_status.Launcher_Jamed = 0;
 					}
 
 					else 
@@ -776,7 +801,7 @@ static void trigger_motor_stall_handler(void)
 	if ((is_launcher_loaded() == 1) && (launcher_status.Launcher_Opened == 1))
 	{
 		launcher_status.Launcher_Loaded = 1;
-		launcher_status.Launcher_Jamed = 0;
+		launcher_status.Loader_Jamed = 0;
 		shoot_control.speed_set = 0;
 		shoot_control.block_time = 0;
 		return;
@@ -835,16 +860,22 @@ static void trigger_motor_stall_handler(void)
 bool_t isOverheated(void)
 {
 	bool_t out = 0;
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	if (launcher_status.Limit_Ignored == 1) //if ignored heat limit, bypass limitingg function directly
+	{
+		return 0;
+	}
+#endif
 	if (toe_is_error(REFEREE_TOE) == 0)
 	{
 		if (SHOOT_HEAT_LIMIT_CLEARANCE > shoot_control.heat_limit)
 		{
-			if (shoot_control.heat + SHOOT_HEAT_LIMIT_CLEARANCE / 2 > shoot_control.heat_limit)
+			if ((shoot_control.heat + SHOOT_HEAT_LIMIT_CLEARANCE / 2) > shoot_control.heat_limit)
 			{
 				out = 1;
 			}
 		}
-		else if (shoot_control.heat + SHOOT_HEAT_LIMIT_CLEARANCE > shoot_control.heat_limit)
+		else if ((shoot_control.heat + SHOOT_HEAT_LIMIT_CLEARANCE) > shoot_control.heat_limit)
 		{
 			out = 1;
 		}
@@ -852,11 +883,8 @@ bool_t isOverheated(void)
 	return out;
 }
 
-static bool_t trigger_motor_control(void)
-{
 
-}
-
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
 static bool_t piston_motor_control(int8_t move_direction) // direction = +-1
 {	
 	static int8_t current_move_direction = 0;
@@ -914,3 +942,4 @@ static bool_t piston_motor_control(int8_t move_direction) // direction = +-1
 
 	return launcher_status.piston_moving;
 }
+#endif

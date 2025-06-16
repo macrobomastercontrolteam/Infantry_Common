@@ -31,9 +31,9 @@
 
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 // Pitch use DaMiao 4310
-#define ROBOT_PITCH_IS_4310 1
+#define ROBOT_PITCH_IS_4340 1
 #else
-#define ROBOT_PITCH_IS_4310 0
+#define ROBOT_PITCH_IS_4340 0
 #endif
 
 

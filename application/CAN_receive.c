@@ -75,6 +75,7 @@ fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits);
 int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits);
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
+HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
 
 /**
@@ -95,17 +96,17 @@ static uint8_t gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef chassis_tx_message;
 static uint8_t chassis_can_send_data[8];
 const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 4.0f*PI, 4.0f*PI};  //value needs to match to which in motor setting software
+const fp32 MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -4.0f*PI, -4.0f*PI};
+const fp32 MIT_CONTROL_V_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {25.0f, 45.0f, 30.0f, 30.0f};
+const fp32 MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-25.0f, -45.0f, -30.0f, 30.0f};
+const fp32 MIT_CONTROL_T_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {20.0f, 24.0f, 10.0f, 10.0f};
+const fp32 MIT_CONTROL_T_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-20.0f, -24.0f, -10.0f, -10.0f};
+const fp32 MIT_CONTROL_KP_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {500.0f, 500.0f, 500.0f, 500.0f};
+const fp32 MIT_CONTROL_KP_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f, 0.0f};
+const fp32 MIT_CONTROL_KD_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {5.0f, 5.0f, 5.0f, 5.0f};
+const fp32 MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f, 0.0f};
 
-const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 4.0f*PI};  //value needs to match to which in motor setting software
-const fp32 MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -4.0f*PI};
-const fp32 MIT_CONTROL_V_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {25.0f, 45.0f, 30.0f};
-const fp32 MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-25.0f, -45.0f, -30.0f};
-const fp32 MIT_CONTROL_T_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {20.0f, 24.0f, 10.0f};
-const fp32 MIT_CONTROL_T_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-20.0f, -24.0f, -10.0f};
-const fp32 MIT_CONTROL_KP_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {500.0f, 500.0f, 500.0f};
-const fp32 MIT_CONTROL_KP_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f};
-const fp32 MIT_CONTROL_KD_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {5.0f, 5.0f, 5.0f};
-const fp32 MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f};
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define SWERVE_METER_PER_SEC_ECD_MAX_LIMIT 1.5f
@@ -154,11 +155,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		switch (rx_header.StdId)
 		{
-#if ROBOT_PITCH_IS_4310
-			case CAN_PITCH_MOTOR_4310_RX_ID:
+#if ROBOT_PITCH_IS_4340
+			case CAN_PITCH_MOTOR_4340_RX_ID:
 			{
 				bMotorId = MOTOR_INDEX_PITCH;
-				if (decode_4310_motor_feedback(rx_data, bMotorId) == HAL_OK)
+				if (decode_4340_motor_feedback(rx_data, bMotorId) == HAL_OK)
 				{
 					detect_hook(PITCH_GIMBAL_MOTOR_TOE);
 				}
@@ -462,6 +463,32 @@ HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 	return ret_value;
 }
 
+HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId)
+{
+	HAL_StatusTypeDef ret_value = HAL_ERROR;
+	// Note: error_id = 0， 1 means motor power is disabled/enabled
+	uint8_t error_id = data[0] >> 4;
+	if ((error_id != 0) && (error_id != 1))
+	{
+		ret_value = HAL_ERROR;
+	}
+	else
+	{
+		uint16_t p_int = (data[1] << 8) | data[2];		   // rad (+-4*pi)
+		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
+		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
+
+		motor_chassis[bMotorId].output_angle = uint_to_fp32_motor(p_int, MIT_CONTROL_P_MIN[DM_4340], MIT_CONTROL_P_MAX[DM_4340], 16);
+		motor_chassis[bMotorId].ecd = loop_fp32_constrain(motor_chassis[bMotorId].output_angle, 0, 2 * PI) * MOTOR_RAD_TO_ECD; //no actual ecd reading used 
+		motor_chassis[bMotorId].velocity = uint_to_fp32_motor(v_int, MIT_CONTROL_V_MIN[DM_4340], MIT_CONTROL_V_MAX[DM_4340], 12);
+		motor_chassis[bMotorId].torque = uint_to_fp32_motor(t_int, MIT_CONTROL_T_MIN[DM_4340], MIT_CONTROL_T_MAX[DM_4340], 12);
+		motor_chassis[bMotorId].temperate = data[6];
+
+		ret_value = HAL_OK;
+	}
+	return ret_value;
+}
+
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 uint8_t decode_swerve_chassis_feedback(uint8_t *data)
 {
@@ -679,7 +706,7 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 	gimbal_can_send_data[0] = (fric_left >> 8);
 	gimbal_can_send_data[1] = fric_left;
 
-#if ROBOT_PITCH_IS_4310
+#if ROBOT_PITCH_IS_4340
 	//encode and send MIT control saperately
 	//gimbal_can_send_data[2] = (open >> 8);
 	//gimbal_can_send_data[3] = open;
@@ -704,13 +731,16 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
 //*************** MIT_control massage******************
-	osDelay((ROBOT_YAW_IS_4310||ROBOT_PITCH_IS_4310));//delay 1 ms if need to send MIT cmds in same CAN bus to other standard motor
+#if (ROBOT_YAW_IS_4310||ROBOT_PITCH_IS_4340)
+	osDelay(1);//delay 1 ms if need to send MIT cmds in same CAN bus to other standard motor
+#endif
+
 #if ROBOT_YAW_IS_4310
 	encode_MIT_motor_control(CAN_YAW_MOTOR_4310_TX_ID, 0, 0, 0, 0, yaw, DM_4310, &CHASSIS_CAN);
 #endif
 
-#if ROBOT_PITCH_IS_4310
-	encode_MIT_motor_control(CAN_PITCH_MOTOR_4310_TX_ID, 0, 0, 0, 0, pitch, DM_4310, &GIMBAL_CAN);
+#if ROBOT_PITCH_IS_4340
+	encode_MIT_motor_control(CAN_PITCH_MOTOR_4340_TX_ID, 0, 0, 0, 0, pitch, DM_4340, &GIMBAL_CAN);
 #endif
 
 }
