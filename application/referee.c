@@ -332,7 +332,11 @@ void get_projectile_allowance_42mm(uint16_t *projectile_allowance_42)
 void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0)
 {
 	*heat_limit = robot_state.shooter_barrel_heat_limit;
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	*heat0 = power_heat_data_t.shooter_42mm_barrel_heat;
+#else
 	*heat0 = power_heat_data_t.shooter_17mm_1_barrel_heat;
+#endif
 }
 
 void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1)

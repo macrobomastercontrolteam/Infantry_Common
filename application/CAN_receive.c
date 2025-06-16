@@ -991,8 +991,8 @@ void return_ref_info(uint8_t info_code)
 		
 		case BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT:
 		{
-			uint16_t heat_limit;
-			uint16_t barrel_1_heat;
+			uint16_t heat_limit = 0;
+			uint16_t barrel_1_heat = 0;
 			get_shoot_heat0_limit_and_heat(&heat_limit, &barrel_1_heat);
 
 			memcpy(&chassis_can_send_data[1], &heat_limit, 2); //sizeof(heat_limit) = 2
@@ -1002,9 +1002,10 @@ void return_ref_info(uint8_t info_code)
 		
 		case CHASSIS_POWER_INFO:
 		{
-			uint16_t power_buffer = get_chassis_power_buffer();
-			uint16_t power_limit = get_chassis_power_limit();
-
+			uint16_t power_buffer = 0;
+			uint16_t power_limit = 0;
+			get_chassis_power_data(&power_buffer,&power_limit);
+			
 			memcpy(&chassis_can_send_data[1], &power_buffer, 2);
 			memcpy(&chassis_can_send_data[3], &power_limit, 2);
 
