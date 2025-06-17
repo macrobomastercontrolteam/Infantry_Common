@@ -709,7 +709,7 @@ void CAN_cmd_chassis_reset_ID(void)
 void CAN_cmd_upper_head(void)
 {
 #if ENABLE_UPPER_HEAD_POWER
-	if (chassis_move.fUpperHeadEnabled)
+	if (chassis_move.fUpperHeadEnabled && is_game_started())
 	{
 		uint32_t send_mail_box;
 		chassis_tx_message.StdId = CAN_UPPER_HEAD_TX_ID;

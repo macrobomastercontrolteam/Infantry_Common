@@ -32,9 +32,10 @@ typedef enum
     CV_MODE_SHOOT_BIT = 1 << 3,
     CV_MODE_CHASSIS_SPINNING_BIT = 1 << 4,
     CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT = 1 << 5,
-    CV_MODE_LAST_BIT = 1 << 6,
+    CV_MODE_ASSIST_BIT = 1 << 6,
+    CV_MODE_LAST_BIT = 1 << 7,
 } eModeControlBits;
-STATIC_ASSERT(CV_MODE_LAST_BIT <= (1 << 8));
+STATIC_ASSERT(CV_MODE_LAST_BIT <= (1 << 7));
 
 /**
  * @brief main handler of communication status and commands received from CV
