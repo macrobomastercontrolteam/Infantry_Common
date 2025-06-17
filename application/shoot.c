@@ -59,6 +59,9 @@ bool_t isOverheated(void);
 
 shoot_control_t shoot_control;
 
+bool_t fCvAutoAimReady;
+
+bool_t fCvAutoAim(void);
 /**
  * @brief          Initialize the shoot control, including PID, remote control pointer, and motor pointer
  * @param[in]      void
@@ -379,11 +382,13 @@ static void shoot_set_mode(void)
 				{
 					if (shoot_control.last_press_r == 0)
 					{
+						fCvAutoAimReady = 1;
 						shoot_control.shoot_mode = SHOOT_READY_FRIC; // start rotatiing friction wheel
 					}
 				}
 				else
 				{
+					fCvAutoAimReady = 0;
 					shoot_control.shoot_mode = SHOOT_STOP;
 				}
 				break;
@@ -531,4 +536,8 @@ bool_t isOverheated(void)
 		}
 	}
 	return out;
+}
+
+bool_t fCvAutoAim(void){
+	return fCvAutoAimReady;
 }

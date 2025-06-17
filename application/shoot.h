@@ -187,7 +187,7 @@ typedef struct
 // because the shooting and gimbal use the same can id, the shooting task is also executed in the gimbal task
 extern void shoot_init(void);
 extern int16_t shoot_control_loop(void);
-
+extern bool_t fCvAutoAim(void);
 extern shoot_control_t shoot_control;
 
 #endif

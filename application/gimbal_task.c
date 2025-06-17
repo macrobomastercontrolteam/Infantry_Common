@@ -794,9 +794,8 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     }
 
 #if (ROBOT_TYPE != SENTRY_2023_MECANUM)
-        uint8_t fIsKeyVPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V) != 0);
 
-		if (fIsKeyVPressed)
+		if (CvCmder_GetMode(CV_MODE_ASSIST_BIT) && fCvAutoAim())
 		{
 
                 cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC *0.5f;
