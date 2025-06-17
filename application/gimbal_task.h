@@ -406,6 +406,9 @@
 #define YAW_RC_SEN_INC -(PI / YAW_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
 #define YAW_RC_MOUSE_SEN_INC -(PI / YAW_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / MOUSE_X_EFFECTIVE_SPEED)
 
+#define YAW_RC_CV_SEN_INC (PI / 100.0f)
+#define PITCH_RC_CV_SEN_INC (3.0f * PI / 500.0f)
+
 #define PITCH_RC_CHANGE_TIME_S 0.35f
 #define PITCH_RC_SEN_INC -(PI / 4.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
 #define PITCH_RC_MOUSE_SEN_INC (PI / 4.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / MOUSE_Y_EFFECTIVE_SPEED)
@@ -550,6 +553,8 @@ extern fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 
 extern bool_t gimbal_emergency_stop(void);
 
-fp32 get_gimbal_yaw_angle(void);
-fp32 get_gimbal_pitch_angle(void);
+extern fp32 get_gimbal_relative_yaw_angle(void);
+extern fp32 get_gimbal_relative_pitch_angle(void);
+extern fp32 get_gimbal_abs_yaw_angle(void);
+extern fp32 get_gimbal_abs_pitch_angle(void);
 #endif

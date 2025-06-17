@@ -178,6 +178,10 @@ static fp32 yaw_can_set_value = 0;
 static fp32 pitch_can_set_value = 0;
 static int16_t trigger_set_current = 0;
 
+uint8_t fLastKeyVSignal = 0;
+fp32 cvAidedX, cvAidedY, debugx, debugy;
+fp32 cv_coeff_x = 0.5, cv_coeff_y = 0.5;
+
 /**
   * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME_MS (1ms) 
   * @param[in]      pvParameters: null
@@ -660,7 +664,6 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
         enable_DaMiao_motor(CAN_PITCH_MOTOR_4340_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
     }
 #endif
-
     feedback_update->gimbal_pitch_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
 
 #if PITCH_REVERSED
@@ -805,10 +808,43 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         return;
     }
 
+#if (ROBOT_TYPE != SENTRY_2023_MECANUM)
+
+		if (CvCmder_GetMode(CV_MODE_ASSIST_BIT) && fCvAutoAim())
+		{
+
+                cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC *0.5f;
+                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC * 0.25f;
+                // cvAidedX = debugx * YAW_RC_CV_SEN_INC;
+                // cvAidedY = debugy * PITCH_RC_CV_SEN_INC;
+        
+		}
+        else{
+            cvAidedX = 0.0f;
+            cvAidedY = 0.0f;
+        }
+#else
+#if DEBUG_CV
+        if(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
+#else
+        if(toe_is_error(DBUS_TOE) && gimbal_behaviour == GIMBAL_AUTO_AIM)
+#endif
+        {
+            cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC*0.35f;
+            cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC *0.35f;
+        }
+        else{
+            cvAidedX = 0.0f;
+            cvAidedY = 0.0f;
+        }
+#endif
+
+    
     fp32 add_yaw_angle = 0.0f;
     fp32 add_pitch_angle = 0.0f;
-
     gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, set_control);
+    add_yaw_angle += cvAidedX;
+    add_pitch_angle += cvAidedY; 
     // yaw motor mode control
     if (set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
@@ -1073,12 +1109,22 @@ bool_t gimbal_emergency_stop(void)
 	return fEStop;
 }
 
-fp32 get_gimbal_yaw_angle(void)
+fp32 get_gimbal_relative_yaw_angle(void)
 {
     return rad_format(gimbal_control.gimbal_yaw_motor.absolute_angle - gimbal_control.gimbal_yaw_motor.absolute_angle_offset);
 }
 
-fp32 get_gimbal_pitch_angle(void)
+fp32 get_gimbal_relative_pitch_angle(void)
 {
     return rad_format(gimbal_control.gimbal_pitch_motor.absolute_angle - gimbal_control.gimbal_pitch_motor.absolute_angle_offset);
+}
+
+fp32 get_gimbal_abs_yaw_angle(void)
+{
+    return rad_format(gimbal_control.gimbal_yaw_motor.absolute_angle);
+}
+
+fp32 get_gimbal_abs_pitch_angle(void)
+{
+    return rad_format(gimbal_control.gimbal_pitch_motor.absolute_angle);
 }

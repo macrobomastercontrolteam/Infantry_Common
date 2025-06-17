@@ -8,12 +8,17 @@
 #define SENTRY_2023_MECANUM 4
 #define HERO_2025_MECANUM 5
 
+#define RMUL 0
+#define RMUC 1
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE HERO_2025_MECANUM
+#define COMPETITION_TYPE RMUL
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
+#define DEBUG_CV 0
 #define ENABLE_LASER 1
 #define USE_SERVO_TO_STIR_AMMO 0
+#define ENABLE_HIGHER_BAUD_RATE_FOR_CV 0
 /********************* Only Modify this area (end) *********************/
 
 #if (ROBOT_TYPE == INFANTRY_2024_MECANUM)

@@ -132,4 +132,26 @@ extern const fp32 *get_accel_data_point(void);
   */
 extern const fp32 *get_mag_data_point(void);
 
+
+/**
+  * @brief          Get the world frame linear acceleration (gravity compensated) by reference.
+  * @param[out]     accel_out: Pointer to a 3-element array to store [x, y, z] acceleration in m/s^2.
+  * @retval         None
+  */
+extern void get_world_linear_accel(fp32 accel_out[3]);
+
+/**
+  * @brief          Get the world frame velocity by reference.
+  * @param[out]     velocity_out: Pointer to a 3-element array to store [x, y, z] velocity in m/s.
+  * @retval         None
+  */
+extern void get_world_velocity(fp32 velocity_out[3]);
+
+/**
+  * @brief          Get the world frame position by reference.
+  * @param[out]     position_out: Pointer to a 3-element array to store [x, y, z] position in m.
+  * @retval         None
+  */
+extern void get_world_position(fp32 position_out[3]);
+
 #endif

@@ -252,9 +252,12 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
 #if CAN_PASS_REF_INFO
+extern can_ref_info_t can_ref_info;
+
 extern void pull_ref_info(uint8_t info_code);
 void decode_ref_info(uint8_t *rx_data);
 extern void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat);
+extern void CAN_get_chassis_power_info( fp32 *buffer, fp32 *power_limit);
 #endif
 
 #endif

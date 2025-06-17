@@ -70,6 +70,10 @@ shoot_control_t shoot_control;
 
 launcher_status_t launcher_status;
 
+bool_t fCvAutoAimReady;
+
+bool_t fCvAutoAim(void);
+
 /**
  * @brief          Initialize the shoot control, including PID, remote control pointer, and motor pointer
  * @param[in]      void
@@ -402,6 +406,11 @@ int16_t shoot_control_loop(void)
 #endif
 			{	
                 // Friction wheels are ready. Check for shooting command.
+#if ROBOT_TYPE == SENTRY_2023_MECANUM
+				if((chassis_move.chassis_RC->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_MID) && (chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_MID)){
+					shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
+				}
+#endif
 				if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // Auto aim mode
 				{
 					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT)) // CV requests shooting
@@ -632,11 +641,15 @@ static void shoot_set_mode(void)
 	}
 	else if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // Auto aim mode is active.
 	{
+#if !DEBUG_CV
 		if (is_game_started() == 0) // If game has not started.
 		{
 			shoot_control.shoot_mode = SHOOT_STOP; // Stop shooting before game starts.
 		}
 		else if (CvCmder_GetMode(CV_MODE_SHOOT_BIT)) // CV requests shooting.
+#else
+		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
+#endif
 		{
 			if (shoot_control.shoot_mode != SHOOT_AUTO_FIRE)
 			{
@@ -683,7 +696,8 @@ static void shoot_set_mode(void)
                         // If right mouse was just pressed.
 						if (shoot_control.last_press_r == 0)
 						{
-							shoot_control.shoot_mode = SHOOT_READY_FRIC; // Start spinning friction wheels. Actual shooting mode will be set corespondingly inside this mode.
+							fCvAutoAimReady = 1;
+						shoot_control.shoot_mode = SHOOT_READY_FRIC; // Start spinning friction wheels. Actual shooting mode will be set corespondingly inside this mode.
 						}
 					}
 					else if (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_B) //rerun the clearing process to handel jam
@@ -703,7 +717,8 @@ static void shoot_set_mode(void)
 
 					else 
 					{
-						shoot_control.shoot_mode = SHOOT_STOP; 
+						fCvAutoAimReady = 0;
+					shoot_control.shoot_mode = SHOOT_STOP; 
 					}
 				}
 
@@ -943,3 +958,7 @@ static bool_t piston_motor_control(int8_t move_direction) // direction = +-1
 	return launcher_status.piston_moving;
 }
 #endif
+
+bool_t fCvAutoAim(void){
+	return fCvAutoAimReady;
+}

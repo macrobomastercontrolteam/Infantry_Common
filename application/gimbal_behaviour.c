@@ -140,10 +140,10 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
   */
 static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
 
-#if CV_INTERFACE
-static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
-static void gimbal_cv_control_patrol(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
-#endif
+// #if CV_INTERFACE
+// static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
+// static void gimbal_cv_control_patrol(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
+// #endif
 
 /**
   * @brief          when gimbal behaviour mode is GIMBAL_RELATIVE_ANGLE, the function is called
@@ -167,6 +167,10 @@ static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *
 
 // Watchout for the default value
 gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
+// uint8_t fLastKeyVSignal = 0;
+// fp32 cvAidedX, cvAidedY, debugx, debugy;
+
+// fp32 cv_coeff_x = 0.5, cv_coeff_y = 0.5;
 
 #if GIMBAL_TEST_MODE
 static void J_scope_gimbal_behavior_test(void)
@@ -268,18 +272,18 @@ void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, gimbal_control
             gimbal_absolute_angle_control(add_yaw, add_pitch, gimbal_control_set);
             break;
         }
-#if CV_INTERFACE
-        case GIMBAL_AUTO_AIM:
-        {
-            gimbal_cv_control(add_yaw, add_pitch, gimbal_control_set);
-            break;
-        }
-        case GIMBAL_AUTO_AIM_PATROL:
-        {
-            gimbal_cv_control_patrol(add_yaw, add_pitch, gimbal_control_set);
-            break;
-        }
-#endif
+// #if CV_INTERFACE
+//         case GIMBAL_AUTO_AIM:
+//         {
+//             gimbal_cv_control(add_yaw, add_pitch, gimbal_control_set);
+//             break;
+//         }
+//         case GIMBAL_AUTO_AIM_PATROL:
+//         {
+//             gimbal_cv_control_patrol(add_yaw, add_pitch, gimbal_control_set);
+//             break;
+//         }
+// #endif
         case GIMBAL_RELATIVE_ANGLE:
         {
             gimbal_relative_angle_control(add_yaw, add_pitch, gimbal_control_set);
@@ -392,16 +396,8 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
     }
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) // remote controller logic
-	if (((gimbal_behaviour == GIMBAL_AUTO_AIM) || (gimbal_behaviour == GIMBAL_AUTO_AIM_PATROL)) && toe_is_error(DBUS_TOE))
-	{
-        // CV fully automatic mode without RC: do not switch out of cv state
-	}
-    else if (gimbal_emergency_stop())
-    {
-        gimbal_behaviour = GIMBAL_ZERO_FORCE;
-    }
-#else
+#if !(ROBOT_TYPE == SENTRY_2023_MECANUM) // remote controller logic
+
     if (gimbal_emergency_stop())
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
@@ -606,6 +602,20 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 		}
 		fLastKeyRSignal = fIsKeyRPressed;
 	}
+    // if (fIsKeyVPressed)
+    // {
+
+    //         cvAidedX = CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
+    //         cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC;
+    //         // cvAidedX = debugx * YAW_RC_CV_SEN_INC;
+    //         // cvAidedY = debugy * PITCH_RC_CV_SEN_INC;
+    
+    // }
+    // else{
+    //     cvAidedX = 0.0f;
+    //     cvAidedY = 0.0f;
+    // }
+
 
 	if (fCenterGimbal)
 	{
@@ -621,6 +631,8 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 
 		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
 		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
+        // *yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC + cvAidedX;
+		// *pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC + cvAidedY;
 	}
 
 	// {
@@ -659,7 +671,7 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
     // }
 }
 
-#if CV_INTERFACE
+// #if CV_INTERFACE
 /**
   * @brief          GIMBAL_AUTO_AIM mode: gimbal_motor_mode is GIMBAL_MOTOR_GYRO, gimbal_behaviour is GIMBAL_ABSOLUTE_ANGLE
   *                 Search for enemy in current camera frame without sweeping yaw and pitch angle, as opposite to GIMBAL_AUTO_AIM_PATROL mode
@@ -668,58 +680,58 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
   * @param[in]      gimbal_control_set: gimbal data
   * @retval         none
   */
-static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set)
-{
-    if (yaw == NULL || pitch == NULL)
-    {
-        return;
-    }
+// static void gimbal_cv_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set)
+// {
+//     if (yaw == NULL || pitch == NULL)
+//     {
+//         return;
+//     }
 
-    // Positive Directions
-    // CvCmdHandler.CvCmdMsg.xAngle: right
-    // CvCmdHandler.CvCmdMsg.yAngle: up
-    // yaw_target_adjustment : left (same direction as IMU)
-    // pitch_target_adjustment: down (same direction as IMU)
-    fp32 yaw_target_adjustment = 0;
-    fp32 pitch_target_adjustment = 0;
-    if (checkAndResetFlag(&CvCmdHandler.fCvCmdValid))
-    {
-#if CV_ABS_ANGLE_INPUT
-		yaw_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.xAngle + gimbal_control_set->gimbal_yaw_motor.absolute_angle_offset - gimbal_control_set->gimbal_yaw_motor.absolute_angle_set);        
-		pitch_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.yAngle + gimbal_control_set->gimbal_pitch_motor.absolute_angle_offset - gimbal_control_set->gimbal_pitch_motor.absolute_angle_set);
-#else
-		yaw_target_adjustment = -CvCmdHandler.CvCmdMsg.xAngle - rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle_set - gimbal_control_set->gimbal_yaw_motor.absolute_angle);
-		pitch_target_adjustment = -CvCmdHandler.CvCmdMsg.yAngle - rad_format(gimbal_control_set->gimbal_pitch_motor.absolute_angle_set - gimbal_control_set->gimbal_pitch_motor.absolute_angle);
-#endif
-	}
-    // brakeband_limit(yaw_target_adjustment, yaw_target_adjustment, CV_CAMERA_YAW_BRAKEBAND);
-    // brakeband_limit(pitch_target_adjustment, pitch_target_adjustment, CV_CAMERA_PITCH_BRAKEBAND);
-    // *yaw = moving_average_calc(yaw_target_adjustment, &(gimbal_control_set->gimbal_yaw_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
-    // *pitch = moving_average_calc(pitch_target_adjustment, &(gimbal_control_set->gimbal_pitch_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
-    *yaw = yaw_target_adjustment;
-    *pitch = pitch_target_adjustment;
-}
+//     // Positive Directions
+//     // CvCmdHandler.CvCmdMsg.xAngle: right
+//     // CvCmdHandler.CvCmdMsg.yAngle: up
+//     // yaw_target_adjustment : left (same direction as IMU)
+//     // pitch_target_adjustment: down (same direction as IMU)
+//     fp32 yaw_target_adjustment = 0;
+//     fp32 pitch_target_adjustment = 0;
+//     if (checkAndResetFlag(&CvCmdHandler.fCvCmdValid))
+//     {
+// #if CV_ABS_ANGLE_INPUT
+// 		//yaw_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.xAngle + gimbal_control_set->gimbal_yaw_motor.absolute_angle_offset - gimbal_control_set->gimbal_yaw_motor.absolute_angle_set);        
+// 		//pitch_target_adjustment = rad_format(CvCmdHandler.CvCmdMsg.yAngle + gimbal_control_set->gimbal_pitch_motor.absolute_angle_offset - gimbal_control_set->gimbal_pitch_motor.absolute_angle_set);
+// #else
+// 		yaw_target_adjustment = -CvCmdHandler.CvCmdMsg.xAngle - rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle_set - gimbal_control_set->gimbal_yaw_motor.absolute_angle);
+// 		pitch_target_adjustment = -CvCmdHandler.CvCmdMsg.yAngle - rad_format(gimbal_control_set->gimbal_pitch_motor.absolute_angle_set - gimbal_control_set->gimbal_pitch_motor.absolute_angle);
+// #endif
+// 	}
+//     // brakeband_limit(yaw_target_adjustment, yaw_target_adjustment, CV_CAMERA_YAW_BRAKEBAND);
+//     // brakeband_limit(pitch_target_adjustment, pitch_target_adjustment, CV_CAMERA_PITCH_BRAKEBAND);
+//     // *yaw = moving_average_calc(yaw_target_adjustment, &(gimbal_control_set->gimbal_yaw_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
+//     // *pitch = moving_average_calc(pitch_target_adjustment, &(gimbal_control_set->gimbal_pitch_motor.CvCmdAngleFilter), MOVING_AVERAGE_CALC);
+//     *yaw = yaw_target_adjustment;
+//     *pitch = pitch_target_adjustment;
+// }
 
-/**
- * @brief          GIMBAL_AUTO_AIM_PATROL mode: gimbal_motor_mode is GIMBAL_MOTOR_GYRO, gimbal_behaviour is GIMBAL_ABSOLUTE_ANGLE
- *                 Search for enemy while sweeping yaw and pitch angle for cv to detect, as opposite to GIMBAL_AUTO_AIM mode
- * @param[out]     yaw: yaw axia absolute angle increment, unit rad
- * @param[out]     pitch: pitch axia absolute angle increment,unit rad
- * @param[in]      gimbal_control_set: gimbal data
- * @retval         none
- */
-static void gimbal_cv_control_patrol(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set)
-{
-    if (yaw == NULL || pitch == NULL)
-    {
-        return;
-    }
+// /**
+//  * @brief          GIMBAL_AUTO_AIM_PATROL mode: gimbal_motor_mode is GIMBAL_MOTOR_GYRO, gimbal_behaviour is GIMBAL_ABSOLUTE_ANGLE
+//  *                 Search for enemy while sweeping yaw and pitch angle for cv to detect, as opposite to GIMBAL_AUTO_AIM mode
+//  * @param[out]     yaw: yaw axia absolute angle increment, unit rad
+//  * @param[out]     pitch: pitch axia absolute angle increment,unit rad
+//  * @param[in]      gimbal_control_set: gimbal data
+//  * @retval         none
+//  */
+// static void gimbal_cv_control_patrol(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set)
+// {
+//     if (yaw == NULL || pitch == NULL)
+//     {
+//         return;
+//     }
 
-    // @TODO: patrol mode state machine
-    *yaw = 0.0f;
-    *pitch = 0.0f;
-}
-#endif
+//     // @TODO: patrol mode state machine
+//     *yaw = 0.0f;
+//     *pitch = 0.0f;
+// }
+// #endif
 
 /**
   * @brief          when gimbal behaviour mode is GIMBAL_RELATIVE_ANGLE, the function is called
@@ -741,6 +753,7 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 	uint8_t fCenterGimbal = 0;
 	static uint8_t fLastKeyRSignal = 0;
 	uint8_t fIsKeyRPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) != 0);
+    // uint8_t fIsKeyVPressed = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V) != 0);
 	if (fLastKeyRSignal != fIsKeyRPressed)
 	{
 		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
@@ -748,6 +761,19 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 			fCenterGimbal = fIsKeyRPressed;
 		}
 		fLastKeyRSignal = fIsKeyRPressed;
+        // if (fLastKeyVSignal != fIsKeyVPressed)
+        // {
+        //     if (fIsKeyVPressed)
+        //     {
+    
+        //             cvAidedX = CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC;
+        //             cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC;
+            
+        //     }
+        //     else{
+        //         cvAidedX = 0.0f;
+        //         cvAidedY = 0.0f;
+        //     }
 	}
 
 	if (fCenterGimbal)
@@ -765,6 +791,8 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 
 		*yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC;
 		*pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC;
+        // *yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC + cvAidedX;
+		// *pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC + cvAidedY;
 	}
 }
 
