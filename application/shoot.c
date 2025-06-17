@@ -645,13 +645,13 @@ static void shoot_set_mode(void)
 	if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRICTIONAL_MOTOR_LEFT_TOE) || toe_is_error(FRICTIONAL_MOTOR_RIGHT_TOE) || toe_is_error(FRICTIONAL_MOTOR_UP_TOE) || toe_is_error(FRICTIONAL_MOTOR_DOWN_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))	
 #else
 	// Standard Robot: Check for gimbal command to stop or errors in the 2 friction motors or trigger motor.
-	if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRICTIONAL_MOTOR_LEFT_TOE) || toe_is_error(FRICTIONAL_MOTOR_RIGHT_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
+	//if (toe_is_error(FRICTIONAL_MOTOR_LEFT_TOE) || toe_is_error(FRICTIONAL_MOTOR_RIGHT_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))
 #endif	
 	{
-		shoot_control.shoot_mode = SHOOT_STOP; // Set mode to STOP if any critical error or stop command.
+		//shoot_control.shoot_mode = SHOOT_STOP; // Set mode to STOP if any critical error or stop command.
 	}
 	// If referee system is online and shooter power output is 0 (e.g., due to power limits).
-	else if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_shooter_output == 0))
+	if ((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_shooter_output == 0))
 	{
 		shoot_control.shoot_mode = SHOOT_STOP; // Stop shooting if power management disables shooter.
 	}
