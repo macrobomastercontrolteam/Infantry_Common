@@ -263,7 +263,7 @@ void referee_data_solve(uint8_t *frame)
 	}
 }
 
-void get_chassis_power_data(fp32 *buffer, fp32 *power_limit)
+void get_chassis_power_data(uint16_t *buffer, uint16_t *power_limit)
 {
 	*buffer = power_heat_data_t.buffer_energy;
 	if (robot_state.chassis_power_limit > 0)
@@ -332,7 +332,7 @@ void get_projectile_allowance_42mm(uint16_t *projectile_allowance_42)
 void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0)
 {
 	*heat_limit = robot_state.shooter_barrel_heat_limit;
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (LAUNCHER_TYPE == LAUNCHER_42MM)
 	*heat0 = power_heat_data_t.shooter_42mm_barrel_heat;
 #else
 	*heat0 = power_heat_data_t.shooter_17mm_1_barrel_heat;

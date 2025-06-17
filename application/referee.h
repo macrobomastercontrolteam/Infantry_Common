@@ -361,7 +361,7 @@ typedef __packed struct
 extern void init_referee_struct_data(void);
 extern void referee_data_solve(uint8_t *frame);
 
-extern void get_chassis_power_data(fp32 *buffer, fp32 *power_limit);
+extern void get_chassis_power_data(uint16_t *buffer, uint16_t *power_limit);
 
 extern uint8_t get_robot_id(void);
 extern uint8_t get_team_color(void);
