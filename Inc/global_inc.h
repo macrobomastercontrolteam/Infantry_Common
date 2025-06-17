@@ -13,6 +13,9 @@
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE INFANTRY_2023_MECANUM
 #define SUPERCAP_TYPE UBC_SUPERCAP
+#define ENABLE_SUPERCAP_OFFLINE_PROTECT 0 // this is used for constraining the chassis power consumption when the supecap is offline
+                                          // when using the MAcRM supercap and UBC supercap, this could be set to 0 because they have the control loop 
+                                          // to suppress the chassis power consumption under 55w
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define ENABLE_LASER 1
