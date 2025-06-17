@@ -34,7 +34,11 @@
 
 #define GIMBAL_TEST_MODE 0
 
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#define PITCH_REVERSED  1
+#else
 #define PITCH_REVERSED  0
+#endif
 #define YAW_REVERSED    0
 
 #define int_abs(x) ((x) > 0 ? (x) : (-x))
