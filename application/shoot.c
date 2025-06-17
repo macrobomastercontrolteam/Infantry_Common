@@ -734,7 +734,7 @@ static void shoot_set_mode(void)
 					else 
 					{
 						fCvAutoAimReady = 0;
-					shoot_control.shoot_mode = SHOOT_STOP; 
+						shoot_control.shoot_mode = SHOOT_STOP; 
 					}
 				}
 
