@@ -187,6 +187,14 @@ int16_t shoot_control_loop(void)
 				shoot_control.friction_motor3_pid.max_out = FRICTION_3_SPEED_PID_MAX_OUT;
 				shoot_control.friction_motor4_pid.max_out = FRICTION_4_SPEED_PID_MAX_OUT;
 
+				launcher_status.init_step = 0;
+				launcher_status.piston_moving = 0;
+				launcher_status.Launcher_Opened = 0;
+				launcher_status.Launcher_Loaded = 0;
+				launcher_status.Chain_Loaded = 0;
+				launcher_status.piston_moving = 0; 
+				shoot_control.trigger_speed_set = 0.0f;
+
 				break;
 			}
 #endif
@@ -237,7 +245,7 @@ int16_t shoot_control_loop(void)
 				PID_clear(&shoot_control.trigger_motor_pid);
 				break;
 			}
-			
+#if (ROBOT_TYPE != HERO_2025_MECANUM)
 			case SHOOT_AUTO_FIRE:
 			{
 				// No specific setup needed when entering auto fire directly,
@@ -246,13 +254,14 @@ int16_t shoot_control_loop(void)
 			}
 			case SHOOT_SEMI_AUTO_FIRE:
 			{
-                // Setup for semi-automatic fire.
-                // Set target angle for trigger motor to advance one bullet.
+				// Setup for semi-automatic fire.
+				// Set target angle for trigger motor to advance one bullet.
 				shoot_control.set_angle = rad_format(shoot_control.trigger_angle + TRIGGER_ANGLE_INCREMENT);
-                // Set trigger motor speed for semi-auto.
+				// Set trigger motor speed for semi-auto.
 				shoot_control.trigger_speed_set = SEMI_AUTO_FIRE_TRIGGER_SPEED;
 				break;
 			}
+#endif
 			default:
 			{
 				break;
@@ -339,15 +348,17 @@ int16_t shoot_control_loop(void)
 					shoot_control.friction_motor3_rpm_set = -HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
 					shoot_control.friction_motor4_rpm_set = HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
 
-					if(launcher_status.Launcher_Jamed == 1)
+					if(launcher_status.Launcher_Jamed == 1) //move-on directly to pushing piston to help un-jam fric wheel, triggered by key 'V'
 					{
-						launcher_status.init_step = 2;
+						shoot_control.friction_motor3_rpm_set = -HERO_FRICTON_MOTOR_JAM_RESOLVE_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+						shoot_control.friction_motor4_rpm_set = HERO_FRICTON_MOTOR_JAM_RESOLVE_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+						launcher_status.init_step = 2; 
 					}
 					else if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 					{
-						if (launcher_status.Loader_Jamed == 1) // manually triggered jam flag(key'B') to hendel ball stucked outside launcher
+						if (launcher_status.Loader_Jamed == 1) //  rotate trigger moter first to hendel ball stucked during loading, triggered by key'B'
 						{
-							shoot_control.trigger_speed_set = JAM_RESOVE_TRIGGER_SPEED;
+							shoot_control.trigger_speed_set = JAM_RESOLVE_TRIGGER_SPEED;
 						}
 						else
 						{
@@ -450,6 +461,7 @@ int16_t shoot_control_loop(void)
 			break;
 		}
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
+
 		case HERO_LAUNCHER_READY: // Specific ready mode for HERO_2025_MECANUM.
 		{
 			// This mode is used to prepare the launcher for shooting.
@@ -469,6 +481,7 @@ int16_t shoot_control_loop(void)
 			}
 			break;
 		}
+
 		case HERO_LAUNCHER_SHOOT: // Specific shooting mode for HERO_2025_MECANUM.
 		{
 
@@ -507,9 +520,11 @@ int16_t shoot_control_loop(void)
 			break;
 		}
 #endif
+
+#if (ROBOT_TYPE != HERO_2025_MECANUM)
 		case SHOOT_SEMI_AUTO_FIRE: // Standard robot semi-automatic fire.
 		{
-            // In SHOOT_SEMI_AUTO_FIRE mode:
+			// In SHOOT_SEMI_AUTO_FIRE mode:
 			if (shoot_control.press_r == 0) // Right mouse button released (typically used to stop/cancel)
 			{
 				shoot_control.shoot_mode = SHOOT_STOP;
@@ -518,26 +533,26 @@ int16_t shoot_control_loop(void)
 			{
 				shoot_control.shoot_mode = SHOOT_AUTO_FIRE; // Switch to auto fire.
 			}
-            // If the trigger motor has reached the target angle for one shot, or if overheated:
+			// If the trigger motor has reached the target angle for one shot, or if overheated:
 			else if ((rad_format(shoot_control.set_angle - shoot_control.trigger_angle) <= TRIGGER_MOTOR_ANGLE_THRESHOLD) || isOverheated())
 			{
-				shoot_control.trigger_speed_set = 0.0f; // Stop trigger motor.
+				shoot_control.trigger_speed_set = 0.0f;				   // Stop trigger motor.
 				shoot_control.set_angle = shoot_control.trigger_angle; // Update set_angle to current angle.
-				shoot_control.shoot_mode = SHOOT_READY_FRIC; // Return to ready state.
+				shoot_control.shoot_mode = SHOOT_READY_FRIC;		   // Return to ready state.
 			}
-            // Otherwise, trigger motor continues to run at SEMI_AUTO_FIRE_TRIGGER_SPEED (set when entering this state).
+			// Otherwise, trigger motor continues to run at SEMI_AUTO_FIRE_TRIGGER_SPEED (set when entering this state).
 			break;
 		}
 		case SHOOT_AUTO_FIRE: // Standard robot automatic fire.
 		{
-            // In SHOOT_AUTO_FIRE mode:
+			// In SHOOT_AUTO_FIRE mode:
 			if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // Auto aim mode
 			{
 				if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) == 0) // CV stops requesting shoot
 				{
 					shoot_control.shoot_mode = SHOOT_READY_FRIC; // Return to ready state.
 				}
-                // If CV_MODE_SHOOT_BIT is 1, stay in auto fire.
+				// If CV_MODE_SHOOT_BIT is 1, stay in auto fire.
 			}
 			else // Manual control mode
 			{
@@ -553,14 +568,14 @@ int16_t shoot_control_loop(void)
 					}
 					else if ((shoot_control.press_l == 0)) // Left mouse button released
 					{
-						shoot_control.trigger_speed_set = 0; // Stop trigger motor.
+						shoot_control.trigger_speed_set = 0;		 // Stop trigger motor.
 						shoot_control.shoot_mode = SHOOT_READY_FRIC; // Return to ready state.
 					}
 					// If left mouse button is still pressed, stay in auto fire.
 				}
 			}
 
-            // Handle overheating for auto fire.
+			// Handle overheating for auto fire.
 			if (isOverheated())
 			{
 				shoot_control.trigger_speed_set = 0; // Stop trigger motor if overheated.
@@ -571,7 +586,8 @@ int16_t shoot_control_loop(void)
 			}
 			break;
 		}
-	}
+#endif
+		}
 
     // Handle trigger motor stall and set its speed based on trigger_speed_set.
 	trigger_motor_stall_handler();

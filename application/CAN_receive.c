@@ -1125,7 +1125,7 @@ void decode_ref_info(uint8_t *rx_data)
 		case BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT:
 		{
 			memcpy(&can_ref_info.barrel_heat_limit, rx_data + 1, 2);
-			memcpy(&can_ref_info.barrel_1_heat, rx_data + 3, 2);
+			memcpy(&can_ref_info.barrel_1_heat, rx_data + 3, 2); //stored saperately from uart-refree data, 42mm or 17mm heat determined in lower board
 			break;
 		}
 		
