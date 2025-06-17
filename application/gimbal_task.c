@@ -813,8 +813,8 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 		if (CvCmder_GetMode(CV_MODE_ASSIST_BIT) && fCvAutoAim())
 		{
 
-                cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC *0.5f;
-                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC * 0.25f;
+                cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC * 0.85f;
+                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC * 0.85f;
                 // cvAidedX = debugx * YAW_RC_CV_SEN_INC;
                 // cvAidedY = debugy * PITCH_RC_CV_SEN_INC;
         
