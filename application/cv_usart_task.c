@@ -112,9 +112,20 @@ void cv_usart_task(void const *argument)
 {
 	uint32_t ulSystemTime = osKernelSysTick();
 	CvCmder_Init();
+
+//enable auto aim mode for Sentry 2023 Mecanum robots
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)	
 	CvCmder_ToggleMode(CV_MODE_AUTO_AIM_BIT);
 #endif
+	//Init all the flags at the beginning of the task
+	CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
+	CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
+	CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
+	CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
+	CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
+	CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
+	CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 0);
+
 	while (1)
 	{
 		CvCmder_PollForModeChange();
