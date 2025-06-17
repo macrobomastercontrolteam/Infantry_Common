@@ -76,52 +76,10 @@ typedef __packed struct // 0003
 	uint16_t blue_base_HP;
 } ext_game_robot_HP_t;
 
-// typedef __packed struct // 0005
-// {
-//     uint8_t F1_zone_status : 1;
-//     uint8_t F1_zone_buff_debuff_status : 3;
-//     uint8_t F2_zone_status : 1;
-//     uint8_t F2_zone_buff_debuff_status : 3;
-//     uint8_t F3_zone_status : 1;
-//     uint8_t F3_zone_buff_debuff_status : 3;
-//     uint8_t F4_zone_status : 1;
-//     uint8_t F4_zone_buff_debuff_status : 3;
-//     uint8_t F5_zone_status : 1;
-//     uint8_t F5_zone_buff_debuff_status : 3;
-//     uint8_t F6_zone_status : 1;
-//     uint8_t F6_zone_buff_debuff_status : 3;
-//     uint16_t red1_bullet_left;
-//     uint16_t red2_bullet_left;
-//     uint16_t blue1_bullet_left;
-//     uint16_t blue2_bullet_left;
-//     uint8_t lurk_mode;
-//     uint8_t res;
-// } ext_ICRA_buff_debuff_zone_and_lurk_status_t;
-
 typedef __packed struct // 0x0101
 {
 	uint32_t event_data;
 } ext_event_data_t;
-
-// typedef __packed struct // 0x0102
-// {
-// 	uint8_t supply_projectile_id;
-// 	uint8_t supply_robot_id;
-// 	uint8_t supply_projectile_step;
-// 	uint8_t supply_projectile_num;
-// } ext_supply_projectile_action_t;
-
-// typedef __packed struct // 0x0103
-// {
-//     uint8_t supply_projectile_id;
-//     uint8_t supply_robot_id;
-//     uint8_t supply_num;
-// } ext_supply_projectile_booking_t;
-
-// typedef __packed struct // 0x0104
-// {
-//     uint8_t dart_remaining_time;
-// } ext_supply_projectile_booking_t //Current: ext_dart_remaining_time_t;
 
 typedef __packed struct // 0x0104
 {
@@ -266,18 +224,14 @@ typedef __packed struct // 0x020E
 // 	uint8_t bullet_remaining_num;
 // } ext_bullet_remaining_t;
 
-typedef __packed struct // 0x0301
-{
-	// uint16_t send_ID;
-	// uint16_t receiver_ID;
-	// uint16_t data_cmd_id;
-	// uint16_t data_len;
-	// uint8_t *data;
-	uint16_t data_cmd_id;
-	uint16_t sender_id;
-	uint16_t receiver_id;
-	uint8_t user_data[MAX_USER_DATA_LEN]; //x <= 112
-} ext_student_interactive_data_t;
+// typedef __packed struct // 0x0301
+// {
+// 	uint16_t data_cmd_id;
+// 	uint16_t sender_id;
+// 	uint16_t receiver_id;
+// 	uint8_t user_data[MAX_USER_DATA_LEN]; //x <= 112
+// } ext_student_interactive_data_t;
+
 typedef __packed struct // 0x100
 {
 	uint8_t delete_type;
@@ -312,12 +266,6 @@ typedef __packed struct //0x103
 interaction_figure_t interaction_figure[5]; 
 }interaction_figure_3_t; 
 
-// typedef __packed struct //0x0110
-// {
-//     graphic_data_struct_t grapic_data_struct;
-//     uint8_t data[30];
-// } ext_client_custom_character_t;
-
 typedef __packed struct // 0x0120
 {
 	uint32_t sentry_cmd;
@@ -328,47 +276,15 @@ typedef __packed struct // 0x0121
 	uint8_t radar_cmd;
 } ext_radar_cmd_t;
 
-// typedef __pack struct // 0x0303
-// {
-//     float target_position_x;
-//     float target_position_y;
-//     uint8_t cmd_keyboard;
-//     uint8_t target_robot_id;
-//     uint8_t cmd_source;
-// } ext_robot_command_t;
-
-//     uint8_t cmd_keyboard;
-//     uint8_t target_robot_id;
-//     uint8_t cmd_source;
-// } ext_map_command_t;
-
-// typedef __pack struct // 0x0304
-// {
-//     int16_t mouse_x;
-//     int16_t mouse_y;
-//     int16_t mouse_z;
-//     int8 left_button_down;
-//     int8 right_button_down;
-//     uint16_t keyboard_value;
-//     uint16_t reserved;
-// } ext_robot_keyboard_mouse_command_t; //Current: remote_control_t;
-
-// typedef __pack struct // 0x0305
-// {
-//     uint16_t target_robot_id;
-//     float target_position_x;
-//     float target_position_y;
-// } ext_map_robot_data_t;
-
-// typedef __packed struct // 0x0306
-// {
-// 	uint16_t key_value;
-// 	uint16_t x_position : 12;
-// 	uint16_t mouse_left : 4;
-// 	uint16_t y_position : 12;
-// 	uint16_t mouse_right : 4;
-// 	uint16_t reserved;
-// } ext_custom_client_data_t;
+typedef __packed struct // 0x0306
+{
+	uint16_t key_value;
+	uint16_t x_position : 12;
+	uint16_t mouse_left : 4;
+	uint16_t y_position : 12;
+	uint16_t mouse_right : 4;
+	uint16_t reserved;
+} ext_custom_client_data_t;
 
 typedef __packed struct // 0x0307
 {
@@ -441,16 +357,6 @@ typedef __packed struct
 	uint8_t data[32];
 } ext_download_stream_data_t;
 
-// typedef __packed union
-// {
-//     __packed struct
-//     {
-//         fp32 demoArmAngle[7];
-//         uint8_t fIsTeaching;
-//     } tData;
-//     uint8_t data[30];
-// } custom_robot_data_t;
-// STATIC_ASSERT(sizeof(custom_robot_data_t) <= 30);
 
 extern void init_referee_struct_data(void);
 extern void referee_data_solve(uint8_t *frame);
