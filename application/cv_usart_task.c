@@ -129,11 +129,13 @@ void cv_usart_task(void const *argument)
 	while (1)
 	{
 		CvCmder_PollForModeChange();
-		// shoot mode timeout logic
+		// shoot mode timeout logic for automatic robots
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && (osKernelSysTick() - CvCmdHandler.ulShootStartTime > SHOOT_TIMEOUT_MS))
 		{
 			CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 		}
+#endif
 		osDelayUntil(&ulSystemTime, CV_CONTROL_TIME_MS);
 	}
 }
@@ -511,16 +513,19 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				get_projectile_allowance_17mm(&projectile_allowance_17mm);
 				if(length == 1){
 					uint8_t shootCmd = pData[2];
-#if !DEBUG_CV
+//setting shoot flag for automatic robots					
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+	#if !DEBUG_CV
 					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-60)< shoot_heat_limit) && is_game_started()){
-#else
+	#else
 					if((shootCmd == 0xFF)){
-#endif
+	#endif
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 1);
 						CvCmdHandler.ulShootStartTime = osKernelSysTick();
 					} else {
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 					}
+#endif
 					CvCmder_SendAck(MSG_SHOOT_CMD);
 					detect_hook(CV_TOE);
 				}
