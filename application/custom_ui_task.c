@@ -299,19 +299,91 @@ void trigger_motor_state_draw(float trigger_rpm)
 
 void chassis_mode_draw(void)
 {
-	 
-	if (toggle == 0)
+	sprintf(number_str, "%d", ui_info.supercap_persentage);  
+	char_draw(&Cap_percentage, "Cap_percentage", UI_Graph_Change, 2, UI_Color_Main, 13, 4, 3, 1770, 762, number_str);
+	update_char(&Cap_percentage);
+
+	//If else statements for indicator color
+	if (ui_info.auto_aim_state == 0) 
+	{
+		circle_draw(&AutoAim_indicator, "AutoAim_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 720, 5);
+		update_ui(&AutoAim_indicator);
+	} 
+	else if (ui_info.auto_aim_state == 1)
+	{
+		circle_draw(&AutoAim_indicator, "AutoAim_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 720, 5);
+		update_ui(&AutoAim_indicator);
+	}
+
+	if (ui_info.spinning_state == 0) 
 	{
 		circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 600, 5);
 		update_ui(&Spin_indicator);
-	
-	}
-	else if(toggle == 1)
+	} 
+	else if (ui_info.spinning_state == 1) 
 	{
-		circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Cyan, 10, 1755, 600, 5);
+		circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 600, 5);
 		update_ui(&Spin_indicator);
-
 	}
+
+	if (ui_info.firc_state == 0)
+	{
+		circle_draw(&Firc_indicator, "Firc_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 680, 5);
+		update_ui(&Firc_indicator);
+	}
+	else if (ui_info.firc_state == 1)
+	{
+		circle_draw(&Firc_indicator, "Firc_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 680, 5);
+		update_ui(&Firc_indicator);
+	}
+
+	if (ui_info.trigger_state == 0) 
+	{
+		circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_Change, 7, UI_Color_Purplish_red, 10, 1755, 640, 5);
+		update_ui(&Trigger_indicator);
+	}
+	else if (ui_info.trigger_state == 1)
+	{
+		circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_Change, 7, UI_Color_Green, 10, 1755, 640, 5);
+		update_ui(&Trigger_indicator);
+	}
+
+	if (ui_info.Limit_Ignored == 0) 
+	{
+		circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 800, 5);
+		update_ui(&Limit_indicator);	
+	} else if (ui_info.Limit_Ignored == 1)
+	{
+		circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 800, 5);
+		update_ui(&Limit_indicator);
+	}
+
+#if (LAUNCHER_TYPE == LAUNCHER_42MM)
+	if (ui_info.Launcher_Loaded == 0)
+	{
+		circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 840, 5);
+		update_ui(&Loaded_indicator);
+	}
+	else if (ui_info.Launcher_Loaded == 1)
+	{
+		circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_Change, 2, UI_Color_Green,  10, 1755, 840, 5);
+		update_ui(&Loaded_indicator);
+	}
+
+	if (ui_info.Launcher_Opened == 0)
+	{
+		circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 880, 5);
+		update_ui(&Opened_indicator);
+	}
+	else if (ui_info.Launcher_Opened == 1)
+	{
+		circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 880, 5);
+		update_ui(&Opened_indicator);
+	}
+#endif
+
+	
+
 	// switch (chassis_behaviour_mode)
 	// {
 	// 	case CHASSIS_BASIC_FPV_MODE:
