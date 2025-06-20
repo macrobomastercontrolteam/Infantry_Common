@@ -32,9 +32,10 @@ typedef struct
   uint8_t auto_aim_state;
 
   uint8_t supercap_persentage;
-#if (LAUNCHER_TYPE == LAUNCHER_42MM)
+
   uint8_t Limit_Ignored;
 
+#if (LAUNCHER_TYPE == LAUNCHER_42MM)
   uint8_t Launcher_Loaded;
   uint8_t Launcher_Opened;
 #endif

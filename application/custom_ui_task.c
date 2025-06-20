@@ -140,7 +140,7 @@ void static_elements_init(void)
 	char_draw(&Cap_state, "Cap_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 765, "CAP%");
 	update_char(&Cap_state);
 
-	sprintf(number_str, "%d", 23);  
+	sprintf(number_str, "%d", -1);  
 	char_draw(&Cap_percentage, "Cap_percentage", UI_Graph_ADD, 2, UI_Color_Main, 13, 4, 3, 1770, 762, number_str);
 	update_char(&Cap_percentage);
 
@@ -152,6 +152,7 @@ void static_elements_init(void)
 	update_ui(&Limit_indicator);
 
 	// Launcher Loaded
+#if (LAUNCHER_TYPE == LAUNCHER_42MM)
 	char_draw(&Loaded_state, "Loaded_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 845, "LOAD");
 	update_char(&Loaded_state);
 	circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 840, 5);
@@ -162,7 +163,7 @@ void static_elements_init(void)
 	update_char(&Opened_state);
 	circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 880, 5);
 	update_ui(&Opened_indicator);
-
+#endif
 	// line_draw(&crosshair_vert, "091", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 960, 330, 960, 620);
 	// update_ui(&crosshair_vert);
 	// line_draw(&crosshair_hori_2, "092", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 880, 580, 1040, 580);
