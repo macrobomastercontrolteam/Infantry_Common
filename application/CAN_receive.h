@@ -110,6 +110,7 @@ typedef enum
   CAN_REF_INFO_PULL_RX_ID = 0x130,
   CAN_REF_INFO_PULL_TX_ID = 0x131,
 
+  CAN_UI_INFO_RX_ID = 0x135,
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
@@ -226,4 +227,5 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
 extern void return_ref_info(uint8_t info_code);
+void decode_ui_info(uint8_t *rx_data);
 #endif

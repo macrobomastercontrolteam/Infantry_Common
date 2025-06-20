@@ -30,6 +30,7 @@
 #include "chassis_behaviour.h"
 #include "string.h"
 #include "shoot.h"
+#include "custom_ui_task.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
@@ -232,6 +233,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(MAIN_BOARD_TOE);
 				break;
 			}
+			case CAN_UI_INFO_RX_ID:
+			{
+				decode_ui_info(rx_data);
+				break;
+			}
+
 #if ROBOT_YAW_IS_4310
 			case CAN_YAW_MOTOR_4310_RX_ID:
 			{
@@ -1018,4 +1025,20 @@ void return_ref_info(uint8_t info_code)
 		
 	}
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+void decode_ui_info(uint8_t *rx_data)
+{
+	ui_info.spinning_state = rx_data[0];
+
+	ui_info.trigger_state = rx_data[1];
+	ui_info.firc_state = rx_data[2];
+	ui_info.auto_aim_state = rx_data[3];
+
+	ui_info.supercap_persentage = rx_data[4];
+	
+	ui_info.Limit_Ignored = rx_data[5];
+	ui_info.Launcher_Loaded = rx_data[6];
+	ui_info.Launcher_Opened = rx_data[7];
+
 }

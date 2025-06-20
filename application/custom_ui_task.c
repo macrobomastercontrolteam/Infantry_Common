@@ -2,7 +2,7 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       chassis.c/h
   * @brief      Chassis control task,
-  *             底盘控制任务
+  *             
   * @note
   * @history
   *  Version    Date            Author          Modification
@@ -28,8 +28,11 @@
 #include "graphic.h"
 #include "referee.h"
 #include "shoot.h"
+#include <stdio.h>
 
 #define CUSTOM_UI_TIME_MS 10.0f
+
+ui_info_t ui_info;
 
 graphic_data_struct_t barrel_dir;
 graphic_data_struct_t chassis_dir;
@@ -55,7 +58,27 @@ string_data trigger_speed;
 string_data trigger_speed_data;
 string_data rand_spin_str;
 string_data robot_status_str;
-string_data MacRM_logo_str;
+
+string_data Spin_state;
+graphic_data_struct_t Spin_indicator;
+string_data Trigger_state;
+graphic_data_struct_t Trigger_indicator;
+string_data Firc_state;
+graphic_data_struct_t Firc_indicator;
+string_data AutoAim_state;
+graphic_data_struct_t AutoAim_indicator;
+string_data Cap_state;
+string_data Cap_percentage;
+string_data Limit_state;
+graphic_data_struct_t Limit_indicator;
+string_data Loaded_state;
+graphic_data_struct_t Loaded_indicator;
+string_data Opened_state;
+graphic_data_struct_t Opened_indicator;
+
+
+uint8_t toggle = 0; 
+char number_str[5];
 
 void static_elements_init(void);
 void super_cap_status_draw(void);
@@ -68,18 +91,23 @@ void trigger_motor_state_draw(float trigger_rpm);
 void custom_ui_task(void const *argument)
 {
 	uint32_t ulSystemTime = osKernelSysTick();
-	for (uint8_t i = 0; i <= 30; i++)
+	for (uint8_t i = 0; i <= 50; i++)
+	{
+		clear_ui_all();
+	}
+
+	for (uint8_t i = 0; i <= 50; i++)
 	{
 		static_elements_init();
 	}
 
 	while (1)
 	{
-		trigger_motor_state_draw(shoot_control.speed);
-		chassis_direction_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
-		gimbal_pitch_direction_draw(gimbal_control.gimbal_pitch_motor.absolute_angle);
-		armor_damage_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
-		super_cap_status_draw();
+		// trigger_motor_state_draw(shoot_control.speed);
+		// chassis_direction_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
+		// gimbal_pitch_direction_draw(gimbal_control.gimbal_pitch_motor.absolute_angle);
+		// armor_damage_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
+		// super_cap_status_draw();
 		chassis_mode_draw();
 		osDelayUntil(&ulSystemTime, CUSTOM_UI_TIME_MS);
 	}
@@ -87,34 +115,66 @@ void custom_ui_task(void const *argument)
 
 void static_elements_init(void)
 {
-	char_draw(&cap_voltage_str, "capVlotageStr", UI_Graph_ADD, 1, UI_Color_Pink, 20, 4, 3, 1473, 468, "CAPV");
-	update_char(&cap_voltage_str);
-	char_draw(&MacRM_logo_str, "macfalcons", UI_Graph_ADD, 1, UI_Color_Pink, 20, 11, 3, 850, 60, "MACFALCONS");
-	update_char(&MacRM_logo_str);
-	char_draw(&cap_power, "capPowerStr", UI_Graph_ADD, 0, UI_Color_Pink, 20, 4, 3, 1473, 428, "CAPP");
-	update_char(&cap_power);
-	float_draw(&cap_voltage_data, "capVoltageData", UI_Graph_ADD, 1, UI_Color_Cyan, 20, 4, 3, 1590, 468, (float)cap_message_rx.cap_message.cap_milivoltage / 1000.0f);
-	update_char(&cap_voltage_data);
-	float_draw(&cap_power_data, "capPower", UI_Graph_ADD, 0, UI_Color_Cyan, 20, 3, 1, 1590, 3888, cap_message_rx.cap_message.cap_power);
-	update_char(&cap_power_data);
-	float_draw(&trigger_speed_data, "triggerSpeedData", UI_Graph_ADD, 7, UI_Color_Cyan, 20, 4, 3, 1590, 508, 0);
-	update_char(&trigger_speed_data);
-	char_draw(&trigger_speed, "triggerSpeed", UI_Graph_ADD, 0, UI_Color_Pink, 20, 6, 3, 1473, 508, "TRIRPM");
-	update_char(&trigger_speed);
-	char_draw(&robot_status_str, "robot_status_str", UI_Graph_ADD, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
-	update_char(&robot_status_str);
-	line_draw(&crosshair_vert, "091", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 960, 330, 960, 620);
-	update_ui(&crosshair_vert);
-	line_draw(&crosshair_hori_2, "092", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 880, 580, 1040, 580);
-	update_ui(&crosshair_hori_2);
-	line_draw(&crosshair_hori_3, "093", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 800, 540, 1120, 540);
-	update_ui(&crosshair_hori_3);
-	line_draw(&crosshair_hori_4, "094", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 880, 500, 1040, 500);
-	update_ui(&crosshair_hori_4);
-	line_draw(&crosshair_hori_5, "095", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 900, 420, 1020, 420);
-	update_ui(&crosshair_hori_5);
-	line_draw(&crosshair_hori_6, "096", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 920, 370, 1000, 370);
-	update_ui(&crosshair_hori_6);
+	char_draw(&Spin_state, "Spin_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 605, "SPIN");
+	update_char(&Spin_state);
+	circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 600, 5);
+	update_ui(&Spin_indicator);
+
+	char_draw(&Trigger_state, "TriggerSpeed_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 6, 3, 1680, 645, "TRIG");
+	update_char(&Trigger_state);
+	circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_ADD, 7, UI_Color_Cyan, 10, 1755, 640, 5);
+	update_ui(&Trigger_indicator);
+
+	char_draw(&Firc_state, "Firc_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 685, "FIRC");
+	update_char(&Firc_state);
+	circle_draw(&Firc_indicator, "Firc_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 680, 5);
+	update_ui(&Firc_indicator);
+
+	// Auto Aim State
+	char_draw(&AutoAim_state, "AutoAim_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 725, "AAIM");
+	update_char(&AutoAim_state);
+	circle_draw(&AutoAim_indicator, "AutoAim_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 720, 5);
+	update_ui(&AutoAim_indicator);
+
+	// Supercap Percentage
+	char_draw(&Cap_state, "Cap_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 765, "CAP%");
+	update_char(&Cap_state);
+
+	sprintf(number_str, "%d", 23);  
+	char_draw(&Cap_percentage, "Cap_percentage", UI_Graph_ADD, 2, UI_Color_Main, 13, 4, 3, 1770, 762, number_str);
+	update_char(&Cap_percentage);
+
+
+	// Limit Ignored
+	char_draw(&Limit_state, "Limit_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 805, "HTLM");
+	update_char(&Limit_state);
+	circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 800, 5);
+	update_ui(&Limit_indicator);
+
+	// Launcher Loaded
+	char_draw(&Loaded_state, "Loaded_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 845, "LOAD");
+	update_char(&Loaded_state);
+	circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 840, 5);
+	update_ui(&Loaded_indicator);
+
+	// Launcher Opened
+	char_draw(&Opened_state, "Opened_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 885, "OPEN");
+	update_char(&Opened_state);
+	circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 880, 5);
+	update_ui(&Opened_indicator);
+
+	// line_draw(&crosshair_vert, "091", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 960, 330, 960, 620);
+	// update_ui(&crosshair_vert);
+	// line_draw(&crosshair_hori_2, "092", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 880, 580, 1040, 580);
+	// update_ui(&crosshair_hori_2);
+	// line_draw(&crosshair_hori_3, "093", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 800, 540, 1120, 540);
+	// update_ui(&crosshair_hori_3);
+	// line_draw(&crosshair_hori_4, "094", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 880, 500, 1040, 500);
+	// update_ui(&crosshair_hori_4);
+	// line_draw(&crosshair_hori_5, "095", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 900, 420, 1020, 420);
+	// update_ui(&crosshair_hori_5);
+	// line_draw(&crosshair_hori_6, "096", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 920, 370, 1000, 370);
+	// update_ui(&crosshair_hori_6);
 }
 
 void chassis_direction_draw(float yaw_relative_angle)
@@ -238,39 +298,54 @@ void trigger_motor_state_draw(float trigger_rpm)
 
 void chassis_mode_draw(void)
 {
-	switch (chassis_behaviour_mode)
+	 
+	if (toggle == 0)
 	{
-		case CHASSIS_BASIC_FPV_MODE:
-		{
-			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "CNFY");
-			update_char(&robot_status_str);
-			char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
-			update_char(&rand_spin_str);
-			break;
-		}
-		case CHASSIS_SPINNING_MODE:
-		{
-			if(chassis_move.fRandomSpinOn)
-			{
-				char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
-				update_char(&robot_status_str);
-				char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_ADD, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
-				update_char(&rand_spin_str);
-			}
-			else
-			{
-				char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
-				update_char(&robot_status_str);
-				char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
-				update_char(&rand_spin_str);
-			}
-			break;
-			
-		}
-		default:
-		{
-			
-			break;
-		}
+		circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 600, 5);
+		update_ui(&Spin_indicator);
+	
 	}
+	else if(toggle == 1)
+	{
+		circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Cyan, 10, 1755, 600, 5);
+		update_ui(&Spin_indicator);
+
+	}
+	// switch (chassis_behaviour_mode)
+	// {
+	// 	case CHASSIS_BASIC_FPV_MODE:
+	// 	{
+	// 		char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "CNFY");
+	// 		update_char(&robot_status_str);
+	// 		char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+	// 		update_char(&rand_spin_str);
+	// 		break;
+	// 	}
+	// 	case CHASSIS_SPINNING_MODE:
+	// 	{
+	// 		if(chassis_move.fRandomSpinOn)
+	// 		{
+	// 			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
+	// 			update_char(&robot_status_str);
+	// 			char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_ADD, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+	// 			update_char(&rand_spin_str);
+	// 		}
+	// 		else
+	// 		{
+	// 			char_draw(&robot_status_str, "robot_status_str", UI_Graph_Change, 8, UI_Color_Pink, 20, 4, 3, 930, 227, "SPIN");
+	// 			update_char(&robot_status_str);
+	// 			char_draw(&rand_spin_str, "rand_spin_str", UI_Graph_Del, 8, UI_Color_Pink, 20, 4, 3, 930, 187, "RAND");
+	// 			update_char(&rand_spin_str);
+	// 		}
+	// 		break;
+			
+	// 	}
+	// 	default:
+	// 	{
+			
+	// 		break;
+	// 	}
+	// }
 }
+
+

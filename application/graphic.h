@@ -164,10 +164,20 @@ typedef struct
 	uint8_t layer;          // Layer to be deleted
 } graphic_delete;           // Frame for deleting a layer
 
+typedef struct
+{
+	uint16_t data_cmd_id; // Should be UI_Data_ID_Del (0x0100)
+	uint16_t sender_ID;
+	uint16_t receiver_ID;
+	uint8_t delete_operate; // e.g., UI_Data_Del_ALL = 2
+	uint8_t layer;			// Can be 0 if unused
+} delete_payload_t;
+
 void line_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t end_x, uint32_t end_y);
 void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, char *char_data);
 void float_draw(string_data *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, float graph_float);
 void circle_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t graph_radius);
 int update_ui(graphic_data_struct_t *image_ptr);
 int update_char(string_data *string_ptr);
+int clear_ui_all(void);
 #endif

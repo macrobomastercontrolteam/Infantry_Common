@@ -522,3 +522,20 @@ int update_char(string_data *string_ptr)
 
 	return 0;
 }
+
+int clear_ui_all(void)
+{
+    
+
+    delete_payload_t delete_cmd;
+
+    delete_cmd.data_cmd_id = UI_Data_ID_Del;
+    delete_cmd.sender_ID = get_robot_id();
+    delete_cmd.receiver_ID = get_receiver_id(delete_cmd.sender_ID);
+    delete_cmd.delete_operate = UI_Data_Del_ALL;
+    delete_cmd.layer = 0;  // Ignored when using UI_Data_Del_ALL
+
+    referee_data_pack_handle(UI_SOF, UI_CMD_Robo_Exchange, (uint8_t *)&delete_cmd, sizeof(delete_cmd));
+
+    return 0;
+}
