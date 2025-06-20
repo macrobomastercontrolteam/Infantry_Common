@@ -292,7 +292,7 @@ extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 void decode_ubc_cap_tx_data(uint8_t *data);
 void decode_macrm_cap_tx_data(uint8_t *data);
 extern uint16_t get_max_discharge_power(void);
-extern uint16_t get_base_power(void);
+extern uint16_t get_current_chassis_power(void);
 extern int16_t get_cap_energy_percentage(void);
 extern uint16_t get_cap_state(void);
 void CAN_cmd_supercap(void);

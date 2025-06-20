@@ -21,6 +21,7 @@
 #include "arm_math.h"
 #include "detect_task.h"
 #include "chassis_task.h"
+#include "cmsis_os.h" 
 
 #define WARNING_POWER_RATIO 0.7f
 #define POWER_BUFF_TOTAL 60.0f
@@ -105,7 +106,7 @@ void chassis_power_control(void)
             if (total_current > total_current_limit)
             {
                 // only limit current of driver motors, because power usage by steering motors is small and difficult to estimate. Because we control voltage input to steering motor (GM6020), not current
-                fp32 current_scale = total_current_limit / total_current * 0.9f;
+                fp32 current_scale = total_current_limit / total_current;
                 chassis_move.motor_speed_pid[0].out *= current_scale;
                 chassis_move.motor_speed_pid[1].out *= current_scale;
                 chassis_move.motor_speed_pid[2].out *= current_scale;

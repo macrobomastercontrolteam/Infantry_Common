@@ -33,9 +33,9 @@
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
-#define ENABLE_DRIVE_MOTOR_POWER 1
-#define ENABLE_YAW_MOTOR_POWER 1
-#define ENABLE_PITCH_MOTOR_POWER 1
+#define ENABLE_DRIVE_MOTOR_POWER 0
+#define ENABLE_YAW_MOTOR_POWER 0
+#define ENABLE_PITCH_MOTOR_POWER 0
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
@@ -1083,7 +1083,7 @@ uint16_t get_max_discharge_power(void)
 {
 	return capcan_tx_msg.max_discharge_power;
 }
-uint16_t get_base_power(void)
+uint16_t get_current_chassis_power(void)
 {
 	return capcan_tx_msg.base_power;
 }
