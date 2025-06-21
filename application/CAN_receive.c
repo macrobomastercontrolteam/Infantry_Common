@@ -1119,8 +1119,8 @@ void send_ui_info(void)
 	chassis_tx_message.RTR = CAN_RTR_DATA;
 	chassis_tx_message.DLC = 0x08;
 
-	Set_Bit(&ui_info.launcher_flag_byte,UI_TRIGGER_STATE_BIT,temp_val1);
-	Set_Bit(&ui_info.launcher_flag_byte,UI_FRIC_STATE_BIT,temp_val2);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_TRIGGER_STATE_BIT,ui_info.trigger_state);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_FRIC_STATE_BIT,ui_info.firc_state);
 	Set_Bit(&ui_info.launcher_flag_byte,UI_AUTO_AIM_STATE_BIT,ui_info.auto_aim_state);
 	Set_Bit(&ui_info.launcher_flag_byte,UI_IGNORE_HEAT_LIMIT_BIT,ui_info.Heat_Limit_Ignored);
 	Set_Bit(&ui_info.launcher_flag_byte,UI_LAUNCHER_LOADED_BIT,ui_info.Launcher_Loaded);

@@ -31,8 +31,8 @@ void referee_can_task(void const *pvParameters)
 
   while (1)
   {
-    pull_ref_info(CHASSIS_POWER_INFO);
-    pull_ref_info(BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT);
+    // pull_ref_info(CHASSIS_POWER_INFO);
+    // pull_ref_info(BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT);
 
     send_ui_info();
     //send_ui_info(CHASSIS_STATUS_UI);
