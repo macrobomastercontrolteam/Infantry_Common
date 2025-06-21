@@ -35,12 +35,10 @@ typedef struct
   bool_t firc_state;
   bool_t auto_aim_state;
 
-#if (LAUNCHER_TYPE == LAUNCHER_42MM)
   bool_t Heat_Limit_Ignored;
 
   bool_t Launcher_Loaded;
   bool_t Launcher_Opened;
-#endif
 
 //**********chassis ***********/
   bool_t spinning_state;

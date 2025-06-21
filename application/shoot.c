@@ -825,17 +825,20 @@ static void shoot_feedback_update(void)
 #else
 	get_shoot_heat0_limit_and_heat(&shoot_control.heat_limit, &shoot_control.heat);
 #endif
+
 #if (CAN_PASS_REF_INFO == 1)
+
 	ui_info.Heat_Limit_Ignored = launcher_status.Heat_Limit_Ignored;
-	ui_info.trigger_state = ((shoot_control.speed_set/shoot_control.speed) > 0.5f); //sctual trigger speed larger than 50% of set speed
+	ui_info.trigger_state = ((shoot_control.speed_set / shoot_control.speed) > 0.5f); // sctual trigger speed larger than 50% of set speed
+
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-	ui_info.firc_state =  ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD));
+	ui_info.firc_state = ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD));
 	ui_info.Launcher_Loaded = launcher_status.Launcher_Loaded;
 	ui_info.Launcher_Opened = launcher_status.Launcher_Opened;
-	#else
+#else
 	ui_info.firc_state = ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD));
 #endif
-	
+
 #endif
 }
 

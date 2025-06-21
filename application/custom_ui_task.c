@@ -60,6 +60,7 @@ string_data robot_status_str;
 string_data MacRM_logo_str;
 
 void static_elements_init(void);
+void ui_variale_init(void);
 void super_cap_status_draw(void);
 void chassis_direction_draw(float yaw_relative_angle);
 void gimbal_pitch_direction_draw(float pitch_relative_angle);
@@ -70,21 +71,35 @@ void trigger_motor_state_draw(float trigger_rpm);
 void custom_ui_task(void const *argument)
 {
 	uint32_t ulSystemTime = osKernelSysTick();
-	for (uint8_t i = 0; i <= 30; i++)
-	{
-		static_elements_init();
-	}
+	ui_variale_init();
+	// for (uint8_t i = 0; i <= 30; i++)
+	// {
+	// 	static_elements_init();
+	// }
 
-	while (1)
-	{
-		trigger_motor_state_draw(shoot_control.speed);
-		chassis_direction_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
-		gimbal_pitch_direction_draw(gimbal_control.gimbal_pitch_motor.absolute_angle);
-		armor_damage_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
-		super_cap_status_draw();
-		chassis_mode_draw();
-		osDelayUntil(&ulSystemTime, CUSTOM_UI_TIME_MS);
-	}
+	// while (1)
+	// {
+	// 	trigger_motor_state_draw(shoot_control.speed);
+	// 	chassis_direction_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
+	// 	gimbal_pitch_direction_draw(gimbal_control.gimbal_pitch_motor.absolute_angle);
+	// 	armor_damage_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
+	// 	super_cap_status_draw();
+	// 	chassis_mode_draw();
+	// 	osDelayUntil(&ulSystemTime, CUSTOM_UI_TIME_MS);
+	// }
+}
+void ui_variale_init(void)
+{
+	ui_info.launcher_flag_byte = 0;
+	ui_info.chassis_flag_byte = 0;
+	ui_info.trigger_state = 0;
+	ui_info.firc_state = 0;
+	ui_info.auto_aim_state = 0;
+	ui_info.Heat_Limit_Ignored = 0;
+	ui_info.Launcher_Loaded = 0;
+	ui_info.Launcher_Opened = 0;
+	ui_info.spinning_state = 0;
+	ui_info.power_saving = 0;
 }
 
 void static_elements_init(void)
