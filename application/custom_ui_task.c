@@ -59,6 +59,8 @@ string_data trigger_speed_data;
 string_data rand_spin_str;
 string_data robot_status_str;
 
+graphic_data_struct_t CV_Box;
+
 string_data Spin_state;
 graphic_data_struct_t Spin_indicator;
 string_data Trigger_state;
@@ -117,6 +119,9 @@ void custom_ui_task(void const *argument)
 
 void static_elements_init(void)
 {
+	rectangle_draw(&CV_Box, "CV_Box", UI_Graph_ADD, 2, UI_Color_Orange, 3, 590, 770, 1330, 320);
+	update_ui(&CV_Box);
+
 	char_draw(&Spin_state, "Spin_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 605, "SPIN");
 	update_char(&Spin_state);
 	circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 600, 5);
