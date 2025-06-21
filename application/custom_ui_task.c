@@ -69,6 +69,8 @@ string_data AutoAim_state;
 graphic_data_struct_t AutoAim_indicator;
 string_data Cap_state;
 string_data Cap_percentage;
+string_data Power_saving_state;
+graphic_data_struct_t Power_saving_indicator;
 string_data Limit_state;
 graphic_data_struct_t Limit_indicator;
 string_data Loaded_state;
@@ -151,17 +153,22 @@ void static_elements_init(void)
 	circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 800, 5);
 	update_ui(&Limit_indicator);
 
+	char_draw(&Power_saving_state, "Power_saving", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 845, "PRSV");
+	update_char(&Power_saving_state);
+	circle_draw(&Power_saving_indicator, "Power_saving_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 840, 5);
+	update_ui(&Power_saving_indicator);
+
 	// Launcher Loaded
 #if (LAUNCHER_TYPE == LAUNCHER_42MM)
-	char_draw(&Loaded_state, "Loaded_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 845, "LOAD");
+	char_draw(&Loaded_state, "Loaded_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 565, "LOAD");
 	update_char(&Loaded_state);
-	circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 840, 5);
+	circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 560, 5);
 	update_ui(&Loaded_indicator);
 
 	// Launcher Opened
-	char_draw(&Opened_state, "Opened_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 885, "OPEN");
+	char_draw(&Opened_state, "Opened_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 525, "OPEN");
 	update_char(&Opened_state);
-	circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 880, 5);
+	circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 520, 5);
 	update_ui(&Opened_indicator);
 #endif
 	// line_draw(&crosshair_vert, "091", UI_Graph_ADD, 9, UI_Color_Cyan, 2, 960, 330, 960, 620);
@@ -304,80 +311,93 @@ void chassis_mode_draw(void)
 	update_char(&Cap_percentage);
 
 	//If else statements for indicator color
-	if (ui_info.auto_aim_state == 0) 
+
+	if ((ui_info.launcher_flag_byte & UI_AUTO_AIM_STATE_BIT) == 0) 
 	{
 		circle_draw(&AutoAim_indicator, "AutoAim_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 720, 5);
 		update_ui(&AutoAim_indicator);
 	} 
-	else if (ui_info.auto_aim_state == 1)
+	else
 	{
 		circle_draw(&AutoAim_indicator, "AutoAim_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 720, 5);
 		update_ui(&AutoAim_indicator);
 	}
 
-	if (ui_info.spinning_state == 0) 
+	if ((ui_info.chassis_flag_byte & UI_SPINNING_STATE_BIT)  == 0) 
 	{
 		circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 600, 5);
 		update_ui(&Spin_indicator);
 	} 
-	else if (ui_info.spinning_state == 1) 
+	else 
 	{
 		circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 600, 5);
 		update_ui(&Spin_indicator);
 	}
 
-	if (ui_info.firc_state == 0)
+	if ((ui_info.launcher_flag_byte & UI_FRIC_STATE_BIT) == 0)
 	{
 		circle_draw(&Firc_indicator, "Firc_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 680, 5);
 		update_ui(&Firc_indicator);
 	}
-	else if (ui_info.firc_state == 1)
+	else
 	{
 		circle_draw(&Firc_indicator, "Firc_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 680, 5);
 		update_ui(&Firc_indicator);
 	}
 
-	if (ui_info.trigger_state == 0) 
+	if ((ui_info.launcher_flag_byte & UI_TRIGGER_STATE_BIT) == 0) 
 	{
 		circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_Change, 7, UI_Color_Purplish_red, 10, 1755, 640, 5);
 		update_ui(&Trigger_indicator);
 	}
-	else if (ui_info.trigger_state == 1)
+	else
 	{
 		circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_Change, 7, UI_Color_Green, 10, 1755, 640, 5);
 		update_ui(&Trigger_indicator);
 	}
 
-	if (ui_info.Limit_Ignored == 0) 
+	if ((ui_info.launcher_flag_byte & UI_IGNORE_HEAT_LIMIT_BIT) == 0) 
 	{
 		circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 800, 5);
 		update_ui(&Limit_indicator);	
-	} else if (ui_info.Limit_Ignored == 1)
+	} 
+	else
 	{
 		circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 800, 5);
 		update_ui(&Limit_indicator);
 	}
 
-#if (LAUNCHER_TYPE == LAUNCHER_42MM)
-	if (ui_info.Launcher_Loaded == 0)
+	if ((ui_info.chassis_flag_byte & UI_POWER_SAVING_BIT) == 0) 
 	{
-		circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 840, 5);
+		circle_draw(&Power_saving_indicator, "Power_saving_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 840, 5);
+		update_ui(&Power_saving_indicator);
+	}
+	else
+	{
+		circle_draw(&Power_saving_indicator, "Power_saving_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 840, 5);
+		update_ui(&Power_saving_indicator);
+	}
+
+#if (LAUNCHER_TYPE == LAUNCHER_42MM)
+	if ((ui_info.launcher_flag_byte & UI_LAUNCHER_LOADED_BIT) == 0)
+	{
+		circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 560, 5);
 		update_ui(&Loaded_indicator);
 	}
-	else if (ui_info.Launcher_Loaded == 1)
+	else
 	{
-		circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_Change, 2, UI_Color_Green,  10, 1755, 840, 5);
+		circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_Change, 2, UI_Color_Green,  10, 1755, 560, 5);
 		update_ui(&Loaded_indicator);
 	}
 
-	if (ui_info.Launcher_Opened == 0)
+	if ((ui_info.launcher_flag_byte & UI_LAUNCHER_OPENED_BIT) == 0)
 	{
-		circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 880, 5);
+		circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 520, 5);
 		update_ui(&Opened_indicator);
 	}
-	else if (ui_info.Launcher_Opened == 1)
+	else
 	{
-		circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 880, 5);
+		circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 520, 5);
 		update_ui(&Opened_indicator);
 	}
 #endif

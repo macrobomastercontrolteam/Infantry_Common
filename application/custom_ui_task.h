@@ -22,25 +22,36 @@
 #include "main.h"
 extern void custom_ui_task(void const *argument);
 
+
+
 typedef struct
 {
-  //uint8_t chassis_state;
-  uint8_t spinning_state;
-
-  uint8_t trigger_state;
-  uint8_t firc_state;
-  uint8_t auto_aim_state;
+  
+  uint8_t launcher_flag_byte;
+  uint8_t chassis_flag_byte;
 
   uint8_t supercap_percentage;
 
-  uint8_t Limit_Ignored;
-
-#if (LAUNCHER_TYPE == LAUNCHER_42MM)
-  uint8_t Launcher_Loaded;
-  uint8_t Launcher_Opened;
-#endif
-
 } ui_info_t;
+
+typedef enum
+{
+    UI_TRIGGER_STATE_BIT = 1 << 0,
+    UI_FRIC_STATE_BIT = 1 << 1,
+    UI_AUTO_AIM_STATE_BIT = 1 << 2,
+    //CV_MODE_SHOOT_BIT = 1 << 3,
+    //CV_MODE_CHASSIS_SPINNING_BIT = 1 << 4,
+    UI_IGNORE_HEAT_LIMIT_BIT = 1 << 5,
+    UI_LAUNCHER_LOADED_BIT = 1 << 6,
+    UI_LAUNCHER_OPENED_BIT = 1 << 7,
+} eLauncherStatusBits;
+
+typedef enum
+{
+    UI_SPINNING_STATE_BIT = 1 << 0,
+    UI_POWER_SAVING_BIT = 1 << 1,
+
+} eChassisStatusBits;
 
 
 extern ui_info_t ui_info;
