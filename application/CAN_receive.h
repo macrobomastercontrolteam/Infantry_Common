@@ -150,6 +150,13 @@ typedef struct
     fp32 torque;       // Nm
 } motor_measure_t;
 
+typedef enum{
+
+  LAUNCHER_STATUS_UI,
+  CHASSIS_STATUS_UI,
+
+} send_ui_info_code_t;
+
 
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)

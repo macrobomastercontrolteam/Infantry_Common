@@ -1029,16 +1029,27 @@ void return_ref_info(uint8_t info_code)
 
 void decode_ui_info(uint8_t *rx_data)
 {
-	ui_info.spinning_state = rx_data[0];
 
-	ui_info.trigger_state = rx_data[1];
-	ui_info.firc_state = rx_data[2];
-	ui_info.auto_aim_state = rx_data[3];
-
-	ui_info.supercap_persentage = rx_data[4];
+	switch(rx_data[0])
+	{
+		case LAUNCHER_STATUS_UI:
+			ui_info.trigger_state = rx_data[1];
+			ui_info.firc_state = rx_data[2];
+			ui_info.auto_aim_state = rx_data[3];
+			//ui_info.temp = rx_data[4];
+			ui_info.Limit_Ignored = rx_data[5];
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+			ui_info.Launcher_Loaded = rx_data[6];
+			ui_info.Launcher_Opened = rx_data[7];
+#endif
+			break;
+		
+		case CHASSIS_STATUS_UI:
+			ui_info.spinning_state = rx_data[1];
+			ui_info.supercap_percentage = rx_data[2];
+			break;
+		default:
+			break;
+	}
 	
-	ui_info.Limit_Ignored = rx_data[5];
-	ui_info.Launcher_Loaded = rx_data[6];
-	ui_info.Launcher_Opened = rx_data[7];
-
 }
