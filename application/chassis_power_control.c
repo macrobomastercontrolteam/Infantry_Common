@@ -103,10 +103,10 @@ void chassis_power_control(uint8_t fEnablePowerSaving)
             }
             total_current_limit = first_order_filter(raw_current_limit, total_current_limit, CURRENT_LIMIT_FILTER_COEFF);
 
-            if (total_current > total_current_limit * 5.0f)
+            if (total_current > total_current_limit * 1.5f)
             {
                 // only limit current of driver motors, because power usage by steering motors is small and difficult to estimate. Because we control voltage input to steering motor (GM6020), not current
-                current_scale = total_current_limit * 4.0f / total_current;
+                current_scale = total_current_limit / total_current;
                 chassis_move.motor_speed_pid[0].out *= current_scale;
                 chassis_move.motor_speed_pid[1].out *= current_scale;
                 chassis_move.motor_speed_pid[2].out *= current_scale;
