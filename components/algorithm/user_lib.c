@@ -216,3 +216,8 @@ uint8_t checkAndResetFlag(uint8_t *pbFlag)
     *pbFlag = 0;
     return temp;
 }
+
+void Set_Bit(uint8_t* Target_Byte, uint8_t Target_Bit, uint8_t bitValue)
+{
+    *Target_Byte = (*Target_Byte & ~Target_Bit) | (bitValue ? Target_Bit : 0);
+}
