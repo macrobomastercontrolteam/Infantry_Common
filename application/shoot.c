@@ -717,6 +717,7 @@ static void shoot_set_mode(void)
 						shoot_control.shoot_mode = SHOOT_READY_FRIC; // Start spinning friction wheels. Actual shooting mode will be set corespondingly inside this mode.
 						}
 					}
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
 					else if (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_B) //rerun the clearing process to handel jam
 					{
 						launcher_status.Launcher_Initialized = 0;
@@ -731,7 +732,11 @@ static void shoot_set_mode(void)
 						launcher_status.Loader_Jamed = 1;
 						launcher_status.Launcher_Jamed = 0;
 					}
-
+					else if (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_F) 
+					{
+						launcher_status.Heat_Limit_Ignored = !(launcher_status.Heat_Limit_Ignored);
+					}
+#endif
 					else 
 					{
 						fCvAutoAimReady = 0;
