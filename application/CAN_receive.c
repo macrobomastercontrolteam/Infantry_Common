@@ -226,16 +226,17 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(SUPCAP_TOE);
 				break;
 			}
-			case CAN_REF_INFO_PULL_TX_ID:
-			{
-				ref_info_id = rx_data[0];
-				return_ref_info(ref_info_id);
-				detect_hook(MAIN_BOARD_TOE);
-				break;
-			}
+			// case CAN_REF_INFO_PULL_TX_ID:
+			// {
+			// 	ref_info_id = rx_data[0];
+			// 	return_ref_info(ref_info_id);
+			// 	detect_hook(MAIN_BOARD_TOE);
+			// 	break;
+			// }
 			case CAN_UI_INFO_RX_ID:
 			{
 				decode_ui_info(rx_data);
+				detect_hook(MAIN_BOARD_TOE);
 				break;
 			}
 
