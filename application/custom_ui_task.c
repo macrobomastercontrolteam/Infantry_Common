@@ -115,7 +115,7 @@ void custom_ui_task(void const *argument)
 
 void static_elements_init(void)
 {
-	char_draw(&Spin_state, "Spin_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 605, "SPIN");
+	char_draw(&Spin_state, "Spin_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 605, "SPIN");
 	update_char(&Spin_state);
 	circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 600, 5);
 	update_ui(&Spin_indicator);
@@ -125,41 +125,41 @@ void static_elements_init(void)
 	circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_ADD, 7, UI_Color_Cyan, 10, 1755, 640, 5);
 	update_ui(&Trigger_indicator);
 
-	char_draw(&Firc_state, "Firc_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 685, "FIRC");
+	char_draw(&Firc_state, "Firc_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 685, "FIRC");
 	update_char(&Firc_state);
 	circle_draw(&Firc_indicator, "Firc_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 680, 5);
 	update_ui(&Firc_indicator);
 
 	// Auto Aim State
-	char_draw(&AutoAim_state, "AutoAim_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 725, "AAIM");
+	char_draw(&AutoAim_state, "AutoAim_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 725, "AAIM");
 	update_char(&AutoAim_state);
 	circle_draw(&AutoAim_indicator, "AutoAim_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 720, 5);
 	update_ui(&AutoAim_indicator);
 
 	// Supercap Percentage
-	char_draw(&Cap_state, "Cap_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 765, "CAP%");
+	char_draw(&Cap_state, "CAP_state", UI_Graph_ADD, 5, UI_Color_Pink, 15, 5, 3, 1680, 765, "CAP%");
 	update_char(&Cap_state);
 
 	sprintf(number_str, "%d", -1);  
-	char_draw(&Cap_percentage, "Cap_percentage", UI_Graph_ADD, 2, UI_Color_Main, 13, 4, 3, 1770, 762, number_str);
+	char_draw(&Cap_percentage, "Cap_percentage", UI_Graph_ADD, 4, UI_Color_Main, 15, 5, 3, 1760, 762, number_str);
 	update_char(&Cap_percentage);
 
 
 	// Limit Ignored
-	char_draw(&Limit_state, "Limit_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 805, "HTLM");
+	char_draw(&Limit_state, "Limit_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 805, "HTLM");
 	update_char(&Limit_state);
 	circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 800, 5);
 	update_ui(&Limit_indicator);
 
 	// Launcher Loaded
 #if (LAUNCHER_TYPE == LAUNCHER_42MM)
-	char_draw(&Loaded_state, "Loaded_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 845, "LOAD");
+	char_draw(&Loaded_state, "Loaded_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 845, "LOAD");
 	update_char(&Loaded_state);
 	circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 840, 5);
 	update_ui(&Loaded_indicator);
 
 	// Launcher Opened
-	char_draw(&Opened_state, "Opened_label", UI_Graph_ADD, 2, UI_Color_Pink, 15, 4, 3, 1680, 885, "OPEN");
+	char_draw(&Opened_state, "Opened_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 885, "OPEN");
 	update_char(&Opened_state);
 	circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 880, 5);
 	update_ui(&Opened_indicator);
@@ -299,8 +299,8 @@ void trigger_motor_state_draw(float trigger_rpm)
 
 void chassis_mode_draw(void)
 {
-	sprintf(number_str, "%d", ui_info.supercap_persentage);  
-	char_draw(&Cap_percentage, "Cap_percentage", UI_Graph_Change, 2, UI_Color_Main, 13, 4, 3, 1770, 762, number_str);
+	sprintf(number_str, "%d", ui_info.supercap_percentage);  
+	char_draw(&Cap_percentage, "Cap_percentage", UI_Graph_Change, 4, UI_Color_Main, 15, 5, 3, 1760, 762, number_str);
 	update_char(&Cap_percentage);
 
 	//If else statements for indicator color
