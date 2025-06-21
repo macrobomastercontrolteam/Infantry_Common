@@ -320,7 +320,7 @@ typedef struct
     uint8_t Launcher_Jamed;
     uint8_t Loader_Jamed;
 
-    uint8_t Limit_Ignored;
+    uint8_t Heat_Limit_Ignored;
 
     uint8_t piston_moving;
     uint8_t piston_feedback;

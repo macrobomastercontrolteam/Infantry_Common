@@ -41,6 +41,7 @@
 #include "bsp_laser.h"
 #include "pid.h"
 #include "cv_usart_task.h"
+#include "custom_ui_task.h"
 
 //motor encoder value format, range[0-8191]
 #define ecd_format(ecd)         \
@@ -812,16 +813,18 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 
 		if (CvCmder_GetMode(CV_MODE_ASSIST_BIT) && fCvAutoAim())
 		{
-
                 cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC * 0.85f;
                 cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC * 0.85f;
                 // cvAidedX = debugx * YAW_RC_CV_SEN_INC;
                 // cvAidedY = debugy * PITCH_RC_CV_SEN_INC;
-        
+                
+                ui_info.auto_aim_state = 1;      
 		}
         else{
             cvAidedX = 0.0f;
             cvAidedY = 0.0f;
+
+            ui_info.auto_aim_state = 0;
         }
 #else
 #if DEBUG_CV

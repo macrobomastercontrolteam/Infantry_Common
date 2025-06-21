@@ -21,7 +21,7 @@
 #define ENABLE_HIGHER_BAUD_RATE_FOR_CV 0
 /********************* Only Modify this area (end) *********************/
 
-#if (ROBOT_TYPE == INFANTRY_2024_MECANUM)
+#if ((ROBOT_TYPE == INFANTRY_2024_MECANUM)||(ROBOT_TYPE == HERO_2025_MECANUM))
 #define CAN_PASS_REF_INFO 1 
 #else
 #define CAN_PASS_REF_INFO 0 

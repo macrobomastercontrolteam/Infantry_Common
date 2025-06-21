@@ -30,6 +30,7 @@
 #include "chassis_behaviour.h"
 #include "string.h"
 #include "shoot.h"
+#include "custom_ui_task.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
@@ -99,6 +100,7 @@ static CAN_TxHeaderTypeDef gimbal_tx_message;
 static uint8_t gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef chassis_tx_message;
 static uint8_t chassis_can_send_data[8];
+static uint8_t interboard_can_send_data[8]; 
 const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 4.0f*PI, 4.0f*PI};  //value needs to match to which in motor setting software
 const fp32 MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -4.0f*PI, -4.0f*PI};
@@ -1109,6 +1111,34 @@ void chassis_enable_platform_flag(uint8_t fEnabled)
 }
 
 #if CAN_PASS_REF_INFO
+void send_ui_info(void)
+{
+	uint32_t send_mail_box;
+	chassis_tx_message.StdId = CAN_UI_INFO_RX_ID;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
+
+	Set_Bit(&ui_info.launcher_flag_byte,UI_TRIGGER_STATE_BIT,temp_val1);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_FRIC_STATE_BIT,temp_val2);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_AUTO_AIM_STATE_BIT,ui_info.auto_aim_state);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_IGNORE_HEAT_LIMIT_BIT,ui_info.Heat_Limit_Ignored);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_LAUNCHER_LOADED_BIT,ui_info.Launcher_Loaded);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_LAUNCHER_OPENED_BIT,ui_info.Launcher_Opened);
+	
+	Set_Bit(&ui_info.chassis_flag_byte,UI_SPINNING_STATE_BIT,ui_info.spinning_state);
+	Set_Bit(&ui_info.chassis_flag_byte,UI_POWER_SAVING_BIT,ui_info.power_saving);
+
+
+
+	interboard_can_send_data[0] = ui_info.chassis_flag_byte;
+	interboard_can_send_data[1] = ui_info.launcher_flag_byte;
+	
+		
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, interboard_can_send_data, &send_mail_box);
+}
+
+
 void pull_ref_info(uint8_t info_code)
 {	
 	uint32_t send_mail_box;
@@ -1117,8 +1147,8 @@ void pull_ref_info(uint8_t info_code)
 	chassis_tx_message.RTR = CAN_RTR_DATA;
 	chassis_tx_message.DLC = 0x08;
 
-	chassis_can_send_data[0] = info_code;
-	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+	interboard_can_send_data[0] = info_code;
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, interboard_can_send_data, &send_mail_box);
 }
 
 void decode_ref_info(uint8_t *rx_data)

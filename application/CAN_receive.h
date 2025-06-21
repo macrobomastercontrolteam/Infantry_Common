@@ -127,6 +127,8 @@ typedef enum
 #if CAN_PASS_REF_INFO
   CAN_REF_INFO_PULL_RX_ID = 0x130,
   CAN_REF_INFO_PULL_TX_ID = 0x131,
+  
+  CAN_UI_INFO_RX_ID = 0x135,
 #endif
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
@@ -255,6 +257,7 @@ extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 extern can_ref_info_t can_ref_info;
 
 extern void pull_ref_info(uint8_t info_code);
+extern void send_ui_info(void);
 void decode_ref_info(uint8_t *rx_data);
 extern void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat);
 extern void CAN_get_chassis_power_info( fp32 *buffer, fp32 *power_limit);

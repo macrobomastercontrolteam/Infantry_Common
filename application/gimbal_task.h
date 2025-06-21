@@ -218,7 +218,7 @@
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
 #elif (ROBOT_TYPE == HERO_2025_MECANUM)
-#warning "PID for this robot type HERO_2025_MECNUM is not defined yet all values are set to 0"
+//#warning "PID for this robot type HERO_2025_MECNUM is not defined yet all values are set to 0"
 
 //pitch speed close-loop PID params, max out and max iout
 #if ROBOT_PITCH_IS_4340

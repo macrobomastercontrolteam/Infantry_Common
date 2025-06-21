@@ -31,6 +31,8 @@
 
 #define CUSTOM_UI_TIME_MS 10.0f
 
+ui_info_t ui_info;
+
 graphic_data_struct_t barrel_dir;
 graphic_data_struct_t chassis_dir;
 string_data chassis_relative_angle;
