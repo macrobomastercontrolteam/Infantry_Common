@@ -33,6 +33,6 @@
   * @brief          limit the power, mainly limit motor current
   * @retval         none
   */
-extern void chassis_power_control(void);
-
+extern void chassis_power_control(uint8_t fEnablePowerSaving);
+extern bool_t chassis_power_control_mode_change(uint8_t fIsKeyPressed);
 #endif

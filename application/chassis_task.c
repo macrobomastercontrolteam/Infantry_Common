@@ -1018,9 +1018,10 @@ static void chassis_control_loop(void)
 		{
 			PID_calc(&chassis_move.motor_speed_pid[i], chassis_move.motor_chassis[i].speed, chassis_move.motor_chassis[i].speed_set, CHASSIS_CONTROL_TIME_S);
 		}
-#if ENABLE_SUPERCAP_OFFLINE_PROTECT
-		chassis_power_control();
-#endif
+		if (!toe_is_error(SUPCAP_TOE))
+		{
+			chassis_power_control((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C) != 0);
+		}
 		for (i = 0; i < 4; i++)
 		{
 			chassis_move.motor_chassis[i].give_current = (int16_t)(chassis_move.motor_speed_pid[i].out);
