@@ -31,7 +31,7 @@ typedef struct
   uint8_t firc_state;
   uint8_t auto_aim_state;
 
-  uint8_t supercap_persentage;
+  uint8_t supercap_percentage;
 
   uint8_t Limit_Ignored;
 
