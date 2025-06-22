@@ -42,7 +42,7 @@ typedef struct
 
 //**********chassis ***********/
   bool_t spinning_state;
-  bool_t power_saving
+  bool_t power_saving;
   
 } ui_info_t;
 

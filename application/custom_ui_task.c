@@ -77,8 +77,8 @@ void custom_ui_task(void const *argument)
 	// 	static_elements_init();
 	// }
 
-	// while (1)
-	// {
+	while (1)
+	{
 	// 	trigger_motor_state_draw(shoot_control.speed);
 	// 	chassis_direction_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
 	// 	gimbal_pitch_direction_draw(gimbal_control.gimbal_pitch_motor.absolute_angle);
@@ -86,7 +86,7 @@ void custom_ui_task(void const *argument)
 	// 	super_cap_status_draw();
 	// 	chassis_mode_draw();
 	// 	osDelayUntil(&ulSystemTime, CUSTOM_UI_TIME_MS);
-	// }
+	}
 }
 void ui_variale_init(void)
 {
