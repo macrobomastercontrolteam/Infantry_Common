@@ -22,6 +22,7 @@
 #include "cv_usart_task.h"
 #include "detect_task.h"
 #include "gimbal_behaviour.h"
+#include "custom_ui_task.h"
 
 // random spin mode parameters
 #define MIN_SPIN_PARAM_CHANGE_PERIOD 1.0f
@@ -131,6 +132,8 @@ void chassis_behaviour_set_mode(void)
 	CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE));
 	chassis_move.fUpperHeadEnabled = (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE);
 #endif
+
+	ui_info.spinning_state = (chassis_behaviour_mode == CHASSIS_SPINNING_MODE);
 
 	switch (chassis_behaviour_mode)
 	{

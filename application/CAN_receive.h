@@ -32,33 +32,46 @@
 /* CAN send and receive ID */
 typedef enum
 {
-    // GM6020 CAN ID = 0x204 + ID, M2006 and M3508 CAN ID = 0x200 + ID
-    /*******Chassis CAN IDs********/
-    CAN_3508_M1_ID = 0x201,
-    CAN_3508_M2_ID = 0x202,
-    CAN_3508_M3_ID = 0x203,
-    CAN_3508_M4_ID = 0x204,
+  // GM6020 CAN ID = 0x204 + ID, M2006 and M3508 CAN ID = 0x200 + ID
+  /*******Chassis CAN IDs********/
+  CAN_3508_M1_ID = 0x201,
+  CAN_3508_M2_ID = 0x202,
+  CAN_3508_M3_ID = 0x203,
+  CAN_3508_M4_ID = 0x204,
 #if ROBOT_YAW_IS_4310
-    CAN_YAW_MOTOR_4310_TX_ID = 0x005,
-    CAN_YAW_MOTOR_4310_RX_ID = 0x0FF,
+  CAN_YAW_MOTOR_4310_TX_ID = 0x005,
+  CAN_YAW_MOTOR_4310_RX_ID = 0x0FF,
 #else
-    CAN_YAW_MOTOR_6020_RX_ID = 0x205,
+  CAN_YAW_MOTOR_6020_RX_ID = 0x205,
 #endif
 
-    /********Gimbal CAN IDs********/
-    CAN_PIT_MOTOR_ID = 0x206,
+/********Gimbal CAN IDs********/
+#if ROBOT_PITCH_IS_4340
+  CAN_PITCH_MOTOR_4340_TX_ID = 0x006,
+  CAN_PITCH_MOTOR_4340_RX_ID = 0x0FD,
+#else
+  CAN_PIT_MOTOR_ID = 0x206,
+#endif
 
-    /********Other CAN IDs: Location depends on Model********/
-    // By default: On chassis
-    // INFANTRY_2023_MECANUM: On gimbal
-    // INFANTRY_2024_MECANUM: On chassis
-    // INFANTRY_2023_SWERVE: On chassis
-    // SENTRY_2023_MECANUM: On chassis
-    // INFANTRY_2024_BIPED: On chassis
-    CAN_TRIGGER_MOTOR_ID = 0x207,
+  /********Other CAN IDs: Location depends on Model********/
+  // By default: On chassis
+  // INFANTRY_2023_MECANUM: On gimbal
+  // INFANTRY_2024_MECANUM: On chassis
+  // INFANTRY_2023_SWERVE: On chassis
+  // SENTRY_2023_MECANUM: On chassis
+  // INFANTRY_2024_BIPED: On chassis
+  // HERO_2025_MECANUM: On chassis
+  CAN_TRIGGER_MOTOR_ID = 0x207,
 
-    CAN_FRICTION_MOTOR_LEFT_ID = 0x205, // friction1
-    CAN_FRICTION_MOTOR_RIGHT_ID = 0x208, // friction2
+  CAN_FRICTION_MOTOR_LEFT_ID = 0x205,  // friction1
+  CAN_FRICTION_MOTOR_RIGHT_ID = 0x208, // friction2
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+  CAN_FRICTION_MOTOR_UP_ID = 0x203,   // friction3
+  CAN_FRICTION_MOTOR_DOWN_ID = 0x204, // friction4
+
+  CAN_PISTON_MOTOR_ID = 0x207, // On gimbal
+#endif
+
 } can_msg_id_e;
 
 typedef enum
@@ -72,6 +85,11 @@ typedef enum
 	MOTOR_INDEX_TRIGGER,
   MOTOR_INDEX_FRICTION_LEFT,
   MOTOR_INDEX_FRICTION_RIGHT,
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+  MOTOR_INDEX_FRICTION_UP,
+  MOTOR_INDEX_FRICTION_DOWN,
+  MOTOR_INDEX_PISTON,
+#endif
 	MOTOR_LIST_LENGTH,
 } can_motor_id_e;
 
@@ -117,6 +135,8 @@ typedef enum
 #if CAN_PASS_REF_INFO
   CAN_REF_INFO_PULL_RX_ID = 0x130,
   CAN_REF_INFO_PULL_TX_ID = 0x131,
+  
+  CAN_UI_INFO_RX_ID = 0x135,
 #endif
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
@@ -222,6 +242,7 @@ typedef enum
     DM_8006 = 0,
     MA_9015 = 1,
     DM_4310 = 2,
+    DM_4340 = 3,
     LAST_MIT_CONTROLLED_MOTOR_TYPE,
 } MIT_controlled_motor_type_e;
 
@@ -253,7 +274,8 @@ typedef struct
   * @param[in]      rev: (0x208) reserve motor control current
   * @retval         none
   */
-extern void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric1, int16_t fric2);
+extern void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric1, int16_t fric2, int16_t piston_motor);
+extern void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down);
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 void CAN_cmd_upper_head(void);
@@ -347,6 +369,7 @@ fp32 get_chassis_power_meter_data(void);
 #if CAN_PASS_REF_INFO
 extern can_ref_info_t can_ref_info;
 extern void pull_ref_info(uint8_t info_code);
+extern void send_ui_info(void);
 void decode_ref_info(uint8_t *rx_data);
 extern void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat);
 extern void CAN_get_chassis_power_info( fp32 *buffer, fp32 *power_limit);

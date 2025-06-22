@@ -62,6 +62,7 @@ typedef enum
 	CV_INFO_GAME_PROGRESS = 0x00,
 	CV_INFO_TEAM_COLOR = 0x01,
 	CV_INFO_ROBOT_TYPE = 0x02,
+	CV_INFO_ROBOT_HP = 0x03,
 } eMsgTypeAckInfo;
 
 //
@@ -112,17 +113,30 @@ void cv_usart_task(void const *argument)
 {
 	uint32_t ulSystemTime = osKernelSysTick();
 	CvCmder_Init();
+
+//enable auto aim mode for Sentry 2023 Mecanum robots
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)	
 	CvCmder_ToggleMode(CV_MODE_AUTO_AIM_BIT);
 #endif
+	//Init all the flags at the beginning of the task
+	CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
+	CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
+	CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
+	CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
+	CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
+	CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
+	CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 0);
+
 	while (1)
 	{
 		CvCmder_PollForModeChange();
-		// shoot mode timeout logic
+		// shoot mode timeout logic for automatic robots
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && (osKernelSysTick() - CvCmdHandler.ulShootStartTime > SHOOT_TIMEOUT_MS))
 		{
 			CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 		}
+#endif
 		osDelayUntil(&ulSystemTime, CV_CONTROL_TIME_MS);
 	}
 }
@@ -287,7 +301,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 					}
 					break;
 				}
-				case CV_INFO_ROBOT_TYPE:
+				case CV_INFO_ROBOT_TYPE:{
 					ackBuf[2] = 0x02;
 #if SENTRY_2023_MECANUM
 					ackBuf[3] = 0x00;
@@ -295,6 +309,15 @@ static void CvCmder_SendAck(uint8_t msgType)
 					ackBuf[3] = 0xFF;
 #endif
 					break;
+				}
+
+				case CV_INFO_ROBOT_HP:
+				{
+					uint16_t currentHP = get_current_HP();
+					ackBuf[2] = 0x03;
+					memcpy(&ackBuf[3], &currentHP, 2);
+					break;
+				}
 			}
 			break;
 		}
@@ -500,16 +523,19 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				get_projectile_allowance_17mm(&projectile_allowance_17mm);
 				if(length == 1){
 					uint8_t shootCmd = pData[2];
-#if !DEBUG_CV
+//setting shoot flag for automatic robots					
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+	#if !DEBUG_CV
 					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-60)< shoot_heat_limit) && is_game_started()){
-#else
+	#else
 					if((shootCmd == 0xFF)){
-#endif
+	#endif
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 1);
 						CvCmdHandler.ulShootStartTime = osKernelSysTick();
 					} else {
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 					}
+#endif
 					CvCmder_SendAck(MSG_SHOOT_CMD);
 					detect_hook(CV_TOE);
 				}

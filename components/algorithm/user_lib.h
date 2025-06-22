@@ -121,6 +121,8 @@ extern fp32 invSqrt(fp32 num);
 extern fp32 loop_fp32_constrain(fp32 Input, fp32 minValue, fp32 maxValue);
 extern fp32 theta_format(fp32 Ang);
 
+extern void Set_Bit(uint8_t* Target_Byte, uint8_t Target_Bit, uint8_t bitValue);
+
 #define rad_format(Ang) loop_fp32_constrain((Ang), -PI, PI)
 
 #define DEG_TO_RAD(_deg) (_deg * PI / 180.0f)

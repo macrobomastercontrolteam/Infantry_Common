@@ -30,9 +30,12 @@
 #include "chassis_behaviour.h"
 #include "string.h"
 #include "shoot.h"
+#include "custom_ui_task.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
+
+//////////////enable for all robot types//////////////////////
 #define ENABLE_DRIVE_MOTOR_POWER 0
 #define ENABLE_YAW_MOTOR_POWER 0
 #define ENABLE_PITCH_MOTOR_POWER 0
@@ -40,6 +43,11 @@
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
 #define ENABLE_FRICTION_2_MOTOR_POWER 0
+///////////////enable fo 2025 Hero only begin///////////////////
+#define ENABLE_FRICTION_3_MOTOR_POWER 0
+#define ENABLE_FRICTION_4_MOTOR_POWER 0
+#define ENABLE_PISTON_MOTOR_POWER 0
+////////////////enable fo 2025 Hero only end////////////////////
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define ENABLE_UPPER_HEAD_POWER 0
@@ -55,7 +63,7 @@
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 1
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 0
 #else
 #define IS_TRIGGER_ON_GIMBAL 0
@@ -73,6 +81,7 @@ fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits);
 int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits);
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
+HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
 void decode_power_meter(uint8_t *data);
 fp32 get_chassis_power_meter_data(void);
@@ -104,18 +113,19 @@ static CAN_TxHeaderTypeDef gimbal_tx_message;
 static uint8_t gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef chassis_tx_message;
 static uint8_t chassis_can_send_data[8];
+static uint8_t interboard_can_send_data[8]; 
 const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 4.0f*PI, 4.0f*PI};  //value needs to match to which in motor setting software
+const fp32 MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -4.0f*PI, -4.0f*PI};
+const fp32 MIT_CONTROL_V_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {25.0f, 45.0f, 30.0f, 30.0f};
+const fp32 MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-25.0f, -45.0f, -30.0f, 30.0f};
+const fp32 MIT_CONTROL_T_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {20.0f, 24.0f, 10.0f, 10.0f};
+const fp32 MIT_CONTROL_T_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-20.0f, -24.0f, -10.0f, -10.0f};
+const fp32 MIT_CONTROL_KP_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {500.0f, 500.0f, 500.0f, 500.0f};
+const fp32 MIT_CONTROL_KP_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f, 0.0f};
+const fp32 MIT_CONTROL_KD_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {5.0f, 5.0f, 5.0f, 5.0f};
+const fp32 MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f, 0.0f};
 
-const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {12.5f, 12.5f, 4.0f*PI};  //value needs to match to which in motor setting software
-const fp32 MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-12.5f, -12.5f, -4.0f*PI};
-const fp32 MIT_CONTROL_V_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {25.0f, 45.0f, 30.0f};
-const fp32 MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-25.0f, -45.0f, -30.0f};
-const fp32 MIT_CONTROL_T_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {20.0f, 24.0f, 10.0f};
-const fp32 MIT_CONTROL_T_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-20.0f, -24.0f, -10.0f};
-const fp32 MIT_CONTROL_KP_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {500.0f, 500.0f, 500.0f};
-const fp32 MIT_CONTROL_KP_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f};
-const fp32 MIT_CONTROL_KD_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {5.0f, 5.0f, 5.0f};
-const fp32 MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f};
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define SWERVE_METER_PER_SEC_ECD_MAX_LIMIT 1.5f
@@ -164,6 +174,17 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		switch (rx_header.StdId)
 		{
+#if ROBOT_PITCH_IS_4340
+			case CAN_PITCH_MOTOR_4340_RX_ID:
+			{
+				bMotorId = MOTOR_INDEX_PITCH;
+				if (decode_4340_motor_feedback(rx_data, bMotorId) == HAL_OK)
+				{
+					detect_hook(PITCH_GIMBAL_MOTOR_TOE);
+				}
+				break;
+			}
+#else
 			case CAN_PIT_MOTOR_ID:
 			{
         		bMotorId = MOTOR_INDEX_PITCH;
@@ -171,20 +192,44 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(PITCH_GIMBAL_MOTOR_TOE);
 				break;
 			}
+#endif
 			case CAN_FRICTION_MOTOR_LEFT_ID:
 			{
 				bMotorId = MOTOR_INDEX_FRICTION_LEFT;
 				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(FRIC1_MOTOR_TOE);
+				detect_hook(FRICTIONAL_MOTOR_LEFT_TOE);
 				break;
 			}
 			case CAN_FRICTION_MOTOR_RIGHT_ID:
 			{
 				bMotorId = MOTOR_INDEX_FRICTION_RIGHT;
 				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(FRIC2_MOTOR_TOE);
+				detect_hook(FRICTIONAL_MOTOR_RIGHT_TOE);
 				break;
 			}
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+			case CAN_FRICTION_MOTOR_UP_ID:
+			{
+				bMotorId = MOTOR_INDEX_FRICTION_UP;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(FRICTIONAL_MOTOR_UP_TOE);
+				break;
+			}
+			case CAN_FRICTION_MOTOR_DOWN_ID:
+			{
+				bMotorId = MOTOR_INDEX_FRICTION_DOWN;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(FRICTIONAL_MOTOR_DOWN_TOE);
+				break;
+			}
+			case CAN_PISTON_MOTOR_ID:
+			{
+				bMotorId = MOTOR_INDEX_PISTON;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(PISTON_MOTOR_TOE);
+				break;
+			}
+#endif
 #if IS_TRIGGER_ON_GIMBAL
 			case CAN_TRIGGER_MOTOR_ID:
 			{
@@ -444,6 +489,32 @@ HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId)
 	return ret_value;
 }
 
+HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId)
+{
+	HAL_StatusTypeDef ret_value = HAL_ERROR;
+	// Note: error_id = 0， 1 means motor power is disabled/enabled
+	uint8_t error_id = data[0] >> 4;
+	if ((error_id != 0) && (error_id != 1))
+	{
+		ret_value = HAL_ERROR;
+	}
+	else
+	{
+		uint16_t p_int = (data[1] << 8) | data[2];		   // rad (+-4*pi)
+		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
+		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5]; // Nm
+
+		motor_chassis[bMotorId].output_angle = uint_to_fp32_motor(p_int, MIT_CONTROL_P_MIN[DM_4340], MIT_CONTROL_P_MAX[DM_4340], 16);
+		motor_chassis[bMotorId].ecd = loop_fp32_constrain(motor_chassis[bMotorId].output_angle, 0, 2 * PI) * MOTOR_RAD_TO_ECD; //no actual ecd reading used 
+		motor_chassis[bMotorId].velocity = uint_to_fp32_motor(v_int, MIT_CONTROL_V_MIN[DM_4340], MIT_CONTROL_V_MAX[DM_4340], 12);
+		motor_chassis[bMotorId].torque = uint_to_fp32_motor(t_int, MIT_CONTROL_T_MIN[DM_4340], MIT_CONTROL_T_MAX[DM_4340], 12);
+		motor_chassis[bMotorId].temperate = data[6];
+
+		ret_value = HAL_OK;
+	}
+	return ret_value;
+}
+
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 uint8_t decode_swerve_chassis_feedback(uint8_t *data)
 {
@@ -607,7 +678,7 @@ uint8_t decode_biped_chassis_feedback(uint8_t *data)
  * @param[in]      fric_right: 3508 motor control current when used as friction motor
  * @retval         none
  */
-void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, int16_t fric_right)
+void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, int16_t fric_right, int16_t piston_motor)
 {
 	uint32_t send_mail_box;
 	// CAN_6020_LOW_RANGE_TX_ID same as CAN_3508_OR_2006_HIGH_RANGE_TX_ID
@@ -631,50 +702,106 @@ void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, in
 #if ((ENABLE_FRICTION_2_MOTOR_POWER == 0))
 	fric_right = 0;
 #endif
+#if ((ENABLE_PISTON_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+	piston_motor = 0;
+#endif
 
+//**************** Chassis CAN packet ******************
 	// control yaw motor and trigger motor
 #if ROBOT_YAW_IS_4310
-	// gimbal_can_send_data[0] = (rev >> 8);
-	// gimbal_can_send_data[1] = rev;
+	//encode and send MIT control saperately
 #else
 	gimbal_can_send_data[0] = ((int16_t)yaw >> 8);
 	gimbal_can_send_data[1] = (int16_t)yaw;
 #endif
-	// gimbal_can_send_data[2] = (rev >> 8);
-	// gimbal_can_send_data[3] = rev;
+	// gimbal_can_send_data[2] = (open >> 8);
+	// gimbal_can_send_data[3] = open;
 #if IS_TRIGGER_ON_GIMBAL
-	// gimbal_can_send_data[4] = (rev >> 8);
-	// gimbal_can_send_data[5] = rev;
+	// gimbal_can_send_data[4] = (open >> 8);
+	// gimbal_can_send_data[5] = open;
 #else
 	gimbal_can_send_data[4] = (trigger >> 8);
 	gimbal_can_send_data[5] = trigger;
 #endif
-	// gimbal_can_send_data[6] = (rev >> 8);
-	// gimbal_can_send_data[7] = rev;
+	// gimbal_can_send_data[6] = (open >> 8);
+	// gimbal_can_send_data[7] = open;
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
-#if ROBOT_YAW_IS_4310
-	osDelay(1);
-#endif
 
+//**************** Gimbal CAN packet *******************
 	// control pitch motor and fric_left and fric_right
 	gimbal_can_send_data[0] = (fric_left >> 8);
 	gimbal_can_send_data[1] = fric_left;
+
+#if ROBOT_PITCH_IS_4340
+	//encode and send MIT control saperately
+	//gimbal_can_send_data[2] = (open >> 8);
+	//gimbal_can_send_data[3] = open;
+#else
 	gimbal_can_send_data[2] = ((int16_t)pitch >> 8);
 	gimbal_can_send_data[3] = (int16_t)pitch;
+#endif
+
 #if IS_TRIGGER_ON_GIMBAL
 	gimbal_can_send_data[4] = (trigger >> 8);
 	gimbal_can_send_data[5] = trigger;
 #else
-	// gimbal_can_send_data[4] = (rev >> 8);
-	// gimbal_can_send_data[5] = rev;
+//Piston motor for hero 2023
+#if (ROBOT_TYPE == HERO_2025_MECANUM) //This is for the piston motor with higher can ID 7
+	gimbal_can_send_data[4] = (piston_motor >> 8); //Higher 8-bit
+	gimbal_can_send_data[5] = piston_motor; //Lower 8-bit
+#endif
+
 #endif
 	gimbal_can_send_data[6] = (fric_right >> 8);
 	gimbal_can_send_data[7] = fric_right;
 	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 
+//*************** MIT_control massage******************
+#if (ROBOT_YAW_IS_4310||ROBOT_PITCH_IS_4340)
+	osDelay(1);//delay 1 ms if need to send MIT cmds in same CAN bus to other standard motor
+#endif
+
 #if ROBOT_YAW_IS_4310
 	encode_MIT_motor_control(CAN_YAW_MOTOR_4310_TX_ID, 0, 0, 0, 0, yaw, DM_4310, &CHASSIS_CAN);
 #endif
+
+#if ROBOT_PITCH_IS_4340
+	encode_MIT_motor_control(CAN_PITCH_MOTOR_4340_TX_ID, 0, 0, 0, 0, pitch, DM_4340, &GIMBAL_CAN);
+#endif
+
+}
+
+void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down)
+{
+#if ((ENABLE_FRICTION_3_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+	fric_up = 0;
+#endif
+#if ((ENABLE_FRICTION_4_MOTOR_POWER == 0) || (ENABLE_SHOOT_REDUNDANT_SWITCH == 0))
+	fric_down = 0;
+#endif
+	uint32_t send_mail_box;
+	gimbal_tx_message.StdId = CAN_3508_OR_2006_LOW_RANGE_TX_ID;
+	gimbal_tx_message.IDE = CAN_ID_STD;
+	gimbal_tx_message.RTR = CAN_RTR_DATA;
+	gimbal_tx_message.DLC = 0x08;
+
+
+	//Motor ID 1
+	// gimbal_can_send_data[0] = (open >> 8);
+	// gimbal_can_send_data[1] = open;
+
+	//Motor ID 2
+	// gimbal_can_send_data[2] = (open >> 8);
+	// gimbal_can_send_data[3] = open;
+
+	//Motor ID 3
+	gimbal_can_send_data[4] = (fric_up >> 8);
+	gimbal_can_send_data[5] = fric_up;
+
+	//Motor ID 4
+	gimbal_can_send_data[6] = (fric_down >> 8);
+	gimbal_can_send_data[7] = fric_down;
+	HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr)
@@ -696,7 +823,9 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 		// disable
 		gimbal_can_send_data[7] = 0xFD;
 	}
-	return HAL_CAN_AddTxMessage(hcan_ptr, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+	HAL_StatusTypeDef hal_status = HAL_CAN_AddTxMessage(hcan_ptr, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
+	memset(gimbal_can_send_data, 0, sizeof(gimbal_can_send_data));
+	return hal_status;
 }
 
 /**
@@ -1002,6 +1131,34 @@ void chassis_enable_platform_flag(uint8_t fEnabled)
 }
 
 #if CAN_PASS_REF_INFO
+void send_ui_info(void)
+{
+	uint32_t send_mail_box;
+	chassis_tx_message.StdId = CAN_UI_INFO_RX_ID;
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
+
+	Set_Bit(&ui_info.launcher_flag_byte,UI_TRIGGER_STATE_BIT,ui_info.trigger_state);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_FRIC_STATE_BIT,ui_info.firc_state);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_AUTO_AIM_STATE_BIT,ui_info.auto_aim_state);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_IGNORE_HEAT_LIMIT_BIT,ui_info.Heat_Limit_Ignored);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_LAUNCHER_LOADED_BIT,ui_info.Launcher_Loaded);
+	Set_Bit(&ui_info.launcher_flag_byte,UI_LAUNCHER_OPENED_BIT,ui_info.Launcher_Opened);
+	
+	Set_Bit(&ui_info.chassis_flag_byte,UI_SPINNING_STATE_BIT,ui_info.spinning_state);
+	Set_Bit(&ui_info.chassis_flag_byte,UI_POWER_SAVING_BIT,ui_info.power_saving);
+
+
+
+	interboard_can_send_data[0] = ui_info.chassis_flag_byte;
+	interboard_can_send_data[1] = ui_info.launcher_flag_byte;
+	
+		
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, interboard_can_send_data, &send_mail_box);
+}
+
+
 void pull_ref_info(uint8_t info_code)
 {	
 	uint32_t send_mail_box;
@@ -1010,8 +1167,8 @@ void pull_ref_info(uint8_t info_code)
 	chassis_tx_message.RTR = CAN_RTR_DATA;
 	chassis_tx_message.DLC = 0x08;
 
-	chassis_can_send_data[0] = info_code;
-	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+	interboard_can_send_data[0] = info_code;
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, interboard_can_send_data, &send_mail_box);
 }
 
 void decode_ref_info(uint8_t *rx_data)
@@ -1024,7 +1181,7 @@ void decode_ref_info(uint8_t *rx_data)
 		case BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT:
 		{
 			memcpy(&can_ref_info.barrel_heat_limit, rx_data + 1, 2);
-			memcpy(&can_ref_info.barrel_1_heat, rx_data + 3, 2);
+			memcpy(&can_ref_info.barrel_1_heat, rx_data + 3, 2); //stored saperately from uart-refree data, 42mm or 17mm heat determined in lower board
 			break;
 		}
 		
