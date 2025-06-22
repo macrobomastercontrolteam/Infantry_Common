@@ -62,6 +62,7 @@ typedef enum
 	CV_INFO_GAME_PROGRESS = 0x00,
 	CV_INFO_TEAM_COLOR = 0x01,
 	CV_INFO_ROBOT_TYPE = 0x02,
+	CV_INFO_ROBOT_HP = 0x03,
 } eMsgTypeAckInfo;
 
 //
@@ -300,7 +301,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 					}
 					break;
 				}
-				case CV_INFO_ROBOT_TYPE:
+				case CV_INFO_ROBOT_TYPE:{
 					ackBuf[2] = 0x02;
 #if SENTRY_2023_MECANUM
 					ackBuf[3] = 0x00;
@@ -308,6 +309,15 @@ static void CvCmder_SendAck(uint8_t msgType)
 					ackBuf[3] = 0xFF;
 #endif
 					break;
+				}
+
+				case CV_INFO_ROBOT_HP:
+				{
+					uint16_t currentHP = get_current_HP();
+					ackBuf[2] = 0x03;
+					memcpy(&ackBuf[3], &currentHP, 2);
+					break;
+				}
 			}
 			break;
 		}
