@@ -130,6 +130,12 @@ void chassis_task(void const *pvParameters)
 		chassis_control_loop();
 		// send CAN msg
 		CAN_cmd_chassis();
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+		CAN_cmd_supercap();
+
+#elif (SUPERCAP_TYPE == MACRM_SUPERCAP)
+		CAN_cmd_supercap();
+#endif
 
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
 
@@ -335,14 +341,14 @@ void chassis_speed_max_adj(void)
 		{
 			// 0-49
 			vx_speed_limit = 1.41;
-			vy_speed_limit = 0.84;
+			vy_speed_limit = 1.41;
 			break;
 		}
 		case 2:
 		{
 			// 50-54
 			vx_speed_limit = 1.58;
-			vy_speed_limit = 0.92;
+			vy_speed_limit = 1.58;
 			break;
 		}
 		case 3:
@@ -351,49 +357,49 @@ void chassis_speed_max_adj(void)
 			// low: 1.6
 			// high: 1.8
 			vx_speed_limit = 1.71;
-			vy_speed_limit = 0.9371;
+			vy_speed_limit = 1.71;
 			break;
 		}
 		case 4:
 		{
 			// 60-64
 			vx_speed_limit = 1.75;
-			vy_speed_limit = 1.1;
+			vy_speed_limit = 1.75;
 			break;
 		}
 		case 5:
 		{
 			// 65-69
 			vx_speed_limit = 1.775;
-			vy_speed_limit = 1.15;
+			vy_speed_limit = 1.775;
 			break;
 		}
 		case 6:
 		{
 			// 70-74
 			vx_speed_limit = 1.85;
-			vy_speed_limit = 1.2;
+			vy_speed_limit = 1.85;
 			break;
 		}
 		case 7:
 		{
 			// 75-79
 			vx_speed_limit = 1.9;
-			vy_speed_limit = 1.275;
+			vy_speed_limit = 1.9;
 			break;
 		}
 		case 8:
 		{
 			// 80-84
 			vx_speed_limit = 1.925;
-			vy_speed_limit = 1.35;
+			vy_speed_limit = 1.925;
 			break;
 		}
 		case 9:
 		{
 			// 85-89
 			vx_speed_limit = 2.0;
-			vy_speed_limit = 1.45;
+			vy_speed_limit = 2.0;
 			break;
 		}
 		case 10:
@@ -1018,9 +1024,10 @@ static void chassis_control_loop(void)
 		{
 			PID_calc(&chassis_move.motor_speed_pid[i], chassis_move.motor_chassis[i].speed, chassis_move.motor_chassis[i].speed_set, CHASSIS_CONTROL_TIME_S);
 		}
-
-		chassis_power_control();
-
+		if (!toe_is_error(SUPCAP_TOE))
+		{
+			chassis_power_control((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C) != 0);
+		}
 		for (i = 0; i < 4; i++)
 		{
 			chassis_move.motor_chassis[i].give_current = (int16_t)(chassis_move.motor_speed_pid[i].out);
