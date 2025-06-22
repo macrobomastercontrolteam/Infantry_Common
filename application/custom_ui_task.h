@@ -30,7 +30,7 @@ typedef struct
   uint8_t launcher_flag_byte;
   uint8_t chassis_flag_byte;
 
-  uint8_t supercap_percentage;
+  int16_t supercap_percentage;
 
 } ui_info_t;
 

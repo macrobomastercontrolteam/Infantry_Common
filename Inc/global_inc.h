@@ -13,6 +13,10 @@
 
 #define RMUL 0
 #define RMUC 1
+
+#define UBC_SUPERCAP 1
+#define SJTU_SUPERCAP 2 //not in use for 2025 RMU
+#define MACRM_SUPERCAP 3
 /********************* Only Modify this area (start) *********************/
 #define LAUNCHER_TYPE LAUNCHER_42MM
 
@@ -22,6 +26,7 @@
 
 
 #define ROBOT_TYPE INFANTRY_2024_MECANUM
+#define SUPERCAP_TYPE MACRM_SUPERCAP
 #define COMPETITION_TYPE RMUL
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0

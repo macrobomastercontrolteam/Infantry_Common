@@ -311,6 +311,8 @@ void trigger_motor_state_draw(float trigger_rpm)
 
 void chassis_mode_draw(void)
 {
+	ui_info.supercap_percentage = get_cap_energy_percentage();
+	
 	sprintf(number_str, "%d", ui_info.supercap_percentage);  
 	char_draw(&Cap_percentage, "Cap_percentage", UI_Graph_Change, 4, UI_Color_Main, 15, 5, 3, 1760, 762, number_str);
 	update_char(&Cap_percentage);

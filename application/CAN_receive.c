@@ -103,6 +103,18 @@ const fp32 MIT_CONTROL_KP_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0
 const fp32 MIT_CONTROL_KD_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {5.0f, 5.0f, 5.0f};
 const fp32 MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f, 0.0f, 0.0f};
 
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+capcan_rx_t capcan_rx_msg;
+capcan_tx_t capcan_tx_msg;
+void decode_ubc_cap_tx_data(uint8_t *data);
+#elif (SUPERCAP_TYPE == MACRM_SUPERCAP)
+capcan_rx_t capcan_rx_msg;
+capcan_tx_t capcan_tx_msg;
+#elif (SUPERCAP_TYPE == SJTU_SUPERCAP)
+supcap_t cap_message_rx;
+#endif
+
+
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define SWERVE_METER_PER_SEC_ECD_MAX_LIMIT 1.5f
 #define SWERVE_METER_ECD_MAX_LIMIT 0.5f
@@ -143,7 +155,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	CAN_RxHeaderTypeDef rx_header;
 	uint8_t rx_data[8];
 	uint8_t bMotorId = 0;
-	uint8_t ref_info_id = 0;
+	// uint8_t ref_info_id = 0;
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
@@ -222,7 +234,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			}
 			case SUPCAP_RX_ID:
 			{
-				memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
+				decode_supercap(rx_data);
 				detect_hook(SUPCAP_TOE);
 				break;
 			}
@@ -1036,4 +1048,78 @@ void decode_ui_info(uint8_t *rx_data)
 
 	//TODO: ADD SUPERCAP PERCENTAGE
 	
+}
+
+#if (SUPERCAP_TYPE == MACRM_SUPERCAP)
+
+void decode_macrm_cap_tx_data(uint8_t *data)
+{
+	capcan_tx_msg.current_chassis_power = (data[1] << 8) | data[0];
+	capcan_tx_msg.current_battery_power = (data[3] << 8) | data[2];
+	capcan_tx_msg.cap_voltage = (data[5] << 8) | data[4];
+	capcan_tx_msg.cap_state = (data[7] << 8) | data[6];
+}
+
+uint16_t get_current_chassis_power(void)
+{
+	return capcan_tx_msg.current_chassis_power;
+}
+uint16_t get_current_battery_power(void)
+{
+	return capcan_tx_msg.current_battery_power;
+}
+int16_t get_cap_voltage(void)
+{
+	return capcan_tx_msg.cap_voltage;
+}
+uint16_t get_cap_state(void)
+{
+	return capcan_tx_msg.cap_state;
+}
+
+int16_t get_cap_energy_percentage(void)
+{
+	
+	return ((int16_t)(capcan_tx_msg.cap_voltage - 10) / ( 23 - 10 ) * 100);
+}
+#endif
+
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+
+void decode_ubc_cap_tx_data(uint8_t *data)
+{
+	capcan_tx_msg.max_discharge_power = (data[1] << 8) | data[0];
+	capcan_tx_msg.base_power = (data[3] << 8) | data[2];
+	capcan_tx_msg.cap_energy_percentage = (data[5] << 8) | data[4];
+	capcan_tx_msg.cap_state = (data[7] << 8) | data[6];
+}
+
+uint16_t get_max_discharge_power(void)
+{
+	return capcan_tx_msg.max_discharge_power;
+}
+uint16_t get_current_chassis_power(void)
+{
+	return capcan_tx_msg.base_power;
+}
+int16_t get_cap_energy_percentage(void)
+{
+	return capcan_tx_msg.cap_energy_percentage;
+}
+uint16_t get_cap_state(void)
+{
+	return capcan_tx_msg.cap_state;
+}
+#endif
+
+void decode_supercap(uint8_t *data)
+{
+#if (SUPERCAP_TYPE == SJTU_SUPERCAP)
+	memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
+#elif (SUPERCAP_TYPE == MACRM_SUPERCAP)
+	decode_macrm_cap_tx_data(data);
+#elif (SUPERCAP_TYPE == UBC_SUPERCAP)
+	decode_ubc_cap_tx_data(data);
+#endif
+	detect_hook(SUPCAP_TOE);
 }

@@ -105,7 +105,15 @@ typedef enum
   CAN_6020_LOW_RANGE_TX_ID = 0x1FF,
   CAN_6020_HIGH_RANGE_TX_ID = 0x2FF,
 
+#if (SUPERCAP_TYPE == MACRM_SUPERCAP)
+  SUPCAP_TX_ID = 0x302,
   SUPCAP_RX_ID = 0x301,
+#elif (SUPERCAP_TYPE == UBC_SUPERCAP)
+  SUPCAP_TX_ID = 0x2C8,
+  SUPCAP_RX_ID = 0x2C7,
+#elif (SUPERCAP_TYPE == SJTU_SUPERCAP)
+  SUPCAP_RX_ID = 0x301,
+#endif
 
   CAN_REF_INFO_PULL_RX_ID = 0x130,
   CAN_REF_INFO_PULL_TX_ID = 0x131,
@@ -128,6 +136,79 @@ typedef enum
 	CAN_BIPED_CONTROLLER_MODE_TX_ID = 0x119,
 #endif
 } can_other_msg_id_e;
+
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+typedef struct 
+{
+    uint16_t power_target;
+    uint16_t referee_power;
+    uint16_t rsvd1; //Must be 0x2012
+    uint16_t rsvd2; //Must be 0x0712
+}capcan_rx_t;
+
+/*Message come from capacitor module */
+/*Expected message frequency = 100Hz */
+typedef struct
+{
+    uint16_t max_discharge_power;
+    uint16_t base_power;
+    int16_t cap_energy_percentage;
+    uint16_t cap_state;
+}capcan_tx_t;
+
+typedef enum{
+    CAP_OFF,
+    CAP_READY,
+    CAP_ON,
+    VBUS_OVP,
+    VBUS_UVP,
+    VBAT_OVP,
+}Cap_states_e;
+#elif(SUPERCAP_TYPE == MACRM_SUPERCAP)
+typedef struct 
+{
+    uint16_t power_target;
+    uint16_t referee_power;
+    uint16_t rsvd1; //Must be 0x2012
+    uint16_t rsvd2; //Must be 0x0712
+}capcan_rx_t;
+
+
+/*Message come from capacitor module */
+/*Expected message frequency = 100Hz */
+typedef struct
+{
+    uint16_t current_chassis_power;
+    uint16_t current_battery_power;
+    int16_t cap_voltage;
+    uint16_t cap_state;
+}capcan_tx_t;
+
+typedef enum{
+    CAP_OFF,
+    CAP_READY,
+    CAP_ON,
+    VBUS_OVP,
+    VBUS_UVP,
+    VBAT_OVP,
+}Cap_states_e;
+#elif (SUPERCAP_TYPE == SJTU_SUPERCAP)
+typedef union
+{
+	uint8_t can_buf[8];
+	struct
+	{
+		// 0: not provide power
+		// 1: provide power
+		uint8_t cap_state;
+		uint8_t reserve;
+		uint16_t cap_milivoltage;
+		float cap_power;
+	} cap_message;
+} supcap_t;
+
+extern supcap_t cap_message_rx;
+#endif
 
 typedef enum
 {
@@ -235,4 +316,27 @@ extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
 extern void return_ref_info(uint8_t info_code);
 void decode_ui_info(uint8_t *rx_data);
+
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+void decode_ubc_cap_tx_data(uint8_t *data);
+void decode_macrm_cap_tx_data(uint8_t *data);
+extern uint16_t get_max_discharge_power(void);
+extern uint16_t get_current_chassis_power(void);
+extern int16_t get_cap_energy_percentage(void);
+extern uint16_t get_cap_state(void);
+void CAN_cmd_supercap(void);
+void decode_supercap(uint8_t *data);
+#endif
+
+#if (SUPERCAP_TYPE == MACRM_SUPERCAP)
+void decode_macrm_cap_tx_data(uint8_t *data);
+extern uint16_t get_current_chassis_power(void);
+extern uint16_t get_current_battery_power(void);
+extern int16_t get_cap_voltage(void);
+extern uint16_t get_cap_state(void);
+extern int16_t get_cap_energy_percentage(void);
+void CAN_cmd_supercap(void);
+void decode_supercap(uint8_t *data);
+#endif
+
 #endif
