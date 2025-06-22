@@ -522,9 +522,9 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				get_remaining_gold_coins(&gold_coins);
 				get_projectile_allowance_17mm(&projectile_allowance_17mm);
 				if(length == 1){
-					uint8_t shootCmd = pData[2];
 //setting shoot flag for automatic robots					
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+					uint8_t shootCmd = pData[2];
 	#if !DEBUG_CV
 					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-60)< shoot_heat_limit) && is_game_started()){
 	#else
