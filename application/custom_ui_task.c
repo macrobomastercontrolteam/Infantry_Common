@@ -80,6 +80,8 @@ graphic_data_struct_t Loaded_indicator;
 string_data Opened_state;
 graphic_data_struct_t Opened_indicator;
 
+uint8_t prev_chassis_flag_byte = 0;
+uint8_t prev_launcher_flag_byte = 0;
 
 uint8_t toggle = 0; 
 char number_str[5];
@@ -129,7 +131,7 @@ void static_elements_init(void)
 
 	char_draw(&Trigger_state, "TriggerSpeed_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 6, 3, 1680, 645, "TRIG");
 	update_char(&Trigger_state);
-	circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_ADD, 7, UI_Color_Cyan, 10, 1755, 640, 5);
+	circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_ADD, 7, UI_Color_Pink, 10, 1755, 640, 5);
 	update_ui(&Trigger_indicator);
 
 	char_draw(&Firc_state, "Firc_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 685, "FIRC");
@@ -318,98 +320,114 @@ void chassis_mode_draw(void)
 	update_char(&Cap_percentage);
 
 	//If else statements for indicator color
+	if(prev_chassis_flag_byte != ui_info.chassis_flag_byte)
+	{
+		
+		prev_chassis_flag_byte = ui_info.chassis_flag_byte;
 
-	if ((ui_info.launcher_flag_byte & UI_AUTO_AIM_STATE_BIT) == 0) 
-	{
-		circle_draw(&AutoAim_indicator, "AutoAim_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 720, 5);
-		update_ui(&AutoAim_indicator);
-	} 
-	else
-	{
-		circle_draw(&AutoAim_indicator, "AutoAim_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 720, 5);
-		update_ui(&AutoAim_indicator);
-	}
+		for (uint8_t i = 0; i <= 50; i++)
+		{
 
-	if ((ui_info.chassis_flag_byte & UI_SPINNING_STATE_BIT)  == 0) 
-	{
-		circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 600, 5);
-		update_ui(&Spin_indicator);
-	} 
-	else 
-	{
-		circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 600, 5);
-		update_ui(&Spin_indicator);
-	}
+			if ((ui_info.chassis_flag_byte & UI_SPINNING_STATE_BIT)  == 0) 
+			{
+				circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 600, 5);
+				update_ui(&Spin_indicator);
+			} 
+			else 
+			{
+				circle_draw(&Spin_indicator, "Spin_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 600, 5);
+				update_ui(&Spin_indicator);
+			}
 
-	if ((ui_info.launcher_flag_byte & UI_FRIC_STATE_BIT) == 0)
-	{
-		circle_draw(&Firc_indicator, "Firc_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 680, 5);
-		update_ui(&Firc_indicator);
-	}
-	else
-	{
-		circle_draw(&Firc_indicator, "Firc_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 680, 5);
-		update_ui(&Firc_indicator);
+			if ((ui_info.chassis_flag_byte & UI_POWER_SAVING_BIT) == 0) 
+			{
+				circle_draw(&Power_saving_indicator, "Power_saving_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 840, 5);
+				update_ui(&Power_saving_indicator);
+			}
+			else
+			{
+				circle_draw(&Power_saving_indicator, "Power_saving_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 840, 5);
+				update_ui(&Power_saving_indicator);
+			}
+		}
 	}
 
-	if ((ui_info.launcher_flag_byte & UI_TRIGGER_STATE_BIT) == 0) 
+	if(prev_launcher_flag_byte != ui_info.launcher_flag_byte)
 	{
-		circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_Change, 7, UI_Color_Purplish_red, 10, 1755, 640, 5);
-		update_ui(&Trigger_indicator);
-	}
-	else
-	{
-		circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_Change, 7, UI_Color_Green, 10, 1755, 640, 5);
-		update_ui(&Trigger_indicator);
-	}
+		prev_launcher_flag_byte = ui_info.launcher_flag_byte;
 
-	if ((ui_info.launcher_flag_byte & UI_IGNORE_HEAT_LIMIT_BIT) == 0) 
-	{
-		circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 800, 5);
-		update_ui(&Limit_indicator);	
-	} 
-	else
-	{
-		circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 800, 5);
-		update_ui(&Limit_indicator);
-	}
+		for (uint8_t i = 0; i <= 50; i++)
+		{
 
-	if ((ui_info.chassis_flag_byte & UI_POWER_SAVING_BIT) == 0) 
-	{
-		circle_draw(&Power_saving_indicator, "Power_saving_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 840, 5);
-		update_ui(&Power_saving_indicator);
-	}
-	else
-	{
-		circle_draw(&Power_saving_indicator, "Power_saving_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 840, 5);
-		update_ui(&Power_saving_indicator);
-	}
+			if ((ui_info.launcher_flag_byte & UI_AUTO_AIM_STATE_BIT) == 0) 
+			{
+				circle_draw(&AutoAim_indicator, "AutoAim_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 720, 5);
+				update_ui(&AutoAim_indicator);
+			} 
+			else
+			{
+				circle_draw(&AutoAim_indicator, "AutoAim_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 720, 5);
+				update_ui(&AutoAim_indicator);
+			}
+
+			if ((ui_info.launcher_flag_byte & UI_FRIC_STATE_BIT) == 0)
+			{
+				circle_draw(&Firc_indicator, "Firc_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 680, 5);
+				update_ui(&Firc_indicator);
+			}
+			else
+			{
+				circle_draw(&Firc_indicator, "Firc_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 680, 5);
+				update_ui(&Firc_indicator);
+			}
+
+			if ((ui_info.launcher_flag_byte & UI_TRIGGER_STATE_BIT) == 0) 
+			{
+				circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_Change, 7, UI_Color_Purplish_red, 10, 1755, 640, 5);
+				update_ui(&Trigger_indicator);
+			}
+			else
+			{
+				circle_draw(&Trigger_indicator, "TriggerSpeedData", UI_Graph_Change, 7, UI_Color_Green, 10, 1755, 640, 5);
+				update_ui(&Trigger_indicator);
+			}
+
+			if ((ui_info.launcher_flag_byte & UI_IGNORE_HEAT_LIMIT_BIT) == 0) 
+			{
+				circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 800, 5);
+				update_ui(&Limit_indicator);	
+			} 
+			else
+			{
+				circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 800, 5);
+				update_ui(&Limit_indicator);
+			}
 
 #if (LAUNCHER_TYPE == LAUNCHER_42MM)
-	if ((ui_info.launcher_flag_byte & UI_LAUNCHER_LOADED_BIT) == 0)
-	{
-		circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 560, 5);
-		update_ui(&Loaded_indicator);
-	}
-	else
-	{
-		circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_Change, 2, UI_Color_Green,  10, 1755, 560, 5);
-		update_ui(&Loaded_indicator);
-	}
+			if ((ui_info.launcher_flag_byte & UI_LAUNCHER_LOADED_BIT) == 0)
+			{
+				circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 560, 5);
+				update_ui(&Loaded_indicator);
+			}
+			else
+			{
+				circle_draw(&Loaded_indicator, "Loaded_indicator", UI_Graph_Change, 2, UI_Color_Green,  10, 1755, 560, 5);
+				update_ui(&Loaded_indicator);
+			}
 
-	if ((ui_info.launcher_flag_byte & UI_LAUNCHER_OPENED_BIT) == 0)
-	{
-		circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 520, 5);
-		update_ui(&Opened_indicator);
-	}
-	else
-	{
-		circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 520, 5);
-		update_ui(&Opened_indicator);
-	}
+			if ((ui_info.launcher_flag_byte & UI_LAUNCHER_OPENED_BIT) == 0)
+			{
+				circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_Change, 2, UI_Color_Purplish_red, 10, 1755, 520, 5);
+				update_ui(&Opened_indicator);
+			}
+			else
+			{
+				circle_draw(&Opened_indicator, "Opened_indicator", UI_Graph_Change, 2, UI_Color_Green, 10, 1755, 520, 5);
+				update_ui(&Opened_indicator);
+			}
 #endif
-
-	
+		}
+	}
 
 	// switch (chassis_behaviour_mode)
 	// {
