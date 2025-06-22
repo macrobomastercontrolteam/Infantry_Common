@@ -41,6 +41,7 @@
 #include "bsp_laser.h"
 #include "pid.h"
 #include "cv_usart_task.h"
+#include "custom_ui_task.h"
 
 //motor encoder value format, range[0-8191]
 #define ecd_format(ecd)         \
@@ -200,7 +201,13 @@ void gimbal_task(void const *pvParameters)
 #if ROBOT_YAW_IS_4310
         enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN);
 #endif
-        CAN_cmd_gimbal(0, 0, 0, 0, 0);
+#if ROBOT_PITCH_IS_4340
+        enable_DaMiao_motor(CAN_PITCH_MOTOR_4340_TX_ID, 1, &GIMBAL_CAN);
+#endif
+        CAN_cmd_gimbal_upper_can_ID(0, 0, 0, 0, 0, 0);
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+        CAN_cmd_gimbal_lower_can_id(0, 0);
+#endif
         osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
     } while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE));
@@ -214,7 +221,10 @@ void gimbal_task(void const *pvParameters)
         gimbal_control_loop(&gimbal_control);
         trigger_set_current = shoot_control_loop();
         gimbal_safety_manager(&yaw_can_set_value, &pitch_can_set_value, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
-        CAN_cmd_gimbal(yaw_can_set_value, pitch_can_set_value, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current);
+        CAN_cmd_gimbal_upper_can_ID(yaw_can_set_value, pitch_can_set_value, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current, shoot_control.piston_given_current);
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+        CAN_cmd_gimbal_lower_can_id(shoot_control.fric3_given_current, shoot_control.fric4_given_current);
+#endif
 
 #if GIMBAL_TEST_MODE
         J_scope_gimbal_test();
@@ -252,7 +262,7 @@ void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_valu
     }
 
     // safety for shoot
-    if (toe_is_error(TRIGGER_MOTOR_TOE) || toe_is_error(FRIC1_MOTOR_TOE) || toe_is_error(FRIC2_MOTOR_TOE))
+    if (toe_is_error(TRIGGER_MOTOR_TOE) || toe_is_error(FRICTIONAL_MOTOR_LEFT_TOE) || toe_is_error(FRICTIONAL_MOTOR_RIGHT_TOE))
     {
         *fric1_set_current_ptr = 0;
         *fric1_set_current_ptr = 0;
@@ -644,11 +654,17 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
         return;
     }
 #if ROBOT_YAW_IS_4310
-    if(toe_is_error(YAW_GIMBAL_MOTOR_TOE))
+    if (toe_is_error(YAW_GIMBAL_MOTOR_TOE))
     {
         enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN); // attempt re-enable yaw motor when offline
     }
-#endif 
+#endif
+#if ROBOT_PITCH_IS_4340
+    if (toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
+    {
+        enable_DaMiao_motor(CAN_PITCH_MOTOR_4340_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
+    }
+#endif
     feedback_update->gimbal_pitch_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
 
 #if PITCH_REVERSED
@@ -797,16 +813,18 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 
 		if (CvCmder_GetMode(CV_MODE_ASSIST_BIT) && fCvAutoAim())
 		{
-
-                cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC *0.5f;
-                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC * 0.25f;
+                cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC * 0.85f;
+                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC * 0.85f;
                 // cvAidedX = debugx * YAW_RC_CV_SEN_INC;
                 // cvAidedY = debugy * PITCH_RC_CV_SEN_INC;
-        
+                
+                ui_info.auto_aim_state = 1;      
 		}
         else{
             cvAidedX = 0.0f;
             cvAidedY = 0.0f;
+
+            ui_info.auto_aim_state = 0;
         }
 #else
 #if DEBUG_CV
@@ -1076,7 +1094,11 @@ bool_t gimbal_emergency_stop(void)
         // do nothing
     }
 #if ROBOT_YAW_IS_4310
-    else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+    #if ROBOT_PITCH_IS_4340
+        else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_4310_MOTOR_TORQUE_LIMIT))
+    #else
+        else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+    #endif
 #else
     else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->feedback_current) >= YAW_6020_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
 #endif

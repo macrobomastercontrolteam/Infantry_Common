@@ -32,33 +32,46 @@
 /* CAN send and receive ID */
 typedef enum
 {
-    // GM6020 CAN ID = 0x204 + ID, M2006 and M3508 CAN ID = 0x200 + ID
-    /*******Chassis CAN IDs********/
-    CAN_3508_M1_ID = 0x201,
-    CAN_3508_M2_ID = 0x202,
-    CAN_3508_M3_ID = 0x203,
-    CAN_3508_M4_ID = 0x204,
+  // GM6020 CAN ID = 0x204 + ID, M2006 and M3508 CAN ID = 0x200 + ID
+  /*******Chassis CAN IDs********/
+  CAN_3508_M1_ID = 0x201,
+  CAN_3508_M2_ID = 0x202,
+  CAN_3508_M3_ID = 0x203,
+  CAN_3508_M4_ID = 0x204,
 #if ROBOT_YAW_IS_4310
-    CAN_YAW_MOTOR_4310_TX_ID = 0x005,
-    CAN_YAW_MOTOR_4310_RX_ID = 0x0FF,
+  CAN_YAW_MOTOR_4310_TX_ID = 0x005,
+  CAN_YAW_MOTOR_4310_RX_ID = 0x0FF,
 #else
-    CAN_YAW_MOTOR_6020_RX_ID = 0x205,
+  CAN_YAW_MOTOR_6020_RX_ID = 0x205,
 #endif
 
-    /********Gimbal CAN IDs********/
-    CAN_PIT_MOTOR_ID = 0x206,
+/********Gimbal CAN IDs********/
+#if ROBOT_PITCH_IS_4340
+  CAN_PITCH_MOTOR_4340_TX_ID = 0x006,
+  CAN_PITCH_MOTOR_4340_RX_ID = 0x0FD,
+#else
+  CAN_PIT_MOTOR_ID = 0x206,
+#endif
 
-    /********Other CAN IDs: Location depends on Model********/
-    // By default: On chassis
-    // INFANTRY_2023_MECANUM: On gimbal
-    // INFANTRY_2024_MECANUM: On chassis
-    // INFANTRY_2023_SWERVE: On chassis
-    // SENTRY_2023_MECANUM: On chassis
-    // INFANTRY_2024_BIPED: On chassis
-    CAN_TRIGGER_MOTOR_ID = 0x207,
+  /********Other CAN IDs: Location depends on Model********/
+  // By default: On chassis
+  // INFANTRY_2023_MECANUM: On gimbal
+  // INFANTRY_2024_MECANUM: On chassis
+  // INFANTRY_2023_SWERVE: On chassis
+  // SENTRY_2023_MECANUM: On chassis
+  // INFANTRY_2024_BIPED: On chassis
+  // HERO_2025_MECANUM: On chassis
+  CAN_TRIGGER_MOTOR_ID = 0x207,
 
-    CAN_FRICTION_MOTOR_LEFT_ID = 0x205, // friction1
-    CAN_FRICTION_MOTOR_RIGHT_ID = 0x208, // friction2
+  CAN_FRICTION_MOTOR_LEFT_ID = 0x205,  // friction1
+  CAN_FRICTION_MOTOR_RIGHT_ID = 0x208, // friction2
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+  CAN_FRICTION_MOTOR_UP_ID = 0x203,   // friction3
+  CAN_FRICTION_MOTOR_DOWN_ID = 0x204, // friction4
+
+  CAN_PISTON_MOTOR_ID = 0x207, // On gimbal
+#endif
+
 } can_msg_id_e;
 
 typedef enum
@@ -72,6 +85,11 @@ typedef enum
 	MOTOR_INDEX_TRIGGER,
   MOTOR_INDEX_FRICTION_LEFT,
   MOTOR_INDEX_FRICTION_RIGHT,
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+  MOTOR_INDEX_FRICTION_UP,
+  MOTOR_INDEX_FRICTION_DOWN,
+  MOTOR_INDEX_PISTON,
+#endif
 	MOTOR_LIST_LENGTH,
 } can_motor_id_e;
 
@@ -104,11 +122,21 @@ typedef enum
   CAN_3508_OR_2006_HIGH_RANGE_TX_ID = 0x1FF,
   CAN_6020_LOW_RANGE_TX_ID = 0x1FF,
   CAN_6020_HIGH_RANGE_TX_ID = 0x2FF,
-
+  CAN_POWER_METER_RX_ID = 0x212,
+#if (SUPERCAP_TYPE == MACRM_SUPERCAP)
+  SUPCAP_TX_ID = 0x302,
   SUPCAP_RX_ID = 0x301,
+#elif (SUPERCAP_TYPE == UBC_SUPERCAP)
+  SUPCAP_TX_ID = 0x2C8,
+  SUPCAP_RX_ID = 0x2C7,
+#elif (SUPERCAP_TYPE == SJTU_SUPERCAP)
+  SUPCAP_RX_ID = 0x301,
+#endif
 #if CAN_PASS_REF_INFO
   CAN_REF_INFO_PULL_RX_ID = 0x130,
   CAN_REF_INFO_PULL_TX_ID = 0x131,
+  
+  CAN_UI_INFO_RX_ID = 0x135,
 #endif
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
@@ -125,14 +153,96 @@ typedef enum
 	CAN_BIPED_CONTROLLER_TX_ID = 0x117,
 	CAN_BIPED_CONTROLLER_RX_ID = 0x118,
 	CAN_BIPED_CONTROLLER_MODE_TX_ID = 0x119,
+
+
 #endif
 } can_other_msg_id_e;
 
+typedef struct 
+{
+    fp32 chassis_current;
+    fp32 chassis_voltage;
+    fp32 chassis_power;
+}power_meter_can_rx_t;
+
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+typedef struct 
+{
+    uint16_t power_target;
+    uint16_t referee_power;
+    uint16_t rsvd1; //Must be 0x2012
+    uint16_t rsvd2; //Must be 0x0712
+}capcan_rx_t;
+
+/*Message come from capacitor module */
+/*Expected message frequency = 100Hz */
+typedef struct
+{
+    uint16_t max_discharge_power;
+    uint16_t base_power;
+    int16_t cap_energy_percentage;
+    uint16_t cap_state;
+}capcan_tx_t;
+
+typedef enum{
+    CAP_OFF,
+    CAP_READY,
+    CAP_ON,
+    VBUS_OVP,
+    VBUS_UVP,
+    VBAT_OVP,
+}Cap_states_e;
+#elif(SUPERCAP_TYPE == MACRM_SUPERCAP)
+typedef struct 
+{
+    uint16_t power_target;
+    uint16_t referee_power;
+    uint16_t rsvd1; //Must be 0x2012
+    uint16_t rsvd2; //Must be 0x0712
+}capcan_rx_t;
+
+
+/*Message come from capacitor module */
+/*Expected message frequency = 100Hz */
+typedef struct
+{
+    uint16_t current_chassis_power;
+    uint16_t current_battery_power;
+    int16_t cap_voltage;
+    uint16_t cap_state;
+}capcan_tx_t;
+
+typedef enum{
+    CAP_OFF,
+    CAP_READY,
+    CAP_ON,
+    VBUS_OVP,
+    VBUS_UVP,
+    VBAT_OVP,
+}Cap_states_e;
+#elif (SUPERCAP_TYPE == SJTU_SUPERCAP)
+typedef union
+{
+	uint8_t can_buf[8];
+	struct
+	{
+		// 0: not provide power
+		// 1: provide power
+		uint8_t cap_state;
+		uint8_t reserve;
+		uint16_t cap_milivoltage;
+		float cap_power;
+	} cap_message;
+} supcap_t;
+
+extern supcap_t cap_message_rx;
+#endif
 typedef enum
 {
     DM_8006 = 0,
     MA_9015 = 1,
     DM_4310 = 2,
+    DM_4340 = 3,
     LAST_MIT_CONTROLLED_MOTOR_TYPE,
 } MIT_controlled_motor_type_e;
 
@@ -164,7 +274,8 @@ typedef struct
   * @param[in]      rev: (0x208) reserve motor control current
   * @retval         none
   */
-extern void CAN_cmd_gimbal(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric1, int16_t fric2);
+extern void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric1, int16_t fric2, int16_t piston_motor);
+extern void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down);
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 void CAN_cmd_upper_head(void);
@@ -231,10 +342,34 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
+#if (SUPERCAP_TYPE == UBC_SUPERCAP)
+void decode_ubc_cap_tx_data(uint8_t *data);
+void decode_macrm_cap_tx_data(uint8_t *data);
+extern uint16_t get_max_discharge_power(void);
+extern uint16_t get_current_chassis_power(void);
+extern int16_t get_cap_energy_percentage(void);
+extern uint16_t get_cap_state(void);
+void CAN_cmd_supercap(void);
+void decode_supercap(uint8_t *data);
+#endif
+
+#if (SUPERCAP_TYPE == MACRM_SUPERCAP)
+void decode_macrm_cap_tx_data(uint8_t *data);
+extern uint16_t get_current_chassis_power(void);
+extern uint16_t get_current_battery_power(void);
+extern int16_t get_cap_voltage(void);
+extern uint16_t get_cap_state(void);
+void CAN_cmd_supercap(void);
+void decode_supercap(uint8_t *data);
+#endif
+
+void decode_power_meter(uint8_t *data);
+fp32 get_chassis_power_meter_data(void);
+
 #if CAN_PASS_REF_INFO
 extern can_ref_info_t can_ref_info;
-
 extern void pull_ref_info(uint8_t info_code);
+extern void send_ui_info(void);
 void decode_ref_info(uint8_t *rx_data);
 extern void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat);
 extern void CAN_get_chassis_power_info( fp32 *buffer, fp32 *power_limit);

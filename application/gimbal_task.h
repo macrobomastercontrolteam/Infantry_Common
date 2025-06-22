@@ -34,7 +34,11 @@
 
 #define GIMBAL_TEST_MODE 0
 
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define PITCH_REVERSED  1
+#else
+#define PITCH_REVERSED  0
+#endif
 #define YAW_REVERSED    0
 
 #define int_abs(x) ((x) > 0 ? (x) : (-x))
@@ -58,12 +62,16 @@
 #error "4310 yaw pid not defined for this robot type"
 #endif
 
+#if (ROBOT_PITCH_IS_4310 == 0)
 //pitch gyro angle close-loop PID params, max out and max iout
 #define PITCH_ANGLE_PID_KP 30.0f
 #define PITCH_ANGLE_PID_KI 0.0f
 #define PITCH_ANGLE_PID_KD 0.0f
 #define PITCH_ANGLE_PID_MAX_OUT 10.0f
 #define PITCH_ANGLE_PID_MAX_IOUT 0.0f
+#else
+#error "4310 pitch pid not defined for this robot type"
+#endif
 
 //yaw gyro angle close-loop PID params, max out and max iout
 #define YAW_ANGLE_PID_KP        23.0f
@@ -209,6 +217,45 @@
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
+#elif (ROBOT_TYPE == HERO_2025_MECANUM)
+//#warning "PID for this robot type HERO_2025_MECNUM is not defined yet all values are set to 0"
+
+//pitch speed close-loop PID params, max out and max iout
+#if ROBOT_PITCH_IS_4340
+#define PITCH_SPEED_PID_KP        1.5f
+#define PITCH_SPEED_PID_KI        0.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   9.5f
+#define PITCH_SPEED_PID_MAX_IOUT  9.5f
+#else
+#error "Pitch PID is not setup for this robot type"
+#endif
+
+#if ROBOT_YAW_IS_4310
+//yaw speed close-loop PID params, max out and max iout
+#define YAW_SPEED_PID_KP        0.7f
+#define YAW_SPEED_PID_KI        1.0f
+#define YAW_SPEED_PID_KD        0.01f
+#define YAW_SPEED_PID_MAX_OUT   6.5f
+#define YAW_SPEED_PID_MAX_IOUT  2.33f
+#else
+#error "Yaw PID is not setup for this robot type"
+#endif
+
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_ANGLE_PID_KP 35.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.0f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 15.0f
+
+//yaw gyro angle close-loop PID params, max out and max iout
+#define YAW_ANGLE_PID_KP        30.0f
+#define YAW_ANGLE_PID_KI        0.0f
+#define YAW_ANGLE_PID_KD        0.05f
+#define YAW_ANGLE_PID_MAX_OUT   10.0f
+#define YAW_ANGLE_PID_MAX_IOUT  10.0f
+
 #else
 
 #warning "Gimbal pid not defined for this robot type, using default values. If you're sure about this, temporarily uncomment this line."
@@ -249,11 +296,19 @@
 #define YAW_ANGLE_PID_MAX_IOUT  0.0f
 #endif
 
+#if ROBOT_PITCH_IS_4340
+#define PITCH_CAMERA_SPEED_PID_KP 0.7f
+#define PITCH_CAMERA_SPEED_PID_KI 0.0f
+#define PITCH_CAMERA_SPEED_PID_KD 0.0f
+#define PITCH_CAMERA_SPEED_PID_MAX_OUT 9.5f
+#define PITCH_CAMERA_SPEED_PID_MAX_IOUT 9.5f
+#else
 #define PITCH_CAMERA_SPEED_PID_KP 15000.0f
 #define PITCH_CAMERA_SPEED_PID_KI 15000.0f
 #define PITCH_CAMERA_SPEED_PID_KD 0.0f
 #define PITCH_CAMERA_SPEED_PID_MAX_OUT 30000.0f
 #define PITCH_CAMERA_SPEED_PID_MAX_IOUT 10000.0f
+#endif
 
 #if ROBOT_YAW_IS_4310
 #define YAW_CAMERA_SPEED_PID_KP        0.7f
@@ -297,6 +352,8 @@
 #define YAW_ENCODE_RELATIVE_PID_MAX_IOUT  0.0f
 
 #define PITCH_MOTOR_CURRENT_LIMIT  30000
+// @TODO: tune PITCH_4310_MOTOR_LIMIT
+#define PITCH_4310_MOTOR_TORQUE_LIMIT 7.0f
 // @TODO: tune YAW_4310_MOTOR_TORQUE_LIMIT
 #define YAW_4310_MOTOR_TORQUE_LIMIT  7.0f
 #define YAW_6020_MOTOR_CURRENT_LIMIT  30000
