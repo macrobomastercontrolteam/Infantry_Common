@@ -86,6 +86,7 @@ uint8_t prev_launcher_flag_byte = 0;
 uint8_t toggle = 0; 
 char number_str[5];
 
+void ui_variale_init(void);
 void static_elements_init(void);
 void super_cap_status_draw(void);
 void chassis_direction_draw(float yaw_relative_angle);
@@ -97,6 +98,9 @@ void trigger_motor_state_draw(float trigger_rpm);
 void custom_ui_task(void const *argument)
 {
 	uint32_t ulSystemTime = osKernelSysTick();
+
+	ui_variale_init();
+
 	for (uint8_t i = 0; i <= 50; i++)
 	{
 		clear_ui_all();
@@ -117,6 +121,13 @@ void custom_ui_task(void const *argument)
 		chassis_mode_draw();
 		osDelayUntil(&ulSystemTime, CUSTOM_UI_TIME_MS);
 	}
+}
+
+void ui_variale_init(void)
+{
+	ui_info.launcher_flag_byte = 0;
+	ui_info.chassis_flag_byte = 0;
+	ui_info.supercap_percentage = 0;
 }
 
 void static_elements_init(void)
@@ -155,7 +166,7 @@ void static_elements_init(void)
 
 
 	// Limit Ignored
-	char_draw(&Limit_state, "Limit_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 805, "HTLM");
+	char_draw(&Limit_state, "Limit_label", UI_Graph_ADD, 0, UI_Color_Pink, 15, 4, 3, 1680, 805, "IGHT");
 	update_char(&Limit_state);
 	circle_draw(&Limit_indicator, "Limit_indicator", UI_Graph_ADD, 2, UI_Color_Pink, 10, 1755, 800, 5);
 	update_ui(&Limit_indicator);

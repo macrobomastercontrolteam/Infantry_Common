@@ -18,7 +18,7 @@
 #define SJTU_SUPERCAP 2 //not in use for 2025 RMU
 #define MACRM_SUPERCAP 3
 /********************* Only Modify this area (start) *********************/
-#define LAUNCHER_TYPE LAUNCHER_42MM
+#define LAUNCHER_TYPE LAUNCHER_17MM
 
 /********************* Only Modify this area (end) *********************/
 
