@@ -63,6 +63,7 @@ typedef enum
 	CV_INFO_TEAM_COLOR = 0x01,
 	CV_INFO_ROBOT_TYPE = 0x02,
 	CV_INFO_ROBOT_HP = 0x03,
+	CV_INFO_PITCH_ANGLE = 0x04,
 } eMsgTypeAckInfo;
 
 //
@@ -316,6 +317,14 @@ static void CvCmder_SendAck(uint8_t msgType)
 					uint16_t currentHP = get_current_HP();
 					ackBuf[2] = 0x03;
 					memcpy(&ackBuf[3], &currentHP, 2);
+					break;
+				}
+
+				case CV_INFO_PITCH_ANGLE:
+				{
+					ackBuf[2] = 0x04;
+					fp32 pitch_angle = get_gimbal_ecd_pitch_angle();
+					memcpy(&ackBuf[3], &pitch_angle, sizeof(fp32));
 					break;
 				}
 			}
