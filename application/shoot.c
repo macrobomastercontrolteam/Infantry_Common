@@ -780,7 +780,7 @@ static void shoot_feedback_update(void)
 	shoot_control.friction_motor4_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm, shoot_control.friction_motor4_rpm, 0.8f);
 	shoot_control.piston_speed = first_order_filter(motor_chassis[MOTOR_INDEX_PISTON].speed_rpm * PISTON_MOTOR_RPM_TO_SPEED, shoot_control.piston_speed, 0.8f);
 
-	if((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_gimbal_output == 0))
+	if((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_shooter_output == 0))
 	{
 		launcher_status.Launcher_Initialized = 0; //require launcher re-initialization when gimbal powered off by refree
 	}
