@@ -61,6 +61,7 @@ typedef enum
 	CV_INFO_GAME_PROGRESS = 0x00,
 	CV_INFO_TEAM_COLOR = 0x01,
 	CV_INFO_ROBOT_TYPE = 0x02,
+	CV_INFO_PITCH_ANGLE = 0x04,
 } eMsgTypeAckInfo;
 
 typedef struct
@@ -275,10 +276,18 @@ static void CvCmder_SendAck(uint8_t msgType)
 					}
 					break;
 				}
-				case CV_INFO_ROBOT_TYPE:
+				case CV_INFO_ROBOT_TYPE:{
 					ackBuf[2] = 0x02;
 					ackBuf[3] = 0x00;
 					break;
+				}
+				case CV_INFO_PITCH_ANGLE:
+				{
+					ackBuf[2] = 0x04;
+					fp32 pitch_angle = get_gimbal_ecd_pitch_angle();
+					memcpy(&ackBuf[3], &pitch_angle, sizeof(fp32));
+					break;
+				}
 			}
 			break;
 		}

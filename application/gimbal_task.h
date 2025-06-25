@@ -405,4 +405,6 @@ extern gimbal_control_t gimbal_control;
 
 fp32 get_gimbal_yaw_angle(void);
 fp32 get_gimbal_pitch_angle(void);
+extern fp32 get_gimbal_ecd_pitch_angle(void);
+extern fp32 get_gimbal_ecd_yaw_angle(void);
 #endif
