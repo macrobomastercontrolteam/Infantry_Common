@@ -349,7 +349,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 			if((projectile_allowance_17mm == 0 && gold_coins < 50)){
 				ackBuf[2] = 0x00; //running low on 17mm ammo
 			}
-			else if(shoot_heat_limit <= shoot_heat-60){
+			else if(shoot_heat_limit <= shoot_heat-30){
 				ackBuf[2] = 0xAA; // shoot heat is low enough to allow shooting
 			}
 			else if((gold_coins > 50)&& (projectile_allowance_17mm == 0)){
@@ -363,7 +363,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 			{
 				ackBuf[2] = 0x00; //running low on 17mm ammo
 			}
-			else if (shoot_heat_limit <= shoot_heat - 60)
+			else if (shoot_heat_limit <= shoot_heat - 30)
 			{
 				ackBuf[2] = 0xAA; // shoot heat is low enough to allow shooting
 			}
@@ -526,7 +526,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 					uint8_t shootCmd = pData[2];
 	#if !DEBUG_CV
-					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-60)< shoot_heat_limit) && is_game_started()){
+					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-30)< shoot_heat_limit) && is_game_started()){
 	#else
 					if((shootCmd == 0xFF)){
 	#endif
