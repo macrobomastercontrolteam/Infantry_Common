@@ -265,7 +265,7 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
 static void CvCmder_SendAck(uint8_t msgType)
 {
     // For example, Tag = msgType, Length = 1, Value = 0xAA (ACK placeholder)
-    uint8_t ackBuf[14];
+    uint8_t ackBuf[26];
     ackBuf[0] = msgType; // Tag
           // Length
     ackBuf[2] = 0xFF;    // Value (ACK)
@@ -381,11 +381,13 @@ static void CvCmder_SendAck(uint8_t msgType)
         case MSG_CV_IMU_ACCELE:
         {
             fp32 accel_data[3];
-            get_world_linear_accel(accel_data); // Get world frame linear acceleration
+			fp32 ang_accel_data[3];
+            get_world_accel_raw(accel_data, ang_accel_data); // Get world frame linear acceleration
 
-            ackBuf[1] = 3 * sizeof(fp32); // Length of the value part (x, y, z acceleration)
+            ackBuf[1] = 6 * sizeof(fp32); // Length: 3 linear + 3 angular
 
             memcpy(&ackBuf[2], accel_data, 3 * sizeof(fp32));
+            memcpy(&ackBuf[2 + 3 * sizeof(fp32)], ang_accel_data, 3 * sizeof(fp32));
             break;
         }
 
