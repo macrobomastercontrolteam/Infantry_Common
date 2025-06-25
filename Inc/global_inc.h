@@ -19,11 +19,15 @@
 #define MACRM_SUPERCAP 3
 /********************* Only Modify this area (start) *********************/
 #define LAUNCHER_TYPE LAUNCHER_17MM
-#define ROBOT_TYPE INFANTRY_2024_MECANUM
-#define SUPERCAP_TYPE MACRM_SUPERCAP
+
+#define SUPERCAP_TYPE UBC_SUPERCAP
 #define COMPETITION_TYPE RMUL
 
 /********************* Only Modify this area (end) *********************/
+
+
+
+#define ROBOT_TYPE INFANTRY_2024_MECANUM ///do not change   TODO:
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
 #define DEBUG_CV 0
