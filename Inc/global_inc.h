@@ -14,7 +14,7 @@
 #define SJTU_SUPERCAP 2
 #define MACRM_SUPERCAP 3
 /********************* Only Modify this area (start) *********************/
-#define ROBOT_TYPE HERO_2025_MECANUM
+#define ROBOT_TYPE SENTRY_2023_MECANUM
 #define COMPETITION_TYPE RMUL
 #define SUPERCAP_TYPE UBC_SUPERCAP
 #define CV_INTERFACE 1
