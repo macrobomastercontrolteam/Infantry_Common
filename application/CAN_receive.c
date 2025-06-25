@@ -30,11 +30,11 @@
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
-#define ENABLE_YAW_MOTOR_POWER 0
-#define ENABLE_PITCH_MOTOR_POWER 0
-#define ENABLE_TRIGGER_MOTOR_POWER 0
-#define ENABLE_FRICTION_1_MOTOR_POWER 0
-#define ENABLE_FRICTION_2_MOTOR_POWER 0
+#define ENABLE_YAW_MOTOR_POWER 1
+#define ENABLE_PITCH_MOTOR_POWER 1
+#define ENABLE_TRIGGER_MOTOR_POWER 1
+#define ENABLE_FRICTION_1_MOTOR_POWER 1
+#define ENABLE_FRICTION_2_MOTOR_POWER 1
 
 #define BULLET_SPEED_ECD_MAX 40.0f
 #define BULLET_SPEED_DECODE_RATIO (BULLET_SPEED_ECD_MAX / 255.0f)
