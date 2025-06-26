@@ -55,6 +55,7 @@ typedef enum
 	MSG_CV_IMU_ACCELE = 0x05,
 	MSG_CV_IMU_VELOCITY = 0x06,
 	MSG_CV_IMU_POSITION = 0x07,
+	MSG_CV_INFO_PITCH_ANGLE = 0x08,
 } eMsgTypes;
 
 typedef enum
@@ -63,7 +64,7 @@ typedef enum
 	CV_INFO_TEAM_COLOR = 0x01,
 	CV_INFO_ROBOT_TYPE = 0x02,
 	CV_INFO_ROBOT_HP = 0x03,
-	CV_INFO_PITCH_ANGLE = 0x04,
+	//CV_INFO_PITCH_ANGLE = 0x04,
 } eMsgTypeAckInfo;
 
 //
@@ -320,13 +321,13 @@ static void CvCmder_SendAck(uint8_t msgType)
 					break;
 				}
 
-				case CV_INFO_PITCH_ANGLE:
-				{
-					ackBuf[2] = 0x04;
-					fp32 pitch_angle = get_gimbal_ecd_pitch_angle();
-					memcpy(&ackBuf[3], &pitch_angle, sizeof(fp32));
-					break;
-				}
+				// case CV_INFO_PITCH_ANGLE:
+				// {
+				// 	ackBuf[2] = 0x04;
+				// 	fp32 pitch_angle = get_gimbal_ecd_pitch_angle();
+				// 	memcpy(&ackBuf[3], &pitch_angle, sizeof(fp32));
+				// 	break;
+				// }
 			}
 			break;
 		}
@@ -387,16 +388,16 @@ static void CvCmder_SendAck(uint8_t msgType)
 #endif
 		}
 
-        case MSG_CV_IMU_ACCELE:
+        case MSG_CV_IMU_ACCELE: //We are sending CV raw data
         {
             fp32 accel_data[3];
-			fp32 ang_accel_data[3];
-            get_world_accel_raw(accel_data, ang_accel_data); // Get world frame linear acceleration
+			fp32 ang_vel_data[3];
+            get_world_accel_raw(accel_data, ang_vel_data); // Get world frame linear acceleration
 
             ackBuf[1] = 6 * sizeof(fp32); // Length: 3 linear + 3 angular
 
             memcpy(&ackBuf[2], accel_data, 3 * sizeof(fp32));
-            memcpy(&ackBuf[2 + 3 * sizeof(fp32)], ang_accel_data, 3 * sizeof(fp32));
+            memcpy(&ackBuf[2 + 3 * sizeof(fp32)], ang_vel_data, 3 * sizeof(fp32));
             break;
         }
 
@@ -421,6 +422,16 @@ static void CvCmder_SendAck(uint8_t msgType)
             memcpy(&ackBuf[2], position_data, 3 * sizeof(fp32));
             break;
         }
+
+		case MSG_CV_INFO_PITCH_ANGLE:
+		{
+			fp32 pitch_angle = get_gimbal_ecd_pitch_angle();
+
+			ackBuf[1] = sizeof(fp32); // Length of pitch angle
+
+			memcpy(&ackBuf[2], &pitch_angle, sizeof(fp32));
+			break;
+		}
 	}
 
 
@@ -553,6 +564,21 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 
 				break;
 			}
+
+			case MSG_CV_INFO_PITCH_ANGLE:
+			{
+				CvCmder_SendAck(MSG_CV_INFO_PITCH_ANGLE);
+				detect_hook(CV_TOE);
+				break;
+			}
+
+			case MSG_CV_IMU_ACCELE:
+			{
+				CvCmder_SendAck(MSG_CV_IMU_ACCELE);
+				detect_hook(CV_TOE);
+				break;
+			}
+
         	default:
 			{
         	    // unknown tag

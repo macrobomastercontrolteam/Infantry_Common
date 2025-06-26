@@ -734,7 +734,7 @@ void DMA2_Stream2_IRQHandler(void)
   * @param[out] accel_out: Pointer to 3-element array for [x, y, z] linear acceleration (m/s^2)
   * @param[out] ang_accel_out: Pointer to 3-element array for [x, y, z] angular acceleration (rad/s^2)
   */
-void get_world_accel_raw(fp32 accel_out[3], fp32 ang_accel_out[3])
+void get_world_accel_raw(fp32 accel_out[3], fp32 ang_vel_out[3])
 {
     if (accel_out != NULL)
     {
@@ -742,11 +742,11 @@ void get_world_accel_raw(fp32 accel_out[3], fp32 ang_accel_out[3])
         accel_out[1] = world_linear_accel_raw[1];
         accel_out[2] = world_linear_accel_raw[2];
     }
-    if (ang_accel_out != NULL)
+    if (ang_vel_out != NULL)
     {
-        ang_accel_out[0] = angular_accel_raw[0];
-        ang_accel_out[1] = angular_accel_raw[1];
-        ang_accel_out[2] = angular_accel_raw[2];
+        ang_vel_out[0] = INS_gyro[0];
+        ang_vel_out[1] = INS_gyro[1];
+        ang_vel_out[2] = INS_gyro[2];
     }
 }
 
