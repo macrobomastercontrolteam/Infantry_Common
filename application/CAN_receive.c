@@ -1233,6 +1233,8 @@ void CAN_cmd_supercap(void)
 	fp32 chassis_power_buffer;
     fp32 chassis_power_limit;
     get_chassis_power_data(&chassis_power_buffer, &chassis_power_limit);
+	
+	capcan_rx_msg.power_target = chassis_power_limit*100;
 
 	chassis_can_send_data[0] = capcan_rx_msg.power_target;
 	chassis_can_send_data[1] = capcan_rx_msg.power_target >> 8;
