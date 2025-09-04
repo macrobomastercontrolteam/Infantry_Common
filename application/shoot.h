@@ -246,12 +246,11 @@ typedef struct
     pid_type_def friction_motor1_pid;
     fp32 friction_motor1_rpm_set;
     fp32 friction_motor1_rpm;
-    // fp32 friction_motor1_angle;
 
     pid_type_def friction_motor2_pid;
     fp32 friction_motor2_rpm_set;
     fp32 friction_motor2_rpm;
-    // fp32 friction_motor2_angle;
+    
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 
     int16_t fric3_given_current;
@@ -266,11 +265,8 @@ typedef struct
     fp32 friction_motor4_rpm;
 
     pid_type_def piston_motor_pid; // PID variable for piston motor
-    // fp32 piston_speed_target; //Target speed in the state machine
     fp32 piston_speed_set; // Speed defined by the piston motor contro function
     fp32 piston_speed;     // Speed feedback from the motor ESC
-    // int8_t piston_direction; //Direction of the piston motor, 1 for forward, -1 for reverse
-    
 
 #endif
     uint16_t piston_given_current;
@@ -295,7 +291,6 @@ typedef struct
     uint16_t reverse_time;
 
     bool_t key;
-    // uint8_t key_time;
 
     // shooter of this controller itself
     uint16_t heat_limit;

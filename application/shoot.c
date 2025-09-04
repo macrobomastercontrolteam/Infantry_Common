@@ -132,7 +132,6 @@ void shoot_init(void)
 	shoot_control.set_angle = shoot_control.trigger_angle;
 	shoot_control.speed = 0.0f;
 	shoot_control.speed_set = 0.0f;
-	// shoot_control.key_time = 0;
 
 	shoot_control.press_l = 0;
 	shoot_control.press_r = 0;
@@ -343,10 +342,6 @@ int16_t shoot_control_loop(void)
 			{
 				shoot_control.friction_motor1_rpm_set = HERO_FRICTON_MOTOR_INIT_SPEED * HORI_FRICTION_MOTOR_SPEED_TO_RPM;
 				shoot_control.friction_motor2_rpm_set = -HERO_FRICTON_MOTOR_INIT_SPEED * HORI_FRICTION_MOTOR_SPEED_TO_RPM;
-
-				//rotate backward for a while to avoid jam
-				// shoot_control.friction_motor3_rpm_set = HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
-				// shoot_control.friction_motor4_rpm_set = -HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
 
 				if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 				{

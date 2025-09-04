@@ -815,8 +815,6 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 		{
                 cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC * 0.85f;
                 cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC * 0.85f;
-                // cvAidedX = debugx * YAW_RC_CV_SEN_INC;
-                // cvAidedY = debugy * PITCH_RC_CV_SEN_INC;
                 
                 ui_info.auto_aim_state = 1;      
 		}
@@ -917,11 +915,6 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add, 
     }
     gimbal_motor->absolute_angle_set = rad_format(gimbal_motor->absolute_angle_set + add);
 
-    // Relative angle implementation for chassis spinning mode
-    // if ((motor_select == GIMBAL_YAW_MOTOR) && ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE))
-    // {
-    //     chassis_move.chassis_relative_angle_set = rad_format(chassis_move.chassis_relative_angle_set + add);
-    // }
 }
 /**
   * @brief          gimbal control mode :GIMBAL_MOTOR_ENCODER, use the encode relative angle  to control. 

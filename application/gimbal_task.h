@@ -360,8 +360,6 @@
 
 #define GIMBAL_TASK_INIT_TIME 201
 
-//turn 180 degrees
-// #define TURN_KEYBOARD KEY_PRESSED_OFFSET_F
 //turn speed
 #define TURN_SPEED    0.04f
 #define TEST_KEYBOARD KEY_PRESSED_OFFSET_R
@@ -369,20 +367,11 @@
 #define RC_DEADBAND   10
 
 #if CV_INTERFACE
-// #define CV_CAMERA_YAW_DEADBAND   0.0174533f // 1 degree
-// #define CV_CAMERA_PITCH_DEADBAND   0.0174533f // 1 degree
+
 #define CV_CAMERA_YAW_DEADBAND   0.0f
 #define CV_CAMERA_PITCH_DEADBAND   0.0f
 #define CV_ANGLE_FILTER_SIZE 10
 
-// //camera control angle PID
-// //Feedback: commanded pitch/yaw delta angle from cv interface, unit rad
-// //Actuator: pitch/yaw delta angle, unit rad
-// #define CV_CONTROL_ANGLE_PID_KP 5.0f
-// #define CV_CONTROL_ANGLE_PID_KI 0.0f
-// #define CV_CONTROL_ANGLE_PID_KD 0.1f
-// #define CV_CONTROL_ANGLE_PID_MAX_OUT 100.0f
-// #define CV_CONTROL_ANGLE_PID_MAX_IOUT 100.0f
 #endif
 
 /**

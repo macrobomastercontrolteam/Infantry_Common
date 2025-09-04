@@ -110,11 +110,6 @@ void chassis_task(void const *pvParameters)
 	// wait a time
 	osDelay(CHASSIS_TASK_INIT_TIME);
 
-	// while (ifToeStatusExist(DBUS_TOE, CHASSIS_MOTOR4_TOE, TOE_STATUS_OFFLINE, NULL))
-	// {
-	//     osDelay(CHASSIS_CONTROL_TIME_MS * 2);
-	// }
-
 	chassis_init();
 
 	while (1)

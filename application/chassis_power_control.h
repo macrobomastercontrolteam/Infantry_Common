@@ -20,14 +20,9 @@
 #define CHASSIS_POWER_CONTROL_H
 #include "chassis_task.h"
 #include "main.h"
-// #include "math.h" // sqrtf
 
 #define SUPCAP_VOLTAGE_MIN 3.0f
-// #define SUPCAP_VOLTAGE_MAX 26.697f
-// #define SUPCAP_ENERGY_CLEARANCE_RATIO 0.1f
-// #define SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD (sqrtf((1 - SUPCAP_ENERGY_CLEARANCE_RATIO) * SUPCAP_VOLTAGE_MAX * SUPCAP_VOLTAGE_MAX + SUPCAP_ENERGY_CLEARANCE_RATIO * SUPCAP_VOLTAGE_MIN * SUPCAP_VOLTAGE_MIN))
 #define SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD SUPCAP_VOLTAGE_MIN
-// #define SUPCAP_CAPACITANCE 5.0f // unit: Farad
 
 /**
   * @brief          limit the power, mainly limit motor current

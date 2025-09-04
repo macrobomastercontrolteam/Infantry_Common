@@ -293,107 +293,6 @@ void arc_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_
 	image->details_e = y_length;
 }
 
-/**
- * @brief          Draw floating-point data
- * @param[in]      *image: a pointer to a Graph_Data variable for storing graphic data
- * @param[in]      imagename[3]: the image name used for identification
- * @param[in]      graph_operate: image operation, as defined in the header file
- * @param[in]      graph_layer: layer index from 0 to 9
- * @param[in]      graph_color: color of the graphic
- * @param[in]      graph_width: line width of the graphic
- * @param[in]      graph_size: font size
- * @param[in]      start_x: starting x-coordinate
- * @param[in]      start_y: starting y-coordinate
- * @param[in]      graph_float: variable to display, the value gets divided by 1000 and then displayed
- *                              ex. if graph_float = 1234, the display will show 1.234
- */
-// void float_draw(graphic_data_struct_t *image, char imagename[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t graph_float)
-// {
-//     int i;
-//     for (i = 0; i < 3 && imagename[i] != '\0'; i++)
-//         image->figure_name[i] = imagename[i];
-
-//     image->figure_type = UI_Graph_Float;
-//     image->operate_type = graph_operate;
-//     image->layer = graph_layer;
-//     image->color = graph_color;
-//     image->width = graph_width;
-//     image->start_x = start_x;
-//     image->start_y = start_y;
-//     image->details_a = graph_size;
-
-//     // Get the last 11 bits
-//     unsigned mask = (1 << 11) - 1;
-//     image -> details_e = graph_float & mask;
-
-//     // Get the next 11 bits
-//     mask = mask << 11;
-//     image -> details_d = graph_float & mask;
-
-//     // Get the first 10 bits
-//     mask = ((1 << 10) - 1) << 22;
-//     image->details_c = graph_float & mask;
-// }
-
-/**
- * @brief          Draw character data
- * @param[in]      *image: a pointer to a Graph_Data variable for storing graphic data
- * @param[in]      figure_name[3]: the image name used for identification
- * @param[in]      graph_operate: image operation, as defined in the header file
- * @param[in]      graph_layer: layer index from 0 to 9
- * @param[in]      graph_color: color of the graphic
- * @param[in]      graph_size: font size
- * @param[in]      graph_digit: number of characters
- * @param[in]      graph_width: line width of the graphic
- * @param[in]      start_x: starting x-coordinate
- * @param[in]      start_y: starting y-coordinate
- * @param[in]      *char_data: pointer to the start of the string data to be drawn
- */
-// void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, char *char_data)
-// {
-//     int i;
-
-//     for (i = 0; i < 3 && figure_name[i] != '\0'; i++)
-//         image->graph_control.figure_name[i] = figure_name[i];
-
-//     memset(image->show_data, 0, 30);
-//     for (i = 0; i < graph_digit; i++)
-//     {
-//         image->show_data[i] = *char_data;
-//         char_data++;
-//     }
-
-//     image->graph_control.figure_type = UI_Graph_Char;
-//     image->graph_control.operate_type = graph_operate;
-//     image->graph_control.layer = graph_layer;
-//     image->graph_control.color = graph_color;
-//     image->graph_control.width = graph_width;
-//     image->graph_control.start_x = start_x;
-//     image->graph_control.start_y = start_y;
-//     image->graph_control.details_a = graph_size;
-//     image->graph_control.details_b = graph_digit;
-
-// //    int i;
-
-// //    for(i=0;i<3&&imagename[i]!=\0;i++)
-// //       image->graph_control.graphic_name[2-i]=imagename[i];
-// //    image->Graph_Control.graphic_tpye = UI_Graph_Char;
-// //    image->Graph_Control.operate_tpye = Graph_Operate;
-// //    image->Graph_Control.layer = Graph_Layer;
-// //    image->Graph_Control.color = Graph_Color;
-// //    image->Graph_Control.width = Graph_Width;
-// //    image->Graph_Control.start_x = Start_x;
-// //    image->Graph_Control.start_y = Start_y;
-// //    image->Graph_Control.start_angle = Graph_Size;
-// //    image->Graph_Control.end_angle = Graph_Digit;
-
-// //    for(i=0;i<Graph_Digit;i++)
-// //    {
-// //       image->show_Data[i]=*Char_Data;
-// //       Char_Data++;
-// //    }
-// }
-
 void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_size, uint32_t graph_digit, uint32_t graph_width, uint32_t start_x, uint32_t start_y, char *char_data)
 {
 	int i;
@@ -515,7 +414,6 @@ int update_char(string_data *string_ptr)
 	custom_grapic_draw.sender_ID = sender_id;     // Sender ID, corresponding to the robot ID, in this case, the Blue Standard
 	custom_grapic_draw.receiver_ID = receiver_id; // Receiver ID, operator client ID, in this case, the Blue Standard operator client
 
-	// memcpy(&custom_grapic_draw.graphic_custom.grapic_data_struct, string_ptr, sizeof(graphic_data_struct_t));
 	memcpy(&custom_grapic_draw.string_custom, string_ptr, sizeof(string_data));
 
 	referee_data_pack_handle(UI_SOF, UI_CMD_Robo_Exchange, (uint8_t *)&custom_grapic_draw, 45);

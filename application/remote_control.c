@@ -163,7 +163,7 @@ void USART3_IRQHandler(void)
                 sbus_to_rc(sbus_rx_buf[0], &rc_ctrl);
                 // record time of data arrival
                 detect_hook(DBUS_TOE);
-                // sbus_to_usart1(sbus_rx_buf[0]);
+
             }
         }
         else
@@ -190,7 +190,7 @@ void USART3_IRQHandler(void)
                 sbus_to_rc(sbus_rx_buf[1], &rc_ctrl);
                 // record time of data arrival
                 detect_hook(DBUS_TOE);
-                // sbus_to_usart1(sbus_rx_buf[1]);
+
             }
         }
     }
@@ -262,22 +262,3 @@ static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
     CvCmder_DetectAutoAimSwitchEdge((rc_ctrl->key.v & AUTO_AIM_TOGGLE_KEYBOARD) != 0);
 #endif
 }
-
-// // We don't use this feature. USART1 is used to communicate with CV instead.
-// /**
-//   * @brief          send sbus data by usart1, called in usart3_IRQHandle
-//   * @param[in]      sbus: sbus data, 18 bytes
-//   * @retval         none
-//   */
-// void sbus_to_usart1(uint8_t *sbus)
-// {
-//     static uint8_t usart_tx_buf[20];
-//     static uint8_t i =0;
-//     usart_tx_buf[0] = 0xA6;
-//     memcpy(usart_tx_buf + 1, sbus, 18);
-//     for(i = 0, usart_tx_buf[19] = 0; i < 19; i++)
-//     {
-//         usart_tx_buf[19] += usart_tx_buf[i];
-//     }
-//     usart1_tx_dma_enable(usart_tx_buf, 20);
-// }

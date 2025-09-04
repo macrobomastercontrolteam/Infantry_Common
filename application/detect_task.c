@@ -215,7 +215,6 @@ const error_t *get_error_list_point(void)
     return error_list;
 }
 
-// extern void OLED_com_reset(void);
 static void detect_init(uint32_t time)
 {
     // Important: config offlineTime onlinetime priority
@@ -245,7 +244,6 @@ static void detect_init(uint32_t time)
             {200, 0, 9},  // power_meter
             {50, 0, 8},    // swerve controller
             {25, 0, 8},    // biped controller feedback (normally < 3)
-            // {100, 100, 1},  //oled
         };
 
     for (uint8_t i = 0; i < ERROR_LIST_LENGTH; i++)
@@ -268,23 +266,12 @@ static void detect_init(uint32_t time)
         error_list[i].lost_time = time;
         error_list[i].work_time = time;
     }
-#if CV_INTERFACE
-    error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
-#endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	error_list[SWERVE_CTRL_TOE].solve_lost_fun = swerve_chassis_params_reset;
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	error_list[BIPED_CTRL_TOE].solve_lost_fun = biped_chassis_params_reset;
 #endif
-
-	// error_list[OLED_TOE].data_is_error_fun = NULL;
-    // error_list[OLED_TOE].solve_lost_fun = OLED_com_reset;
-    // error_list[OLED_TOE].solve_data_error_fun = NULL;
-
-//    error_list[DBUS_TOE].data_is_error_fun = RC_data_is_error;
-//    error_list[DBUS_TOE].solve_lost_fun = solve_RC_lost;
-//    error_list[DBUS_TOE].solve_data_error_fun = solve_data_error;
 
 }
 

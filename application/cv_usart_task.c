@@ -65,17 +65,6 @@ typedef enum
 	CV_INFO_ROBOT_HP = 0x03,
 } eMsgTypeAckInfo;
 
-//
-// typedef enum
-// {
-// 	CV_INFO_TRANDELTA_BIT = 1 << 0,
-// 	CV_INFO_CVSYNCTIME_BIT = 1 << 1,
-// 	CV_INFO_REF_STATUS_BIT = 1 << 2,
-// 	CV_INFO_GIMBAL_ANGLE_BIT = 1 << 3,
-// 	CV_INFO_LAST_BIT = 1 << 4,
-// } eInfoBits;
-// STATIC_ASSERT(CV_INFO_LAST_BIT <= (1 << 8));
-
 typedef struct
 {
 	moving_average_type_t TranDeltaFilter;
@@ -89,9 +78,6 @@ void CvCmder_Init(void);
 void CvCmder_PollForModeChange(void);
 static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size);
 void CvCmder_EchoTxMsgToUsb(void);
-//void CvCmder_SendSetModeRequest(void);
-//void CvCmder_SendInfoData(eMsgTypes CvCmdBit);
-//void CvCmder_UpdateTranDelta(void);
 static void CvCmder_SendAck(uint8_t msgType);
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_MockModeChange(void);
@@ -149,8 +135,6 @@ void CvCmder_Init(void)
 	CvTimestamps.TranDeltaFilter.sum = 0;
 	CvTimestamps.uiCtrlSyncTime = 0;
 
-	//memcpy(CvRxBuffer.tData.abMessageHeader, abExpectedMessageHeader, sizeof(abExpectedMessageHeader));
-	//memcpy(CvTxBuffer.tData.abMessageHeader, abExpectedMessageHeader, sizeof(abExpectedMessageHeader));
 	memset(abExpectedUnusedPayload, CHAR_UNUSED, sizeof(abExpectedUnusedPayload));
 
 	memset(&CvCmdHandler, 0, sizeof(CvCmdHandler));       // clear status
@@ -167,18 +151,12 @@ void CvCmder_Init(void)
 	__HAL_UART_DISABLE_IT(&huart1, UART_IT_RXNE);
 }
 
-void CvCmder_toe_solve_lost_fun(void)
-{
-	//memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
-	//To do: set all RX parameter to 0 when CV is offline
-}
 /**
  * @brief if a command is received from remote controller, we keep sending set-mode requests to CV until an ACK is received
  */
 void CvCmder_PollForModeChange(void)
 {
 	// @TODO: Implement check for Auto-move mode and Enemy mode
-	// uint8_t fLastEnemyMode = CvCmder_GetMode(CV_MODE_ENEMY_DETECTED_BIT);
 	static enum {
 		CMDER_STATE_IDLE,
 		CMDER_STATE_WAIT_FOR_ACK,
@@ -194,7 +172,6 @@ void CvCmder_PollForModeChange(void)
 			if (checkAndResetFlag(&CvCmdHandler.fIsModeChanged) || toe_is_error(CV_TOE))
 #endif
 			{
-				//CvCmder_SendSetModeRequest();
 				CvCmdHandler.fIsWaitingForAck = 1;
 				eCvCmderState = CMDER_STATE_WAIT_FOR_ACK;
 			}
@@ -204,7 +181,6 @@ void CvCmder_PollForModeChange(void)
 		{
 			if (CvCmdHandler.fIsWaitingForAck)
 			{
-				//CvCmder_SendSetModeRequest();
 				// reset receive interrupt to detect new UART connection, in case CV boots up after control
 				HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
 				__HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
