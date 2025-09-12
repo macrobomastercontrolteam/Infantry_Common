@@ -180,11 +180,7 @@ int16_t shoot_control_loop(void)
 			case HERO_INIT_LAUNCHER: 
 			{
 
-				PID_clear(&shoot_control.friction_motor1_pid);
-				PID_clear(&shoot_control.friction_motor2_pid);
-				PID_clear(&shoot_control.friction_motor3_pid);
-				PID_clear(&shoot_control.friction_motor4_pid);
-				PID_clear(&shoot_control.piston_motor_pid);
+				init_hero_PID_clear();
 				
 				shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
 				shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
@@ -211,34 +207,13 @@ int16_t shoot_control_loop(void)
 				shoot_control.trigger_speed_set = 0; // Ensure trigger motor is stopped.
 
                 // Clear PID controllers for friction motors.
-				PID_clear(&shoot_control.friction_motor1_pid);
-				PID_clear(&shoot_control.friction_motor2_pid);
-				PID_clear(&shoot_control.trigger_motor_pid);
+				launcher_motor_PID_clear();
+
                 // Set max output for friction motor PIDs.
-				shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
-				shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
+				launcher_motor_set_max_out();
 
                 // Set target RPM for friction motors.
-				shoot_control.friction_motor1_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-				shoot_control.friction_motor2_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
-
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
-                // Additional friction motors for HERO_2025_MECANUM.
-				
-				PID_clear(&shoot_control.friction_motor3_pid);
-				PID_clear(&shoot_control.friction_motor4_pid);
-				PID_clear(&shoot_control.piston_motor_pid);
-
-				shoot_control.friction_motor3_pid.max_out = FRICTION_3_SPEED_PID_MAX_OUT;
-				shoot_control.friction_motor4_pid.max_out = FRICTION_4_SPEED_PID_MAX_OUT;
-				shoot_control.piston_motor_pid.max_out = PISTON_SPEED_PID_MAX_OUT;
-
-				// Set target RPM for friction motors.
-				shoot_control.friction_motor1_rpm_set = HERO_FRICTION_MOTOR_SPEED * HORI_FRICTION_MOTOR_SPEED_TO_RPM;
-				shoot_control.friction_motor2_rpm_set = -HERO_FRICTION_MOTOR_SPEED * HORI_FRICTION_MOTOR_SPEED_TO_RPM;
-				shoot_control.friction_motor3_rpm_set = -HERO_FRICTION_MOTOR_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
-				shoot_control.friction_motor4_rpm_set = HERO_FRICTION_MOTOR_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
-#endif
+				friction_motor_RPM_set();
 
 				break;
 			}
@@ -283,46 +258,11 @@ int16_t shoot_control_loop(void)
 			shoot_control.trigger_speed_set = 0.0f;
 
 			//friction motor 
-			shoot_control.friction_motor1_rpm_set = 0.0f;
-			shoot_control.friction_motor2_rpm_set = 0.0f;
+			launcher_motor_RPM_set_stop();
+			
 			// If friction motors are almost stopped, set PID max_out to 0 to prevent oscillation, Otherwise, set a small max_out to allow them to brake.
+			friction_motor_PID_brake();
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
-			shoot_control.friction_motor3_rpm_set = 0.0f;
-			shoot_control.friction_motor4_rpm_set = 0.0f;
-
-			// piston motor for 2025 Hero
-			shoot_control.piston_speed_set = 0.0f;
-			launcher_status.piston_moving = 0;
-
-			if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60) && 
-				(fabs(shoot_control.friction_motor3_rpm) < 60) && (fabs(shoot_control.friction_motor4_rpm) < 60))
-			{
-				shoot_control.friction_motor1_pid.max_out = 0;
-				shoot_control.friction_motor2_pid.max_out = 0;
-				shoot_control.friction_motor3_pid.max_out = 0;
-				shoot_control.friction_motor4_pid.max_out = 0;
-			}
-			else
-			{
-				shoot_control.friction_motor1_pid.max_out = 1000;
-				shoot_control.friction_motor2_pid.max_out = 1000;
-				shoot_control.friction_motor3_pid.max_out = 1000;
-				shoot_control.friction_motor4_pid.max_out = 1000;
-			}
-#else
-			// Standard robot types have two friction motors.
-			if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
-			{
-				shoot_control.friction_motor1_pid.max_out = 0;
-				shoot_control.friction_motor2_pid.max_out = 0;
-			}
-			else
-			{
-				shoot_control.friction_motor1_pid.max_out = 1000;
-				shoot_control.friction_motor2_pid.max_out = 1000;
-			}
-#endif
 			break;
 		}
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
@@ -408,15 +348,8 @@ int16_t shoot_control_loop(void)
 			{
 				shoot_control.trigger_speed_set = 0.0f;
 			}
-			// HERO_2025_MECANUM has four friction motors.
-			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) &&
-				 (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) &&
-				 (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && 
-				 (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
-#else
-            // Standard robot types have two friction motors.
-			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 #endif
+			if (is_friction_wheels_above_speed_threshold())
 			{	
                 // Friction wheels are ready. Check for shooting command.
 #if ROBOT_TYPE == SENTRY_2023_MECANUM
@@ -1000,4 +933,116 @@ static bool_t piston_motor_control(int8_t move_direction) // direction = +-1
 
 bool_t fCvAutoAim(void){
 	return fCvAutoAimReady;
+}
+
+static inline void init_hero_PID_clear()
+{
+	PID_clear(&shoot_control.friction_motor1_pid);
+	PID_clear(&shoot_control.friction_motor2_pid);
+	PID_clear(&shoot_control.friction_motor3_pid);
+	PID_clear(&shoot_control.friction_motor4_pid);
+	PID_clear(&shoot_control.piston_motor_pid);
+}
+
+static inline void launcher_motor_PID_clear()
+{
+	PID_clear(&shoot_control.friction_motor1_pid);
+	PID_clear(&shoot_control.friction_motor2_pid);
+	PID_clear(&shoot_control.trigger_motor_pid);
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	PID_clear(&shoot_control.friction_motor3_pid);
+	PID_clear(&shoot_control.friction_motor4_pid);
+	PID_clear(&shoot_control.piston_motor_pid);
+#endif
+}
+
+static inline void launcher_motor_set_max_out()
+{
+	shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
+	shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	// Additional friction motors for HERO_2025_MECANUM.
+	shoot_control.friction_motor3_pid.max_out = FRICTION_3_SPEED_PID_MAX_OUT;
+	shoot_control.friction_motor4_pid.max_out = FRICTION_4_SPEED_PID_MAX_OUT;
+	shoot_control.piston_motor_pid.max_out = PISTON_SPEED_PID_MAX_OUT;
+#endif
+}
+
+static inline void friction_motor_RPM_set()
+{
+	shoot_control.friction_motor1_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+	shoot_control.friction_motor2_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	shoot_control.friction_motor1_rpm_set = HERO_FRICTION_MOTOR_SPEED * HORI_FRICTION_MOTOR_SPEED_TO_RPM;
+	shoot_control.friction_motor2_rpm_set = -HERO_FRICTION_MOTOR_SPEED * HORI_FRICTION_MOTOR_SPEED_TO_RPM;
+	shoot_control.friction_motor3_rpm_set = -HERO_FRICTION_MOTOR_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+	shoot_control.friction_motor4_rpm_set = HERO_FRICTION_MOTOR_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+#endif
+}
+
+static inline void launcher_motor_RPM_set_stop()
+{
+	shoot_control.friction_motor1_rpm_set = 0.0f;
+	shoot_control.friction_motor2_rpm_set = 0.0f;
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	shoot_control.friction_motor3_rpm_set = 0.0f;
+	shoot_control.friction_motor4_rpm_set = 0.0f;
+
+	// piston motor for 2025 Hero
+	shoot_control.piston_speed_set = 0.0f;
+	launcher_status.piston_moving = 0;
+#endif
+}
+
+static inline void friction_motor_PID_brake()
+{
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	// Hero robot has 4 friction motors.
+	if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60) && 
+		(fabs(shoot_control.friction_motor3_rpm) < 60) && (fabs(shoot_control.friction_motor4_rpm) < 60))
+	{
+		shoot_control.friction_motor1_pid.max_out = 0;
+		shoot_control.friction_motor2_pid.max_out = 0;
+		shoot_control.friction_motor3_pid.max_out = 0;
+		shoot_control.friction_motor4_pid.max_out = 0;
+	}
+	else
+	{
+		shoot_control.friction_motor1_pid.max_out = 1000;
+		shoot_control.friction_motor2_pid.max_out = 1000;
+		shoot_control.friction_motor3_pid.max_out = 1000;
+		shoot_control.friction_motor4_pid.max_out = 1000;
+	}
+#else
+	// Standard robot types have two friction motors.
+	if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60))
+	{
+		shoot_control.friction_motor1_pid.max_out = 0;
+		shoot_control.friction_motor2_pid.max_out = 0;
+	}
+	else
+	{
+		shoot_control.friction_motor1_pid.max_out = 1000;
+		shoot_control.friction_motor2_pid.max_out = 1000;
+	}
+#endif
+}
+
+static inline uint8_t is_friction_wheels_above_speed_threshold()
+{
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	// HERO_2025_MECANUM has four friction motors.
+	return ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) &&
+			(fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) &&
+			(fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && 
+			(fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD));
+#else
+	// Standard robot types have two friction motors.
+	return ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && 
+			(fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD));
+#endif
 }
