@@ -61,8 +61,30 @@ static void shoot_feedback_update(void);
  */
 static void trigger_motor_stall_handler(void);
 
+static inline void init_hero_PID_clear(void);
+
+static inline void launcher_motor_PID_clear(void);
+
+static inline void launcher_motor_set_max_out(void);
+
+static inline void friction_motor_RPM_set(void);
+
+static inline void launcher_motor_RPM_set_stop(void);
+
+static inline void friction_motor_PID_brake(void);
+
+static inline uint8_t is_friction_wheels_above_speed_threshold(void);
+
+static inline void transition_to_shoot_mode(void);
+
+static inline void hero_trigger_set_state(void);
+
+static inline void launcher_motor_PID_calc(void);
+
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 static bool_t piston_motor_control(int8_t move_direction);
+
+static inline void unstick_hero_launcher(void);
 #endif
 
 bool_t isOverheated(void);
@@ -287,28 +309,7 @@ int16_t shoot_control_loop(void)
 				if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) &&
 					(fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 				{
-					shoot_control.friction_motor3_rpm_set = -HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
-					shoot_control.friction_motor4_rpm_set = HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
-
-					if(launcher_status.Launcher_Jamed == 1) //move-on directly to pushing piston to help un-jam fric wheel, triggered by key 'V'
-					{
-						shoot_control.friction_motor3_rpm_set = -HERO_FRICTON_MOTOR_JAM_RESOLVE_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
-						shoot_control.friction_motor4_rpm_set = HERO_FRICTON_MOTOR_JAM_RESOLVE_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
-						launcher_status.init_step = 2; 
-					}
-					else if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) &&
-							 (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
-					{
-						if (launcher_status.Loader_Jamed == 1) //  rotate trigger moter first to hendel ball stucked during loading, triggered by key'B'
-						{
-							shoot_control.trigger_speed_set = JAM_RESOLVE_TRIGGER_SPEED;
-						}
-						else
-						{
-							shoot_control.trigger_speed_set = 0;
-							launcher_status.init_step = 2;
-						}
-					}
+					unstick_hero_launcher();
 				}
 			}
 			else if (launcher_status.init_step == 2)
@@ -338,17 +339,9 @@ int16_t shoot_control_loop(void)
 #endif
 		case SHOOT_READY_FRIC:
 		{
+			hero_trigger_motor_set_state();
+
             // Wait for friction wheels to reach target speed.
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
-			if (launcher_status.Chain_Loaded == 0)
-			{
-				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
-			}
-			else
-			{
-				shoot_control.trigger_speed_set = 0.0f;
-			}
-#endif
 			if (is_friction_wheels_above_speed_threshold())
 			{	
                 // Friction wheels are ready. Check for shooting command.
@@ -361,12 +354,8 @@ int16_t shoot_control_loop(void)
 				{
 					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT)) // CV requests shooting
 					{
-						// If CV is requesting shoot, transition to auto fire mode.
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
-						shoot_control.shoot_mode = HERO_LAUNCHER_READY; // HERO_2025_MECANUM has a specific launcher shoot mode.
-#else
-                        shoot_control.shoot_mode = SHOOT_AUTO_FIRE; // Standard robots go to auto fire.
-#endif
+						// If CV is requesting shoot, transition to auto fire mode. HERO_2025_MECANUM has a specific launcher shoot mode.
+						transition_to_shoot_mode();
 					}
 				}
 				else // Manual control
@@ -375,11 +364,7 @@ int16_t shoot_control_loop(void)
 					// Check for left lever position on remote controller.
 					if (shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
 					{
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
-						shoot_control.shoot_mode = HERO_LAUNCHER_READY;
-#else
-						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
-#endif
+						transition_to_shoot_mode();
 					}
 					else if (shoot_control.press_l)
 					{
@@ -536,32 +521,9 @@ int16_t shoot_control_loop(void)
     // Handle trigger motor stall and set its speed based on trigger_speed_set.
 	trigger_motor_stall_handler();
 
-	
-
     // Calculate PID output for trigger motor.
     // Note: PID is calculated based on 'shoot_control.speed' (filtered actual speed) and 'shoot_control.speed_set' (target speed from stall handler).
-	PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set, SHOOT_CONTROL_TIME_S);
-	shoot_control.cmd_value = (int16_t)(shoot_control.trigger_motor_pid.out); // This is the command value for the trigger motor.
-
-	// Calculate PID outputs for friction motors.
-	PID_calc(&shoot_control.friction_motor1_pid, shoot_control.friction_motor1_rpm, shoot_control.friction_motor1_rpm_set, SHOOT_CONTROL_TIME_S);
-	shoot_control.fric1_given_current = (int16_t)(shoot_control.friction_motor1_pid.out);
-
-	PID_calc(&shoot_control.friction_motor2_pid, shoot_control.friction_motor2_rpm, shoot_control.friction_motor2_rpm_set, SHOOT_CONTROL_TIME_S);
-	shoot_control.fric2_given_current = (int16_t)(shoot_control.friction_motor2_pid.out);
-
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
-    // Calculate PID outputs for additional friction motors on HERO_2025_MECANUM.
-	PID_calc(&shoot_control.friction_motor3_pid, shoot_control.friction_motor3_rpm, shoot_control.friction_motor3_rpm_set, SHOOT_CONTROL_TIME_S);
-	shoot_control.fric3_given_current = (int16_t)(shoot_control.friction_motor3_pid.out);
-
-
-	PID_calc(&shoot_control.friction_motor4_pid, shoot_control.friction_motor4_rpm, shoot_control.friction_motor4_rpm_set, SHOOT_CONTROL_TIME_S);
-	shoot_control.fric4_given_current = (int16_t)(shoot_control.friction_motor4_pid.out);
-
-	PID_calc(&shoot_control.piston_motor_pid, shoot_control.piston_speed, shoot_control.piston_speed_set, SHOOT_CONTROL_TIME_S);
-	shoot_control.piston_given_current = (int16_t)(shoot_control.piston_motor_pid.out);
-#endif
+	launcher_motor_PID_calc();
 
 	return shoot_control.cmd_value; // Returns the command value for the trigger motor.
 }
@@ -1046,3 +1008,80 @@ static inline uint8_t is_friction_wheels_above_speed_threshold()
 			(fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD));
 #endif
 }
+
+static inline void transition_to_shoot_mode()
+{
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	shoot_control.shoot_mode = HERO_LAUNCHER_READY; // HERO_2025_MECANUM has a specific launcher shoot mode.
+#else
+	shoot_control.shoot_mode = SHOOT_AUTO_FIRE; // Standard robots go to auto fire.
+#endif
+}
+
+static inline void hero_trigger_set_state()
+{
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+	if (launcher_status.Chain_Loaded == 0)
+	{
+		shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
+	}
+	else
+	{
+		shoot_control.trigger_speed_set = 0.0f;
+	}
+#endif
+}
+
+static inline void launcher_motor_PID_calc()
+{
+	PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.cmd_value = (int16_t)(shoot_control.trigger_motor_pid.out); // This is the command value for the trigger motor.
+
+	// Calculate PID outputs for friction motors.
+	PID_calc(&shoot_control.friction_motor1_pid, shoot_control.friction_motor1_rpm, shoot_control.friction_motor1_rpm_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.fric1_given_current = (int16_t)(shoot_control.friction_motor1_pid.out);
+
+	PID_calc(&shoot_control.friction_motor2_pid, shoot_control.friction_motor2_rpm, shoot_control.friction_motor2_rpm_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.fric2_given_current = (int16_t)(shoot_control.friction_motor2_pid.out);
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+    // Calculate PID outputs for additional friction motors on HERO_2025_MECANUM.
+	PID_calc(&shoot_control.friction_motor3_pid, shoot_control.friction_motor3_rpm, shoot_control.friction_motor3_rpm_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.fric3_given_current = (int16_t)(shoot_control.friction_motor3_pid.out);
+
+
+	PID_calc(&shoot_control.friction_motor4_pid, shoot_control.friction_motor4_rpm, shoot_control.friction_motor4_rpm_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.fric4_given_current = (int16_t)(shoot_control.friction_motor4_pid.out);
+
+	PID_calc(&shoot_control.piston_motor_pid, shoot_control.piston_speed, shoot_control.piston_speed_set, SHOOT_CONTROL_TIME_S);
+	shoot_control.piston_given_current = (int16_t)(shoot_control.piston_motor_pid.out);
+#endif
+}
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+static inline void unstick_hero_launcher()
+{
+	shoot_control.friction_motor3_rpm_set = -HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+	shoot_control.friction_motor4_rpm_set = HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+
+	if(launcher_status.Launcher_Jamed == 1) //move-on directly to pushing piston to help un-jam fric wheel, triggered by key 'V'
+	{
+		shoot_control.friction_motor3_rpm_set = -HERO_FRICTON_MOTOR_JAM_RESOLVE_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+		shoot_control.friction_motor4_rpm_set = HERO_FRICTON_MOTOR_JAM_RESOLVE_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+		launcher_status.init_step = 2; 
+	}
+	else if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) &&
+				(fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
+	{
+		if (launcher_status.Loader_Jamed == 1) //  rotate trigger moter first to hendel ball stucked during loading, triggered by key'B'
+		{
+			shoot_control.trigger_speed_set = JAM_RESOLVE_TRIGGER_SPEED;
+		}
+		else
+		{
+			shoot_control.trigger_speed_set = 0;
+			launcher_status.init_step = 2;
+		}
+	}
+}
+#endif
