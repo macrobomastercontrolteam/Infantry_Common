@@ -66,6 +66,7 @@ enum errorList
     REFEREE_TOE,
     CV_TOE,
     SUPCAP_TOE,
+    POWER_METER_TOE,
     SWERVE_CTRL_TOE,
     BIPED_CTRL_TOE,
     

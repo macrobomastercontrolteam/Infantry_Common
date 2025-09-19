@@ -31,6 +31,7 @@
 #include "string.h"
 #include "shoot.h"
 #include "custom_ui_task.h"
+#include "user_lib.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
@@ -67,6 +68,8 @@
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
+
+power_meter_can_rx_t power_meter_can_rx_msg;
 
 void CAN_cmd_3508_chassis(void);
 fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits);
@@ -163,27 +166,33 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		switch (rx_header.StdId)
 		{
-			case CAN_PIT_MOTOR_ID:
+			case CAN_POWER_METER_RX_ID:
 			{
-        		bMotorId = MOTOR_INDEX_PITCH;
-				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(PITCH_GIMBAL_MOTOR_TOE);
+				decode_power_meter(rx_data);
+				detect_hook(POWER_METER_TOE);
 				break;
 			}
-			case CAN_FRICTION_MOTOR_LEFT_ID:
-			{
-				bMotorId = MOTOR_INDEX_FRICTION_LEFT;
-				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(FRIC1_MOTOR_TOE);
-				break;
-			}
-			case CAN_FRICTION_MOTOR_RIGHT_ID:
-			{
-				bMotorId = MOTOR_INDEX_FRICTION_RIGHT;
-				decode_rm_motor_feedback(rx_data, bMotorId);
-				detect_hook(FRIC2_MOTOR_TOE);
-				break;
-			}
+			// case CAN_PIT_MOTOR_ID:
+			// {
+        	// 	bMotorId = MOTOR_INDEX_PITCH;
+			// 	decode_rm_motor_feedback(rx_data, bMotorId);
+			// 	detect_hook(PITCH_GIMBAL_MOTOR_TOE);
+			// 	break;
+			// }
+			// case CAN_FRICTION_MOTOR_LEFT_ID:
+			// {
+			// 	bMotorId = MOTOR_INDEX_FRICTION_LEFT;
+			// 	decode_rm_motor_feedback(rx_data, bMotorId);
+			// 	detect_hook(FRIC1_MOTOR_TOE);
+			// 	break;
+			// }
+			// case CAN_FRICTION_MOTOR_RIGHT_ID:
+			// {
+			// 	bMotorId = MOTOR_INDEX_FRICTION_RIGHT;
+			// 	decode_rm_motor_feedback(rx_data, bMotorId);
+			// 	detect_hook(FRIC2_MOTOR_TOE);
+			// 	break;
+			// }
 #if IS_TRIGGER_ON_GIMBAL
 			case CAN_TRIGGER_MOTOR_ID:
 			{
@@ -1024,14 +1033,20 @@ void return_ref_info(uint8_t info_code)
 		{
 			uint16_t power_buffer = 0;
 			uint16_t power_limit = 0;
+			int16_t power = 0;
+			uint8_t module_power_byte = 0;
+
 			get_chassis_power_data(&power_buffer,&power_limit);
-			
+			power = encode_float_as_int16(power_meter_can_rx_msg.chassis_power);
+
+			Set_Bit(&module_power_byte,0,robot_state.power_management_chassis_output);
+			Set_Bit(&module_power_byte,1,robot_state.power_management_shooter_output);
+			Set_Bit(&module_power_byte,2,robot_state.power_management_gimbal_output);
+
 			memcpy(&chassis_can_send_data[1], &power_buffer, 2);
 			memcpy(&chassis_can_send_data[3], &power_limit, 2);
-
-			chassis_can_send_data[5] = robot_state.power_management_chassis_output;
-			chassis_can_send_data[6] = robot_state.power_management_shooter_output;
-			chassis_can_send_data[7] = robot_state.power_management_gimbal_output;
+			memcpy(&chassis_can_send_data[5], &power, 2);
+			memcpy(&chassis_can_send_data[7], &module_power_byte, 1);
 			break;
 		}
 
@@ -1111,6 +1126,19 @@ uint16_t get_cap_state(void)
 	return capcan_tx_msg.cap_state;
 }
 #endif
+fp32 temp_power = 0;
+void decode_power_meter(uint8_t *data)
+{
+    power_meter_can_rx_msg.chassis_current = (fp32)((int32_t)((data[3] << 8) | (int32_t)(data[2]))) / 100.0f;
+	power_meter_can_rx_msg.chassis_voltage = (fp32)((int32_t)((data[1] << 8) | (int32_t)data[0])) / 100.0f;
+	power_meter_can_rx_msg.chassis_power = power_meter_can_rx_msg.chassis_current * power_meter_can_rx_msg.chassis_voltage;
+	temp_power = power_meter_can_rx_msg.chassis_power;
+}
+
+// fp32 get_power_meter_reading(int16_t *data)
+// {
+
+// }
 
 void decode_supercap(uint8_t *data)
 {

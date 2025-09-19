@@ -44,6 +44,7 @@ typedef enum
 #else
     CAN_YAW_MOTOR_6020_RX_ID = 0x205,
 #endif
+    CAN_POWER_METER_RX_ID = 0x212,
 
     /********Gimbal CAN IDs********/
     CAN_PIT_MOTOR_ID = 0x206,
@@ -136,6 +137,13 @@ typedef enum
 	CAN_BIPED_CONTROLLER_MODE_TX_ID = 0x119,
 #endif
 } can_other_msg_id_e;
+
+typedef struct 
+{
+    fp32 chassis_current;
+    fp32 chassis_voltage;
+    fp32 chassis_power;
+}power_meter_can_rx_t;
 
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
 typedef struct 
@@ -336,6 +344,7 @@ extern int16_t get_cap_voltage(void);
 extern uint16_t get_cap_state(void);
 extern int16_t get_cap_energy_percentage(void);
 void CAN_cmd_supercap(void);
+void decode_power_meter(uint8_t *data);
 void decode_supercap(uint8_t *data);
 #endif
 
