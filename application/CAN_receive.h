@@ -265,6 +265,7 @@ typedef struct
     uint16_t barrel_1_heat;
     uint16_t chassis_power_buffer; 
     uint16_t chassis_power_limit;
+    int16_t encoded_chassis_power;
 } can_ref_info_t;
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
@@ -365,6 +366,13 @@ void decode_supercap(uint8_t *data);
 
 void decode_power_meter(uint8_t *data);
 fp32 get_chassis_power_meter_data(void);
+typedef enum
+{
+    POWER_MANAGEMNT_CHASSIS_BIT = 1 << 0,
+    POWER_MANAGEMNT_SHOOTER_BIT = 1 << 1,
+    POWER_MANAGEMNT_GIMBAL_BIT = 1 << 2,
+
+} ePowerManagementBits;
 
 #if CAN_PASS_REF_INFO
 extern can_ref_info_t can_ref_info;

@@ -295,7 +295,7 @@ int16_t shoot_control_loop(void)
 			// piston motor for 2025 Hero
 			shoot_control.piston_speed_set = 0.0f;
 			launcher_status.piston_moving = 0;
-			launcher_status.Launcher_Initialized = 0;
+			//launcher_status.Launcher_Initialized = 0;
 
 			if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60) && (fabs(shoot_control.friction_motor3_rpm) < 60) && (fabs(shoot_control.friction_motor4_rpm) < 60))
 			{
@@ -351,8 +351,8 @@ int16_t shoot_control_loop(void)
 
 				if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
 				{
-					shoot_control.friction_motor3_rpm_set = -HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
-					shoot_control.friction_motor4_rpm_set = HERO_FRICTON_MOTOR_INIT_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
+					shoot_control.friction_motor3_rpm_set = -HERO_FRICTON_MOTOR_JAM_RESOLVE_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM; //set vert fric jam resove speed as default to avoid jaming
+					shoot_control.friction_motor4_rpm_set = HERO_FRICTON_MOTOR_JAM_RESOLVE_SPEED * VERT_FRICTION_MOTOR_SPEED_TO_RPM;
 
 					if(launcher_status.Launcher_Jamed == 1) //move-on directly to pushing piston to help un-jam fric wheel, triggered by key 'V'
 					{
@@ -750,6 +750,7 @@ static void shoot_set_mode(void)
 			case RC_SW_DOWN: // Lever is DOWN (safe/disabled mode).
 			default: 
 			{
+				launcher_status.Launcher_Initialized = 0;
 				shoot_control.shoot_mode = SHOOT_STOP; // Stop all shooting activity.
 				break;
 			}

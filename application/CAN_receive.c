@@ -1171,6 +1171,8 @@ void pull_ref_info(uint8_t info_code)
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, interboard_can_send_data, &send_mail_box);
 }
 
+uint8_t temp_pmm_gimbal = 0;
+
 void decode_ref_info(uint8_t *rx_data)
 {
 
@@ -1189,9 +1191,12 @@ void decode_ref_info(uint8_t *rx_data)
 		{
 			memcpy(&can_ref_info.chassis_power_buffer, rx_data + 1, 2);
 			memcpy(&can_ref_info.chassis_power_limit, rx_data + 3, 2);
-			robot_state.power_management_chassis_output = rx_data[5];
-			robot_state.power_management_shooter_output = rx_data[6];
-			robot_state.power_management_gimbal_output = rx_data[7];
+			memcpy(&can_ref_info.encoded_chassis_power, rx_data + 5, 2);
+		
+			robot_state.power_management_chassis_output = 1;//rx_data[7] & POWER_MANAGEMNT_CHASSIS_BIT;
+			robot_state.power_management_shooter_output = 1;//rx_data[7] & POWER_MANAGEMNT_SHOOTER_BIT;
+			robot_state.power_management_gimbal_output = 1;
+			temp_pmm_gimbal = rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT;
 			break;
 		}
 	
