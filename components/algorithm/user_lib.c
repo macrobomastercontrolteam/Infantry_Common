@@ -91,6 +91,28 @@ void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type,
         first_order_filter_type->num[0] / (first_order_filter_type->num[0] + first_order_filter_type->frame_period) * first_order_filter_type->out + first_order_filter_type->frame_period / (first_order_filter_type->num[0] + first_order_filter_type->frame_period) * first_order_filter_type->input;
 }
 
+fp32 low_pass_filter_ema(fp32 x, fp32 alpha, int init)
+{
+
+    static int  s_initialized = 0;
+    static fp32 s_alpha = 1.0;
+    static fp32 s_y = 0.0;
+
+    if (alpha <= 0.0) alpha = 1.0; //pass-through if invalid 
+    if (alpha > 1.0)  alpha = 1.0;
+
+    if (!s_initialized || init) {
+        s_alpha = alpha;
+        s_y = x; //seed output with current input
+        s_initialized = 1;
+        return s_y;
+    }
+
+    s_alpha = alpha; //allow alpha to change at runtime
+    s_y = (1.0 - s_alpha) * s_y + s_alpha * x;
+    return s_y;
+}
+
 fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fInit)
 {
     fp32 output;
