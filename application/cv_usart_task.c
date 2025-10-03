@@ -72,9 +72,6 @@ void CvCmder_Init(void);
 void CvCmder_PollForModeChange(void);
 static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size);
 void CvCmder_EchoTxMsgToUsb(void);
-//void CvCmder_SendSetModeRequest(void);
-//void CvCmder_SendInfoData(eMsgTypes CvCmdBit);
-//void CvCmder_UpdateTranDelta(void);
 static void CvCmder_SendAck(uint8_t msgType);
 
 uint8_t get_team_color(void);
@@ -294,11 +291,11 @@ static void CvCmder_SendAck(uint8_t msgType)
 		{
 			ackBuf[1] = 1;
 #if !DEBUG_CV
-#if(COMPETITION_TYPE == RMUC)
+	#if(COMPETITION_TYPE == RMUC)
 			if((projectile_allowance_17mm == 0 && gold_coins < 50)){
 				ackBuf[2] = 0x00;
 			}
-			else if(shoot_heat_limit <= shoot_heat-15){
+			else if(shoot_heat_limit <= shoot_heat-60){
 				ackBuf[2] = 0xAA;
 			}
 			else if((gold_coins > 50)&& (projectile_allowance_17mm == 0)){
@@ -307,14 +304,17 @@ static void CvCmder_SendAck(uint8_t msgType)
 			else{
 				ackBuf[2] = 0xFF;
 			}
-#else
-			if(shoot_heat_limit <= shoot_heat-15){
+	#else
+			if(projectile_allowance_17mm == 0){
+				ackBuf[2] = 0x00;
+			}
+			else if(shoot_heat_limit <= shoot_heat-60){
 				ackBuf[2] = 0xAA;
 			}
 			else{
 				ackBuf[2] = 0xFF;
 			}
-#endif
+	#endif
 #else
 			ackBuf[2] = 0xFF;
 #endif
@@ -428,9 +428,9 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					uint8_t shootCmd = pData[2];
 #if !DEBUG_CV
 #if(COMPETITION_TYPE == RMUC)
-					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-10)< shoot_heat_limit)){
+					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-60)< shoot_heat_limit)){
 #else
-					if((shootCmd == 0xFF) && ((shoot_heat-10)< shoot_heat_limit)){
+					if((shootCmd == 0xFF) && ((shoot_heat-60)< shoot_heat_limit)){
 #endif
 #else
 					if((shootCmd == 0xFF)){
