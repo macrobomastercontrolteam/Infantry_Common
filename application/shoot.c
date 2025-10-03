@@ -193,11 +193,6 @@ int16_t shoot_control_loop(void)
 			{
 				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
 			}
-			// else
-			// {
-			//     shoot_control.trigger_speed_set = 0.0f;
-			//     shoot_control.shoot_mode = SHOOT_READY;
-			// }
 			break;
 		}
 		case SHOOT_READY:
@@ -206,14 +201,6 @@ int16_t shoot_control_loop(void)
 			{
 				shoot_control.shoot_mode = SHOOT_READY_TRIGGER;
 			}
-			//         else if (shoot_control.fIsCvControl == 0)
-			//         {
-			//             // long press mouse to rapid fire
-			//             if ((shoot_control.press_l && shoot_control.last_press_l == 0) || (shoot_control.press_r && shoot_control.last_press_r == 0))
-			//             {
-			//                 shoot_control.shoot_mode = SHOOT_SEMI_AUTO_FIRE;
-			//             }
-			//         }
 			break;
 		}
 		case SHOOT_SEMI_AUTO_FIRE:
