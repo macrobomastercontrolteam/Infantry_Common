@@ -70,11 +70,15 @@
 #define FRICTION_MOTOR_SPEED_THRESHOLD 0.9f // 10% tolerance
 
 // max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
+#if ((ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM))
+
 #if ENABLE_SHOOT_REDUNDANT_SWITCH
 #define FRICTION_MOTOR_SPEED  26.0f
 #else
 #define FRICTION_MOTOR_SPEED  1.0f
 #warning "turn-on redundant switch before competition, currently shoot in low speed "
+#endif
+
 #endif
 
 //***************2025_Hero *******************/

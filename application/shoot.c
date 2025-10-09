@@ -218,10 +218,12 @@ int16_t shoot_control_loop(void)
                 // Set max output for friction motor PIDs.
 				shoot_control.friction_motor1_pid.max_out = FRICTION_1_SPEED_PID_MAX_OUT;
 				shoot_control.friction_motor2_pid.max_out = FRICTION_2_SPEED_PID_MAX_OUT;
-
+				
+#if ((ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM))
                 // Set target RPM for friction motors.
 				shoot_control.friction_motor1_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
 				shoot_control.friction_motor2_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
+#endif
 
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
                 // Additional friction motors for HERO_2025_MECANUM.
