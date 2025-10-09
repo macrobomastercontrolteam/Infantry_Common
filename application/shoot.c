@@ -295,7 +295,6 @@ int16_t shoot_control_loop(void)
 			// piston motor for 2025 Hero
 			shoot_control.piston_speed_set = 0.0f;
 			launcher_status.piston_moving = 0;
-			//launcher_status.Launcher_Initialized = 0;
 
 			if ((fabs(shoot_control.friction_motor1_rpm) < 60) && (fabs(shoot_control.friction_motor2_rpm) < 60) && (fabs(shoot_control.friction_motor3_rpm) < 60) && (fabs(shoot_control.friction_motor4_rpm) < 60))
 			{
@@ -784,7 +783,7 @@ static void shoot_feedback_update(void)
 
 	if((toe_is_error(REFEREE_TOE) == 0) && (robot_state.power_management_shooter_output == 0))
 	{
-		//launcher_status.Launcher_Initialized = 0; //require launcher re-initialization when gimbal powered off by refree
+		//launcher_status.Launcher_Initialized = 0; //manually re-initialize (RC_DOWN) when gimbal powered off by refree to avoid pass heat limit
 	}
 #endif
 

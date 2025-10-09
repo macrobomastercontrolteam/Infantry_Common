@@ -36,17 +36,17 @@
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 
 //////////////enable for all robot types//////////////////////
-#define ENABLE_DRIVE_MOTOR_POWER 1
-#define ENABLE_YAW_MOTOR_POWER 1
-#define ENABLE_PITCH_MOTOR_POWER 1
+#define ENABLE_DRIVE_MOTOR_POWER 0
+#define ENABLE_YAW_MOTOR_POWER 0
+#define ENABLE_PITCH_MOTOR_POWER 0
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
-#define ENABLE_TRIGGER_MOTOR_POWER 1
-#define ENABLE_FRICTION_1_MOTOR_POWER 1
-#define ENABLE_FRICTION_2_MOTOR_POWER 1
+#define ENABLE_TRIGGER_MOTOR_POWER 0
+#define ENABLE_FRICTION_1_MOTOR_POWER 0
+#define ENABLE_FRICTION_2_MOTOR_POWER 0
 ///////////////enable fo 2025 Hero only begin///////////////////
-#define ENABLE_FRICTION_3_MOTOR_POWER 1
-#define ENABLE_FRICTION_4_MOTOR_POWER 1
-#define ENABLE_PISTON_MOTOR_POWER 1
+#define ENABLE_FRICTION_3_MOTOR_POWER 0
+#define ENABLE_FRICTION_4_MOTOR_POWER 0
+#define ENABLE_PISTON_MOTOR_POWER 0
 ////////////////enable fo 2025 Hero only end////////////////////
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
@@ -1171,7 +1171,6 @@ void pull_ref_info(uint8_t info_code)
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, interboard_can_send_data, &send_mail_box);
 }
 
-uint8_t temp_pmm_gimbal = 0;
 
 void decode_ref_info(uint8_t *rx_data)
 {
@@ -1195,8 +1194,7 @@ void decode_ref_info(uint8_t *rx_data)
 		
 			robot_state.power_management_chassis_output = 1;//rx_data[7] & POWER_MANAGEMNT_CHASSIS_BIT;
 			robot_state.power_management_shooter_output = 1;//rx_data[7] & POWER_MANAGEMNT_SHOOTER_BIT;
-			robot_state.power_management_gimbal_output = 1;
-			temp_pmm_gimbal = rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT;
+			robot_state.power_management_gimbal_output = 1; //rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT;
 			break;
 		}
 	
