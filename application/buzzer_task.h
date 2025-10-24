@@ -156,7 +156,6 @@
     {Note_A5,EIGHTH_NOTE_DURATION},\
     {Note_00,WHOLE_NOTE_DURATION}}
 
-
 #define DDLC {\
     {Note_00,WHOLE_NOTE_DURATION},\
     {Note_00,WHOLE_NOTE_DURATION},\
@@ -195,9 +194,6 @@
     {Note_C5,EIGHTH_NOTE_DURATION},\
     {Note_F5,EIGHTH_NOTE_DURATION},\
     {Note_00, WHOLE_NOTE_DURATION}}
-
-
-
 
 #define IED {\
     {Note_C4, EIGHTH_NOTE_DURATION},\
@@ -488,9 +484,7 @@
     {Note_E4, EIGHTH_NOTE_DURATION},\
     {277, EIGHTH_NOTE_DURATION},\
     {Note_00, FOURTH_NOTE_DURATION}}
-
   
-    
 #define BESPRIDANNICA4 {\
     {Note_D4, EIGHTH_NOTE_DURATION},\
     {Note_A4, EIGHTH_NOTE_DURATION},\
@@ -570,7 +564,6 @@ extern void buzzer_play(Music_Data music);
 extern void play_toe_status(uint32_t toe_list);
 
 extern void play_num_quinary(int number);
-extern void play_Bespridnnica(void);
 
 //void buzzer_toe_check(void);
 #endif /* _BUZZER_TASK_H */

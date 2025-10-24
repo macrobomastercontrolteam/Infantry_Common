@@ -28,6 +28,9 @@ buzzer_control_t buzzer_control;
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t buzzer_high_water;
 #endif
+
+//////////////////////////////////////////////
+//extra songs
 extern Music_Data xiaomi = {
     .gap = 60,
     .psc = 65,
@@ -48,14 +51,6 @@ extern Music_Data ddlc = {
     .psc = 75,
     .pwm = 80,
     .music_length = 37,
-    .music = DDLC,
-};
-
-extern Music_Data init = {
-    .gap = 150,
-    .psc = 75,
-    .pwm = 80,
-    .music_length = 9,
     .music = DDLC,
 };
 
@@ -115,6 +110,19 @@ Music_Data bespridnnica4 = {
     .music_length = 32,
     .music = BESPRIDANNICA4,
 };
+
+
+
+//////////////////////////////////////////////
+//tones for robot status report
+extern Music_Data init = {
+    .gap = 150,
+    .psc = 75,
+    .pwm = 80,
+    .music_length = 9,
+    .music = DDLC,
+};
+
 Music_Data morse_test = {
     .gap = 150,
     .psc = 100,
@@ -148,7 +156,7 @@ void buzzer_init(void);
 void buzzer_play(Music_Data music_data);
 void play_num_quinary(int number);
 void play_toe_status(uint32_t toe_list);
-void play_Bespridnnica(void);
+
 void buzzer_init()
 {
     test_variable = 0;
@@ -168,9 +176,6 @@ void buzzer_init()
     buzzer_control.toe_timeout = 0;
     buzzer_control.last_toe_report_time = 0;
 }
-
-
-    
 
 void buzzer_play(Music_Data music_data)
 {
@@ -264,25 +269,12 @@ void play_toe_status(uint32_t toe_list)
 void buzzer_task(void const *argument)
 {
     buzzer_init();
-    osDelay(1000);
-#if ((ROBOT_TYPE == INFANTRY_2023_MECANUM)||(ROBOT_TYPE == INFANTRY_2024_MECANUM))
-    buzzer_play(ydy);
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-    
-#endif 
+    osDelay(100);
     buzzer_play(init);   
     while(1)
     {
         //check
-        //battery check
-        // if((osKernelSysTick() - buzzer_control.last_batteery_report_time > buzzer_control.battery_timeout) && (get_battery_percentage() <= 20))
-        // {
-        //     battery_flag=1;
-        //     buzzer_control.battery_timeout = BATTERY_TIMEOUT;
-        //     buzzer_control.last_batteery_report_time = osKernelSysTick();
-            
-        // }
-        //toe check
+        //toe check 
         if(osKernelSysTick() - buzzer_control.last_toe_report_time > buzzer_control.toe_timeout)
         {
             if (toe_check() != toe)
@@ -290,7 +282,7 @@ void buzzer_task(void const *argument)
                 osDelay(500);
                 if (toe_check() != toe)//double check
                 {
-                    toe_flag = 1;
+                    toe_flag = 1; //play unit code when new unit offline detected
                     toe = toe_check();
                 }
             }
@@ -299,6 +291,7 @@ void buzzer_task(void const *argument)
         }
 
         //play
+        //play toe code
         if(toe_flag)
         {
             buzzer_play(quinary_test);//play sound for 0,1,5 in sequence
@@ -308,11 +301,6 @@ void buzzer_task(void const *argument)
             toe_flag = 0;
                         
         }
-        // else if((battery_flag))
-        // {
-        //     buzzer_play(ied);
-        //     battery_flag = 0;
-        // }
 #if INCLUDE_uxTaskGetStackHighWaterMark
 	buzzer_high_water = uxTaskGetStackHighWaterMark(NULL);
 #endif
