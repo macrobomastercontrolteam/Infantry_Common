@@ -31,6 +31,7 @@
 #include "string.h"
 #include "shoot.h"
 #include "custom_ui_task.h"
+#include "user_lib.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
@@ -1188,10 +1189,14 @@ void decode_ref_info(uint8_t *rx_data)
 		
 		case CHASSIS_POWER_INFO:
 		{
+			uint16_t encoded_chassis_power;
+
 			memcpy(&can_ref_info.chassis_power_buffer, rx_data + 1, 2);
 			memcpy(&can_ref_info.chassis_power_limit, rx_data + 3, 2);
-			memcpy(&can_ref_info.encoded_chassis_power, rx_data + 5, 2);
-		
+			memcpy(&encoded_chassis_power, rx_data + 5, 2);
+
+			can_ref_info.PowerMeter_reading = decode_int16_to_fp32(encoded_chassis_power);
+
 			robot_state.power_management_chassis_output = 1;//rx_data[7] & POWER_MANAGEMNT_CHASSIS_BIT;
 			robot_state.power_management_shooter_output = 1;//rx_data[7] & POWER_MANAGEMNT_SHOOTER_BIT;
 			robot_state.power_management_gimbal_output = 1; //rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT;

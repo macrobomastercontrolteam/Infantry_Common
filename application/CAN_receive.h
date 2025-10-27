@@ -266,6 +266,7 @@ typedef struct
     uint16_t chassis_power_buffer; 
     uint16_t chassis_power_limit;
     int16_t encoded_chassis_power;
+    fp32 PowerMeter_reading;
 } can_ref_info_t;
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)

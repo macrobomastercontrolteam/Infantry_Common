@@ -120,7 +120,7 @@ extern Music_Data init = {
     .psc = 75,
     .pwm = 80,
     .music_length = 9,
-    .music = DDLC,
+    .music = INIT,
 };
 
 Music_Data morse_test = {
@@ -150,6 +150,14 @@ Music_Data quinary_test = {
     .pwm = 60,
     .music_length = 4,
     .music = QUINARY_TEST,
+};
+
+extern Music_Data hbd = {
+    .gap = 60,
+    .psc = 75,
+    .pwm = 80,
+    .music_length = 33,
+    .music = HBD,
 };
 
 void buzzer_init(void);

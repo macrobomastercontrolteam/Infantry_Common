@@ -106,7 +106,6 @@ void ramp_init(ramp_function_source_t *ramp_source_type, fp32 frame_period, fp32
 void ramp_calc(ramp_function_source_t *ramp_source_type, fp32 input);
 extern void first_order_filter_init(first_order_filter_type_t *first_order_filter_type, fp32 frame_period, const fp32 num[1]);
 extern void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type, fp32 input);
-extern fp32 low_pass_filter_ema(fp32 x, fp32 alpha, int init);
 extern fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fInit);
 extern fp32 sign(fp32 value);
 extern fp32 fp32_deadline(fp32 Value, fp32 minValue, fp32 maxValue);
@@ -123,6 +122,8 @@ extern fp32 loop_fp32_constrain(fp32 Input, fp32 minValue, fp32 maxValue);
 extern fp32 theta_format(fp32 Ang);
 
 extern void Set_Bit(uint8_t* Target_Byte, uint8_t Target_Bit, uint8_t bitValue);
+extern int16_t encode_float_as_int16(fp32 input);
+extern fp32 decode_int16_to_fp32(int16_t input);
 
 #define rad_format(Ang) loop_fp32_constrain((Ang), -PI, PI)
 
