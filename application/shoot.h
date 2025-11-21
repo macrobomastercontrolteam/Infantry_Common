@@ -61,6 +61,8 @@
 #define SPEED_COMPENSATION_RATIO 1.12f
 #elif (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 #define SPEED_COMPENSATION_RATIO 1.22f
+#elif (ROBOT_TYPE == HERO_2025_MECANUM)
+#define SPEED_COMPENSATION_RATIO 0.85f 
 #else
 #warning "SPEED_COMPENSATION_RATIO not defined for this robot type, using default value 1.0. If you're sure about this, temporarily uncomment this line."
 #define SPEED_COMPENSATION_RATIO 1.0f
