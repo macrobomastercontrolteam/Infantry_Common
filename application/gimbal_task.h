@@ -366,7 +366,7 @@
 #define TURN_SPEED    0.04f
 #define TEST_KEYBOARD KEY_PRESSED_OFFSET_R
 //joystick value deadband
-#define RC_DEADBAND   10
+#define RC_DEADBAND   20
 
 #if CV_INTERFACE
 // #define CV_CAMERA_YAW_DEADBAND   0.0174533f // 1 degree
