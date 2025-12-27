@@ -35,6 +35,8 @@
 #define STEER_MOTOR_UPSIDE_DOWN_MOUNTING 0
 #define SWERVE_INVALID_HIP_DATA_RESET_TIMEOUT 1000
 
+fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
+
 /**
  * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
  *                 data point initialization, gimbal motor data point initialization, and gyro sensor angle point initialization.
@@ -293,9 +295,18 @@ static void chassis_feedback_update(void)
 
 #if (ROBOT_TYPE != INFANTRY_2023_SWERVE)
 	// update chassis parameters: vertical speed x, horizontal speed y, rotation speed wz, right hand rule
+#if ROBOT_CHASSIS_USE_MECANUM
+	// Mecanum wheel feedback calculation
 	chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
 	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
 	chassis_move.wz = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
+#elif ROBOT_CHASSIS_USE_OMNI
+	// Omni wheel feedback calculation
+	// For omni wheels in square arrangement: sum and difference combinations give vx, vy, wz
+	chassis_move.vx = (chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
+	chassis_move.vy = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
+	chassis_move.wz = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
+#endif
 #endif
 #endif
 
@@ -733,6 +744,41 @@ static void mecanum_chassis_vector_to_wheel_speed(const fp32 vx_set, const fp32 
 	wheel_speed[2] = vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[2] * wz_set;
 	wheel_speed[3] = -vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[3] * wz_set;
 }
+#elif ROBOT_CHASSIS_USE_OMNI
+/**
+ * @brief          four omni wheels speed is calculated by three param.
+ * @note           Omni wheels (Swedish wheels) are arranged in a square pattern.
+ *                 Each wheel can move independently, providing omnidirectional motion
+ *                 without the need for rotation of the wheel itself.
+ * @param[in]      vx_set: vertical speed (forward/backward)
+ * @param[in]      vy_set: horizontal speed (left/right)
+ * @param[in]      wz_set: rotation speed (clockwise/counter-clockwise)
+ * @param[out]     wheel_speed: four omni wheels speed
+ * @retval         none
+ */
+static void omni_chassis_vector_to_wheel_speed(const fp32 vx_set, const fp32 vy_set, const fp32 wz_set, fp32 wheel_speed[4])
+{
+	// Omni wheel kinematics: each wheel contributes to forward, lateral, and rotational motion
+	// Wheel layout: 0=front-right, 1=front-left, 2=rear-left, 3=rear-right
+	// The rotation contribution is scaled by CHASSIS_WZ_SET_SCALE to account for gimbal position
+	
+	// Forward/backward contribution (vx)
+	fp32 vx_contrib = vx_set;
+	// Lateral contribution (vy)
+	fp32 vy_contrib = vy_set;
+	// Rotation contribution (wz) - scaled by distance to center
+	fp32 wz_contrib = (CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[0] * wz_set;
+	
+	// Calculate wheel speeds for omni configuration
+	// Front-right wheel
+	wheel_speed[0] = vx_contrib - vy_contrib - wz_contrib;
+	// Front-left wheel
+	wheel_speed[1] = vx_contrib + vy_contrib - wz_contrib;
+	// Rear-left wheel
+	wheel_speed[2] = vx_contrib + vy_contrib + wz_contrib;
+	// Rear-right wheel
+	wheel_speed[3] = vx_contrib - vy_contrib + wz_contrib;
+}
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 /**
  * @brief          four drive wheels' speeds and four steering wheels' angles are calculated by three chassis param.
@@ -971,12 +1017,15 @@ static void chassis_control_loop(void)
 #else
 	fp32 max_vector = 0.0f, vector_rate = 0.0f;
 	fp32 temp = 0.0f;
-	fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
+	//fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
 	uint8_t i = 0;
 
 #if ROBOT_CHASSIS_USE_MECANUM
 	// mecanum chassis inverse kinematics
 	mecanum_chassis_vector_to_wheel_speed(chassis_move.vx_set, chassis_move.vy_set, chassis_move.wz_set, wheel_speed);
+#elif ROBOT_CHASSIS_USE_OMNI
+	// omni chassis inverse kinematics
+	omni_chassis_vector_to_wheel_speed(chassis_move.vx_set, chassis_move.vy_set, chassis_move.wz_set, wheel_speed);
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	// swerve chassis inverse kinematics
 	fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit rad
@@ -987,7 +1036,7 @@ static void chassis_control_loop(void)
 	{
 		for (i = 0; i < 4; i++)
 		{
-			chassis_move.motor_chassis[i].give_current = (int16_t)(wheel_speed[i]);
+			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)(wheel_speed[i]);
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 			chassis_move.steer_motor_chassis[i].target_ecd = motor_angle_to_ecd_change(steer_wheel_angle[i]);
 #endif
@@ -1030,7 +1079,7 @@ static void chassis_control_loop(void)
 		}
 		for (i = 0; i < 4; i++)
 		{
-			chassis_move.motor_chassis[i].give_current = (int16_t)(chassis_move.motor_speed_pid[i].out);
+			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)(chassis_move.motor_speed_pid[i].out);
 		}
 	}
 #endif

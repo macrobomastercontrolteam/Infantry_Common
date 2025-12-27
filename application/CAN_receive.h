@@ -29,15 +29,25 @@
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
 
+#define MOTOR_MG4010_GEAR_RATIO 10.0f
+#define MOTOR_MG4010_MAX_CMD 13500
 /* CAN send and receive ID */
 typedef enum
 {
   // GM6020 CAN ID = 0x204 + ID, M2006 and M3508 CAN ID = 0x200 + ID
   /*******Chassis CAN IDs********/
+#if POWER_TRAIN_USE_3508_MOTOR
   CAN_3508_M1_ID = 0x201,
   CAN_3508_M2_ID = 0x202,
   CAN_3508_M3_ID = 0x203,
   CAN_3508_M4_ID = 0x204,
+#elif POWER_TRAIN_USE_4010_MOTOR
+  CAN_4010_M1_ID = 0x141,
+  CAN_4010_M2_ID = 0x142,
+  CAN_4010_M3_ID = 0x143,
+  CAN_4010_M4_ID = 0x144,
+#endif
+
 #if ROBOT_YAW_IS_4310
   CAN_YAW_MOTOR_4310_TX_ID = 0x005,
   CAN_YAW_MOTOR_4310_RX_ID = 0x0FF,
@@ -76,10 +86,17 @@ typedef enum
 
 typedef enum
 {
+#if POWER_TRAIN_USE_3508_MOTOR
 	MOTOR_INDEX_3508_M1 = 0,
 	MOTOR_INDEX_3508_M2,
 	MOTOR_INDEX_3508_M3,
 	MOTOR_INDEX_3508_M4,
+#elif POWER_TRAIN_USE_4010_MOTOR
+	MOTOR_INDEX_4010_M1 = 0,
+	MOTOR_INDEX_4010_M2,
+	MOTOR_INDEX_4010_M3,
+	MOTOR_INDEX_4010_M4,
+#endif
 	MOTOR_INDEX_YAW,
 	MOTOR_INDEX_PITCH,
 	MOTOR_INDEX_TRIGGER,
@@ -257,6 +274,7 @@ typedef struct
     fp32 output_angle; // rad
     fp32 velocity;     // rad/s
     fp32 torque;       // Nm
+    int8_t temperature;
 } motor_measure_t;
 
 typedef struct
@@ -266,6 +284,17 @@ typedef struct
     uint16_t chassis_power_buffer; 
     uint16_t chassis_power_limit;
 } can_ref_info_t;
+
+//typedef struct 
+//{
+//  int8_t temperature;
+//  uint16_t ecd;
+//  fp32 output_angle;
+//  fp32 velocity;
+//  fp32 torque;
+//  fp32 feedback_current;
+//} motor_measure_t;
+
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
   * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000] 
@@ -341,6 +370,7 @@ extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_inde
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr);
 
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
+
 
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
 void decode_ubc_cap_tx_data(uint8_t *data);

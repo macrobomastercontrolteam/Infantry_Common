@@ -112,8 +112,16 @@
 #define DRIVE_WHEEL_RADIUS 0.0675f
 #endif
 // Ratio of M3508 speed in rpm to chassis speed in m/s
+#if POWER_TRAIN_USE_4010_MOTOR
+#define MG4010_MOTOR_RPM_TO_VECTOR ((2.0f * PI / 60.0f) * DRIVE_WHEEL_RADIUS / MOTOR_MG4010_GEAR_RATIO)
+#define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN MG4010_MOTOR_RPM_TO_VECTOR
+#elif POWER_TRAIN_USE_3508_MOTOR
 #define M3508_MOTOR_RPM_TO_VECTOR ((2.0f * PI / 60.0f) * DRIVE_WHEEL_RADIUS / M3508_MOTOR_GEAR_RATIO)
 #define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
+#else
+#define M3508_MOTOR_RPM_TO_VECTOR ((2.0f * PI / 60.0f) * DRIVE_WHEEL_RADIUS / M3508_MOTOR_GEAR_RATIO)
+#define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
+#endif
 
 // single chassis motor max speed
 #define MAX_WHEEL_SPEED 4.0f
@@ -135,6 +143,12 @@
 #define NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO 1.5f
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM)
+#define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
+#define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
+#define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
+#elif ROBOT_CHASSIS_USE_OMNI
+// Omni wheel kinematics conversion factors
+// Adjust these values based on your specific omni wheel configuration and chassis dimensions
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
@@ -212,7 +226,7 @@ typedef struct
 	fp32 accel;
 	fp32 speed;
 	fp32 speed_set;
-	int16_t give_current;
+	int16_t give_chassis_motor_cmd; // control current command for chassis M3508 motor deg/s*(gear ratio) for MG4010
 } chassis_motor_t;
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
