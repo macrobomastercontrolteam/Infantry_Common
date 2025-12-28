@@ -81,9 +81,17 @@ extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 power_meter_can_rx_t power_meter_can_rx_msg;
 
+#if POWER_TRAIN_USE_4010_MOTOR
 static uint8_t can_send_data[8];
 static CAN_TxHeaderTypeDef can_tx_message;
 uint32_t send_mail_box;
+
+HAL_StatusTypeDef encode_ktech_broadcast_speed_control(const int16_t speedControlCmd[4], uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
+HAL_StatusTypeDef Send_CAN_Cmd(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data, uint8_t blocking_call);
+HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data);
+void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId);
+void CAN_cmd_4010_chassis(void);
+#endif
 
 void CAN_cmd_3508_chassis(void);
 fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits);
@@ -91,11 +99,9 @@ int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits);
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
 HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId);
-HAL_StatusTypeDef Send_CAN_Cmd(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data, uint8_t blocking_call);
-HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data);
+
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
-void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId);
-void CAN_cmd_4010_chassis(void);
+
 void decode_power_meter(uint8_t *data);
 fp32 get_chassis_power_meter_data(void);
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
@@ -459,28 +465,22 @@ void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId)
 	motor_chassis[bMotorId].temperature = data[1];
 }
 
-HAL_StatusTypeDef encode_ktech_broadcast_speed_control(const int32_t speedControlCmd, uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr, uint32_t ktech_motor_tx_id)
+HAL_StatusTypeDef encode_ktech_broadcast_speed_control(const int16_t speedControlCmd[4], uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
 {
-	can_tx_message.StdId = ktech_motor_tx_id;
+	can_tx_message.StdId = CAN_KTECH_BROADCAST_SPEED_TX_ID;
 	can_tx_message.ExtId = 0x00;
 	can_tx_message.IDE = CAN_ID_STD;
 	can_tx_message.RTR = CAN_RTR_DATA;
 	can_tx_message.DLC = 8;
 
-	// DATA[0]: Command byte
-	can_send_data[0] = 0xA2;
-	
-	// DATA[1-3]: NULL bytes
-	can_send_data[1] = 0x00;
-	can_send_data[2] = 0x00;
-	can_send_data[3] = 0x00;
-	
-	// DATA[4-7]: Speed control value (int32_t, little-endian)
-	// Each LSB = 0.01 dps, so convert from fp32 to int32_t
-	can_send_data[4] = *(uint8_t *)(&speedControlCmd);
-	can_send_data[5] = *((uint8_t *)(&speedControlCmd) + 1);
-	can_send_data[6] = *((uint8_t *)(&speedControlCmd) + 2);
-	can_send_data[7] = *((uint8_t *)(&speedControlCmd) + 3);
+	can_send_data[0] = (uint8_t)speedControlCmd[0];
+	can_send_data[1] = (uint8_t)(speedControlCmd[0] >> 8);
+	can_send_data[2] = (uint8_t)speedControlCmd[1];
+	can_send_data[3] = (uint8_t)(speedControlCmd[1] >> 8);
+	can_send_data[4] = (uint8_t)speedControlCmd[2];
+	can_send_data[5] = (uint8_t)(speedControlCmd[2] >> 8);
+	can_send_data[6] = (uint8_t)speedControlCmd[3];
+	can_send_data[7] = (uint8_t)(speedControlCmd[3] >> 8);
 
 	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
 }
@@ -1070,7 +1070,7 @@ void CAN_cmd_chassis(void)
  */
 void CAN_cmd_3508_chassis(void)
 {
-#if (ROBOT_TYPE != INFANTRY_2024_BIPED)
+#if ((ROBOT_TYPE != INFANTRY_2024_BIPED)&&(ROBOT_TYPE != SENTRY_2023_MECANUM))
 	uint32_t send_mail_box;
 	// driver motors (M3508)
 	chassis_tx_message.StdId = CAN_3508_OR_2006_LOW_RANGE_TX_ID;
@@ -1118,9 +1118,11 @@ void CAN_cmd_3508_chassis(void)
 #endif
 }
 
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 void CAN_cmd_4010_chassis(void)
 {
-#if (ROBOT_TYPE != INFANTRY_2024_BIPED)
+	uint8_t blocking_call = 1;
+
 	// MG4010 motors are controlled via speed commands sent to individual motor IDs
 #if ENABLE_DRIVE_MOTOR_POWER
 	fp32 motor1_speed = chassis_move.motor_chassis[0].give_chassis_motor_cmd;
@@ -1158,13 +1160,11 @@ void CAN_cmd_4010_chassis(void)
 	int32_t motor4_cmd = (int32_t)fp32_abs_constrain((motor4_speed * MOTOR_MG4010_GEAR_RATIO * 180.0f / PI * 100.0f) , MOTOR_MG4010_MAX_CMD);
 
 	// Send speed commands to each MG4010 motor using the ktech broadcast function
-	encode_ktech_broadcast_speed_control(motor1_cmd, 0, &CHASSIS_CAN, CAN_4010_M1_ID);
-	encode_ktech_broadcast_speed_control(motor2_cmd, 0, &CHASSIS_CAN, CAN_4010_M2_ID);
-	encode_ktech_broadcast_speed_control(motor3_cmd, 0, &CHASSIS_CAN, CAN_4010_M3_ID);
-	encode_ktech_broadcast_speed_control(motor4_cmd, 0, &CHASSIS_CAN, CAN_4010_M4_ID);
-
-#endif
+	int16_t motor_cmds[4] = {motor1_cmd, motor2_cmd, motor3_cmd, motor4_cmd};
+	encode_ktech_broadcast_speed_control(motor_cmds, blocking_call, &CHASSIS_CAN);
+	osDelay(1);
 }
+#endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void CAN_cmd_swerve_steer(void)
