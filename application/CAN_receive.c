@@ -455,14 +455,15 @@ void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId)
 #if POWER_TRAIN_USE_4010_MOTOR
 void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
+
 	int16_t current_int = (data[3]<<8) | data[2]; //Uniy Ampere
 	int16_t v_int = (data[5]<<8) | data[4]; //deg/s
-	int16_t p_int = (data[7]<<8) | data[6]; //encode value
+	uint16_t p_int = (data[7]<<8) | data[6]; //encode value
 
 	motor_chassis[bMotorId].feedback_current = (fp32)current_int;
-	motor_chassis[bMotorId].speed_rpm = (int16_t)(v_int / 6.0f);  // convert deg/s to RPM: 360 deg/s = 60 RPM
+	motor_chassis[bMotorId].speed_rpm = (int16_t)(v_int / 6.0f) / MOTOR_MG4010_GEAR_RATIO;  // convert deg/s to RPM: 360 deg/s = 60 RPM
 	motor_chassis[bMotorId].velocity = ((fp32)v_int) / MOTOR_MG4010_GEAR_RATIO / 180.0f * PI;
-	motor_chassis[bMotorId].output_angle = ((fp32)p_int) / (1 << 16) * 2.0f * PI;
+	motor_chassis[bMotorId].output_angle = ((fp32)p_int) / (1 << 14) * 2.0f * PI;
 	motor_chassis[bMotorId].temperature = data[1];
 }
 
