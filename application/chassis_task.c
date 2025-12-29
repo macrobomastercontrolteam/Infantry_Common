@@ -771,13 +771,13 @@ static void omni_chassis_vector_to_wheel_speed(const fp32 vx_set, const fp32 vy_
 	
 	// Calculate wheel speeds for omni configuration
 	// Front-right wheel
-	wheel_speed[0] = vx_contrib - vy_contrib - wz_contrib;
+	wheel_speed[0] = -vx_contrib - vy_contrib + wz_contrib;
 	// Front-left wheel
-	wheel_speed[1] = vx_contrib + vy_contrib - wz_contrib;
+	wheel_speed[1] = +vx_contrib - vy_contrib + wz_contrib;
 	// Rear-left wheel
-	wheel_speed[2] = vx_contrib + vy_contrib + wz_contrib;
+	wheel_speed[2] = +vx_contrib + vy_contrib + wz_contrib;
 	// Rear-right wheel
-	wheel_speed[3] = vx_contrib - vy_contrib + wz_contrib;
+	wheel_speed[3] = -vx_contrib + vy_contrib + wz_contrib;
 }
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 /**
@@ -1079,7 +1079,7 @@ static void chassis_control_loop(void)
 		}
 		for (i = 0; i < 4; i++)
 		{
-			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)(chassis_move.motor_speed_pid[i].out);
+			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)((chassis_move.motor_speed_pid[i].out)/2/PI/DRIVE_WHEEL_RADIUS*360*10);
 		}
 	}
 #endif

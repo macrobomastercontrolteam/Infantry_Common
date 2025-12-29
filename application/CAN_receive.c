@@ -36,7 +36,7 @@
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 
 //////////////enable for all robot types//////////////////////
-#define ENABLE_DRIVE_MOTOR_POWER 1
+#define ENABLE_DRIVE_MOTOR_POWER 0
 #define ENABLE_YAW_MOTOR_POWER 0
 #define ENABLE_PITCH_MOTOR_POWER 0
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
@@ -1156,10 +1156,10 @@ void CAN_cmd_4010_chassis(void)
 
 	// Convert speeds from rad/s to dps (deg/s) and then to control command (0.01 dps per LSB)
 	// Motor speed in rad/s -> deg/s via gear ratio -> control cmd (multiply by 100 for 0.01 dps per LSB)
-	int32_t motor1_cmd = (int32_t)fp32_abs_constrain((motor1_speed * MOTOR_MG4010_GEAR_RATIO * 180.0f / PI * 100.0f) , MOTOR_MG4010_MAX_CMD);
-	int32_t motor2_cmd = (int32_t)fp32_abs_constrain((motor2_speed * MOTOR_MG4010_GEAR_RATIO * 180.0f / PI * 100.0f) , MOTOR_MG4010_MAX_CMD);
-	int32_t motor3_cmd = (int32_t)fp32_abs_constrain((motor3_speed * MOTOR_MG4010_GEAR_RATIO * 180.0f / PI * 100.0f) , MOTOR_MG4010_MAX_CMD);
-	int32_t motor4_cmd = (int32_t)fp32_abs_constrain((motor4_speed * MOTOR_MG4010_GEAR_RATIO * 180.0f / PI * 100.0f) , MOTOR_MG4010_MAX_CMD);
+	int16_t motor1_cmd = (int16_t)fp32_abs_constrain((motor1_speed) , MOTOR_MG4010_MAX_CMD);
+	int16_t motor2_cmd = (int16_t)fp32_abs_constrain((motor2_speed) , MOTOR_MG4010_MAX_CMD);
+	int16_t motor3_cmd = (int16_t)fp32_abs_constrain((motor3_speed) , MOTOR_MG4010_MAX_CMD);
+	int16_t motor4_cmd = (int16_t)fp32_abs_constrain((motor4_speed) , MOTOR_MG4010_MAX_CMD);
 
 	// Send speed commands to each MG4010 motor using the ktech broadcast function
 	int16_t motor_cmds[4] = {motor1_cmd, motor2_cmd, motor3_cmd, motor4_cmd};
