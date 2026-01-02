@@ -95,11 +95,11 @@ fp32 low_pass_filter_ema(fp32 x, fp32 alpha, int init)
 {
 
     static int  s_initialized = 0;
-    static fp32 s_alpha = 1.0;
-    static fp32 s_y = 0.0;
+    static fp32 s_alpha = 1.0f;
+    static fp32 s_y = 0.0f;
 
-    if (alpha <= 0.0) alpha = 1.0; //pass-through if invalid 
-    if (alpha > 1.0)  alpha = 1.0;
+    if (alpha <= 0.0f) alpha = 1.0f; //pass-through if invalid 
+    if (alpha > 1.0f)  alpha = 1.0f;
 
     if (!s_initialized || init) {
         s_alpha = alpha;
@@ -109,7 +109,7 @@ fp32 low_pass_filter_ema(fp32 x, fp32 alpha, int init)
     }
 
     s_alpha = alpha; //allow alpha to change at runtime
-    s_y = (1.0 - s_alpha) * s_y + s_alpha * x;
+    s_y = (1.0f - s_alpha) * s_y + s_alpha * x;
     return s_y;
 }
 
