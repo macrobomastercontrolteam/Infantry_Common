@@ -144,3 +144,8 @@ bool_t chassis_power_control_mode_change(uint8_t fIsKeyPressed){
 
     return toggle_mode;
 }
+
+bool_t get_chassis_overpower(void)
+{
+    return (can_ref_info.PowerMeter_reading > can_ref_info.chassis_power_limit);
+}

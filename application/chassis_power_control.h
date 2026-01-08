@@ -35,4 +35,6 @@
   */
 extern void chassis_power_control(uint8_t fEnablePowerSaving);
 extern bool_t chassis_power_control_mode_change(uint8_t fIsKeyPressed);
+
+extern bool_t get_chassis_overpower(void);
 #endif

@@ -62,7 +62,7 @@
 #elif (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 #define SPEED_COMPENSATION_RATIO 1.22f
 #else
-#warning "SPEED_COMPENSATION_RATIO not defined for this robot type, using default value 1.0. If you're sure about this, temporarily uncomment this line."
+//#warning "SPEED_COMPENSATION_RATIO not defined for this robot type, using default value 1.0. If you're sure about this, temporarily uncomment this line."
 #define SPEED_COMPENSATION_RATIO 1.0f
 #endif
 #define FRICTION_MOTOR_RPM_TO_SPEED (2.0f * PI / 60.0f * (FRICTION_MOTOR_RADIUS * SPEED_COMPENSATION_RATIO))

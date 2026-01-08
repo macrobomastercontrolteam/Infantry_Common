@@ -4,6 +4,7 @@
 #include "cmsis_os.h"
 #include "user_lib.h"
 #include "detect_task.h"
+#include "chassis_power_control.h"
 
 extern TIM_HandleTypeDef htim4;
 uint16_t sound_step;
@@ -16,14 +17,10 @@ uint32_t delay_time;
 Buzzer_Note current_note;
 uint64_t toe;
 
-uint8_t playing_flag;
-uint8_t battery_flag;
-uint8_t toe_flag;
-uint8_t song_flag;
-uint8_t info_flag;
 
 
 buzzer_control_t buzzer_control;
+buzzer_flag_t buzzer_flag;
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t buzzer_high_water;
@@ -31,20 +28,20 @@ uint32_t buzzer_high_water;
 
 //////////////////////////////////////////////
 //extra songs
-extern Music_Data xiaomi = {
-    .gap = 60,
-    .psc = 65,
-    .pwm = 90,
-    .music_length = 33,
-    .music = XIAOMI,
-};
-extern Music_Data flyme = {
-    .gap = 40,
-    .psc = 65,
-    .pwm = 90,
-    .music_length = 19,
-    .music = FLYME,
-};
+// extern Music_Data xiaomi = {
+//     .gap = 60,
+//     .psc = 65,
+//     .pwm = 90,
+//     .music_length = 33,
+//     .music = XIAOMI,
+// };
+// extern Music_Data flyme = {
+//     .gap = 40,
+//     .psc = 65,
+//     .pwm = 90,
+//     .music_length = 19,
+//     .music = FLYME,
+// };
 
 extern Music_Data ddlc = {
     .gap = 150,
@@ -54,63 +51,70 @@ extern Music_Data ddlc = {
     .music = DDLC,
 };
 
-extern Music_Data ied = {
-    .gap = 50,
-    .psc = 100,
-    .pwm = 150,
-    .music_length = 29,
-    .music = IED,
-};
-extern Music_Data ckbk = {
-    .gap = 50,
-    .psc = 100,
-    .pwm = 60,
-    .music_length = 37,
-    .music = CKBK,
-};
-extern Music_Data ydy = {
-    .gap = 50,
-    .psc = 100,
-    .pwm = 60,
-    .music_length = 19,
-    .music = YDY,
-};
-extern Music_Data rd1 = {
-    .gap = 25,
-    .psc = 50,
-    .pwm = 45,
-    .music_length = 44,
-    .music = RD1,
-};
-Music_Data bespridnnica1 = {  //Play song Bespridnnic in order 112344
-    .gap = 60,
-    .psc = 50,
-    .pwm = 55,
-    .music_length = 26,
-    .music = BESPRIDANNICA1,
-};
-Music_Data bespridnnica2 = {
-    .gap = 60,
-    .psc = 50,
-    .pwm = 55,
-    .music_length = 57,
-    .music = BESPRIDANNICA2,
-};
-Music_Data bespridnnica3 = {
-    .gap = 60,
-    .psc = 50,
-    .pwm = 55,
-    .music_length = 63,
-    .music = BESPRIDANNICA3,
-};
-Music_Data bespridnnica4 = {
-    .gap = 60,
-    .psc = 50,
-    .pwm = 55,
-    .music_length = 32,
-    .music = BESPRIDANNICA4,
-};
+// extern Music_Data ied = {
+//     .gap = 50,
+//     .psc = 100,
+//     .pwm = 150,
+//     .music_length = 29,
+//     .music = IED,
+// };
+// extern Music_Data ckbk = {
+//     .gap = 50,
+//     .psc = 100,
+//     .pwm = 60,
+//     .music_length = 37,
+//     .music = CKBK,
+// };
+// extern Music_Data ydy = {
+//     .gap = 50,
+//     .psc = 100,
+//     .pwm = 60,
+//     .music_length = 19,
+//     .music = YDY,
+// };
+// extern Music_Data rd1 = {
+//     .gap = 25,
+//     .psc = 50,
+//     .pwm = 45,
+//     .music_length = 44,
+//     .music = RD1,
+// };
+// Music_Data bespridnnica1 = {  //Play song Bespridnnic in order 112344
+//     .gap = 60,
+//     .psc = 50,
+//     .pwm = 55,
+//     .music_length = 26,
+//     .music = BESPRIDANNICA1,
+// };
+// Music_Data bespridnnica2 = {
+//     .gap = 60,
+//     .psc = 50,
+//     .pwm = 55,
+//     .music_length = 57,
+//     .music = BESPRIDANNICA2,
+// };
+// Music_Data bespridnnica3 = {
+//     .gap = 60,
+//     .psc = 50,
+//     .pwm = 55,
+//     .music_length = 63,
+//     .music = BESPRIDANNICA3,
+// };
+// Music_Data bespridnnica4 = {
+//     .gap = 60,
+//     .psc = 50,
+//     .pwm = 55,
+//     .music_length = 32,
+//     .music = BESPRIDANNICA4,
+// };
 
+extern Music_Data hbd = {
+    .gap = 60,
+    .psc = 75,
+    .pwm = 80,
+    .music_length = 33,
+    .music = HBD,
+};
 
 
 //////////////////////////////////////////////
@@ -151,14 +155,14 @@ Music_Data quinary_test = {
     .music_length = 4,
     .music = QUINARY_TEST,
 };
-
-extern Music_Data hbd = {
-    .gap = 60,
-    .psc = 75,
-    .pwm = 80,
-    .music_length = 33,
-    .music = HBD,
+Music_Data overpower_warning = {
+    .gap = 20,
+    .psc = 100,
+    .pwm = 60,
+    .music_length = 4,
+    .music = OVERPOWER,
 };
+
 
 void buzzer_init(void);
 void buzzer_play(Music_Data music_data);
@@ -171,11 +175,12 @@ void buzzer_init()
     delay_time = 0;
     toe = 0;
 
-    playing_flag = 0;
-    battery_flag = 0;
-    toe_flag = 0;
-    song_flag = 0;
-    info_flag = 0;
+    buzzer_flag.playing_flag = 0;
+    buzzer_flag.battery_flag = 0;
+    buzzer_flag.overpower_flag = 0;
+    buzzer_flag.toe_flag = 0;
+    buzzer_flag.song_flag = 0;
+    buzzer_flag.info_flag = 0;
 
     buzzer_control.buzzer_mode = STOP;
     buzzer_control.buzzer_last_mode = buzzer_control.buzzer_mode;
@@ -187,9 +192,9 @@ void buzzer_init()
 
 void buzzer_play(Music_Data music_data)
 {
-    if(playing_flag==0)
+    if(buzzer_flag.playing_flag==0)
     {
-        playing_flag=1;
+        buzzer_flag.playing_flag=1;
         for (int i = 0; i < music_data.music_length; i++)
         {
             current_note.frequency = music_data.music[i][0];
@@ -201,7 +206,7 @@ void buzzer_play(Music_Data music_data)
             osDelay((uint32_t)(music_data.gap));
         }
         buzzer_off();
-        playing_flag=0;
+        buzzer_flag.playing_flag=0;
     }
 }
 
@@ -241,9 +246,9 @@ void play_num_quinary(int number)
 
 void play_toe_status(uint32_t toe_list)
 {
-    if (playing_flag == 0)
+    if (buzzer_flag.playing_flag == 0)
     {
-        playing_flag = 1;
+        buzzer_flag.playing_flag = 1;
 
         for (int i = 0; i < (ERROR_LIST_LENGTH); i++)
         {
@@ -255,7 +260,7 @@ void play_toe_status(uint32_t toe_list)
 
         buzzer_off();
         osDelay(500);
-        playing_flag = 0;
+        buzzer_flag.playing_flag = 0;
         //toe_flag = 0;
     }
 }
@@ -273,24 +278,31 @@ void play_toe_status(uint32_t toe_list)
 // buzzer_play(xiaomi);
 // buzzer_play(rd1);
 
-
+//void toe_check(void)
 void buzzer_task(void const *argument)
 {
     buzzer_init();
     osDelay(100);
-    buzzer_play(init);   
+    buzzer_play(init);
+ 
     while(1)
     {
+        
         //check
+        //overpower_check
+        if(get_chassis_overpower())
+        {
+            buzzer_flag.overpower_flag = 1;
+        }
         //toe check 
-        if(osKernelSysTick() - buzzer_control.last_toe_report_time > buzzer_control.toe_timeout)
+        else if(osKernelSysTick() - buzzer_control.last_toe_report_time > buzzer_control.toe_timeout)
         {
             if (toe_check() != toe)
             {
                 osDelay(500);
                 if (toe_check() != toe)//double check
                 {
-                    toe_flag = 1; //play unit code when new unit offline detected
+                    buzzer_flag.toe_flag = 1; //play unit code when new unit offline detected
                     toe = toe_check();
                 }
             }
@@ -299,14 +311,20 @@ void buzzer_task(void const *argument)
         }
 
         //play
+        //play overpower code
+        if(buzzer_flag.overpower_flag)
+        {
+            buzzer_play(overpower_warning);
+            buzzer_flag.overpower_flag = 0;
+        }
         //play toe code
-        if(toe_flag)
+        else if(buzzer_flag.toe_flag)
         {
             buzzer_play(quinary_test);//play sound for 0,1,5 in sequence
             osDelay(1000);
             play_toe_status(toe);
             buzzer_play(end);
-            toe_flag = 0;
+            buzzer_flag.toe_flag = 0;
                         
         }
 #if INCLUDE_uxTaskGetStackHighWaterMark
