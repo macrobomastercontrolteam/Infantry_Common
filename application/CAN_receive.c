@@ -247,14 +247,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(SUPCAP_TOE);
 				break;
 			}
-			// case CAN_REF_INFO_PULL_TX_ID:
-			// {
-			// 	ref_info_id = rx_data[0];
-			// 	return_ref_info(ref_info_id);
-			// 	detect_hook(MAIN_BOARD_TOE);
-			// 	break;
-			// }
-			case CAN_UI_INFO_RX_ID:
+			
+			case CAN_UI_INFO_RX_ID: //receive robot status from main board to pass to UI
 			{
 				decode_ui_info(rx_data);
 				detect_hook(MAIN_BOARD_TOE);
@@ -1036,14 +1030,15 @@ void return_ref_info(uint8_t info_code)
 			int16_t power = 0;
 			uint8_t module_power_byte = 0;
 
-			get_chassis_power_data(&power_buffer,&power_limit);
-			power = encode_float_as_int16(power_meter_can_rx_msg.chassis_power);
+			get_chassis_power_data(&power_buffer,&power_limit); //pass power buffer and limit from refree system
+			                                                                                             
+			power = encode_float_as_int16(power_meter_can_rx_msg.chassis_power); //get power reading from powermeter and encode to 2 byte
 
-			Set_Bit(&module_power_byte,0,robot_state.power_management_chassis_output);
+			Set_Bit(&module_power_byte,0,robot_state.power_management_chassis_output); //pass module enable/disable cmd from refree system
 			Set_Bit(&module_power_byte,1,robot_state.power_management_shooter_output);
 			Set_Bit(&module_power_byte,2,robot_state.power_management_gimbal_output);
 
-			memcpy(&chassis_can_send_data[1], &power_buffer, 2);
+			memcpy(&chassis_can_send_data[1], &power_buffer, 2); 
 			memcpy(&chassis_can_send_data[3], &power_limit, 2);
 			memcpy(&chassis_can_send_data[5], &power, 2);
 			memcpy(&chassis_can_send_data[7], &module_power_byte, 1);

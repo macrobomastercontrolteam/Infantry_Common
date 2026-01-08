@@ -41,6 +41,7 @@
 #include "cv_usart_task.h"
 #include "custom_ui_task.h"
 #include "referee_can_task.h"
+#include "buzzer_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,6 +53,8 @@ osThreadId detect_handle;
 osThreadId gimbalTaskHandle;
 osThreadId imuTaskHandle;
 osThreadId led_RGB_flow_handle;
+osThreadId buzzer_handle;
+
 // osThreadId oled_handle;
 osThreadId referee_usart_task_handle;
 osThreadId usb_task_handle;
@@ -172,6 +175,8 @@ void MX_FREERTOS_Init(void) {
     osThreadDef(led, led_RGB_flow_task, osPriorityBelowNormal, 0, 256);
     led_RGB_flow_handle = osThreadCreate(osThread(led), NULL);
 
+    osThreadDef(buzzer, buzzer_task, osPriorityNormal, 0, 256);
+    buzzer_handle = osThreadCreate(osThread(buzzer), NULL);   
 
     // osThreadDef(OLED, oled_task, osPriorityLow, 0, 256);
     // oled_handle = osThreadCreate(osThread(OLED), NULL);
