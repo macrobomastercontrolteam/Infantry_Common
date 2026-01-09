@@ -55,6 +55,7 @@ typedef enum
 	MSG_CV_IMU_ACCELE = 0x05,
 	MSG_CV_IMU_VELOCITY = 0x06,
 	MSG_CV_IMU_POSITION = 0x07,
+	MSG_CV_INFO_PITCH_ANGLE = 0x08,
 } eMsgTypes;
 
 typedef enum
@@ -63,6 +64,7 @@ typedef enum
 	CV_INFO_TEAM_COLOR = 0x01,
 	CV_INFO_ROBOT_TYPE = 0x02,
 	CV_INFO_ROBOT_HP = 0x03,
+	//CV_INFO_PITCH_ANGLE = 0x04,
 } eMsgTypeAckInfo;
 
 //
@@ -265,7 +267,7 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
 static void CvCmder_SendAck(uint8_t msgType)
 {
     // For example, Tag = msgType, Length = 1, Value = 0xAA (ACK placeholder)
-    uint8_t ackBuf[14];
+    uint8_t ackBuf[26];
     ackBuf[0] = msgType; // Tag
           // Length
     ackBuf[2] = 0xFF;    // Value (ACK)
@@ -318,6 +320,14 @@ static void CvCmder_SendAck(uint8_t msgType)
 					memcpy(&ackBuf[3], &currentHP, 2);
 					break;
 				}
+
+				// case CV_INFO_PITCH_ANGLE:
+				// {
+				// 	ackBuf[2] = 0x04;
+				// 	fp32 pitch_angle = get_gimbal_ecd_pitch_angle();
+				// 	memcpy(&ackBuf[3], &pitch_angle, sizeof(fp32));
+				// 	break;
+				// }
 			}
 			break;
 		}
@@ -349,7 +359,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 			if((projectile_allowance_17mm == 0 && gold_coins < 50)){
 				ackBuf[2] = 0x00; //running low on 17mm ammo
 			}
-			else if(shoot_heat_limit <= shoot_heat-60){
+			else if(shoot_heat_limit <= shoot_heat-30){
 				ackBuf[2] = 0xAA; // shoot heat is low enough to allow shooting
 			}
 			else if((gold_coins > 50)&& (projectile_allowance_17mm == 0)){
@@ -363,7 +373,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 			{
 				ackBuf[2] = 0x00; //running low on 17mm ammo
 			}
-			else if (shoot_heat_limit <= shoot_heat - 60)
+			else if (shoot_heat_limit <= shoot_heat - 30)
 			{
 				ackBuf[2] = 0xAA; // shoot heat is low enough to allow shooting
 			}
@@ -378,14 +388,16 @@ static void CvCmder_SendAck(uint8_t msgType)
 #endif
 		}
 
-        case MSG_CV_IMU_ACCELE:
+        case MSG_CV_IMU_ACCELE: //We are sending CV raw data
         {
             fp32 accel_data[3];
-            get_world_linear_accel(accel_data); // Get world frame linear acceleration
+			fp32 ang_vel_data[3];
+            get_world_accel_raw(accel_data, ang_vel_data); // Get world frame linear acceleration
 
-            ackBuf[1] = 3 * sizeof(fp32); // Length of the value part (x, y, z acceleration)
+            ackBuf[1] = 6 * sizeof(fp32); // Length: 3 linear + 3 angular
 
             memcpy(&ackBuf[2], accel_data, 3 * sizeof(fp32));
+            memcpy(&ackBuf[2 + 3 * sizeof(fp32)], ang_vel_data, 3 * sizeof(fp32));
             break;
         }
 
@@ -410,6 +422,16 @@ static void CvCmder_SendAck(uint8_t msgType)
             memcpy(&ackBuf[2], position_data, 3 * sizeof(fp32));
             break;
         }
+
+		case MSG_CV_INFO_PITCH_ANGLE:
+		{
+			fp32 pitch_angle = get_gimbal_ecd_pitch_angle();
+
+			ackBuf[1] = sizeof(fp32); // Length of pitch angle
+
+			memcpy(&ackBuf[2], &pitch_angle, sizeof(fp32));
+			break;
+		}
 	}
 
 
@@ -526,7 +548,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 					uint8_t shootCmd = pData[2];
 	#if !DEBUG_CV
-					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-60)< shoot_heat_limit) && is_game_started()){
+					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-30)< shoot_heat_limit) && is_game_started()){
 	#else
 					if((shootCmd == 0xFF)){
 	#endif
@@ -542,6 +564,21 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 
 				break;
 			}
+
+			case MSG_CV_INFO_PITCH_ANGLE:
+			{
+				CvCmder_SendAck(MSG_CV_INFO_PITCH_ANGLE);
+				detect_hook(CV_TOE);
+				break;
+			}
+
+			case MSG_CV_IMU_ACCELE:
+			{
+				CvCmder_SendAck(MSG_CV_IMU_ACCELE);
+				detect_hook(CV_TOE);
+				break;
+			}
+
         	default:
 			{
         	    // unknown tag

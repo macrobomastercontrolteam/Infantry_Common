@@ -61,6 +61,8 @@
 #define SPEED_COMPENSATION_RATIO 1.12f
 #elif (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 #define SPEED_COMPENSATION_RATIO 1.22f
+#elif (ROBOT_TYPE == HERO_2025_MECANUM)
+#define SPEED_COMPENSATION_RATIO 0.85f 
 #else
 //#warning "SPEED_COMPENSATION_RATIO not defined for this robot type, using default value 1.0. If you're sure about this, temporarily uncomment this line."
 #define SPEED_COMPENSATION_RATIO 1.0f
@@ -85,7 +87,7 @@
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 
 #if ENABLE_SHOOT_REDUNDANT_SWITCH
-#define HERO_FRICTION_MOTOR_SPEED  5.0f
+#define HERO_FRICTION_MOTOR_SPEED  12.0f
 #else
 #define HERO_FRICTION_MOTOR_SPEED  1.0f
 #endif
