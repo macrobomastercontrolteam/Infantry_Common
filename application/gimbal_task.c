@@ -77,6 +77,8 @@ fp32 temp_add_pitch_angle;
 fp32 temp_pitch_current_angle;
 fp32 temp_pitch_target_angle;
 fp32 temp_pitch_current_angle_processed;
+fp32 temp_CAN_cmd_pitch_add;
+fp32 temp_pitch_target_angle_before_add;
 
 static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init);
 static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init);
@@ -207,8 +209,7 @@ void gimbal_task(void const *pvParameters)
         osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
     //} while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_L_TOE)||toe_is_error(PITCH_GIMBAL_MOTOR_R_TOE));
-    } while (toe_is_error(PITCH_GIMBAL_MOTOR_L_TOE)||toe_is_error(PITCH_GIMBAL_MOTOR_R_TOE));
-
+    } while (toe_is_error(PITCH_GIMBAL_MOTOR_L_TOE)||toe_is_error(PITCH_GIMBAL_MOTOR_R_TOE)||(gimbal_control.gimbal_pitch_motor.absolute_angle == 0.0f));
 
     while (1)
     {
@@ -800,6 +801,7 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
  
 #if CONTROL_BY_CAN
     add_pitch_angle = CAN_cmd_pitch_add;
+    temp_CAN_cmd_pitch_add =  CAN_cmd_pitch_add;
 #else     
      gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, set_control);
 #endif
@@ -826,6 +828,7 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
      }
      else if ((set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
      {
+         temp_pitch_target_angle_before_add = set_control->gimbal_pitch_motor.absolute_angle_set;
          gimbal_absolute_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
          temp_add_pitch_angle = add_pitch_angle;
      }

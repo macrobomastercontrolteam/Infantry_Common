@@ -388,7 +388,7 @@
 #define GIMBAL_MOTIONLESS_TIME_MAX    3000
 
 #define HERO_PITCH_MAX_ANGLE    0.73
-#define HERO_PITCH_MIN_ANGLE    0.33
+#define HERO_PITCH_MIN_ANGLE    0.5 //TODO find actual MIN angle, could be lower
 
 typedef enum
 {
