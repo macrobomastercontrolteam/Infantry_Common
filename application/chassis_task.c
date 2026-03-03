@@ -24,6 +24,7 @@
 #include "pid.h"
 #include "user_lib.h"
 #include <assert.h>
+#include "detect_task.h"
 
 #define CHASSIS_TASK_INIT_TIME 357
 #define CHASSIS_CONTROL_TIME_MS 5.0f
@@ -37,32 +38,55 @@
 #define M6020_MOTOR_ANGLE_PID_MAX_OUT M6020_MAX_VOLTAGE
 #define M6020_MOTOR_ANGLE_PID_MAX_IOUT 10000.0f
 
+#if HIP_MOTOR_TYPE == MG_6012
 // MG6012 hip motor configs
-#define MG6012_MOTOR_ANGLE_PID_KP 0.001f
-#define MG6012_MOTOR_ANGLE_PID_KI 0.0f
-#define MG6012_MOTOR_ANGLE_PID_KD 0.0f
-#define MG6012_MOTOR_ANGLE_PID_MAX_OUT 10.0f
-#define MG6012_MOTOR_ANGLE_PID_MAX_IOUT 0.0f
+#define HIP_MOTOR_ANGLE_PID_KP 0.001f
+#define HIP_MOTOR_ANGLE_PID_KI 0.0f
+#define HIP_MOTOR_ANGLE_PID_KD 0.0f
+#define HIP_MOTOR_ANGLE_PID_MAX_OUT 10.0f
+#define HIP_MOTOR_ANGLE_PID_MAX_IOUT 0.0f
 
-#define MG6012_MOTOR_SPEED_PID_KP 5.5f
-// #define MG6012_MOTOR_SPEED_PID_KI 0.125f
-#define MG6012_MOTOR_SPEED_PID_KI 25.0f
-#define MG6012_MOTOR_SPEED_PID_KD 0.0f
-#define MG6012_MOTOR_SPEED_PID_MAX_OUT MG6012_MAX_TORQUE
-#define MG6012_MOTOR_SPEED_PID_MAX_IOUT MG6012_MAX_TORQUE
+#define HIP_MOTOR_SPEED_PID_KP 5.5f
+// #define HIP_MOTOR_SPEED_PID_KI 0.125f
+#define HIP_MOTOR_SPEED_PID_KI 25.0f
+#define HIP_MOTOR_SPEED_PID_KD 0.0f
+#define HIP_MOTOR_SPEED_PID_MAX_OUT MG6012_MAX_TORQUE
+#define HIP_MOTOR_SPEED_PID_MAX_IOUT MG6012_MAX_TORQUE
+#elif HIP_MOTOR_TYPE == DM_4340P
+// DM4340_P hip motor configs
+#define HIP_MOTOR_ANGLE_PID_KP 25.0f
+#define HIP_MOTOR_ANGLE_PID_KI 0.0f
+#define HIP_MOTOR_ANGLE_PID_KD 0.0f
+#define HIP_MOTOR_ANGLE_PID_MAX_OUT 10.5f
+#define HIP_MOTOR_ANGLE_PID_MAX_IOUT 0.0f
 
+#define HIP_MOTOR_SPEED_PID_KP 0.7f
+// #define DM_4340_P_MOTOR_SPEED_PID_KI 0.125f
+#define HIP_MOTOR_SPEED_PID_KI 0.0f
+#define HIP_MOTOR_SPEED_PID_KD 0.0f
+#define HIP_MOTOR_SPEED_PID_MAX_OUT 6.5f
+#define HIP_MOTOR_SPEED_PID_MAX_IOUT 0.0f
+#else
+#endif
 #define ROTATE_6020_OFFSET 0
 #define M6020_MOTOR_0_ANGLE_ECD_OFFSET ((1667U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
 #define M6020_MOTOR_1_ANGLE_ECD_OFFSET ((7776U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
 #define M6020_MOTOR_2_ANGLE_ECD_OFFSET ((4450U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
 #define M6020_MOTOR_3_ANGLE_ECD_OFFSET ((6416U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
 
+#if HIP_MOTOR_TYPE == MG_6012
 // Zero position of 6012 motors are calibrated to the CHASSIS_THETA_LOWER_LIMIT_ECD
 #define MG6012_MOTOR_0_ANGLE_ECD_OFFSET (MG6012_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD)
 #define MG6012_MOTOR_1_ANGLE_ECD_OFFSET (MG6012_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD)
 #define MG6012_MOTOR_2_ANGLE_ECD_OFFSET (MG6012_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD)
 #define MG6012_MOTOR_3_ANGLE_ECD_OFFSET (MG6012_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD)
-
+#elif HIP_MOTOR_TYPE == DM_4340P
+#define DM4340_MOTOR_0_ANGLE_ECD_OFFSET (HALF_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD)
+#define DM4340_MOTOR_1_ANGLE_ECD_OFFSET (HALF_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD)
+#define DM4340_MOTOR_2_ANGLE_ECD_OFFSET (HALF_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD)
+#define DM4340_MOTOR_3_ANGLE_ECD_OFFSET (HALF_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD)
+#else
+#endif
 #define CHASSIS_TEST_MODE 0
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
@@ -173,16 +197,26 @@ void chassis_task(void const *pvParameters)
 	uint32_t ulSystemTime = osKernelSysTick();
 	uint8_t bMotorId;
 	uint8_t bMotorRelativeId;
+#if HIP_MOTOR_TYPE == DM_4340P
 
+	enable_all_DaMiao_motors(1);
+
+#endif
 	param_asserts();
 	chassis_init();
 	osDelay(CHASSIS_TASK_INIT_TIME);
 
 	while (1)
 	{
+#if HIP_MOTOR_TYPE == DM_4340P
+
+		enable_all_DaMiao_motors(1);
+
+#endif
 		chassis_calc_feedbacks();
 		chassis_calc_targets();
 		chassis_safe_guard();
+
 
 		// @TODO: reenable this after fixing fatal error
 		// if (chassis_move.fFatalError)
@@ -259,15 +293,19 @@ void chassis_init(void)
 		PID_init(&chassis_move.steer_angle_pid[bMotorRelativeId], PID_POSITION, steer_angle_pid_params, M6020_MOTOR_ANGLE_PID_MAX_OUT, M6020_MOTOR_ANGLE_PID_MAX_IOUT, 0, &M6020_ecd_err_handler);
 		motor_info[bMotorId].offset_ecd = steer_motor_offset_ecd[bMotorRelativeId];
 	}
-
+#if HIP_MOTOR_TYPE == MG_6012
 	const uint16_t hip_motor_offset_ecd[4] = {MG6012_MOTOR_0_ANGLE_ECD_OFFSET, MG6012_MOTOR_1_ANGLE_ECD_OFFSET, MG6012_MOTOR_2_ANGLE_ECD_OFFSET, MG6012_MOTOR_3_ANGLE_ECD_OFFSET};
-	const fp32 hip_angle_pid_params[3] = {MG6012_MOTOR_ANGLE_PID_KP, MG6012_MOTOR_ANGLE_PID_KI, MG6012_MOTOR_ANGLE_PID_KD};
-	const fp32 hip_speed_pid_params[3] = {MG6012_MOTOR_SPEED_PID_KP, MG6012_MOTOR_SPEED_PID_KI, MG6012_MOTOR_SPEED_PID_KD};
+#elif HIP_MOTOR_TYPE == DM_4340P
+	const uint16_t hip_motor_offset_ecd[4] = {DM4340_MOTOR_0_ANGLE_ECD_OFFSET, DM4340_MOTOR_1_ANGLE_ECD_OFFSET, DM4340_MOTOR_2_ANGLE_ECD_OFFSET, DM4340_MOTOR_3_ANGLE_ECD_OFFSET};
+#else
+#endif
+	const fp32 hip_angle_pid_params[3] = {HIP_MOTOR_ANGLE_PID_KP, HIP_MOTOR_ANGLE_PID_KI, HIP_MOTOR_ANGLE_PID_KD};
+	const fp32 hip_speed_pid_params[3] = {HIP_MOTOR_SPEED_PID_KP, HIP_MOTOR_SPEED_PID_KI, HIP_MOTOR_SPEED_PID_KD};
 	for (bMotorRelativeId = 0; bMotorRelativeId < HIP_MOTOR_COUNT; bMotorRelativeId++)
 	{
 		bMotorId = bMotorRelativeId + CHASSIS_ID_HIP_1;
-		PID_init(&chassis_move.hip_angle_pid[bMotorRelativeId], PID_POSITION, hip_angle_pid_params, MG6012_MOTOR_ANGLE_PID_MAX_OUT, MG6012_MOTOR_ANGLE_PID_MAX_IOUT, 0, &MG6012_ecd_err_handler);
-		PID_init(&chassis_move.hip_speed_pid[bMotorRelativeId], PID_POSITION, hip_speed_pid_params, MG6012_MOTOR_SPEED_PID_MAX_OUT, MG6012_MOTOR_SPEED_PID_MAX_IOUT, 0.8f, &filter_err_handler);
+		PID_init(&chassis_move.hip_angle_pid[bMotorRelativeId], PID_POSITION, hip_angle_pid_params, HIP_MOTOR_ANGLE_PID_MAX_OUT, HIP_MOTOR_ANGLE_PID_MAX_IOUT, 0, &MG6012_ecd_err_handler);
+		PID_init(&chassis_move.hip_speed_pid[bMotorRelativeId], PID_POSITION, hip_speed_pid_params, HIP_MOTOR_SPEED_PID_MAX_OUT, HIP_MOTOR_SPEED_PID_MAX_IOUT, 0.8f, &filter_err_handler);
 		motor_info[bMotorId].offset_ecd = hip_motor_offset_ecd[bMotorRelativeId];
 	}
 

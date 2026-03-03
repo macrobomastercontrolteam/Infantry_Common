@@ -24,6 +24,7 @@
 #include "remote_control.h"
 #include "string.h"
 #include <stdlib.h>
+#include "user_lib.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
@@ -36,6 +37,7 @@
 #define REVERSE_3_HIP_MOTOR_DIRECTION 1
 #define REVERSE_4_HIP_MOTOR_DIRECTION 1
 
+#if HIP_MOTOR_TYPE == MG_6012
 #define MOTOR_6012_GEAR_RATIO 36.0f
 #define MOTOR_6012_INPUT_TORQUE_TO_MAIN_CURRENT_RATIO 0.225146199f
 #define MOTOR_6012_MAIN_CURRENT_TO_ROTOR_CURRENT_RATIO 0.212f
@@ -45,8 +47,29 @@
 #define MG6012_ECD_DELTA_DEADZONE MG6012_ECD_RANGE_90
 #define MG6012_SPEED_DPS_DELTA_DEADZONE 100
 
+#elif HIP_MOTOR_TYPE == DM_4340P
+const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {4.0f*PI};  //value needs to match to which in motor setting software
+const fp32 MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = { -4.0f*PI};
+const fp32 MIT_CONTROL_V_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {30.0f};
+const fp32 MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {30.0f};
+const fp32 MIT_CONTROL_T_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {10.0f};
+const fp32 MIT_CONTROL_T_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-10.0f};
+const fp32 MIT_CONTROL_KP_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {500.0f};
+const fp32 MIT_CONTROL_KP_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f};
+const fp32 MIT_CONTROL_KD_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {5.0f};
+const fp32 MIT_CONTROL_KD_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {0.0f};
+
+fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits);
+int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits);
+HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
+HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId);
+HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr);
+void enable_all_DaMiao_motors(uint8_t _enable);
+#endif
+
 #define INTER_CTRL_CAN hcan1
 #define STEER_AND_HIP_CAN hcan2
+
 
 typedef enum
 {
@@ -70,9 +93,14 @@ const fp32 meter_encoding_ratio_shrinked = (1 << 8) / METER_ENCODER_MAX_LIMIT;
 const fp32 angle_encoding_ratio_shrinked = (1 << 7) / ANGLE_ECD_MAX_LIMIT;
 
 void decode_6020_motor_feedback(uint8_t *data, uint8_t bMotorId);
+#if HIP_MOTOR_TYPE == MG_6012
 void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId);
 void encode_6012_motor_torque_control(uint32_t id, float torque_cmd);
-
+#elif HIP_MOTOR_TYPE == DM_4340P
+HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
+HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId);
+HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr);
+#endif
 /**
  * @brief          hal CAN fifo call back, receive motor data
  * @param[in]      hcan, the point to CAN handle
@@ -118,6 +146,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(CHASSIS_STEER4_TOE);
 				break;
 			}
+#if HIP_MOTOR_TYPE == MG_6012
 			case CAN_HIP1_RX_ID:
 			{
 				if (rx_data[0] == CAN_6012_TORQUE_FEEDBACK_ID)
@@ -158,6 +187,44 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				}
 				break;
 			}
+#elif HIP_MOTOR_TYPE == DM_4340P
+			case CAN_HIP1_RX_ID:
+			{
+				bMotorId = CHASSIS_ID_HIP_1;
+				if(decode_4340_motor_feedback(rx_data, bMotorId)==HAL_OK){
+					detect_hook(CHASSIS_HIP1_TOE);
+				}
+				
+				break;
+			}
+			case CAN_HIP2_RX_ID:
+			{
+				bMotorId = CHASSIS_ID_HIP_2;
+				if(decode_4340_motor_feedback(rx_data, bMotorId)==HAL_OK){
+					detect_hook(CHASSIS_HIP2_TOE);
+				}
+				
+				break;
+			}
+			case CAN_HIP3_RX_ID:
+			{
+				bMotorId = CHASSIS_ID_HIP_3;
+				if(decode_4340_motor_feedback(rx_data, bMotorId)==HAL_OK){
+					detect_hook(CHASSIS_HIP3_TOE);
+				}
+				
+				break;
+			}
+			case CAN_HIP4_RX_ID:
+			{
+				bMotorId = CHASSIS_ID_HIP_4;
+				if(decode_4340_motor_feedback(rx_data, bMotorId)==HAL_OK){
+					detect_hook(CHASSIS_HIP4_TOE);
+				}
+				
+				break;
+			}
+#endif
 			default:
 			{
 				break;
@@ -253,13 +320,25 @@ uint8_t CAN_cmd_hip_motors(float torque1, float torque2, float torque3, float to
 	// Broadcast msg would cause signal to be lost if the bus is too long, use individual msg instead
 	// encode_6012_multi_motor_torque_control(torque1, torque2, torque3, torque4);
 
-	encode_6012_motor_torque_control(CAN_HIP1_RX_ID, torque1);
+#if HIP_MOTOR_TYPE == MG_6012
 	osDelay(1);
-	encode_6012_motor_torque_control(CAN_HIP2_RX_ID, torque2);
+	encode_6012_motor_torque_control(CAN_HIP1_RX_ID, hip_torque1);
 	osDelay(1);
-	encode_6012_motor_torque_control(CAN_HIP3_RX_ID, torque3);
+	encode_6012_motor_torque_control(CAN_HIP2_RX_ID, hip_torque2);
 	osDelay(1);
-	encode_6012_motor_torque_control(CAN_HIP4_RX_ID, torque4);
+	encode_6012_motor_torque_control(CAN_HIP3_RX_ID, hip_torque3);
+	osDelay(1);
+	encode_6012_motor_torque_control(CAN_HIP4_RX_ID, hip_torque4);
+#elif HIP_MOTOR_TYPE == DM_4340P
+	osDelay(1);
+	encode_MIT_motor_control(CAN_HIP1_TX_ID, 0, 0, 0, 0, torque1, DM_4340, &STEER_AND_HIP_CAN);
+	osDelay(1);
+	encode_MIT_motor_control(CAN_HIP2_TX_ID, 0, 0, 0, 0, torque2, DM_4340, &STEER_AND_HIP_CAN);
+	osDelay(1);
+	encode_MIT_motor_control(CAN_HIP3_TX_ID, 0, 0, 0, 0, torque3, DM_4340, &STEER_AND_HIP_CAN);
+	osDelay(1);
+	encode_MIT_motor_control(CAN_HIP4_TX_ID, 0, 0, 0, 0, torque4, DM_4340, &STEER_AND_HIP_CAN);
+#endif
 	return fValidInput;
 }
 
@@ -329,6 +408,7 @@ void CAN_send_radius_dot_to_upper_board(fp32 target_radius_dot1, fp32 target_rad
 	HAL_CAN_AddTxMessage(&INTER_CTRL_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
 }
 
+#if HIP_MOTOR_TYPE == MG_6012
 void encode_6012_multi_motor_torque_control(float torque1, float torque2, float torque3, float torque4)
 {
 	can_tx_msg.StdId = CAN_HIP_MOTOR_MULTICMD_TX_ID;
@@ -444,6 +524,138 @@ void decode_6012_motor_torque_feedback(uint8_t *data, uint8_t bMotorId)
 	}
 }
 
+
+#elif HIP_MOTOR_TYPE == DM_4340P
+
+fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits)
+{
+	/// converts unsigned int to fp32, given range and number of bits ///
+	fp32 span = x_max - x_min;
+	fp32 offset = x_min;
+	return ((fp32)x_int) * span / ((fp32)((1 << bits) - 1)) + offset;
+}
+
+int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits)
+{
+	/// Converts a fp32 to an unsigned int, given range and number of bits///
+	fp32 span = x_max - x_min;
+	fp32 offset = x_min;
+	if (x >= x_max)
+	{
+		return ((1 << bits) - 1);
+	}
+	else if (x <= x_min)
+	{
+		return 0;
+	}
+	else
+	{
+		return (int)((x - offset) * ((fp32)((1 << bits) - 1)) / span);
+	}
+}
+
+HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr)
+{
+	uint32_t send_mail_box;
+	can_tx_msg.StdId = id;
+	can_tx_msg.IDE = CAN_ID_STD;
+	can_tx_msg.RTR = CAN_RTR_DATA;
+	can_tx_msg.DLC = 0x08;
+
+#if DISABLE_ARM_MOTOR_POWER
+	_pos = 0;
+	_vel = 0;
+	_KP = 0;
+	_KD = 0;
+	_torq = 0;
+#endif
+
+	uint16_t pos_tmp, vel_tmp, kp_tmp, kd_tmp, tor_tmp;
+	pos_tmp = fp32_to_uint_motor(_pos, MIT_CONTROL_P_MIN[motor_type], MIT_CONTROL_P_MAX[motor_type], 16);
+	vel_tmp = fp32_to_uint_motor(_vel, MIT_CONTROL_V_MIN[motor_type], MIT_CONTROL_V_MAX[motor_type], 12);
+	kp_tmp = fp32_to_uint_motor(_KP, MIT_CONTROL_KP_MIN[motor_type], MIT_CONTROL_KP_MAX[motor_type], 12);
+	kd_tmp = fp32_to_uint_motor(_KD, MIT_CONTROL_KD_MIN[motor_type], MIT_CONTROL_KD_MAX[motor_type], 12);
+	tor_tmp = fp32_to_uint_motor(_torq, MIT_CONTROL_T_MIN[motor_type], MIT_CONTROL_T_MAX[motor_type], 12);
+
+	can_tx_data[0] = (pos_tmp >> 8);
+	can_tx_data[1] = pos_tmp;
+	can_tx_data[2] = (vel_tmp >> 4);
+	can_tx_data[3] = ((vel_tmp & 0xF) << 4) | (kp_tmp >> 8);
+	can_tx_data[4] = kp_tmp;
+	can_tx_data[5] = (kd_tmp >> 4);
+	can_tx_data[6] = ((kd_tmp & 0xF) << 4) | (tor_tmp >> 8);
+	can_tx_data[7] = tor_tmp;
+
+	return HAL_CAN_AddTxMessage(hcan_ptr, &can_tx_msg, can_tx_data, &send_mail_box);
+}
+
+HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId)
+{
+	HAL_StatusTypeDef ret_value = HAL_ERROR;
+	// Note: error_id = 0， 1 means motor power is disabled/enabled
+	uint8_t error_id = data[0] >> 4;
+	if ((error_id != 0) && (error_id != 1))
+	{
+		ret_value = HAL_ERROR;
+	}
+	else
+	{
+		uint16_t p_int = (data[1] << 8) | data[2];		   // rad (+-4*pi)
+		uint16_t v_int = (data[3] << 4) | (data[4] >> 4);  // rad/s
+		uint16_t t_int = ((data[4] & 0xF) << 8) | data[5];
+		motor_info[bMotorId].feedback_abs_angle = uint_to_fp32_motor(p_int, MIT_CONTROL_P_MIN[DM_4340], MIT_CONTROL_P_MAX[DM_4340], 16);
+		motor_info[bMotorId].feedback_abs_ecd_fp32 = loop_fp32_constrain(motor_info[bMotorId].feedback_abs_angle, 0, 2 * PI) * DM4340_MOTOR_RAD_TO_ECD; //no actual ecd reading used 
+		motor_info[bMotorId].velocity = uint_to_fp32_motor(v_int, MIT_CONTROL_V_MIN[DM_4340], MIT_CONTROL_V_MAX[DM_4340], 12);
+		motor_info[bMotorId].torque = uint_to_fp32_motor(t_int, MIT_CONTROL_T_MIN[DM_4340], MIT_CONTROL_T_MAX[DM_4340], 12);
+		motor_info[bMotorId].temperate = data[6];
+
+		ret_value = HAL_OK;
+	}
+	return ret_value;
+}
+
+HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr)
+{
+	uint32_t send_mail_box;
+	can_tx_msg.StdId = id;
+	can_tx_msg.IDE = CAN_ID_STD;
+	can_tx_msg.RTR = CAN_RTR_DATA;
+	can_tx_msg.DLC = 0x08;
+
+	memset(can_tx_data, 0xFF, sizeof(can_tx_data));
+
+	if (_enable)
+	{
+		can_tx_data[7] = 0xFC;
+	}
+	else
+	{
+		// disable
+		can_tx_data[7] = 0xFD;
+	}
+	HAL_StatusTypeDef hal_status = HAL_CAN_AddTxMessage(hcan_ptr, &can_tx_msg, can_tx_data, &send_mail_box);
+	memset(can_tx_data, 0, sizeof(can_tx_data));
+	return hal_status;
+}
+
+void enable_all_DaMiao_motors(uint8_t _enable)
+{
+	//if(!SWERVE_CTRL_TOE){ // first check if the control signal is alive when booted
+		while (CHASSIS_HIP1_TOE || CHASSIS_HIP2_TOE ||  CHASSIS_HIP3_TOE || CHASSIS_HIP4_TOE){
+			enable_DaMiao_motor(CAN_HIP1_TX_ID, _enable, &STEER_AND_HIP_CAN);
+			osDelay(1);
+			enable_DaMiao_motor(CAN_HIP2_TX_ID, _enable, &STEER_AND_HIP_CAN);
+			osDelay(1);
+			enable_DaMiao_motor(CAN_HIP3_TX_ID, _enable, &STEER_AND_HIP_CAN);
+			osDelay(1);
+			enable_DaMiao_motor(CAN_HIP4_TX_ID, _enable, &STEER_AND_HIP_CAN);
+		}
+	//}
+
+}
+
+#endif
+
 void decode_6020_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
 	motor_info[bMotorId].feedback_raw_ecd = ((data[0] << 8) | data[1]);
@@ -452,7 +664,6 @@ void decode_6020_motor_feedback(uint8_t *data, uint8_t bMotorId)
 	// motor_info[bMotorId].torque_current = ((data[4] << 8) | data[5]);
 	// motor_info[bMotorId].temperature    =   data[6];
 }
-
 /**
  * @brief  send motor control message through can bus
  * @param  motor voltage 1,2,3,4 or 5,6,7
@@ -603,8 +814,6 @@ void CAN_cmd_wrapper(void)
 	HAL_CAN_AddTxMessage(&INTER_CTRL_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
 	/*********** CAN_send_shrinked_params_to_upper_board ***********/
 
-	osDelay(1);
-	encode_6012_motor_torque_control(CAN_HIP1_RX_ID, hip_torque1);
 
 	/*********** CAN_send_radius_dot_to_upper_board ***********/
 	fp32 target_radius_dot1 = chassis_move.target_wheel_rot_radius_dot[0];
@@ -639,12 +848,26 @@ void CAN_cmd_wrapper(void)
 	}
 	HAL_CAN_AddTxMessage(&INTER_CTRL_CAN, &can_tx_msg, can_tx_data, &send_mail_box);
 	/*********** CAN_send_radius_dot_to_upper_board ***********/
+#if HIP_MOTOR_TYPE == MG_6012
+	osDelay(1);
+	encode_6012_motor_torque_control(CAN_HIP1_RX_ID, hip_torque1);
 	osDelay(1);
 	encode_6012_motor_torque_control(CAN_HIP2_RX_ID, hip_torque2);
 	osDelay(1);
 	encode_6012_motor_torque_control(CAN_HIP3_RX_ID, hip_torque3);
 	osDelay(1);
 	encode_6012_motor_torque_control(CAN_HIP4_RX_ID, hip_torque4);
+#elif HIP_MOTOR_TYPE == DM_4340P
+	osDelay(1);
+	encode_MIT_motor_control(CAN_HIP1_TX_ID, 0, 0, 0, 0, hip_torque1, DM_4340, &STEER_AND_HIP_CAN);
+	osDelay(1);
+	encode_MIT_motor_control(CAN_HIP2_TX_ID, 0, 0, 0, 0, hip_torque2, DM_4340, &STEER_AND_HIP_CAN);
+	osDelay(1);
+	encode_MIT_motor_control(CAN_HIP3_TX_ID, 0, 0, 0, 0, hip_torque3, DM_4340, &STEER_AND_HIP_CAN);
+	osDelay(1);
+	encode_MIT_motor_control(CAN_HIP4_TX_ID, 0, 0, 0, 0, hip_torque4, DM_4340, &STEER_AND_HIP_CAN);
+#endif
+
 }
 
 // void CAN_cmd_wrapper(void)

@@ -22,6 +22,10 @@
 
 #include "global_inc.h"
 
+#define MG_6012 0
+#define DM_4340P 1
+#define HIP_MOTOR_TYPE DM_4340P
+
 #define CAN_CONTROL_ID_BASE 0x1ff
 #define CAN_CONTROL_ID_EXTEND 0x2ff
 #define STEER_MOTOR_COUNT (CHASSIS_ID_STEER_4 - CHASSIS_ID_STEER_1 + 1)
@@ -42,7 +46,19 @@ typedef struct
 	int16_t rotor_speed;
 	// int16_t  torque_current;
 	// uint8_t  temperature;
+    int16_t speed_rpm;
+    int16_t feedback_current;
+    uint8_t temperate;
+    int16_t last_ecd;
+    fp32 velocity;     // rad/s
+    fp32 torque;       // Nm
 } motor_info_t;
+
+typedef enum
+{
+    DM_4340 = 0,
+    LAST_MIT_CONTROLLED_MOTOR_TYPE,
+} MIT_controlled_motor_type_e;
 
 /* CAN send and receive ID */
 typedef enum
@@ -68,11 +84,24 @@ typedef enum
 	CAN_STEER3_RX_ID = 0x207,
 	CAN_STEER4_RX_ID = 0x208,
 
+	#if HIP_MOTOR_TYPE == MG_6012
 	// 6012 motor as hip
 	CAN_HIP1_RX_ID = 0x141,
 	CAN_HIP2_RX_ID = 0x142,
 	CAN_HIP3_RX_ID = 0x143,
 	CAN_HIP4_RX_ID = 0x144,
+	#elif HIP_MOTOR_TYPE == DM_4340P
+	// 4340 motor as hip
+	CAN_HIP1_TX_ID = 0x001,	//ID used to send can commands
+	CAN_HIP2_TX_ID = 0x002,
+	CAN_HIP3_TX_ID = 0x003,
+	CAN_HIP4_TX_ID = 0x004,
+
+	CAN_HIP1_RX_ID = 0xFC, //ID used to receive motor feedback
+	CAN_HIP2_RX_ID = 0xFD,
+	CAN_HIP3_RX_ID = 0xFE,
+	CAN_HIP4_RX_ID = 0xFF,
+	#endif
 } can_msg_id_e;
 
 typedef enum
@@ -98,5 +127,9 @@ void CAN_send_shrinked_params_to_upper_board(fp32 radius1, fp32 radius2, fp32 ra
 void CAN_send_radius_dot_to_upper_board(fp32 target_radius_dot1, fp32 target_radius_dot2, fp32 target_radius_dot3, fp32 target_radius_dot4);
 void encode_6012_multi_motor_torque_control(float torque1, float torque2, float torque3, float torque4);
 void CAN_cmd_wrapper(void);
+
+#if HIP_MOTOR_TYPE == DM_4340P
+void enable_all_DaMiao_motors(uint8_t _enable);
+#endif
 
 #endif

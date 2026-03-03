@@ -46,8 +46,12 @@
 #define MG6012_MOTOR_ECD_TO_RAD (PI / (fp32)(MG6012_ECD_RANGE_180))
 #define MG6012_MOTOR_RAD_TO_ECD (1 / MG6012_MOTOR_ECD_TO_RAD)
 
+#define HALF_ECD_RANGE 4096
+#define DM4340_MOTOR_RAD_TO_ECD ((fp32)(HALF_ECD_RANGE) / PI)
+
 #define MOVING_AVERAGE_RESET 1
 #define MOVING_AVERAGE_CALC 0
+
 
 /**
   * @brief          remote control dealline solve,because the value of joystick is not zero in middle place,
