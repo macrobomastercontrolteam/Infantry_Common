@@ -640,18 +640,13 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 
 void enable_all_DaMiao_motors(uint8_t _enable)
 {
-	//if(!SWERVE_CTRL_TOE){ // first check if the control signal is alive when booted
-		while (CHASSIS_HIP1_TOE || CHASSIS_HIP2_TOE ||  CHASSIS_HIP3_TOE || CHASSIS_HIP4_TOE){
-			enable_DaMiao_motor(CAN_HIP1_TX_ID, _enable, &STEER_AND_HIP_CAN);
-			osDelay(1);
-			enable_DaMiao_motor(CAN_HIP2_TX_ID, _enable, &STEER_AND_HIP_CAN);
-			osDelay(1);
-			enable_DaMiao_motor(CAN_HIP3_TX_ID, _enable, &STEER_AND_HIP_CAN);
-			osDelay(1);
-			enable_DaMiao_motor(CAN_HIP4_TX_ID, _enable, &STEER_AND_HIP_CAN);
-		}
-	//}
-
+        enable_DaMiao_motor(CAN_HIP1_TX_ID, _enable, &STEER_AND_HIP_CAN);
+        osDelay(1);
+        enable_DaMiao_motor(CAN_HIP2_TX_ID, _enable, &STEER_AND_HIP_CAN);
+        osDelay(1);
+        enable_DaMiao_motor(CAN_HIP3_TX_ID, _enable, &STEER_AND_HIP_CAN);
+        osDelay(1);
+        enable_DaMiao_motor(CAN_HIP4_TX_ID, _enable, &STEER_AND_HIP_CAN);
 }
 
 #endif
