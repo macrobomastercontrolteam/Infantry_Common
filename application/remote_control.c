@@ -263,6 +263,20 @@ static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
 #endif
 }
 
+bool_t key_rising_edge(uint8_t *last, uint8_t current)
+{
+    bool_t rising = (current && !(*last));
+    *last = current;
+    return rising;
+}
+
+bool_t key_falling_edge(uint8_t *last, uint8_t current)
+{
+    bool_t rising = (!current && *last);
+    *last = current;
+    return rising;
+}
+
 // // We don't use this feature. USART1 is used to communicate with CV instead.
 // /**
 //   * @brief          send sbus data by usart1, called in usart3_IRQHandle

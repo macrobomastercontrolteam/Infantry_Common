@@ -56,7 +56,8 @@ typedef enum
 {
   GIMBAL_ZERO_FORCE = 0, 
   GIMBAL_INIT,           
-  GIMBAL_CALI,           
+  GIMBAL_CALI,   
+  GIMBAL_FOLD,        
   GIMBAL_ABSOLUTE_ANGLE, 
   GIMBAL_RELATIVE_ANGLE, 
   GIMBAL_MOTIONLESS,

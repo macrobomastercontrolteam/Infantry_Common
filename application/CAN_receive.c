@@ -63,7 +63,7 @@
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 1
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 0
 #else
 #define IS_TRIGGER_ON_GIMBAL 0
@@ -181,6 +181,26 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				if (decode_4340_motor_feedback(rx_data, bMotorId) == HAL_OK)
 				{
 					detect_hook(PITCH_GIMBAL_MOTOR_TOE);
+				}
+				break;
+			}
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+			case CAN_PITCH_MOTOR_4310_RX_ID:
+			{
+				bMotorId = MOTOR_INDEX_PITCH;
+				if (decode_4310_motor_feedback(rx_data, bMotorId) == HAL_OK)
+				{
+					detect_hook(PITCH_GIMBAL_MOTOR_TOE);
+				}
+				break;
+			}
+
+			case CAN_PITCH_BASE_MOTOR_4310_RX_ID:
+			{
+				bMotorId = MOTOR_INDEX_PITCH_BASE;
+				if (decode_4310_motor_feedback(rx_data, bMotorId) == HAL_OK)
+				{
+					detect_hook(PITCH_BASE_GIMBAL_MOTOR_TOE);
 				}
 				break;
 			}
@@ -732,7 +752,7 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 	gimbal_can_send_data[0] = (fric_left >> 8);
 	gimbal_can_send_data[1] = fric_left;
 
-#if ROBOT_PITCH_IS_4340
+#if (ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_4310)
 	//encode and send MIT control saperately
 	//gimbal_can_send_data[2] = (open >> 8);
 	//gimbal_can_send_data[3] = open;

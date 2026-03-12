@@ -113,6 +113,7 @@ extern uint8_t RC_data_is_error(void);
 extern void solve_RC_lost(void);
 extern void solve_data_error(void);
 // extern void sbus_to_usart1(uint8_t *sbus);
-
+extern bool_t key_rising_edge(uint8_t *last, uint8_t current);
+extern bool_t key_falling_edge(uint8_t *last, uint8_t current);
 extern RC_ctrl_t rc_ctrl;
 #endif
