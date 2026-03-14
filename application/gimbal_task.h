@@ -34,7 +34,7 @@
 
 #define GIMBAL_TEST_MODE 0
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 #define PITCH_REVERSED  1
 #else
 #define PITCH_REVERSED  0
@@ -81,6 +81,39 @@
 #define YAW_ANGLE_PID_MAX_IOUT  0.0f
 
 #elif (ROBOT_TYPE == INFANTRY_2024_MECANUM)
+
+//pitch speed close-loop PID params, max out and max iout
+#define PITCH_SPEED_PID_KP        12500.0f
+#define PITCH_SPEED_PID_KI        10000.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   30000.0f
+#define PITCH_SPEED_PID_MAX_IOUT  10000.0f
+
+#if ROBOT_YAW_IS_4310
+#define YAW_SPEED_PID_KP        0.7f
+#define YAW_SPEED_PID_KI        1.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   6.5f
+#define YAW_SPEED_PID_MAX_IOUT  2.33f
+#else
+#error "6020 yaw pid not defined for this robot type"
+#endif
+
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_ANGLE_PID_KP 30.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.0f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
+
+//yaw gyro angle close-loop PID params, max out and max iout
+#define YAW_ANGLE_PID_KP        25.0f
+#define YAW_ANGLE_PID_KI        0.0f
+#define YAW_ANGLE_PID_KD        0.0f
+#define YAW_ANGLE_PID_MAX_OUT   10.0f
+#define YAW_ANGLE_PID_MAX_IOUT  10.0f
+
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 
 //pitch speed close-loop PID params, max out and max iout
 #define PITCH_SPEED_PID_KP        12500.0f
