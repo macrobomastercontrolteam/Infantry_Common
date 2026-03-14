@@ -57,6 +57,7 @@ typedef enum
   // By default: On chassis
   // INFANTRY_2023_MECANUM: On gimbal
   // INFANTRY_2024_MECANUM: On chassis
+  // INFANTRY_2026_MECANUM: On chassis
   // INFANTRY_2023_SWERVE: On chassis
   // SENTRY_2023_MECANUM: On chassis
   // INFANTRY_2024_BIPED: On chassis
