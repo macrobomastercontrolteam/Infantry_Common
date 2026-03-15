@@ -130,7 +130,13 @@
 #define YAW_SPEED_PID_MAX_OUT   30000.0f
 #define YAW_SPEED_PID_MAX_IOUT  10000.0f
 #else
-#error "4310 yaw pid not defined for this robot type"
+#define YAW_SPEED_PID_KP        0.8f
+#define YAW_SPEED_PID_KI        1.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   6.5f
+#define YAW_SPEED_PID_MAX_IOUT  2.33f
+
+
 #endif
 
 //pitch gyro angle close-loop PID params, max out and max iout
@@ -141,7 +147,7 @@
 #define PITCH_ANGLE_PID_MAX_IOUT 10.0f
 
 //yaw gyro angle close-loop PID params, max out and max iout
-#define YAW_ANGLE_PID_KP        22.5f
+#define YAW_ANGLE_PID_KP        25.0f
 #define YAW_ANGLE_PID_KI        0.0f
 #define YAW_ANGLE_PID_KD        0.0f
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
