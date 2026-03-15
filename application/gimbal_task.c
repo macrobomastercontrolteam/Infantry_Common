@@ -204,6 +204,19 @@ void gimbal_task(void const *pvParameters)
 #if ROBOT_PITCH_IS_4340
         enable_DaMiao_motor(CAN_PITCH_MOTOR_4340_TX_ID, 1, &GIMBAL_CAN);
 #endif
+#if ROBOT_PITCH_IS_4310
+    if (toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
+    {
+        enable_DaMiao_motor(CAN_PITCH_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
+    }
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    if (toe_is_error(PITCH_BASE_GIMBAL_MOTOR_TOE))
+    {
+        enable_DaMiao_motor(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
+    }
+#endif
+    
+#endif
         CAN_cmd_gimbal_upper_can_ID(0, 0, 0, 0, 0, 0);
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
         CAN_cmd_gimbal_lower_can_id(0, 0);
@@ -221,7 +234,12 @@ void gimbal_task(void const *pvParameters)
         gimbal_control_loop(&gimbal_control);
         trigger_set_current = shoot_control_loop();
         gimbal_safety_manager(&yaw_can_set_value, &pitch_can_set_value, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
+        
         CAN_cmd_gimbal_upper_can_ID(yaw_can_set_value, pitch_can_set_value, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current, shoot_control.piston_given_current);
+#if ROBOT_PITCH_IS_4310
+        CAN_cmd_gimbal_Damiao_motor(&gimbal_control.MIT_control_motor);
+#endif
+
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
         CAN_cmd_gimbal_lower_can_id(shoot_control.fric3_given_current, shoot_control.fric4_given_current);
 #endif
@@ -265,7 +283,7 @@ void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_valu
     if (toe_is_error(TRIGGER_MOTOR_TOE) || toe_is_error(FRICTIONAL_MOTOR_LEFT_TOE) || toe_is_error(FRICTIONAL_MOTOR_RIGHT_TOE))
     {
         *fric1_set_current_ptr = 0;
-        *fric1_set_current_ptr = 0;
+        *fric2_set_current_ptr = 0;
         *trigger_set_current_ptr = 0;
     }
 }
@@ -582,6 +600,9 @@ static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init)
   */
 static void gimbal_init(gimbal_control_t *init)
 {
+#if (ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_4310)
+    MIT_control_motor_init(&init->MIT_control_motor); //init variable for MIT controled motors
+#endif
     init->gimbal_yaw_motor.gimbal_motor_measure = get_yaw_gimbal_motor_measure_point();
     init->gimbal_pitch_motor.gimbal_motor_measure = get_pitch_gimbal_motor_measure_point();
     init->gimbal_INT_angle_point = get_INS_angle_point();
@@ -624,8 +645,53 @@ static void gimbal_init(gimbal_control_t *init)
     init->gimbal_pitch_motor.absolute_angle_offset = 0;
     init->gimbal_pitch_motor.relative_angle_set = init->gimbal_pitch_motor.relative_angle;
     init->gimbal_pitch_motor.motor_gyro_set = init->gimbal_pitch_motor.motor_gyro;
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    init->gimbal_folding_status.target = 0;
+    init->gimbal_folding_status.current = 0;
+
+	init->gimbal_folding_status.gimbal_centered = 0;
+    init->gimbal_folding_status.gimbal_fold_control_cmd = 0;
+    init->gimbal_folding_status.gimbal_fold_in_progress = 0;
+    init->gimbal_folding_status.gimbal_folding_step = 0;
+#endif
 #if ENABLE_LASER
     laser_enable(1);
+#endif
+}
+
+
+
+void MIT_control_variable_set(MIT_control_variable_t *var, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq)
+{
+    var->pos = _pos;
+    var->vel = _vel;
+    var->KP  = _KP;
+    var->KD  = _KD;
+    var->torq = _torq;
+}
+
+void MIT_control_motor_init(MIT_control_motor_t *motor)
+{
+    MIT_control_variable_set(&motor->pitch_MIT_variable, 0, 0, 0, 0, 0);
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    MIT_control_variable_set(&motor->pitch_base_MIT_variable, 0, 0, 0, 0, 0);
+#endif
+}
+
+void MIT_motor_angle_control_config(MIT_control_motor_t *motor)
+{
+    MIT_control_variable_set(&motor->pitch_MIT_variable, 0, 0, PITCH_KP, PITCH_KD, 0);
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    MIT_control_variable_set(&motor->pitch_base_MIT_variable, PITCH_BASE_UNFOLD_POS, 0, PITCH_BASE_KP, PITCH_BASE_KD, 0);
+#endif
+}
+
+void MIT_motor_torque_control_config(MIT_control_motor_t *motor)
+{
+    MIT_control_variable_set(&motor->pitch_MIT_variable, 0, 0, 0, 0, 0);
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    MIT_control_variable_set(&motor->pitch_base_MIT_variable, PITCH_BASE_UNFOLD_POS, 0, PITCH_BASE_KP, PITCH_BASE_KD, 0); //unfold pitch base in normal operation
 #endif
 }
 
@@ -659,6 +725,17 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
         enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN); // attempt re-enable yaw motor when offline
     }
 #endif
+
+#if ROBOT_PITCH_IS_4310
+    if (toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
+    {
+        enable_DaMiao_motor(CAN_PITCH_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+        enable_DaMiao_motor(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
+#endif
+    }
+#endif
+
 #if ROBOT_PITCH_IS_4340
     if (toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
     {
@@ -671,9 +748,10 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     feedback_update->gimbal_pitch_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
                                                                                           feedback_update->gimbal_pitch_motor.offset_ecd);
 #else
-
-    feedback_update->gimbal_pitch_motor.relative_angle = motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
-                                                                                          feedback_update->gimbal_pitch_motor.offset_ecd);
+    feedback_update->gimbal_pitch_motor.relative_angle = motor_chassis[MOTOR_INDEX_PITCH].output_angle;
+#endif
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    feedback_update->gimbal_pitch_base_motor.relative_angle = motor_chassis[MOTOR_INDEX_PITCH_BASE].output_angle;
 #endif
 
     feedback_update->gimbal_pitch_motor.motor_gyro = *(feedback_update->gimbal_INT_gyro_point + INS_GYRO_Y_ADDRESS_OFFSET);
@@ -764,15 +842,35 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
     // pitch motor mode change
     if (gimbal_mode_change->gimbal_pitch_motor.last_gimbal_motor_mode != gimbal_mode_change->gimbal_pitch_motor.gimbal_motor_mode)
     {
+#if (ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_4310)
+        MIT_control_motor_init(&gimbal_mode_change->MIT_control_motor); //init to set all param to 0 first 
+#endif
+
         switch (gimbal_mode_change->gimbal_pitch_motor.gimbal_motor_mode)
         {
+        case GIMBAL_MOTOR_ZERO_FORCE:
+        {
+#if (ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_4310)
+            // set control params to 0
+            MIT_control_motor_init(&gimbal_mode_change->MIT_control_motor);
+#endif
+            break;
+        }
         case GIMBAL_MOTOR_RAW:
         {
+#if (ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_4310)
+            //config for torque control
+            MIT_motor_torque_control_config(&gimbal_mode_change->MIT_control_motor);
+#endif
             gimbal_mode_change->gimbal_pitch_motor.raw_cmd_current = gimbal_mode_change->gimbal_pitch_motor.cmd_value;
             break;
         }
         case GIMBAL_MOTOR_GYRO:
         {
+#if (ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_4310)
+            //config for torque control
+            MIT_motor_torque_control_config(&gimbal_mode_change->MIT_control_motor);
+#endif
             // change pid parameters, which depends on motor control mode
             gimbal_pitch_abs_angle_PID_init(gimbal_mode_change);
             gimbal_pitch_pid_clear(gimbal_mode_change);
@@ -786,6 +884,12 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             gimbal_pitch_pid_clear(gimbal_mode_change);
             gimbal_mode_change->gimbal_pitch_motor.absolute_angle_offset = gimbal_mode_change->gimbal_pitch_motor.absolute_angle;
             gimbal_mode_change->gimbal_pitch_motor.absolute_angle_set = gimbal_mode_change->gimbal_pitch_motor.absolute_angle;
+            break;
+        }
+        case GIMBAL_MOTOR_MIT_ANGLE:
+        {
+            MIT_motor_angle_control_config(&gimbal_mode_change->MIT_control_motor);   
+            gimbal_mode_change->gimbal_pitch_motor.relative_angle_set = gimbal_mode_change->gimbal_pitch_motor.relative_angle;
             break;
         }
         case GIMBAL_MOTOR_ENCODER:
@@ -877,7 +981,13 @@ static void gimbal_set_control(gimbal_control_t *set_control)
     {
         gimbal_relative_angle_limit(&set_control->gimbal_pitch_motor, add_pitch_angle, GIMBAL_PITCH_MOTOR);
     }
+    else if (set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_MIT_ANGLE)
+    {
+
+    }
 }
+
+
 /**
   * @brief          gimbal control mode :GIMBAL_MOTOR_GYRO, use euler angle calculated by gyro sensor to control. 
   * @param[out]     gimbal_motor: yaw motor or pitch motor
@@ -982,14 +1092,24 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
     if (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         gimbal_motor_raw_angle_control(&control_loop->gimbal_pitch_motor);
+#if ROBOT_PITCH_IS_4310
+        control_loop->MIT_control_motor.pitch_MIT_variable.torq = control_loop->gimbal_pitch_motor.cmd_value;
+#endif
     }
     else if ((control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         gimbal_motor_absolute_angle_control(&control_loop->gimbal_pitch_motor);
+#if ROBOT_PITCH_IS_4310
+        control_loop->MIT_control_motor.pitch_MIT_variable.torq = control_loop->gimbal_pitch_motor.cmd_value;
+#endif
     }
     else if (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
     {
         gimbal_motor_relative_angle_control(&control_loop->gimbal_pitch_motor);
+    }
+    else if (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_MIT_ANGLE)
+    {
+        foldable_pitch_control(control_loop);
     }
 }
 
@@ -1094,7 +1214,7 @@ bool_t gimbal_emergency_stop(void)
         // do nothing
     }
 #if ROBOT_YAW_IS_4310
-    #if ROBOT_PITCH_IS_4340
+    #if (ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_4310)
         else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_4310_MOTOR_TORQUE_LIMIT))
     #else
         else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
@@ -1131,3 +1251,67 @@ fp32 get_gimbal_ecd_pitch_angle(void)
 {
     return gimbal_control.gimbal_pitch_motor.relative_angle;
 }
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
+{
+    if (gimbal_control_set == NULL)
+    {
+        return;
+    }
+
+    MIT_control_motor_t MIT_control_motor = gimbal_control_set->MIT_control_motor;
+
+
+    //target=1 for center gimbal first and fold, target=0 for unfold
+	if(gimbal_control_set->gimbal_folding_status.target == 1) // fold cmd, target=folded
+        
+    // if (gimbal_control_set->gimbal_folding_status.gimbal_centered == 0) //center the gimbal first
+    // {
+    //     gimbal_control_set->gimbal_yaw_motor.relative_angle_set = 0;
+    //     gimbal_control_set->gimbal_pitch_motor.relative_angle_set = 0;
+
+    //     if ((fabs(gimbal_control_set->gimbal_yaw_motor.relative_angle) <= 0.1f)&&(fabs(gimbal_control_set->gimbal_pitch_motor.relative_angle) <= 0.1f))
+    //     {
+    //         gimbal_control_set->gimbal_folding_status.gimbal_centered = 1;
+    //     }
+    // }
+    // else
+    {
+        MIT_motor_angle_control_config(&gimbal_control_set->MIT_control_motor);                  // config for fold/unfold
+        switch (gimbal_control_set->gimbal_folding_status.gimbal_folding_step)
+        {
+            case 0:
+            {
+                gimbal_control_set->MIT_control_motor.pitch_base_MIT_variable.pos = PITCH_BASE_HALF_FOLD_POS; // fold to half first // TODO:check actual tgt fold angle
+                if (fabs(gimbal_control_set->gimbal_pitch_base_motor.relative_angle - PITCH_BASE_HALF_FOLD_POS) <= 0.05f)
+                {
+                    gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 1;
+                }
+            }
+            case 1:
+            {
+                gimbal_control_set->MIT_control_motor.pitch_base_MIT_variable.pos = PITCH_BASE_FOLD_POS; // TODO:check actual tgt fold angle
+                if (fabs(gimbal_control_set->gimbal_pitch_base_motor.relative_angle - PITCH_BASE_FOLD_POS) <= 0.05f)
+                {
+                    gimbal_control_set->gimbal_folding_status.current = FOLDED;
+                }
+            }
+        }
+
+        gimbal_control_set->MIT_control_motor.pitch_MIT_variable.pos = -(gimbal_control_set->gimbal_pitch_base_motor.relative_angle * 1.15f);
+    }
+    else//unfold
+    {
+        gimbal_control_set->MIT_control_motor.pitch_base_MIT_variable.pos = PITCH_BASE_UNFOLD_POS; // TODO:check actual tgt fold angle
+        gimbal_control_set->MIT_control_motor.pitch_MIT_variable.pos = -(gimbal_control_set->gimbal_pitch_base_motor.relative_angle * 1.05f); //slightly increment to compenstate response speed
+
+        if(fabs(gimbal_control_set->gimbal_pitch_base_motor.relative_angle - PITCH_BASE_UNFOLD_POS) <= 0.05f) //if reached target range TODO: consider the case when target angle was unable to reach
+        {
+            MIT_motor_torque_control_config(&gimbal_control_set->MIT_control_motor); //unfold finished, config back for pitch motor torque control
+            gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 0;
+            gimbal_control_set->gimbal_folding_status.current = UNFOLDED;
+        }
+    }
+}
+#endif

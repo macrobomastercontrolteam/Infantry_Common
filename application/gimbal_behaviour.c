@@ -155,6 +155,8 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
   */
 static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
 
+static void gimbal_fold_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
+
 /**
   * @brief          when gimbal behaviour mode is GIMBAL_MOTIONLESS, the function is called
   *                 and gimbal control mode is encode mode. 
@@ -197,10 +199,21 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
     switch (gimbal_behaviour)
     {
         case GIMBAL_ZERO_FORCE:
+        {
+            gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_ZERO_FORCE;
+            gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_ZERO_FORCE;
+            break;
+        }
         case GIMBAL_CALI:
         {
             gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
             gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
+            break;
+        }
+        case GIMBAL_FOLD:
+        {
+            gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
+            gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_MIT_ANGLE;
             break;
         }
         case GIMBAL_ABSOLUTE_ANGLE:
@@ -265,6 +278,11 @@ void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, gimbal_control
         case GIMBAL_CALI:
         {
             gimbal_cali_control(add_yaw, add_pitch, gimbal_control_set);
+            break;
+        }
+        case GIMBAL_FOLD:
+        {
+            gimbal_fold_control(add_yaw, add_pitch, gimbal_control_set);
             break;
         }
         case GIMBAL_ABSOLUTE_ANGLE:
@@ -424,14 +442,32 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 #endif
 				break;
 			}
-			case RC_SW_MID:
-			{
-				gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
-				break;
-			}
-			case RC_SW_DOWN:
-			default:
-			{
+            case RC_SW_MID:
+            {
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+                static uint8_t last_key_f = 0;
+                uint8_t current_key_f = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F) != 0);
+
+                if (key_rising_edge(&last_key_f, current_key_f))
+                {
+                    gimbal_mode_set->gimbal_folding_status.target = !gimbal_mode_set->gimbal_folding_status.target;
+                }
+
+                /* Enter if fold command or in a folded state and need to wait until unfolded*/
+                if(gimbal_mode_set->gimbal_folding_status.target || gimbal_mode_set->gimbal_folding_status.current) 
+                {
+                    gimbal_behaviour = GIMBAL_FOLD;
+                }
+                else
+#endif
+                {
+                    gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
+                }
+                break;
+            }
+            case RC_SW_DOWN:
+            default:
+            {
 				gimbal_behaviour = GIMBAL_ZERO_FORCE;
 				break;
 			}
@@ -794,6 +830,17 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
         // *yaw = yaw_channel * YAW_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.x * YAW_RC_MOUSE_SEN_INC + cvAidedX;
 		// *pitch = pitch_channel * PITCH_RC_SEN_INC + gimbal_control_set->gimbal_rc_ctrl->mouse.y * PITCH_RC_MOUSE_SEN_INC + cvAidedY;
 	}
+}
+
+
+static void gimbal_fold_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set) //ignore operator input during fold/unfold, actual folding control in gimbal task TODO: maybe remove and use gimbal_motionless_control
+{
+    if (yaw == NULL || pitch == NULL || gimbal_control_set == NULL)
+    {
+        return;
+    }
+    *yaw = 0.0f;
+    *pitch = 0.0f;
 }
 
 /**

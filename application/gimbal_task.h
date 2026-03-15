@@ -28,13 +28,14 @@
 #include "pid.h"
 #include "remote_control.h"
 #include "user_lib.h"
+#include "gimbal_interface_types.h"
 
 #define GIMBAL_CONTROL_TIME_MS 4.0f
 #define GIMBAL_CONTROL_TIME_S (GIMBAL_CONTROL_TIME_MS / 1000.0f)
 
 #define GIMBAL_TEST_MODE 0
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) //TODO: check if PITCH_REVERSED for Inf_2026
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) //TODO: check if PITCH_REVERSED for Inf_2026
 #define PITCH_REVERSED  1
 #else
 #define PITCH_REVERSED  0
@@ -94,14 +95,14 @@
 #endif
 //TODO check 4310 PID
 #if ROBOT_PITCH_IS_4310
-#define PITCH_SPEED_PID_KP        1.0f
-#define PITCH_SPEED_PID_KI        0.0f
+#define PITCH_SPEED_PID_KP        0.45f
+#define PITCH_SPEED_PID_KI        0.1f
 #define PITCH_SPEED_PID_KD        0.0f
-#define PITCH_SPEED_PID_MAX_OUT   9.5f
-#define PITCH_SPEED_PID_MAX_IOUT  9.5f
+#define PITCH_SPEED_PID_MAX_OUT   3.0f
+#define PITCH_SPEED_PID_MAX_IOUT  0.5f
 
-#define PITCH_ANGLE_PID_KP 0.7f
-#define PITCH_ANGLE_PID_KI 1.0f
+#define PITCH_ANGLE_PID_KP 5.0f
+#define PITCH_ANGLE_PID_KI 0.0f
 #define PITCH_ANGLE_PID_KD 0.0f
 #define PITCH_ANGLE_PID_MAX_OUT 6.5f
 #define PITCH_ANGLE_PID_MAX_IOUT 2.33f
@@ -442,7 +443,12 @@
 #define INIT_YAW_SET    0.0f
 #define INIT_PITCH_SET  0.0f
 
+#if ROBOT_PITCH_IS_4310 || ROBOT_PITCH_IS_4340
+//torque control mode cali output TODO: check if also work for hero bot
+#define GIMBAL_CALI_MOTOR_SET   0.15 
+#else
 #define GIMBAL_CALI_MOTOR_SET   6000
+#endif
 #define GIMBAL_CALI_STEP_TIME   2000
 #define GIMBAL_CALI_GYRO_LIMIT  0.1f
 
@@ -461,11 +467,26 @@
 #define GIMBAL_MOTIONLESS_RC_DEADLINE 10
 #define GIMBAL_MOTIONLESS_TIME_MAX    3000
 
+//MIT angle mode control param //TODO:reconfigure the fold and unfold angle to set 0 pos at zero force state
+#define PITCH_KP       4.5f
+#define PITCH_KD       0.5f
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define PITCH_BASE_HALF_FOLD_POS   -0.6f
+#define PITCH_BASE_FOLD_POS   -1.3f
+#define PITCH_BASE_UNFOLD_POS   0.0f
+#define PITCH_BASE_KP  2.5f
+#define PITCH_BASE_KD  0.5f
+#endif
+
+
 typedef enum
 {
-    GIMBAL_MOTOR_RAW = 0,
+    GIMBAL_MOTOR_ZERO_FORCE = 0,
+    GIMBAL_MOTOR_RAW,
     GIMBAL_MOTOR_GYRO,
     GIMBAL_MOTOR_ENCODER,
+    GIMBAL_MOTOR_MIT_ANGLE,
     GIMBAL_MOTOR_CAMERA,  //GIMBAL_MOTOR_GYRO but with target angle adjusted by computer vision input (enemy angle within camera frame)
 } gimbal_motor_mode_e;
 
@@ -513,12 +534,36 @@ typedef struct
 
 typedef struct
 {
+    uint8_t gimbal_fold_in_progress;
+    
+    //=1 for folded/centered
+    uint8_t current;
+    uint8_t target;
+    uint8_t gimbal_centered;
+
+    uint8_t gimbal_fold_control_cmd; //1 for unfold, 2 for fold
+    uint8_t gimbal_folding_step; //0:center, 1:fold
+    
+}gimbal_folding_status_t; //control flags for foldable gimbal 
+
+typedef enum {
+  FOLDED = 1,
+  UNFOLDED = 0,
+} folding_status;
+
+typedef struct
+{
     const RC_ctrl_t *gimbal_rc_ctrl;
     const fp32 *gimbal_INT_angle_point;
     const fp32 *gimbal_INT_gyro_point;
     gimbal_motor_t gimbal_yaw_motor;
     gimbal_motor_t gimbal_pitch_motor;
+    gimbal_motor_t gimbal_pitch_base_motor;
     gimbal_step_cali_t gimbal_cali;
+    MIT_control_motor_t MIT_control_motor;
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    gimbal_folding_status_t gimbal_folding_status;
+#endif
 } gimbal_control_t;
 
 /**
@@ -576,4 +621,11 @@ extern fp32 get_gimbal_relative_yaw_angle(void);
 extern fp32 get_gimbal_relative_pitch_angle(void);
 extern fp32 get_gimbal_ecd_yaw_angle(void);
 extern fp32 get_gimbal_ecd_pitch_angle(void);
+
+void foldable_pitch_control(gimbal_control_t *gimbal_control_set);
+
+void MIT_control_motor_init(MIT_control_motor_t *motor);
+void MIT_motor_angle_control_config(MIT_control_motor_t *motor);
+void MIT_motor_torque_control_config(MIT_control_motor_t *motor);
+
 #endif

@@ -448,6 +448,22 @@ int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits)
 	}
 }
 
+void CAN_cmd_gimbal_Damiao_motor(MIT_control_motor_t *MIT_control_motor)
+{	
+#if ENABLE_PITCH_MOTOR_POWER
+
+	MIT_control_variable_t pitch_variable = MIT_control_motor->pitch_MIT_variable;
+	encode_MIT_motor_control(CAN_PITCH_MOTOR_4310_TX_ID, pitch_variable.pos, pitch_variable.vel, pitch_variable.KP, pitch_variable.KD, pitch_variable.torq, DM_4310, &GIMBAL_CAN);
+#endif
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM) && ENABLE_PITCH_BASE_MOTOR_POWER 
+	MIT_control_variable_t pitch_base_variable = MIT_control_motor->pitch_base_MIT_variable;
+	encode_MIT_motor_control(CAN_PITCH_BASE_MOTOR_4310_TX_ID, pitch_base_variable.pos, pitch_base_variable.vel, pitch_base_variable.KP, pitch_base_variable.KD, pitch_base_variable.torq, DM_4310, &GIMBAL_CAN);
+#endif
+
+
+}
+
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr)
 {
 	uint32_t send_mail_box;
@@ -789,6 +805,13 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 	encode_MIT_motor_control(CAN_PITCH_MOTOR_4340_TX_ID, 0, 0, 0, 0, pitch, DM_4340, &GIMBAL_CAN);
 #endif
 
+#if ENABLE_PITCH_MOTOR_POWER
+	encode_MIT_motor_control(CAN_PITCH_MOTOR_4310_TX_ID, 0, 0, 0, 0, pitch, DM_4310, &GIMBAL_CAN);
+#if ENABLE_PITCH_BASE_MOTOR_POWER 
+	encode_MIT_motor_control(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 0, 0, temp_base_kp, temp_base_kd, 0, DM_4310, &GIMBAL_CAN);
+#endif
+
+#endif
 }
 
 void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down)
