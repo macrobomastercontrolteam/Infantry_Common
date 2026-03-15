@@ -35,7 +35,7 @@
 
 #define GIMBAL_TEST_MODE 0
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) //TODO: check if PITCH_REVERSED for Inf_2026
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) //TODO: check if PITCH_REVERSED for Inf_2026
 #define PITCH_REVERSED  1
 #else
 #define PITCH_REVERSED  0
@@ -445,7 +445,7 @@
 
 #if ROBOT_PITCH_IS_4310 || ROBOT_PITCH_IS_4340
 //torque control mode cali output TODO: check if also work for hero bot
-#define GIMBAL_CALI_MOTOR_SET   0.15 
+#define GIMBAL_CALI_MOTOR_SET   0.25f 
 #else
 #define GIMBAL_CALI_MOTOR_SET   6000
 #endif
@@ -621,6 +621,8 @@ extern fp32 get_gimbal_relative_yaw_angle(void);
 extern fp32 get_gimbal_relative_pitch_angle(void);
 extern fp32 get_gimbal_ecd_yaw_angle(void);
 extern fp32 get_gimbal_ecd_pitch_angle(void);
+
+void MIT_motor_set_torq(gimbal_control_t *control_loop);
 
 void foldable_pitch_control(gimbal_control_t *gimbal_control_set);
 

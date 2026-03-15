@@ -144,6 +144,9 @@ static void gimbal_motor_relative_angle_control(gimbal_motor_t *gimbal_motor);
   * @retval         none
   */
 static void gimbal_motor_raw_angle_control(gimbal_motor_t *gimbal_motor);
+
+static void gimbal_motor_zero_force_control(gimbal_motor_t *gimbal_motor);
+
 /**
   * @brief          limit angle set in GIMBAL_MOTOR_GYRO mode, avoid exceeding the max angle
   * @param[out]     gimbal_motor: yaw motor or pitch motor
@@ -745,8 +748,7 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     feedback_update->gimbal_pitch_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
 
 #if PITCH_REVERSED
-    feedback_update->gimbal_pitch_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
-                                                                                          feedback_update->gimbal_pitch_motor.offset_ecd);
+    feedback_update->gimbal_pitch_motor.relative_angle = -motor_chassis[MOTOR_INDEX_PITCH].output_angle;
 #else
     feedback_update->gimbal_pitch_motor.relative_angle = motor_chassis[MOTOR_INDEX_PITCH].output_angle;
 #endif
@@ -808,6 +810,7 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
     {
         switch (gimbal_mode_change->gimbal_yaw_motor.gimbal_motor_mode)
         {
+        case GIMBAL_MOTOR_ZERO_FORCE:
         case GIMBAL_MOTOR_RAW:
         {
             gimbal_mode_change->gimbal_yaw_motor.raw_cmd_current = gimbal_mode_change->gimbal_yaw_motor.cmd_value;
@@ -1076,7 +1079,11 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
         return;
     }
     
-    if (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
+    if(control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ZERO_FORCE)
+    {
+        gimbal_motor_zero_force_control(&control_loop->gimbal_yaw_motor);
+    }
+    else if (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         gimbal_motor_raw_angle_control(&control_loop->gimbal_yaw_motor);
     }
@@ -1089,18 +1096,22 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
         gimbal_motor_relative_angle_control(&control_loop->gimbal_yaw_motor);
     }
 
-    if (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
+    if(control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ZERO_FORCE)
+    {
+        gimbal_motor_zero_force_control(&control_loop->gimbal_pitch_motor);
+    }
+    else if (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         gimbal_motor_raw_angle_control(&control_loop->gimbal_pitch_motor);
-#if ROBOT_PITCH_IS_4310
-        control_loop->MIT_control_motor.pitch_MIT_variable.torq = control_loop->gimbal_pitch_motor.cmd_value;
+#if ROBOT_PITCH_IS_4310  
+        MIT_motor_set_torq(control_loop);
 #endif
     }
     else if ((control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         gimbal_motor_absolute_angle_control(&control_loop->gimbal_pitch_motor);
 #if ROBOT_PITCH_IS_4310
-        control_loop->MIT_control_motor.pitch_MIT_variable.torq = control_loop->gimbal_pitch_motor.cmd_value;
+        MIT_motor_set_torq(control_loop);
 #endif
     }
     else if (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
@@ -1157,6 +1168,15 @@ static void gimbal_motor_raw_angle_control(gimbal_motor_t *gimbal_motor)
         return;
     }
     gimbal_motor->cmd_value = gimbal_motor->raw_cmd_current;
+}
+
+static void gimbal_motor_zero_force_control(gimbal_motor_t *gimbal_motor)
+{
+    if (gimbal_motor == NULL)
+    {
+        return;
+    }
+    gimbal_motor->cmd_value = 0.0f;
 }
 
 #if GIMBAL_TEST_MODE
@@ -1250,6 +1270,15 @@ fp32 get_gimbal_ecd_yaw_angle(void)
 fp32 get_gimbal_ecd_pitch_angle(void)
 {
     return gimbal_control.gimbal_pitch_motor.relative_angle;
+}
+
+void MIT_motor_set_torq(gimbal_control_t *control_loop)
+{
+#if PITCH_REVERSED
+    control_loop->MIT_control_motor.pitch_MIT_variable.torq = -control_loop->gimbal_pitch_motor.cmd_value;
+#else
+    control_loop->MIT_control_motor.pitch_MIT_variable.torq = control_loop->gimbal_pitch_motor.cmd_value;
+#endif
 }
 
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
