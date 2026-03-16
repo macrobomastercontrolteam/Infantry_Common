@@ -151,13 +151,13 @@ typedef enum
 #endif
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#elif ((ROBOT_TYPE == INFANTRY_2023_SWERVE)||(ROBOT_TYPE == INFANTRY_2026_MECANUM))
 	CAN_STEER_CONTROLLER_TX_ID = 0x112,
 	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
   // sends target chassis platform params: alpha1, alpha2, center height
-	CAN_SWERVE_CONTROLLERE_TX_ID = 0x114,
+	CAN_CHASSIS_CONTROLLERE_TX_ID = 0x114,
   // receives target derivative of rotational radius of each wheel
-	CAN_SWERVE_RADII_DOT_RX_ID = 0x115,
+	CAN_CHASSIS_RADII_DOT_RX_ID = 0x115,
   // receives current chassis platform params: alpha1, alpha2, center height, rotational radius of each wheels
 	CAN_SHRINKED_CONTROLLER_RX_ID = 0x116,
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
@@ -321,6 +321,10 @@ void CAN_cmd_load_servo(uint8_t fServoSwitch, uint8_t bTrialTimes);
 #endif
 void CAN_cmd_swerve_steer(void);
 void CAN_cmd_swerve_hip(void);
+#endif
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+void CAN_cmd_chassis_hip(void);
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)

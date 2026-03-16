@@ -54,6 +54,8 @@
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define ENABLE_STEER_MOTOR_POWER 0
 #define ENABLE_HIP_MOTOR_POWER 0
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define ENABLE_HIP_MOTOR_POWER 0
 #endif
 
 #define REVERSE_M3508_1 0
@@ -142,6 +144,22 @@ const fp32 swerve_angle_encoding_ratio_shrinked = (1 << 7) / SWERVE_ANGLE_ECD_MA
 
 uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data);
 uint8_t decode_swerve_chassis_feedback(uint8_t *data);
+
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define CHASSIS_METER_PER_SEC_ECD_MAX_LIMIT 1.5f
+#define CHASSIS_METER_ECD_MAX_LIMIT 0.5f
+#define CHASSIS_ANGLE_ECD_MAX_LIMIT (PI / 12.0f)
+#define CHASSIS_WHEEL_ROT_RADIUS_DOT_DEADZONE 0.008f
+
+const fp32 chassis_speed_encoding_ratio = (1 << 15) / CHASSIS_METER_PER_SEC_ECD_MAX_LIMIT;
+const fp32 chassis_meter_encoding_ratio = (1 << 16) / CHASSIS_METER_ECD_MAX_LIMIT;
+const fp32 chassis_angle_encoding_ratio = (1 << 15) / CHASSIS_ANGLE_ECD_MAX_LIMIT;
+
+const fp32 chassis_meter_encoding_ratio_shrinked = (1 << 8) / CHASSIS_METER_ECD_MAX_LIMIT;
+const fp32 chassis_angle_encoding_ratio_shrinked = (1 << 7) / CHASSIS_ANGLE_ECD_MAX_LIMIT;
+
+uint8_t decode_chassis_target_radius_dot(uint8_t *data);
+uint8_t decode_chassis_feedback(uint8_t *data);
 
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 #define BIPED_METER_PER_SEC_ECD_MAX_LIMIT 3.5f
@@ -357,7 +375,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				}
 				break;
 			}
-			case CAN_SWERVE_RADII_DOT_RX_ID:
+			case CAN_CHASSIS_RADII_DOT_RX_ID:
 			{
 				if (decode_swerve_chassis_target_radius_dot(rx_data))
 				{
@@ -372,6 +390,24 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				if (decode_biped_chassis_feedback(rx_data))
 				{
 					detect_hook(BIPED_CTRL_TOE);
+				}
+				break;
+			}
+#endif
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+			case CAN_SHRINKED_CONTROLLER_RX_ID:
+			{
+				if (decode_chassis_feedback(rx_data))
+				{
+					detect_hook(SWERVE_CTRL_TOE);
+				}
+				break;
+			}
+			case CAN_CHASSIS_RADII_DOT_RX_ID:
+			{
+				if (decode_chassis_target_radius_dot(rx_data))
+				{
+					detect_hook(SWERVE_CTRL_TOE);
 				}
 				break;
 			}
@@ -579,6 +615,41 @@ uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data)
 			int16_t radius_dot = (data[2 * wheel_id + 1] << 8) | data[2 * wheel_id];
 			chassis_move.target_wheel_rot_radii_dot[wheel_id] = (fp32)radius_dot / swerve_speed_encoding_ratio;
 			fp32_deadzone(&chassis_move.target_wheel_rot_radii_dot[wheel_id], SWERVE_WHEEL_ROT_RADIUS_DOT_DEADZONE);
+			// first_order_filter(chassis_move.wheel_rot_radii_dot[wheel_id], chassis_move.wheel_rot_radii_dot_last[wheel_id], 0.8f);
+		}
+	}
+	return fDataValid;
+}
+#endif
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+uint8_t decode_chassis_feedback(uint8_t *data)
+{
+	uint8_t fDataValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
+	if (fDataValid)
+	{
+		for (uint8_t wheel_id = 0; wheel_id < 4; wheel_id++)
+		{
+			chassis_move.wheel_rot_radii[wheel_id] = data[wheel_id] / chassis_meter_encoding_ratio_shrinked;
+		}
+		chassis_move.chassis_platform.feedback_alpha1 = data[4] / chassis_angle_encoding_ratio_shrinked;
+		chassis_move.chassis_platform.feedback_alpha2 = data[5] / chassis_angle_encoding_ratio_shrinked;
+		chassis_move.chassis_platform.feedback_height = data[6] / chassis_meter_encoding_ratio_shrinked;
+		// data[7] reserved
+	}
+	return fDataValid;
+}
+
+uint8_t decode_chassis_target_radius_dot(uint8_t *data)
+{
+	uint8_t fDataValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
+	if (fDataValid)
+	{
+		for (uint8_t wheel_id = 0; wheel_id < 4; wheel_id++)
+		{
+			int16_t radius_dot = (data[2 * wheel_id + 1] << 8) | data[2 * wheel_id];
+			chassis_move.target_wheel_rot_radii_dot[wheel_id] = (fp32)radius_dot / chassis_speed_encoding_ratio;
+			fp32_deadzone(&chassis_move.target_wheel_rot_radii_dot[wheel_id], CHASSIS_WHEEL_ROT_RADIUS_DOT_DEADZONE);
 			// first_order_filter(chassis_move.wheel_rot_radii_dot[wheel_id], chassis_move.wheel_rot_radii_dot_last[wheel_id], 0.8f);
 		}
 	}
@@ -962,6 +1033,10 @@ void CAN_cmd_chassis(void)
 	CAN_cmd_3508_chassis();
 	osDelay(1);
 	CAN_cmd_upper_head();
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	CAN_cmd_3508_chassis();
+	osDelay(1);
+	CAN_cmd_chassis_hip();
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	CAN_cmd_biped_chassis();
 	CAN_cmd_biped_chassis_mode();
@@ -1068,13 +1143,44 @@ void CAN_cmd_swerve_hip(void)
 {
 	uint32_t send_mail_box;
 
-	chassis_tx_message.StdId = CAN_SWERVE_CONTROLLERE_TX_ID;
+	chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLERE_TX_ID;
 #if ENABLE_HIP_MOTOR_POWER
 	if (chassis_move.fHipEnabled)
 	{
 		int16_t target_alpha1_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha1, SWERVE_ANGLE_ECD_MAX_LIMIT) * swerve_angle_encoding_ratio;
 		int16_t target_alpha2_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha2, SWERVE_ANGLE_ECD_MAX_LIMIT) * swerve_angle_encoding_ratio;
 		uint16_t target_height_cmd = fp32_constrain(chassis_move.chassis_platform.target_height, 0, SWERVE_METER_ECD_MAX_LIMIT) * swerve_meter_encoding_ratio;
+
+		chassis_can_send_data[0] = target_alpha1_cmd >> 8;
+		chassis_can_send_data[1] = target_alpha1_cmd;
+		chassis_can_send_data[2] = target_alpha2_cmd >> 8;
+		chassis_can_send_data[3] = target_alpha2_cmd;
+		chassis_can_send_data[4] = target_height_cmd >> 8;
+		chassis_can_send_data[5] = target_height_cmd;
+		// reserved
+		// chassis_can_send_data[6] = rev >> 8;
+		// chassis_can_send_data[7] = rev;
+	}
+	else
+#endif
+	{
+		memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
+	}
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+void CAN_cmd_chassis_hip(void)
+{
+	uint32_t send_mail_box;
+
+	chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLERE_TX_ID;
+#if ENABLE_HIP_MOTOR_POWER
+	if (chassis_move.fHipEnabled)
+	{
+		int16_t target_alpha1_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha1, CHASSIS_ANGLE_ECD_MAX_LIMIT) * chassis_angle_encoding_ratio;
+		int16_t target_alpha2_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha2, CHASSIS_ANGLE_ECD_MAX_LIMIT) * chassis_angle_encoding_ratio;
+		uint16_t target_height_cmd = fp32_constrain(chassis_move.chassis_platform.target_height, 0, CHASSIS_METER_ECD_MAX_LIMIT) * chassis_meter_encoding_ratio;
 
 		chassis_can_send_data[0] = target_alpha1_cmd >> 8;
 		chassis_can_send_data[1] = target_alpha1_cmd;

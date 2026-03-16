@@ -64,6 +64,27 @@
 // @TODO: calculate for roll and pitch limits
 #define CHASSIS_ROLL_UPPER_LIMIT (PI / 4.0f)
 #define CHASSIS_PITCH_UPPER_LIMIT (PI / 4.0f)
+
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define CHASSIS_A_LENGTH 0.322815f
+#define CHASSIS_HALF_A_LENGTH (CHASSIS_A_LENGTH / 2.0f)
+#define CHASSIS_L1_LENGTH 0.12f
+#define CHASSIS_THETA_LOWER_LIMIT 0.0f
+#define CHASSIS_THETA_UPPER_LIMIT DEG_TO_RAD(68.28f)
+#define CHASSIS_THETA_LOWER_LIMIT_ECD (CHASSIS_THETA_LOWER_LIMIT * MOTOR_RAD_TO_ECD)
+#define CHASSIS_THETA_UPPER_LIMIT_ECD (CHASSIS_THETA_UPPER_LIMIT * MOTOR_RAD_TO_ECD)
+
+// calculated by Matlab offline
+#define CHASSIS_H_LOWER_LIMIT 0.177353f
+#define CHASSIS_H_UPPER_LIMIT 0.287656f
+#define CHASSIS_H_WORKSPACE_PEAK 0.239777f
+#define CHASSIS_ALPHA_WORKSPACE_PEAK 0.206667f
+#define CHASSIS_H_WORKSPACE_SLOPE1 0.302051f
+#define CHASSIS_H_WORKSPACE_SLOPE2 (-0.231672f)
+// @TODO: calculate for roll and pitch limits
+#define CHASSIS_ROLL_UPPER_LIMIT (PI / 4.0f)
+#define CHASSIS_PITCH_UPPER_LIMIT (PI / 4.0f)
+
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 #define BIPED_LEG_L0_MIN 0.15f
 #define BIPED_LEG_L0_MAX 0.34f
@@ -75,8 +96,7 @@
 #elif (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.25010678f
 #elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
-//TODO: ASSIGN PROPER VALUE, both folded and unfolded
-#define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.25010678f 
+#define MOTOR_DISTANCE_TO_CENTER_DEFAULT (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(CHASSIS_THETA_LOWER_LIMIT))
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // angle going from the right direction to front-right leg
 #define CHASSIS_LEG_TO_HORIZONTAL_ANGLE (PI / 4.0f)
@@ -137,7 +157,7 @@
 #endif
 #define NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO 1.5f
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) //TODO:check ratio for Inf_2026
+#if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)) //TODO:check ratio for Inf_2026
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
@@ -218,7 +238,7 @@ typedef struct
 	int16_t give_current;
 } chassis_motor_t;
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 typedef struct
 {
 	fp32 target_roll;
@@ -295,6 +315,16 @@ typedef struct
 	chassis_platform_t chassis_platform;
 	uint8_t fHipEnabled;
 	uint8_t fHipDisabledEdge;
+
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	fp32 wheel_rot_radii[4];
+	chassis_motor_t motor_chassis[4];          // chassis motor data
+	pid_type_def motor_speed_pid[4];           // motor speed PID
+
+	fp32 target_wheel_rot_radii_dot[4];
+	chassis_platform_t chassis_platform;
+	uint8_t fHipEnabled;
+	uint8_t fHipDisabledEdge;
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	fp32 wheel_rot_radii[2];
 	chassis_platform_t chassis_platform;
@@ -362,6 +392,12 @@ fp32 chassis_get_ultra_low_wz_limit(void);
 void swerve_platform_rc_mapping(void);
 void swerve_chassis_back_home(void);
 void swerve_chassis_params_reset(void);
+#endif
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+void chassis_platform_rc_mapping(void);
+void chassis_chassis_back_home(void);
+void chassis_chassis_params_reset(void);
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)

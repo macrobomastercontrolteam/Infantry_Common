@@ -529,6 +529,9 @@ static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint
 	chassis_rc_to_control_vector(vx_set, vy_set);
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	swerve_platform_rc_mapping();
+
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	chassis_platform_rc_mapping();
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	biped_platform_rc_mapping();
 #endif
