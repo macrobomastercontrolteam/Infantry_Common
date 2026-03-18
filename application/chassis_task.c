@@ -54,13 +54,13 @@
 #define HIP_MOTOR_SPEED_PID_MAX_IOUT MG6012_MAX_TORQUE
 #elif HIP_MOTOR_TYPE == DM_4340P
 // DM4340_P hip motor configs
-#define HIP_MOTOR_ANGLE_PID_KP 25.0f
+#define HIP_MOTOR_ANGLE_PID_KP 1.0f
 #define HIP_MOTOR_ANGLE_PID_KI 0.0f
 #define HIP_MOTOR_ANGLE_PID_KD 0.0f
 #define HIP_MOTOR_ANGLE_PID_MAX_OUT 10.5f
 #define HIP_MOTOR_ANGLE_PID_MAX_IOUT 0.0f
 
-#define HIP_MOTOR_SPEED_PID_KP 0.7f
+#define HIP_MOTOR_SPEED_PID_KP 0.1f
 // #define DM_4340_P_MOTOR_SPEED_PID_KI 0.125f
 #define HIP_MOTOR_SPEED_PID_KI 0.0f
 #define HIP_MOTOR_SPEED_PID_KD 0.0f
@@ -205,12 +205,18 @@ void chassis_task(void const *pvParameters)
 	param_asserts();
 	chassis_init();
 	osDelay(CHASSIS_TASK_INIT_TIME);
-
+	//chassis_move.fHipDataIsValid = 1;
 	while (1)
 	{
 #if HIP_MOTOR_TYPE == DM_4340P
-
-		enable_all_DaMiao_motors(1);
+		if(toe_is_error(CHASSIS_HIP1_TOE) || 
+           toe_is_error(CHASSIS_HIP2_TOE) ||  
+           toe_is_error(CHASSIS_HIP3_TOE) || 
+           toe_is_error(CHASSIS_HIP4_TOE))
+		{
+			enable_all_DaMiao_motors(1);
+		}
+		
 
 #endif
 		chassis_calc_feedbacks();
@@ -274,8 +280,8 @@ void param_asserts(void)
 	assert(CHASSIS_H_UPPER_LIMIT <= METER_ENCODER_MAX_LIMIT);
 
 	assert(CHASSIS_H_LOWER_LIMIT < CHASSIS_H_UPPER_LIMIT);
-	assert(CHASSIS_H_LOWER_LIMIT >= CHASSIS_L2_LENGTH);
-	assert(CHASSIS_H_UPPER_LIMIT <= CHASSIS_L1_LENGTH + CHASSIS_L2_LENGTH);
+	assert(CHASSIS_H_LOWER_LIMIT >= CHASSIS_WHEEL_REDIUS);
+	assert(CHASSIS_H_UPPER_LIMIT <= CHASSIS_L1_LENGTH + CHASSIS_WHEEL_REDIUS);
 	assert((CHASSIS_H_WORKSPACE_PEAK < CHASSIS_H_UPPER_LIMIT) && (CHASSIS_H_WORKSPACE_PEAK > CHASSIS_H_LOWER_LIMIT));
 	assert((CHASSIS_H_WORKSPACE_SLOPE1 > 0) && (CHASSIS_H_WORKSPACE_SLOPE1 < 1));
 	assert((CHASSIS_H_WORKSPACE_SLOPE2 < 0) && (CHASSIS_H_WORKSPACE_SLOPE2 > -1));
@@ -346,6 +352,7 @@ void chassis_swerve_params_reset(void)
 
 void chassis_calc_feedbacks(void)
 {
+	fp32 temp_heights[4];
 	fp32 current_theta1 = motor_info[CHASSIS_ID_HIP_1].feedback_abs_angle;
 	fp32 current_theta2 = motor_info[CHASSIS_ID_HIP_2].feedback_abs_angle;
 	fp32 current_theta3 = motor_info[CHASSIS_ID_HIP_3].feedback_abs_angle;
@@ -354,17 +361,19 @@ void chassis_calc_feedbacks(void)
 	// @TODO: calculate for chassis_move.current_alpha1 and chassis_move.current_alpha2 using IMU data
 	fp32 raw_roll = *(INS_angle + INS_ROLL_ADDRESS_OFFSET);
 	fp32 raw_pitch = *(INS_angle + INS_PITCH_ADDRESS_OFFSET);
-	chassis_move.current_alpha1 = -rad_format(raw_roll + PI);
+	chassis_move.current_alpha1 = -rad_format(raw_roll);
 	chassis_move.current_alpha2 = -raw_pitch;
 
 	// calculation for chassis_move.height: some legs may not be on the ground, so pick the largest height calculated
 	// right diagonal
-	fp32 temp_heights[4];
-	temp_heights[0] = (CHASSIS_L1_LENGTH * AHRS_cosf(current_theta1) + CHASSIS_HALF_A_LENGTH) * AHRS_sinf(chassis_move.current_alpha1) + (CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta1)) * AHRS_cosf(chassis_move.current_alpha1);
-	temp_heights[2] = -(CHASSIS_L1_LENGTH * AHRS_cosf(current_theta3) + CHASSIS_HALF_A_LENGTH) * AHRS_sinf(chassis_move.current_alpha1) + (CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta3)) * AHRS_cosf(chassis_move.current_alpha1);
+	
+	//to do: change the L2 to the wheel radius as the wheel won't change the height offset when hip motor is moving
+	//to do: Add 2/sqrt(2) to the chassis L1 parameter
+	temp_heights[0] = (CHASSIS_L1_LENGTH * -AHRS_sinf(current_theta1)) + CHASSIS_WHEEL_REDIUS; //(CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta1)) * AHRS_cosf(chassis_move.current_alpha1);
+	temp_heights[2] = (CHASSIS_L1_LENGTH * -AHRS_sinf(current_theta3)) + CHASSIS_WHEEL_REDIUS; //(CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta3)) * AHRS_cosf(chassis_move.current_alpha1);
 	// left diagonal
-	temp_heights[3] = (CHASSIS_L1_LENGTH * AHRS_cosf(current_theta4) + CHASSIS_HALF_A_LENGTH) * AHRS_sinf(chassis_move.current_alpha2) + (CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta4)) * AHRS_cosf(chassis_move.current_alpha2);
-	temp_heights[1] = -(CHASSIS_L1_LENGTH * AHRS_cosf(current_theta2) + CHASSIS_HALF_A_LENGTH) * AHRS_sinf(chassis_move.current_alpha2) + (CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta2)) * AHRS_cosf(chassis_move.current_alpha2);
+	temp_heights[3] = (CHASSIS_L1_LENGTH * AHRS_sinf(current_theta4)) + CHASSIS_WHEEL_REDIUS; //(CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta4)) * AHRS_cosf(chassis_move.current_alpha2);
+	temp_heights[1] = (CHASSIS_L1_LENGTH * AHRS_sinf(current_theta2)) + CHASSIS_WHEEL_REDIUS; //(CHASSIS_L2_LENGTH + CHASSIS_L1_LENGTH * AHRS_sinf(current_theta2)) * AHRS_cosf(chassis_move.current_alpha2);
 	fp32 temp_heights_max;
 	uint32_t temp_heights_max_index;
 	arm_max_f32(temp_heights, sizeof(temp_heights) / sizeof(temp_heights[0]), &temp_heights_max, &temp_heights_max_index);
@@ -406,13 +415,43 @@ void chassis_calc_targets(void)
 
 void chassis_inv_kine_diagonal(fp32 alpha, fp32 height, fp32 *theta_right, fp32 *theta_left)
 {
-	fp32 A_right = height / AHRS_cosf(alpha) - CHASSIS_HALF_A_LENGTH * AHRS_tanf(alpha) - CHASSIS_L2_LENGTH;
-	fp32 A_left = height / AHRS_cosf(alpha) + CHASSIS_HALF_A_LENGTH * AHRS_tanf(alpha) - CHASSIS_L2_LENGTH;
-	fp32 B_right = A_right * AHRS_cosf(alpha) / CHASSIS_L1_LENGTH;
-	fp32 B_left = A_left * AHRS_cosf(alpha) / CHASSIS_L1_LENGTH;
+	//fp32 A_right = height / AHRS_cosf(alpha) - CHASSIS_HALF_A_LENGTH * AHRS_tanf(alpha) - CHASSIS_L2_LENGTH;
+	//fp32 A_left = height / AHRS_cosf(alpha) + CHASSIS_HALF_A_LENGTH * AHRS_tanf(alpha) - CHASSIS_L2_LENGTH;
+	//fp32 B_right = A_right * AHRS_cosf(alpha) / CHASSIS_L1_LENGTH;
+	//fp32 B_left = A_left * AHRS_cosf(alpha) / CHASSIS_L1_LENGTH;
+//
+	//*theta_right = fabs(alpha - AHRS_asinf(B_right));
+	//*theta_left = fabs(alpha + AHRS_asinf(B_left));
+//
+	//if (theta_right == &chassis_move.target_theta[0])
+    //{
+    //    *theta_right = -(*theta_right);
+    //}
+//
+	//if (theta_left == &chassis_move.target_theta[2])
+	//{
+	//	*theta_left = -(*theta_left);
+	//}
 
-	*theta_right = fabs(alpha - AHRS_asinf(B_right));
-	*theta_left = fabs(alpha + AHRS_asinf(B_left));
+
+	// Simplified inverse kinematics based on H = L1*sin(theta) + R
+	// This formulation corresponds to the "Left" diagonal (Plus sine) from the provided forward kinematics.
+	// Note: Right diagonal legs (Minus sine) would theoretically require negative theta for H > R.
+
+	float sin_val = (height - CHASSIS_WHEEL_REDIUS) / CHASSIS_L1_LENGTH;
+	// Clamp sine value to valid range [-1, 1]
+	if (sin_val > 1.0f) sin_val = 1.0f;
+	else if (sin_val < -1.0f) sin_val = -1.0f;
+
+	float theta = AHRS_asinf(sin_val);
+
+    if ((theta_right == &chassis_move.target_theta[0]) || (theta_left == &chassis_move.target_theta[2]))
+    {
+        theta = -theta;
+    }
+
+	*theta_right = theta;
+	*theta_left = theta;
 }
 
 void chassis_safe_guard(void)

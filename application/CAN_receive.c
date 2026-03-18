@@ -29,7 +29,7 @@
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 #define ENABLE_STEER_MOTOR_POWER 0
-#define ENABLE_HIP_MOTOR_POWER 0
+#define ENABLE_HIP_MOTOR_POWER 1
 
 // reverse hip motor direction
 #define REVERSE_1_HIP_MOTOR_DIRECTION 1
@@ -51,7 +51,7 @@
 const fp32 MIT_CONTROL_P_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {4.0f*PI};  //value needs to match to which in motor setting software
 const fp32 MIT_CONTROL_P_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = { -4.0f*PI};
 const fp32 MIT_CONTROL_V_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {30.0f};
-const fp32 MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {30.0f};
+const fp32 MIT_CONTROL_V_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-30.0f};
 const fp32 MIT_CONTROL_T_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {10.0f};
 const fp32 MIT_CONTROL_T_MIN[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {-10.0f};
 const fp32 MIT_CONTROL_KP_MAX[LAST_MIT_CONTROLLED_MOTOR_TYPE] = {500.0f};
@@ -611,6 +611,7 @@ HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId)
 
 		ret_value = HAL_OK;
 	}
+	chassis_move.fHipDataIsValid = 1;
 	return ret_value;
 }
 
@@ -854,13 +855,13 @@ void CAN_cmd_wrapper(void)
 	encode_6012_motor_torque_control(CAN_HIP4_RX_ID, hip_torque4);
 #elif HIP_MOTOR_TYPE == DM_4340P
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP1_TX_ID, 0, 0, 0, 0, hip_torque1, DM_4340, &STEER_AND_HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP1_TX_ID, chassis_move.target_theta[0], 0, 2, 0.01, 0, DM_4340, &STEER_AND_HIP_CAN);
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP2_TX_ID, 0, 0, 0, 0, hip_torque2, DM_4340, &STEER_AND_HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP2_TX_ID, chassis_move.target_theta[1], 0, 2, 0.01, 0, DM_4340, &STEER_AND_HIP_CAN);
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP3_TX_ID, 0, 0, 0, 0, hip_torque3, DM_4340, &STEER_AND_HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP3_TX_ID, chassis_move.target_theta[2], 0, 2, 0.01, 0, DM_4340, &STEER_AND_HIP_CAN);
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP4_TX_ID, 0, 0, 0, 0, hip_torque4, DM_4340, &STEER_AND_HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP4_TX_ID, chassis_move.target_theta[3], 0, 2, 0.01, 0, DM_4340, &STEER_AND_HIP_CAN);
 #endif
 
 }

@@ -37,6 +37,7 @@
 typedef struct
 {
 	float set_torque;
+	float set_angle;
 	float feedback_abs_angle;
 	float feedback_abs_ecd_fp32;
 	int16_t set_voltage;
