@@ -19,7 +19,8 @@
 #define SUPERCAP_TYPE UBC_SUPERCAP
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
-#define DEBUG_CV 0 // set to 1 before the game starts for INFANTRY & HERO ONLY
+/*CHANGE: DEBUG_CV to 1 for final inspection to bypass the refree instructions*/
+#define DEBUG_CV 1 // set to 1 before the game starts for INFANTRY & HERO ONLY
 #define ENABLE_LASER 1
 
 #define USE_SERVO_TO_STIR_AMMO 0

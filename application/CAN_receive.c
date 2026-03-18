@@ -36,9 +36,10 @@
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 
 //////////////enable for all robot types//////////////////////
-#define ENABLE_DRIVE_MOTOR_POWER 0
-#define ENABLE_YAW_MOTOR_POWER 0
-#define ENABLE_PITCH_MOTOR_POWER 0
+/*CHANGE: If don't want the robot to move during auto aim disable chassis*/
+#define ENABLE_DRIVE_MOTOR_POWER 1
+#define ENABLE_YAW_MOTOR_POWER 1
+#define ENABLE_PITCH_MOTOR_POWER 1
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0

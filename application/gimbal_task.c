@@ -833,8 +833,9 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         if(toe_is_error(DBUS_TOE) && gimbal_behaviour == GIMBAL_AUTO_AIM)
 #endif
         {
-            cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC*0.35f;
-            cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC *0.35f;
+            /*CHANGE: coeff at the end to tweak the responsiveness of the gimbal for CV auto aim*/
+            cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC*0.46f;
+            cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC *0.46f;
         }
         else{
             cvAidedX = 0.0f;

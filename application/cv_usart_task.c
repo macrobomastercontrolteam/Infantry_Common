@@ -450,13 +450,16 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
         	        memcpy(&xSpeed, &pData[2], 4);
         	        memcpy(&ySpeed, &pData[6], 4);
 #if DEBUG_CV
-					CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
-					CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
+					//CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
+					//CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
+					/*CHANGE: filter coeff to tweak responsiveness to high will cause oscillation because CV signal is a step input*/
+					CvCmdHandler.CvCmdMsg.xSpeed = first_order_filter(xSpeed, CvCmdHandler.CvCmdMsg.xSpeed, 0.1f);
+					CvCmdHandler.CvCmdMsg.ySpeed = first_order_filter(ySpeed, CvCmdHandler.CvCmdMsg.ySpeed, 0.1f);
 
 #else
 					if (is_game_started()){
-						CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
-						CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
+						CvCmdHandler.CvCmdMsg.xSpeed = first_order_filter(xSpeed, CvCmdHandler.CvCmdMsg.xSpeed, 0.1f);
+						CvCmdHandler.CvCmdMsg.ySpeed = first_order_filter(ySpeed, CvCmdHandler.CvCmdMsg.ySpeed, 0.1f);
 					}
 					else{
 						CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
