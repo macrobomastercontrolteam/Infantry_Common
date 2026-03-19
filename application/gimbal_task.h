@@ -130,8 +130,8 @@
 #define YAW_SPEED_PID_MAX_OUT   30000.0f
 #define YAW_SPEED_PID_MAX_IOUT  10000.0f
 #else
-#define YAW_SPEED_PID_KP        0.9f
-#define YAW_SPEED_PID_KI        1.0f
+#define YAW_SPEED_PID_KP        2.5f
+#define YAW_SPEED_PID_KI        0.0f
 #define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   6.5f
 #define YAW_SPEED_PID_MAX_IOUT  2.33f
@@ -140,7 +140,7 @@
 #endif
 
 //pitch gyro angle close-loop PID params, max out and max iout
-#define PITCH_ANGLE_PID_KP 25.0f
+#define PITCH_ANGLE_PID_KP 35.0f
 #define PITCH_ANGLE_PID_KI 0.0f
 #define PITCH_ANGLE_PID_KD 0.0f
 #define PITCH_ANGLE_PID_MAX_OUT 10.0f

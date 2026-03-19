@@ -834,8 +834,9 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 #endif
         {
             /*CHANGE: coeff at the end to tweak the responsiveness of the gimbal for CV auto aim*/
-            cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC*0.46f;
-            cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC *0.46f;
+            /*CHANGE: the factor multiplied to the expression for how fast the gimbal will respond*/
+            cvAidedX = (-CvCmdHandler.CvCmdMsg.xAimError) * YAW_RC_CV_SEN_INC*0.72f;
+            cvAidedY = (CvCmdHandler.CvCmdMsg.yAimError) * PITCH_RC_CV_SEN_INC *0.3f;
         }
         else{
             cvAidedX = 0.0f;
