@@ -212,7 +212,14 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
         }
         case GIMBAL_FOLD:
         {
-            gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
+            if(gimbal_mode_set->gimbal_folding_status.current == UNFOLDED)
+            {
+                gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
+            }
+            else
+            {
+                gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_ZERO_FORCE;
+            }
             gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_MIT_ANGLE;
             break;
         }
@@ -446,7 +453,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
             {
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
                 static uint8_t last_key_f = 0;
-                uint8_t current_key_f = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F) != 0);
+                uint8_t current_key_f = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B) != 0);
 
                 if (key_rising_edge(&last_key_f, current_key_f))
                 {

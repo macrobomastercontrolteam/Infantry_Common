@@ -96,12 +96,12 @@
 //TODO check 4310 PID
 #if ROBOT_PITCH_IS_4310
 #define PITCH_SPEED_PID_KP        0.45f
-#define PITCH_SPEED_PID_KI        0.1f
+#define PITCH_SPEED_PID_KI        0.0f
 #define PITCH_SPEED_PID_KD        0.0f
-#define PITCH_SPEED_PID_MAX_OUT   3.0f
-#define PITCH_SPEED_PID_MAX_IOUT  0.5f
+#define PITCH_SPEED_PID_MAX_OUT   0.6f
+#define PITCH_SPEED_PID_MAX_IOUT  0.0f
 
-#define PITCH_ANGLE_PID_KP 5.0f
+#define PITCH_ANGLE_PID_KP 15.0f
 #define PITCH_ANGLE_PID_KI 0.0f
 #define PITCH_ANGLE_PID_KD 0.0f
 #define PITCH_ANGLE_PID_MAX_OUT 6.5f
@@ -468,16 +468,22 @@
 #define GIMBAL_MOTIONLESS_TIME_MAX    3000
 
 //MIT angle mode control param //TODO:reconfigure the fold and unfold angle to set 0 pos at zero force state
-#define PITCH_KP       4.5f
-#define PITCH_KD       0.5f
+#define PITCH_KP       9.5f
+#define PITCH_KD       0.5f //must be larger than 0 when using MIT angle control
+#define PITCH_UNFOLD_POS   0.0f
 
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 #define PITCH_BASE_HALF_FOLD_POS   -0.6f
-#define PITCH_BASE_FOLD_POS   -1.3f
-#define PITCH_BASE_UNFOLD_POS   0.0f
-#define PITCH_BASE_KP  2.5f
-#define PITCH_BASE_KD  0.5f
+#define PITCH_BASE_FOLD_POS   -1.2f
+#define PITCH_BASE_FULLY_FOLD_POS   -1.42f
+#define PITCH_BASE_UNFOLD_POS   0.25f
+#define PITCH_BASE_KP  9.5f
+#define PITCH_BASE_KD  1.0f //must be larger than 0 when using MIT angle control
+
 #endif
+
+#define FOLD_STEP_HOLD_MS 300
+#define FOLD_POS_TOL      0.05f //position bias tolerance, 0.05rad
 
 
 typedef enum
@@ -542,7 +548,7 @@ typedef struct
     uint8_t gimbal_centered;
 
     uint8_t gimbal_fold_control_cmd; //1 for unfold, 2 for fold
-    uint8_t gimbal_folding_step; //0:center, 1:fold
+    uint8_t gimbal_folding_step; //0:fold to half, 1:fold to slightly above, 3: fold to end
     
 }gimbal_folding_status_t; //control flags for foldable gimbal 
 

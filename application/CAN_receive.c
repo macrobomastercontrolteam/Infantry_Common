@@ -39,6 +39,9 @@
 #define ENABLE_DRIVE_MOTOR_POWER 0
 #define ENABLE_YAW_MOTOR_POWER 0
 #define ENABLE_PITCH_MOTOR_POWER 0
+///////////////enable fo 2026 standard only begin///////////////////
+#define ENABLE_PITCH_BASE_MOTOR_POWER 0
+////////////////enable fo 2026 standard only end////////////////////
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
@@ -875,14 +878,14 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 #if ROBOT_PITCH_IS_4340
 	encode_MIT_motor_control(CAN_PITCH_MOTOR_4340_TX_ID, 0, 0, 0, 0, pitch, DM_4340, &GIMBAL_CAN);
 #endif
+//TODO: delete after test
+// #if ENABLE_PITCH_MOTOR_POWER
+// 	encode_MIT_motor_control(CAN_PITCH_MOTOR_4310_TX_ID, 0, 0, 0, 0, pitch, DM_4310, &GIMBAL_CAN);
+// #if ENABLE_PITCH_BASE_MOTOR_POWER 
+// 	encode_MIT_motor_control(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 0, 0, temp_base_kp, temp_base_kd, 0, DM_4310, &GIMBAL_CAN);
+// #endif
 
-#if ENABLE_PITCH_MOTOR_POWER
-	encode_MIT_motor_control(CAN_PITCH_MOTOR_4310_TX_ID, 0, 0, 0, 0, pitch, DM_4310, &GIMBAL_CAN);
-#if ENABLE_PITCH_BASE_MOTOR_POWER 
-	encode_MIT_motor_control(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 0, 0, temp_base_kp, temp_base_kd, 0, DM_4310, &GIMBAL_CAN);
-#endif
-
-#endif
+// #endif
 }
 
 void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down)
@@ -1275,7 +1278,12 @@ void chassis_enable_platform_flag(uint8_t fEnabled)
 #else
 	chassis_move.fLegEnabled = 0;
 #endif
-
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#if ENABLE_DRIVE_MOTOR_POWER
+	chassis_move.fHipEnabled = fEnabled;
+#else
+	chassis_move.fHipEnabled = 0;
+#endif
 #endif
 }
 
