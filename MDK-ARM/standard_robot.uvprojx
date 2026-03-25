@@ -186,6 +186,7 @@
             <RvdsVP>2</RvdsVP>
             <RvdsMve>0</RvdsMve>
             <RvdsCdeCp>0</RvdsCdeCp>
+            <nBranchProt>0</nBranchProt>
             <hadIRAM2>1</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -612,6 +613,11 @@
               <FileName>led_flow_task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\led_flow_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>mit_pos_profile.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\mit_pos_profile.c</FilePath>
             </File>
           </Files>
         </Group>

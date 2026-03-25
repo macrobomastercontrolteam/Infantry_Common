@@ -21,6 +21,7 @@
 #include "INS_task.h"
 #include "arm_math.h"
 #include "cmsis_os.h"
+#include "mit_pos_profile.h"
 #include "pid.h"
 #include "user_lib.h"
 #include <assert.h>
@@ -66,6 +67,18 @@
 #define HIP_MOTOR_SPEED_PID_KD 0.0f
 #define HIP_MOTOR_SPEED_PID_MAX_OUT 6.5f
 #define HIP_MOTOR_SPEED_PID_MAX_IOUT 0.0f
+
+static const fp32 hip_ff_sign[4] = { -1.0f, 1.0f, -1.0f, 1.0f };
+
+// MIT position profile parameters for DM4340P hip motors
+#define HIP_MIT_PROFILE_KP            35.0f    ///< position gain (matches prior hardcoded value)
+#define HIP_MIT_PROFILE_KD            1.0f   ///< damping gain  (matches prior hardcoded value)
+#define HIP_MIT_PROFILE_MAX_VEL       0.5f    ///< slew-rate limit (rad/s) — tune as needed
+#define HIP_MIT_PROFILE_TORQ_FF_BIAS  5.0f    ///< constant feedforward torque (Nm)
+#define HIP_MIT_PROFILE_TORQ_FF_AMP   0.0f    ///< sine FF amplitude (Nm); 0 = disabled
+#define HIP_MIT_PROFILE_ANGLE_OFFSET  0.0f    ///< sine FF phase offset (rad)
+#define HIP_MIT_PROFILE_TORQ_FF_MIN   (-10.0f)
+#define HIP_MIT_PROFILE_TORQ_FF_MAX   (10.0f)
 #else
 #endif
 #define ROTATE_6020_OFFSET 0
@@ -94,6 +107,11 @@ uint32_t chassis_high_water;
 #endif
 
 chassis_move_t chassis_move;
+
+#if HIP_MOTOR_TYPE == DM_4340P
+static mit_pos_profile_t      hip_profile_state[HIP_MOTOR_COUNT];
+static mit_pos_profile_param_t hip_profile_param;
+#endif
 
 void param_asserts(void);
 void chassis_init(void);
@@ -251,8 +269,21 @@ void chassis_task(void const *pvParameters)
 				case CHASSIS_ID_HIP_4:
 				{
 					bMotorRelativeId = bMotorId - CHASSIS_ID_HIP_1;
-					chassis_move.target_theta_dot[bMotorRelativeId] = PID_calc(&chassis_move.hip_angle_pid[bMotorRelativeId], motor_info[bMotorId].feedback_abs_ecd_fp32, chassis_move.target_theta[bMotorRelativeId] * MG6012_MOTOR_RAD_TO_ECD, CHASSIS_CONTROL_TIME_S);
+#if HIP_MOTOR_TYPE == DM_4340P
+				mit_pos_profile_update(
+					&hip_profile_state[bMotorRelativeId],
+					&hip_profile_param,
+					motor_info[bMotorId].feedback_abs_angle,
+					chassis_move.target_theta[bMotorRelativeId],
+					0,
+					&chassis_move.hip_cmd[bMotorRelativeId]);
+
+					// apply motor-specific FF sign outside
+					chassis_move.hip_cmd[bMotorRelativeId].torq *= hip_ff_sign[bMotorRelativeId];
+#else
+				chassis_move.target_theta_dot[bMotorRelativeId] = PID_calc(&chassis_move.hip_angle_pid[bMotorRelativeId], motor_info[bMotorId].feedback_abs_ecd_fp32, chassis_move.target_theta[bMotorRelativeId] * MG6012_MOTOR_RAD_TO_ECD, CHASSIS_CONTROL_TIME_S);
 					motor_info[bMotorId].set_torque = PID_calc(&chassis_move.hip_speed_pid[bMotorRelativeId], DEG_TO_RAD(motor_info[bMotorId].rotor_speed), chassis_move.target_theta_dot[bMotorRelativeId], CHASSIS_CONTROL_TIME_S);
+#endif /* HIP_MOTOR_TYPE == DM_4340P */
 					break;
 				}
 				default:
@@ -341,6 +372,29 @@ void chassis_init(void)
 	chassis_move.fHipMotorEnabled = 0;
 	chassis_move.fFatalError = 0;
 	chassis_move.fHipDataIsValid = 0;
+
+#if HIP_MOTOR_TYPE == DM_4340P
+	// Initialize MIT position profile parameters
+	hip_profile_param.kp             = HIP_MIT_PROFILE_KP;
+	hip_profile_param.kd             = HIP_MIT_PROFILE_KD;
+	hip_profile_param.max_vel        = HIP_MIT_PROFILE_MAX_VEL;
+	hip_profile_param.dt             = CHASSIS_CONTROL_TIME_S;
+	hip_profile_param.torque_ff_bias = HIP_MIT_PROFILE_TORQ_FF_BIAS;
+	hip_profile_param.use_sine_ff    = 0;
+	hip_profile_param.torque_ff_amp  = HIP_MIT_PROFILE_TORQ_FF_AMP;
+	hip_profile_param.angle_offset   = HIP_MIT_PROFILE_ANGLE_OFFSET;
+	hip_profile_param.torque_ff_min  = HIP_MIT_PROFILE_TORQ_FF_MIN;
+	hip_profile_param.torque_ff_max  = HIP_MIT_PROFILE_TORQ_FF_MAX;
+
+	// Clear state — mit_pos_profile_update seeds from measured_pos on first call
+	uint8_t bProfileId;
+	for (bProfileId = 0; bProfileId < HIP_MOTOR_COUNT; bProfileId++)
+	{
+		hip_profile_state[bProfileId].initialized  = 0;
+		hip_profile_state[bProfileId].pos_cmd      = 0.0f;
+		hip_profile_state[bProfileId].last_pos_cmd = 0.0f;
+	}
+#endif
 }
 
 void chassis_swerve_params_reset(void)

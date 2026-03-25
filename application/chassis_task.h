@@ -20,6 +20,7 @@
 
 #include "CAN_receive.h"
 #include "global_inc.h"
+#include "mit_pos_profile.h"
 #include "pid.h"
 #include "user_lib.h"
 
@@ -85,6 +86,10 @@ typedef struct
 	pid_type_def steer_angle_pid[STEER_MOTOR_COUNT];
 	pid_type_def hip_angle_pid[HIP_MOTOR_COUNT]; // outputs target speed
 	pid_type_def hip_speed_pid[HIP_MOTOR_COUNT]; // outputs target torque
+
+#if HIP_MOTOR_TYPE == DM_4340P
+	mit_cmd_t hip_cmd[HIP_MOTOR_COUNT]; ///< MIT profile output, consumed by CAN_cmd_wrapper
+#endif
 } chassis_move_t;
 
 extern void chassis_task(void const *pvParameters);

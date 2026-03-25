@@ -855,13 +855,13 @@ void CAN_cmd_wrapper(void)
 	encode_6012_motor_torque_control(CAN_HIP4_RX_ID, hip_torque4);
 #elif HIP_MOTOR_TYPE == DM_4340P
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP1_TX_ID, chassis_move.target_theta[0], 0, 2, 0.01, 0, DM_4340, &STEER_AND_HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP1_TX_ID, chassis_move.hip_cmd[0].pos, chassis_move.hip_cmd[0].vel, chassis_move.hip_cmd[0].KP, chassis_move.hip_cmd[0].KD, chassis_move.hip_cmd[0].torq, DM_4340, &STEER_AND_HIP_CAN);
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP2_TX_ID, chassis_move.target_theta[1], 0, 2, 0.01, 0, DM_4340, &STEER_AND_HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP2_TX_ID, chassis_move.hip_cmd[1].pos, chassis_move.hip_cmd[1].vel, chassis_move.hip_cmd[1].KP, chassis_move.hip_cmd[1].KD, chassis_move.hip_cmd[1].torq, DM_4340, &STEER_AND_HIP_CAN);
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP3_TX_ID, chassis_move.target_theta[2], 0, 2, 0.01, 0, DM_4340, &STEER_AND_HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP3_TX_ID, chassis_move.hip_cmd[2].pos, chassis_move.hip_cmd[2].vel, chassis_move.hip_cmd[2].KP, chassis_move.hip_cmd[2].KD, chassis_move.hip_cmd[2].torq, DM_4340, &STEER_AND_HIP_CAN);
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP4_TX_ID, chassis_move.target_theta[3], 0, 2, 0.01, 0, DM_4340, &STEER_AND_HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP4_TX_ID, chassis_move.hip_cmd[3].pos, chassis_move.hip_cmd[3].vel, chassis_move.hip_cmd[3].KP, chassis_move.hip_cmd[3].KD, chassis_move.hip_cmd[3].torq, DM_4340, &STEER_AND_HIP_CAN);
 #endif
 
 }
