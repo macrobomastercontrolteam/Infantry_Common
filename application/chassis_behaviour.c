@@ -106,7 +106,7 @@ void chassis_behaviour_set_mode(void)
 		{
 			case RC_SW_UP:
 			{
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 				chassis_behaviour_mode = CHASSIS_CV_CONTROL_MODE;
 #else
 				chassis_behaviour_mode = CHASSIS_SPINNING_MODE;
@@ -128,9 +128,11 @@ void chassis_behaviour_set_mode(void)
 		}
 	}
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 	CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE));
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	chassis_move.fUpperHeadEnabled = (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE);
+#endif
 #endif
 
 	ui_info.spinning_state = (chassis_behaviour_mode == CHASSIS_SPINNING_MODE);
@@ -267,7 +269,7 @@ void dial_channel_manager(void)
 {
 	int16_t dial_channel_raw;
 	deadband_limit(chassis_move.chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel_raw, CHASSIS_RC_DEADLINE);
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 	if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE)
 	{
 		// if (toe_is_error(DBUS_TOE))

@@ -809,7 +809,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         return;
     }
 
-#if (ROBOT_TYPE != SENTRY_2023_MECANUM)
+#if !((ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI))
 
 		if (CvCmder_GetMode(CV_MODE_ASSIST_BIT) && fCvAutoAim())
 		{

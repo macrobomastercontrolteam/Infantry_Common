@@ -36,9 +36,9 @@
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 
 //////////////enable for all robot types//////////////////////
-#define ENABLE_DRIVE_MOTOR_POWER 0
-#define ENABLE_YAW_MOTOR_POWER 0
-#define ENABLE_PITCH_MOTOR_POWER 0
+#define ENABLE_DRIVE_MOTOR_POWER 1
+#define ENABLE_YAW_MOTOR_POWER 1
+#define ENABLE_PITCH_MOTOR_POWER 1
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
@@ -68,7 +68,7 @@
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 1
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 #define IS_TRIGGER_ON_GIMBAL 0
 #else
 #define IS_TRIGGER_ON_GIMBAL 0
@@ -81,7 +81,7 @@ extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 power_meter_can_rx_t power_meter_can_rx_msg;
 
-#if POWER_TRAIN_USE_4010_MOTOR
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
 static uint8_t can_send_data[8];
 static CAN_TxHeaderTypeDef can_tx_message;
 uint32_t send_mail_box;
@@ -268,7 +268,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		switch (rx_header.StdId)
 		{
-#if POWER_TRAIN_USE_3508_MOTOR
+#if (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
 			case CAN_3508_M1_ID:
 			{
 				bMotorId = MOTOR_INDEX_3508_M1;
@@ -298,7 +298,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(CHASSIS_MOTOR4_TOE);
 				break;
 			}
-#elif POWER_TRAIN_USE_4010_MOTOR
+#elif (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
 			case CAN_4010_M1_ID:
 			{
 				bMotorId = MOTOR_INDEX_4010_M1;
@@ -452,7 +452,7 @@ void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId)
 	motor_chassis[bMotorId].temperate = data[6];
 }
 
-#if POWER_TRAIN_USE_4010_MOTOR
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
 void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
 
@@ -962,7 +962,7 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
  */
 void CAN_cmd_chassis_reset_ID(void)
 {
-#if ROBOT_CHASSIS_USE_MECANUM || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	uint32_t send_mail_box;
 	chassis_tx_message.StdId = 0x700;
 	chassis_tx_message.IDE = CAN_ID_STD;
@@ -1042,17 +1042,16 @@ void CAN_cmd_chassis(void)
 	CAN_cmd_swerve_steer();
 	osDelay(1);
 	CAN_cmd_swerve_hip();
-#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
 	CAN_cmd_4010_chassis();
 	osDelay(1);
-	CAN_cmd_upper_head();
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	CAN_cmd_biped_chassis();
 	CAN_cmd_biped_chassis_mode();
 #else
-#if POWER_TRAIN_USE_3508_MOTOR
+#if (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
 	CAN_cmd_3508_chassis();
-#elif POWER_TRAIN_USE_4010_MOTOR
+#elif (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
 	CAN_cmd_4010_chassis();
 #endif
 #endif
@@ -1072,7 +1071,7 @@ void CAN_cmd_chassis(void)
  */
 void CAN_cmd_3508_chassis(void)
 {
-#if ((ROBOT_TYPE != INFANTRY_2024_BIPED)&&(ROBOT_TYPE != SENTRY_2023_MECANUM))
+#if !((ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == SENTRY_2026_OMNI))
 	uint32_t send_mail_box;
 	// driver motors (M3508)
 	chassis_tx_message.StdId = CAN_3508_OR_2006_LOW_RANGE_TX_ID;
@@ -1120,7 +1119,7 @@ void CAN_cmd_3508_chassis(void)
 #endif
 }
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2026_OMNI)
 void CAN_cmd_4010_chassis(void)
 {
 	uint8_t blocking_call = 1;

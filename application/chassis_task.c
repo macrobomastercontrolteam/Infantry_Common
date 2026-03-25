@@ -176,6 +176,15 @@ static void chassis_init(void)
 	{
 		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
 	}
+
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+	const static fp32 motor_speed_pid[3] = {MG4010_MOTOR_SPEED_PID_KP, MG4010_MOTOR_SPEED_PID_KI, MG4010_MOTOR_SPEED_PID_KD};
+	for (uint8_t i = 0; i < sizeof(chassis_move.wheel_rot_radii) / sizeof(chassis_move.wheel_rot_radii[0]); i++)
+	{
+		chassis_move.motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i);
+		PID_init(&chassis_move.motor_speed_pid[i], PID_POSITION, motor_speed_pid, MG4010_MOTOR_SPEED_PID_MAX_OUT, MG4010_MOTOR_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
+		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
+	}
 #else
 	const static fp32 motor_speed_pid[3] = {M3508_MOTOR_SPEED_PID_KP, M3508_MOTOR_SPEED_PID_KI, M3508_MOTOR_SPEED_PID_KD};
 	for (uint8_t i = 0; i < sizeof(chassis_move.wheel_rot_radii) / sizeof(chassis_move.wheel_rot_radii[0]); i++)
@@ -197,9 +206,11 @@ static void chassis_init(void)
 
 	chassis_move.dial_channel_latched = 0;
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 	chassis_move.fRandomSpinOn = 1;
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	chassis_move.fUpperHeadEnabled = 0;
+#endif
 #else
 	chassis_move.fRandomSpinOn = 0;
 #endif
@@ -295,12 +306,12 @@ static void chassis_feedback_update(void)
 
 #if (ROBOT_TYPE != INFANTRY_2023_SWERVE)
 	// update chassis parameters: vertical speed x, horizontal speed y, rotation speed wz, right hand rule
-#if ROBOT_CHASSIS_USE_MECANUM
+#if (WHEEL_TYPE ==ROBOT_CHASSIS_USE_MECANUM)
 	// Mecanum wheel feedback calculation
 	chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
 	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
 	chassis_move.wz = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
-#elif ROBOT_CHASSIS_USE_OMNI
+#elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
 	// Omni wheel feedback calculation
 	// For omni wheels in square arrangement: sum and difference combinations give vx, vy, wz
 	chassis_move.vx = (chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
@@ -727,7 +738,7 @@ static void chassis_set_control(void)
 	chassis_move.vy_set = fp32_abs_constrain(chassis_move.vy_set, chassis_move.vy_max_speed);
 }
 
-#if ROBOT_CHASSIS_USE_MECANUM
+#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM)
 /**
  * @brief          four mecanum wheels speed is calculated by three param.
  * @param[in]      vx_set: vertial speed
@@ -744,7 +755,7 @@ static void mecanum_chassis_vector_to_wheel_speed(const fp32 vx_set, const fp32 
 	wheel_speed[2] = vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[2] * wz_set;
 	wheel_speed[3] = -vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[3] * wz_set;
 }
-#elif ROBOT_CHASSIS_USE_OMNI
+#elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
 /**
  * @brief          four omni wheels speed is calculated by three param.
  * @note           Omni wheels (Swedish wheels) are arranged in a square pattern.
@@ -1020,12 +1031,13 @@ static void chassis_control_loop(void)
 	//fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
 	uint8_t i = 0;
 
-#if ROBOT_CHASSIS_USE_MECANUM
+#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM)
 	// mecanum chassis inverse kinematics
 	mecanum_chassis_vector_to_wheel_speed(chassis_move.vx_set, chassis_move.vy_set, chassis_move.wz_set, wheel_speed);
-#elif ROBOT_CHASSIS_USE_OMNI
+#elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
 	// omni chassis inverse kinematics
 	omni_chassis_vector_to_wheel_speed(chassis_move.vx_set, chassis_move.vy_set, chassis_move.wz_set, wheel_speed);
+
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	// swerve chassis inverse kinematics
 	fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit rad

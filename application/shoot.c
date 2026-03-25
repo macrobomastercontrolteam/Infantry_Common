@@ -418,7 +418,7 @@ int16_t shoot_control_loop(void)
 #endif
 			{	
                 // Friction wheels are ready. Check for shooting command.
-#if ROBOT_TYPE == SENTRY_2023_MECANUM
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 				if((chassis_move.chassis_RC->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_MID) && (chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_MID)){
 					shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
 				}
