@@ -93,6 +93,13 @@ extern void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, gimbal_
 extern bool_t gimbal_cmd_to_chassis_stop(void);
 
 /**
+  * @brief          returns 1 when fold is commanded but chassis must align with gimbal first
+  * @param[in]      none
+  * @retval         1: needs alignment 0:normal
+  */
+extern bool_t gimbal_cmd_to_chassis_align(void);
+
+/**
   * @brief          in some gimbal mode, need shoot keep no move
   * @param[in]      none
   * @retval         1: no move 0:normal

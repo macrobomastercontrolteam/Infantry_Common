@@ -1129,7 +1129,9 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
     }
     else if (control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_MIT_ANGLE)
     {
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
         foldable_pitch_control(control_loop);
+#endif
     }
 }
 

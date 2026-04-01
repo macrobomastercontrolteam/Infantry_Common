@@ -84,6 +84,8 @@
 // @TODO: calculate for roll and pitch limits
 #define CHASSIS_ROLL_UPPER_LIMIT (PI / 4.0f)
 #define CHASSIS_PITCH_UPPER_LIMIT (PI / 4.0f)
+// Height change rate when folding/unfolding (m/s). Full range in ~1.5s.
+#define CHASSIS_FOLD_HEIGHT_RAMP_RATE ((CHASSIS_H_WORKSPACE_PEAK - CHASSIS_H_LOWER_LIMIT) / 1.5f * CHASSIS_CONTROL_TIME_S)
 
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 #define BIPED_LEG_L0_MIN 0.15f

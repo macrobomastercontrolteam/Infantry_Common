@@ -549,25 +549,36 @@ static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint
 void chassis_align_to_gimbal(fp32* wz_set)
 {
 #if (ROBOT_TYPE != INFANTRY_2024_BIPED)
-	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) && ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) == 0))
+	static fp32 wz_align_filtered = 0.0f;
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	uint8_t fFoldAlign = gimbal_cmd_to_chassis_align();
+#else
+	uint8_t fFoldAlign = 0;
+#endif
+	if (fFoldAlign ||
+	    ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) && ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) == 0)))
 	{
-		// Keep rotating until chassis align with gimbal
+		// Use FOLD_POS_TOL when auto-aligning for fold, otherwise use manual-align deadzone
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+		const fp32 gimbal_align_angle_deadzone = fFoldAlign ? FOLD_POS_TOL : DEG_TO_RAD(3.5f);
+#else
 		const fp32 gimbal_align_angle_deadzone = DEG_TO_RAD(3.5f);
+#endif
+		fp32 target_wz = 0.0f;
 		if (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) > gimbal_align_angle_deadzone)
 		{
-			*wz_set = (chassis_move.wz_max_speed - chassis_get_low_wz_limit()) * (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) / (PI / 2.0f)) + chassis_get_low_wz_limit();
+			target_wz = (chassis_move.wz_max_speed - chassis_get_low_wz_limit()) * (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) / (PI / 2.0f)) + chassis_get_low_wz_limit();
 			if (gimbal_control.gimbal_yaw_motor.relative_angle < 0)
 			{
-				*wz_set *= -1;
+				target_wz *= -1;
 			}
 		}
-		else
-		{
-			*wz_set = 0;
-		}
+		wz_align_filtered = first_order_filter(target_wz, wz_align_filtered, 0.08f);
+		*wz_set = wz_align_filtered;
 	}
 	else
 	{
+		wz_align_filtered = 0.0f; // Reset filter so next R press always ramps up from zero
 		*wz_set = (chassis_move.wz_max_speed / JOYSTICK_HALF_RANGE) * chassis_move.dial_channel_out;
 	}
 #endif

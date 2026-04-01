@@ -17,6 +17,7 @@
   */
 #include "chassis_task.h"
 #include "chassis_behaviour.h"
+#include "gimbal_task.h"
 
 #include "cmsis_os.h"
 
@@ -673,8 +674,48 @@ void chassis_back_home(void)
 	chassis_move.chassis_platform.target_height = CHASSIS_H_WORKSPACE_PEAK;
 }
 
+/**
+ * @brief  Ramp chassis height toward CHASSIS_H_LOWER_LIMIT when gimbal is
+ *         folded (or folding), and back to CHASSIS_H_WORKSPACE_PEAK when
+ *         unfolded. Must be called every chassis control cycle.
+ */
+static void chassis_platform_fold_height_update(void)
+{
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	fp32 height_target;
+	if (gimbal_control.gimbal_folding_status.target == FOLDED ||
+	    gimbal_control.gimbal_folding_status.current == FOLDED)
+	{
+		height_target = CHASSIS_H_LOWER_LIMIT;
+	}
+	else
+	{
+		return; // No automatic height change when unfolded
+	}
+
+	if (chassis_move.chassis_platform.target_height > height_target)
+	{
+		chassis_move.chassis_platform.target_height -= CHASSIS_FOLD_HEIGHT_RAMP_RATE;
+		if (chassis_move.chassis_platform.target_height < height_target)
+		{
+			chassis_move.chassis_platform.target_height = height_target;
+		}
+	}
+	else if (chassis_move.chassis_platform.target_height < height_target)
+	{
+		chassis_move.chassis_platform.target_height += CHASSIS_FOLD_HEIGHT_RAMP_RATE;
+		if (chassis_move.chassis_platform.target_height > height_target)
+		{
+			chassis_move.chassis_platform.target_height = height_target;
+		}
+	}
+#endif
+}
+
 void chassis_platform_rc_mapping(void)
 {
+	chassis_platform_fold_height_update();
+
 	// configuration for pseudo RPY-to-tilt conversion
 	const fp32 CHASSIS_PLATFORM_ROLL_KEYBOARD_CHANGE_TIME_S = 0.4f;
 	const fp32 CHASSIS_PLATFORM_ROLL_KEYBOARD_SEN_INC = 2.0f * CHASSIS_ALPHA_WORKSPACE_PEAK / CHASSIS_PLATFORM_ROLL_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S;
