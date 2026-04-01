@@ -161,8 +161,6 @@ static void chassis_init(void)
 	// chassis angle PID
 	const static fp32 chassis_yaw_pid[3] = {CHASSIS_FOLLOW_GIMBAL_PID_KP, CHASSIS_FOLLOW_GIMBAL_PID_KI, CHASSIS_FOLLOW_GIMBAL_PID_KD};
 
-	const static fp32 chassis_x_order_filter[1] = {CHASSIS_ACCEL_X_NUM};
-	const static fp32 chassis_y_order_filter[1] = {CHASSIS_ACCEL_Y_NUM};
 	const static fp32 chassis_wz_order_filter[1] = {CHASSIS_ACCEL_WZ_NUM};
 
 	chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_FOLLOW_CHASSIS_RELATIVE_FRONT;
@@ -196,8 +194,8 @@ static void chassis_init(void)
 #endif
 	PID_init(&chassis_move.chassis_angle_pid, PID_POSITION, chassis_yaw_pid, CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT, CHASSIS_FOLLOW_GIMBAL_PID_MAX_IOUT, 0, &rad_err_handler);
 
-	first_order_filter_init(&chassis_move.chassis_cmd_slow_set_vx, CHASSIS_CONTROL_TIME_S, chassis_x_order_filter);
-	first_order_filter_init(&chassis_move.chassis_cmd_slow_set_vy, CHASSIS_CONTROL_TIME_S, chassis_y_order_filter);
+	ramp_init(&chassis_move.chassis_cmd_slow_set_vx, CHASSIS_CONTROL_TIME_S, NORMAL_MAX_CHASSIS_SPEED_X, -NORMAL_MAX_CHASSIS_SPEED_X);
+	ramp_init(&chassis_move.chassis_cmd_slow_set_vy, CHASSIS_CONTROL_TIME_S, NORMAL_MAX_CHASSIS_SPEED_Y, -NORMAL_MAX_CHASSIS_SPEED_Y);
 	first_order_filter_init(&chassis_move.chassis_cmd_slow_set_wz, CHASSIS_CONTROL_TIME_S, chassis_wz_order_filter);
 
 	chassis_move.vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
@@ -356,83 +354,83 @@ void chassis_speed_max_adj(void)
 	fp32 vx_speed_limit = 0;
 	fp32 vy_speed_limit = 0;
 	uint16_t uiPowerLevel = fp32_constrain(ref_chassis_power_limit - 40, 0, 100) / 5;
-	switch (uiPowerLevel)
-	{
-		case 0:
-		case 1:
-		{
-			// 0-49
-			vx_speed_limit = 1.41;
-			vy_speed_limit = 1.41;
-			break;
-		}
-		case 2:
-		{
-			// 50-54
-			vx_speed_limit = 1.58;
-			vy_speed_limit = 1.58;
-			break;
-		}
-		case 3:
-		{
-			// 55-59
-			// low: 1.6
-			// high: 1.8
-			vx_speed_limit = 1.71;
-			vy_speed_limit = 1.71;
-			break;
-		}
-		case 4:
-		{
-			// 60-64
-			vx_speed_limit = 1.75;
-			vy_speed_limit = 1.75;
-			break;
-		}
-		case 5:
-		{
-			// 65-69
-			vx_speed_limit = 1.775;
-			vy_speed_limit = 1.775;
-			break;
-		}
-		case 6:
-		{
-			// 70-74
-			vx_speed_limit = 1.85;
-			vy_speed_limit = 1.85;
-			break;
-		}
-		case 7:
-		{
-			// 75-79
-			vx_speed_limit = 1.9;
-			vy_speed_limit = 1.9;
-			break;
-		}
-		case 8:
-		{
-			// 80-84
-			vx_speed_limit = 1.925;
-			vy_speed_limit = 1.925;
-			break;
-		}
-		case 9:
-		{
-			// 85-89
-			vx_speed_limit = 2.0;
-			vy_speed_limit = 2.0;
-			break;
-		}
-		case 10:
-		default:
-		{
-			// 90-94
-			vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X;
-			vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y;
-			break;
-		}
-	}
+	// switch (uiPowerLevel)
+	// {
+	// 	case 0:
+	// 	case 1:
+	// 	{
+	// 		// 0-49
+	// 		vx_speed_limit = 1.41;
+	// 		vy_speed_limit = 1.41;
+	// 		break;
+	// 	}
+	// 	case 2:
+	// 	{
+	// 		// 50-54
+	// 		vx_speed_limit = 1.58;
+	// 		vy_speed_limit = 1.58;
+	// 		break;
+	// 	}
+	// 	case 3:
+	// 	{
+	// 		// 55-59
+	// 		// low: 1.6
+	// 		// high: 1.8
+	// 		vx_speed_limit = 1.71;
+	// 		vy_speed_limit = 1.71;
+	// 		break;
+	// 	}
+	// 	case 4:
+	// 	{
+	// 		// 60-64
+	// 		vx_speed_limit = 1.75;
+	// 		vy_speed_limit = 1.75;
+	// 		break;
+	// 	}
+	// 	case 5:
+	// 	{
+	// 		// 65-69
+	// 		vx_speed_limit = 1.775;
+	// 		vy_speed_limit = 1.775;
+	// 		break;
+	// 	}
+	// 	case 6:
+	// 	{
+	// 		// 70-74
+	// 		vx_speed_limit = 1.85;
+	// 		vy_speed_limit = 1.85;
+	// 		break;
+	// 	}
+	// 	case 7:
+	// 	{
+	// 		// 75-79
+	// 		vx_speed_limit = 1.9;
+	// 		vy_speed_limit = 1.9;
+	// 		break;
+	// 	}
+	// 	case 8:
+	// 	{
+	// 		// 80-84
+	// 		vx_speed_limit = 1.925;
+	// 		vy_speed_limit = 1.925;
+	// 		break;
+	// 	}
+	// 	case 9:
+	// 	{
+	// 		// 85-89
+	// 		vx_speed_limit = 2.0;
+	// 		vy_speed_limit = 2.0;
+	// 		break;
+	// 	}
+	// 	case 10:
+	// 	default:
+	// 	{
+	// 		// 90-94
+	vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X;
+	vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y;
+	// 		break;
+	// 	}
+	// }
 	
 	if ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE) && (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE))
 	{
@@ -503,19 +501,24 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set)
 		vy_set_channel = -chassis_move.vy_max_speed;
 	}
 
-	// first order low-pass replace ramp function, calculate chassis speed set-point to improve control performance
-	first_order_filter_cali(&chassis_move.chassis_cmd_slow_set_vx, vx_set_channel);
-	first_order_filter_cali(&chassis_move.chassis_cmd_slow_set_vy, vy_set_channel);
-	// stop command, need not slow change, set zero derectly
-	if (fabs(vx_set_channel) < CHASSIS_RC_DEADLINE * vx_rc_sen)
-	{
-		chassis_move.chassis_cmd_slow_set_vx.out = 0.0f;
-	}
+	// RC input shaping with ramp: keep this at input layer so other control logic remains intact
+	chassis_move.chassis_cmd_slow_set_vx.max_value = chassis_move.vx_max_speed;
+	chassis_move.chassis_cmd_slow_set_vx.min_value = -chassis_move.vx_max_speed;
+	chassis_move.chassis_cmd_slow_set_vy.max_value = chassis_move.vy_max_speed;
+	chassis_move.chassis_cmd_slow_set_vy.min_value = -chassis_move.vy_max_speed;
 
-	if (fabs(vy_set_channel) < CHASSIS_RC_DEADLINE * vy_rc_sen)
-	{
-		chassis_move.chassis_cmd_slow_set_vy.out = 0.0f;
-	}
+	// decelerate faster only when command magnitude is reduced (stop/down-ramp)
+	fp32 vx_limit = (fabs(vx_set_channel) < fabs(chassis_move.chassis_cmd_slow_set_vx.out)) ? CHASSIS_DECEL_X_NUM : CHASSIS_ACCEL_X_NUM;
+	fp32 vx_ramp_input = fp32_constrain(
+		(vx_set_channel - chassis_move.chassis_cmd_slow_set_vx.out) / CHASSIS_CONTROL_TIME_S,
+		-vx_limit, vx_limit);
+	ramp_calc(&chassis_move.chassis_cmd_slow_set_vx, vx_ramp_input);
+
+	fp32 vy_limit = (fabs(vy_set_channel) < fabs(chassis_move.chassis_cmd_slow_set_vy.out)) ? CHASSIS_DECEL_Y_NUM : CHASSIS_ACCEL_Y_NUM;
+	fp32 vy_ramp_input = fp32_constrain(
+		(vy_set_channel - chassis_move.chassis_cmd_slow_set_vy.out) / CHASSIS_CONTROL_TIME_S,
+		-vy_limit, vy_limit);
+	ramp_calc(&chassis_move.chassis_cmd_slow_set_vy, vy_ramp_input);
 
 	*vx_set = chassis_move.chassis_cmd_slow_set_vx.out;
 	*vy_set = chassis_move.chassis_cmd_slow_set_vy.out;
@@ -1091,7 +1094,7 @@ static void chassis_control_loop(void)
 		}
 		for (i = 0; i < 4; i++)
 		{
-			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)((chassis_move.motor_speed_pid[i].out)/2/PI/DRIVE_WHEEL_RADIUS*360*10);
+			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)((chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
 		}
 	}
 #endif

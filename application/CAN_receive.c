@@ -1051,6 +1051,7 @@ void CAN_cmd_chassis(void)
 #else
 #if (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
 	CAN_cmd_3508_chassis();
+	osDelay(1);
 #elif (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
 	CAN_cmd_4010_chassis();
 #endif

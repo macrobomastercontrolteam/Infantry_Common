@@ -335,7 +335,9 @@ static void chassis_zero_force_control(fp32 *vx_can_set, fp32 *vy_can_set, fp32 
 	*vx_can_set = 0;
 	*vy_can_set = 0;
 	*wz_can_set = 0;
+	chassis_move.chassis_cmd_slow_set_vx.input = 0;
 	chassis_move.chassis_cmd_slow_set_vx.out = 0;
+	chassis_move.chassis_cmd_slow_set_vy.input = 0;
 	chassis_move.chassis_cmd_slow_set_vy.out = 0;
 	chassis_move.chassis_cmd_slow_set_wz.out = 0;
 }
