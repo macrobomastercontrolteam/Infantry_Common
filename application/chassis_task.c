@@ -355,83 +355,83 @@ void chassis_speed_max_adj(void)
 	fp32 vx_speed_limit = 0;
 	fp32 vy_speed_limit = 0;
 	uint16_t uiPowerLevel = fp32_constrain(ref_chassis_power_limit - 40, 0, 100) / 5;
-	// switch (uiPowerLevel)
-	// {
-	// 	case 0:
-	// 	case 1:
-	// 	{
-	// 		// 0-49
-	// 		vx_speed_limit = 1.41;
-	// 		vy_speed_limit = 1.41;
-	// 		break;
-	// 	}
-	// 	case 2:
-	// 	{
-	// 		// 50-54
-	// 		vx_speed_limit = 1.58;
-	// 		vy_speed_limit = 1.58;
-	// 		break;
-	// 	}
-	// 	case 3:
-	// 	{
-	// 		// 55-59
-	// 		// low: 1.6
-	// 		// high: 1.8
-	// 		vx_speed_limit = 1.71;
-	// 		vy_speed_limit = 1.71;
-	// 		break;
-	// 	}
-	// 	case 4:
-	// 	{
-	// 		// 60-64
-	// 		vx_speed_limit = 1.75;
-	// 		vy_speed_limit = 1.75;
-	// 		break;
-	// 	}
-	// 	case 5:
-	// 	{
-	// 		// 65-69
-	// 		vx_speed_limit = 1.775;
-	// 		vy_speed_limit = 1.775;
-	// 		break;
-	// 	}
-	// 	case 6:
-	// 	{
-	// 		// 70-74
-	// 		vx_speed_limit = 1.85;
-	// 		vy_speed_limit = 1.85;
-	// 		break;
-	// 	}
-	// 	case 7:
-	// 	{
-	// 		// 75-79
-	// 		vx_speed_limit = 1.9;
-	// 		vy_speed_limit = 1.9;
-	// 		break;
-	// 	}
-	// 	case 8:
-	// 	{
-	// 		// 80-84
-	// 		vx_speed_limit = 1.925;
-	// 		vy_speed_limit = 1.925;
-	// 		break;
-	// 	}
-	// 	case 9:
-	// 	{
-	// 		// 85-89
-	// 		vx_speed_limit = 2.0;
-	// 		vy_speed_limit = 2.0;
-	// 		break;
-	// 	}
-	// 	case 10:
-	// 	default:
-	// 	{
-	// 		// 90-94
-	vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X;
-	vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y;
-	// 		break;
-	// 	}
-	// }
+	switch (uiPowerLevel)
+	{
+		case 0:
+		case 1:
+		{
+			// 0-49
+			vx_speed_limit = 1.41;
+			vy_speed_limit = 1.41;
+			break;
+		}
+		case 2:
+		{
+			// 50-54
+			vx_speed_limit = 1.58;
+			vy_speed_limit = 1.58;
+			break;
+		}
+		case 3:
+		{
+			// 55-59
+			// low: 1.6
+			// high: 1.8
+			vx_speed_limit = 1.71;
+			vy_speed_limit = 1.71;
+			break;
+		}
+		case 4:
+		{
+			// 60-64
+			vx_speed_limit = 1.75;
+			vy_speed_limit = 1.75;
+			break;
+		}
+		case 5:
+		{
+			// 65-69
+			vx_speed_limit = 1.775;
+			vy_speed_limit = 1.775;
+			break;
+		}
+		case 6:
+		{
+			// 70-74
+			vx_speed_limit = 1.85;
+			vy_speed_limit = 1.85;
+			break;
+		}
+		case 7:
+		{
+			// 75-79
+			vx_speed_limit = 1.9;
+			vy_speed_limit = 1.9;
+			break;
+		}
+		case 8:
+		{
+			// 80-84
+			vx_speed_limit = 1.925;
+			vy_speed_limit = 1.925;
+			break;
+		}
+		case 9:
+		{
+			// 85-89
+			vx_speed_limit = 2.0;
+			vy_speed_limit = 2.0;
+			break;
+		}
+		case 10:
+		default:
+		{
+			// 90-94
+		    vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X;
+		    vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y;
+			break;
+		}
+	}
 	
 	if ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE) && (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE))
 	{
