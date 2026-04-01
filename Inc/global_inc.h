@@ -30,7 +30,7 @@
 #define POWER_TRAIN_USE_SPECIAL_CTRL 2
 
 /********************* Only Modify this area (start) *********************/
-#define ROBOT_TYPE SENTRY_2026_OMNI
+#define ROBOT_TYPE HERO_2025_MECANUM
 #define COMPETITION_TYPE RMUL
 #define SUPERCAP_TYPE MACRM_SUPERCAP
 #define CV_INTERFACE 1
