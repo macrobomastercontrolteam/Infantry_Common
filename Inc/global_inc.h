@@ -32,10 +32,10 @@
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE SENTRY_2026_OMNI
 #define COMPETITION_TYPE RMUL
-#define SUPERCAP_TYPE UBC_SUPERCAP
+#define SUPERCAP_TYPE MACRM_SUPERCAP
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
-#define DEBUG_CV 0 // set to 1 before the game starts for INFANTRY & HERO ONLY
+#define DEBUG_CV 1 // set to 1 before the game starts for INFANTRY & HERO ONLY
 #define ENABLE_LASER 1
 
 #define USE_SERVO_TO_STIR_AMMO 0

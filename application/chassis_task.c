@@ -199,7 +199,8 @@ static void chassis_init(void)
 	first_order_filter_init(&chassis_move.chassis_cmd_slow_set_vx, CHASSIS_CONTROL_TIME_S, chassis_x_order_filter);
 	first_order_filter_init(&chassis_move.chassis_cmd_slow_set_vy, CHASSIS_CONTROL_TIME_S, chassis_y_order_filter);
 	first_order_filter_init(&chassis_move.chassis_cmd_slow_set_wz, CHASSIS_CONTROL_TIME_S, chassis_wz_order_filter);
-
+	low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vx.out, 0.05f, 1);
+	low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vy.out, 0.05f, 1);
 	chassis_move.vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
 	chassis_move.vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
 	chassis_move.wz_max_speed = SPINNING_CHASSIS_MAX_OMEGA;
@@ -506,6 +507,8 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set)
 	// first order low-pass replace ramp function, calculate chassis speed set-point to improve control performance
 	first_order_filter_cali(&chassis_move.chassis_cmd_slow_set_vx, vx_set_channel);
 	first_order_filter_cali(&chassis_move.chassis_cmd_slow_set_vy, vy_set_channel);
+	low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vx.out, 0.05f, 0);
+	low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vy.out, 0.05f, 0);
 	// stop command, need not slow change, set zero derectly
 	if (fabs(vx_set_channel) < CHASSIS_RC_DEADLINE * vx_rc_sen)
 	{

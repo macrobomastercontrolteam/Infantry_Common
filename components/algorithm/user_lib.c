@@ -91,6 +91,28 @@ void first_order_filter_cali(first_order_filter_type_t *first_order_filter_type,
         first_order_filter_type->num[0] / (first_order_filter_type->num[0] + first_order_filter_type->frame_period) * first_order_filter_type->out + first_order_filter_type->frame_period / (first_order_filter_type->num[0] + first_order_filter_type->frame_period) * first_order_filter_type->input;
 }
 
+fp32 low_pass_filter_ema(fp32 x, fp32 alpha, int init)
+{
+
+    static int  s_initialized = 0;
+    static fp32 s_alpha = 1.0f;
+    static fp32 s_y = 0.0f;
+
+    if (alpha <= 0.0f) alpha = 1.0f; //pass-through if invalid 
+    if (alpha > 1.0f)  alpha = 1.0f;
+
+    if (!s_initialized || init) {
+        s_alpha = alpha;
+        s_y = x; //seed output with current input
+        s_initialized = 1;
+        return s_y;
+    }
+
+    s_alpha = alpha; //allow alpha to change at runtime
+    s_y = (1.0f - s_alpha) * s_y + s_alpha * x;
+    return s_y;
+}
+
 fp32 moving_average_calc(fp32 input, moving_average_type_t* moving_average_type, uint8_t fInit)
 {
     fp32 output;
@@ -221,3 +243,13 @@ void Set_Bit(uint8_t* Target_Byte, uint8_t Target_Bit, uint8_t bitValue)
 {
 	*Target_Byte = (*Target_Byte & ~Target_Bit) | (bitValue ? Target_Bit : 0);
 }
+int16_t encode_float_as_int16(fp32 input)
+{
+    return (int16_t)(fp32_constrain(input * 100, -32768, 32767));
+}
+
+fp32 decode_int16_to_fp32(int16_t input)
+{
+    return (fp32)input / 100.0f;
+}
+

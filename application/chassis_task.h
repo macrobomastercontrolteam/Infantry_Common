@@ -207,7 +207,7 @@
 #else
 // @TODO: tune pid for other robots
 // @TODO: fix drift in spinning mode when power is limited
-#define M3508_MOTOR_SPEED_PID_KP 35000.0f
+#define M3508_MOTOR_SPEED_PID_KP 25000.0f
 #define M3508_MOTOR_SPEED_PID_KI 1000.0f
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
 #define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
