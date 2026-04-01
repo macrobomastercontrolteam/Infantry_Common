@@ -36,9 +36,9 @@
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 
 //////////////enable for all robot types//////////////////////
-#define ENABLE_DRIVE_MOTOR_POWER 1
-#define ENABLE_YAW_MOTOR_POWER 1
-#define ENABLE_PITCH_MOTOR_POWER 1
+#define ENABLE_DRIVE_MOTOR_POWER 0
+#define ENABLE_YAW_MOTOR_POWER 0
+#define ENABLE_PITCH_MOTOR_POWER 0
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
@@ -1350,6 +1350,8 @@ void pull_ref_info(uint8_t info_code)
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, interboard_can_send_data, &send_mail_box);
 }
 
+uint8_t temp_pmm_gimbal = 0;
+
 void decode_ref_info(uint8_t *rx_data)
 {
 
@@ -1368,9 +1370,12 @@ void decode_ref_info(uint8_t *rx_data)
 		{
 			memcpy(&can_ref_info.chassis_power_buffer, rx_data + 1, 2);
 			memcpy(&can_ref_info.chassis_power_limit, rx_data + 3, 2);
-			robot_state.power_management_chassis_output = rx_data[5];
-			robot_state.power_management_shooter_output = rx_data[6];
-			robot_state.power_management_gimbal_output = rx_data[7];
+			memcpy(&can_ref_info.encoded_chassis_power, rx_data + 5, 2);
+		
+			robot_state.power_management_chassis_output = 1;//rx_data[7] & POWER_MANAGEMNT_CHASSIS_BIT;
+			robot_state.power_management_shooter_output = 1;//rx_data[7] & POWER_MANAGEMNT_SHOOTER_BIT;
+			robot_state.power_management_gimbal_output = 1;
+			temp_pmm_gimbal = rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT;
 			break;
 		}
 	
@@ -1412,6 +1417,8 @@ void CAN_cmd_supercap(void)
 	fp32 chassis_power_buffer;
     fp32 chassis_power_limit;
     get_chassis_power_data(&chassis_power_buffer, &chassis_power_limit);
+	
+	capcan_rx_msg.power_target = chassis_power_limit*100;
 
 	chassis_can_send_data[0] = capcan_rx_msg.power_target;
 	chassis_can_send_data[1] = capcan_rx_msg.power_target >> 8;

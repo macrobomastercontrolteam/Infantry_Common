@@ -145,6 +145,9 @@ static fp32 world_linear_accel[3] = {0.0f, 0.0f, 0.0f}; // m/s^2
 static fp32 world_velocity[3] = {0.0f, 0.0f, 0.0f};     // m/s
 static fp32 world_position[3] = {0.0f, 0.0f, 0.0f};     // m
 
+static fp32 world_linear_accel_raw[3] = {0.0f, 0.0f, 0.0f}; // Raw, unfiltered, gravity-compensated
+static fp32 angular_accel_raw[3] = {0.0f, 0.0f, 0.0f};      // Raw, body frame
+
 
 /**
   * @brief          imu task, init bmi088, ist8310, calculate the euler angle
@@ -153,6 +156,7 @@ static fp32 world_position[3] = {0.0f, 0.0f, 0.0f};     // m
   */
 void INS_task(void const *pvParameters)
 {
+    static fp32 prev_INS_gyro[3] = {0.0f, 0.0f, 0.0f};
     //wait a time
     osDelay(INS_TASK_INIT_TIME);
     while(BMI088_init())
@@ -331,11 +335,54 @@ void INS_task(void const *pvParameters)
 //            ist8310_read_mag(ist8310_real_data.mag);
         }
 
+        {
+            // Use INS_accel (raw, calibrated, body-frame)
+            fp32 accel_body_frame_x = INS_accel[0];
+            fp32 accel_body_frame_y = INS_accel[1];
+            fp32 accel_body_frame_z = INS_accel[2];
+
+            fp32 q0 = INS_quat[0];
+            fp32 q1 = INS_quat[1];
+            fp32 q2 = INS_quat[2];
+            fp32 q3 = INS_quat[3];
+
+            fp32 accel_world_x = (q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * accel_body_frame_x +
+                                 2.0f * (q1 * q2 - q0 * q3) * accel_body_frame_y +
+                                 2.0f * (q1 * q3 + q0 * q2) * accel_body_frame_z;
+
+            fp32 accel_world_y = 2.0f * (q1 * q2 + q0 * q3) * accel_body_frame_x +
+                                 (q0 * q0 - q1 * q1 + q2 * q2 - q3 * q3) * accel_body_frame_y +
+                                 2.0f * (q2 * q3 - q0 * q1) * accel_body_frame_z;
+
+            fp32 accel_world_z = 2.0f * (q1 * q3 - q0 * q2) * accel_body_frame_x +
+                                 2.0f * (q2 * q3 + q0 * q1) * accel_body_frame_y +
+                                 (q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3) * accel_body_frame_z;
+
+            world_linear_accel_raw[0] = accel_world_x;
+            world_linear_accel_raw[1] = accel_world_y;
+            world_linear_accel_raw[2] = accel_world_z - GRAVITY_MAGNITUDE;
+        }
+
+        // --- RAW ANGULAR ACCELERATION (body frame) ---
+        {
+            if (dt > 0.0f)
+            {
+                angular_accel_raw[0] = (INS_gyro[0] - prev_INS_gyro[0]) / dt;
+                angular_accel_raw[1] = (INS_gyro[1] - prev_INS_gyro[1]) / dt;
+                angular_accel_raw[2] = (INS_gyro[2] - prev_INS_gyro[2]) / dt;
+            }
+            else
+            {
+                angular_accel_raw[0] = 0.0f;
+                angular_accel_raw[1] = 0.0f;
+                angular_accel_raw[2] = 0.0f;
+            }
+            prev_INS_gyro[0] = INS_gyro[0];
+            prev_INS_gyro[1] = INS_gyro[1];
+            prev_INS_gyro[2] = INS_gyro[2];
+        }
     }
 }
-
-
-
 
 /**
   * @brief          rotate the gyro, accel and mag, and calculate the zero drift, because sensors have 
@@ -679,6 +726,27 @@ void DMA2_Stream2_IRQHandler(void)
             gyro_update_flag |= (1 << IMU_NOTIFY_SHFITS);
             __HAL_GPIO_EXTI_GENERATE_SWIT(GPIO_PIN_0);
         }
+    }
+}
+
+/**
+  * @brief  Get the raw world-frame linear acceleration (gravity compensated) and raw angular acceleration (body frame).
+  * @param[out] accel_out: Pointer to 3-element array for [x, y, z] linear acceleration (m/s^2)
+  * @param[out] ang_accel_out: Pointer to 3-element array for [x, y, z] angular acceleration (rad/s^2)
+  */
+void get_world_accel_raw(fp32 accel_out[3], fp32 ang_vel_out[3])
+{
+    if (accel_out != NULL)
+    {
+        accel_out[0] = world_linear_accel_raw[0];
+        accel_out[1] = world_linear_accel_raw[1];
+        accel_out[2] = world_linear_accel_raw[2];
+    }
+    if (ang_vel_out != NULL)
+    {
+        ang_vel_out[0] = INS_gyro[0];
+        ang_vel_out[1] = INS_gyro[1];
+        ang_vel_out[2] = INS_gyro[2];
     }
 }
 

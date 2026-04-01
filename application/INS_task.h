@@ -154,4 +154,11 @@ extern void get_world_velocity(fp32 velocity_out[3]);
   */
 extern void get_world_position(fp32 position_out[3]);
 
+/**
+  * @brief  Get the raw world-frame linear acceleration (gravity compensated) and raw angular acceleration (body frame).
+  * @param[out] accel_out: Pointer to 3-element array for [x, y, z] linear acceleration (m/s^2)
+  * @param[out] ang_accel_out: Pointer to 3-element array for [x, y, z] angular acceleration (rad/s^2)
+  */
+extern void get_world_accel_raw(fp32 accel_out[3], fp32 ang_accel_out[3]);
+
 #endif

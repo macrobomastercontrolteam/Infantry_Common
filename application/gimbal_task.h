@@ -277,9 +277,9 @@
 
 #if ROBOT_YAW_IS_4310
 //yaw speed close-loop PID params, max out and max iout
-#define YAW_SPEED_PID_KP        0.7f
-#define YAW_SPEED_PID_KI        1.0f
-#define YAW_SPEED_PID_KD        0.01f
+#define YAW_SPEED_PID_KP        0.75f
+#define YAW_SPEED_PID_KI        0.5f
+#define YAW_SPEED_PID_KD        0.1f
 #define YAW_SPEED_PID_MAX_OUT   6.5f
 #define YAW_SPEED_PID_MAX_IOUT  2.33f
 #else
@@ -287,16 +287,16 @@
 #endif
 
 //pitch gyro angle close-loop PID params, max out and max iout
-#define PITCH_ANGLE_PID_KP 35.0f
+#define PITCH_ANGLE_PID_KP 40.0f
 #define PITCH_ANGLE_PID_KI 0.0f
-#define PITCH_ANGLE_PID_KD 0.0f
+#define PITCH_ANGLE_PID_KD 0.3f
 #define PITCH_ANGLE_PID_MAX_OUT 10.0f
 #define PITCH_ANGLE_PID_MAX_IOUT 15.0f
 
 //yaw gyro angle close-loop PID params, max out and max iout
-#define YAW_ANGLE_PID_KP        30.0f
-#define YAW_ANGLE_PID_KI        0.0f
-#define YAW_ANGLE_PID_KD        0.05f
+#define YAW_ANGLE_PID_KP        35.0f
+#define YAW_ANGLE_PID_KI        2.0f
+#define YAW_ANGLE_PID_KD        0.9f
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
@@ -410,7 +410,7 @@
 #define TURN_SPEED    0.04f
 #define TEST_KEYBOARD KEY_PRESSED_OFFSET_R
 //joystick value deadband
-#define RC_DEADBAND   10
+#define RC_DEADBAND   30
 
 #if CV_INTERFACE
 // #define CV_CAMERA_YAW_DEADBAND   0.0174533f // 1 degree
@@ -603,6 +603,6 @@ extern bool_t gimbal_emergency_stop(void);
 
 extern fp32 get_gimbal_relative_yaw_angle(void);
 extern fp32 get_gimbal_relative_pitch_angle(void);
-extern fp32 get_gimbal_abs_yaw_angle(void);
-extern fp32 get_gimbal_abs_pitch_angle(void);
+extern fp32 get_gimbal_ecd_yaw_angle(void);
+extern fp32 get_gimbal_ecd_pitch_angle(void);
 #endif

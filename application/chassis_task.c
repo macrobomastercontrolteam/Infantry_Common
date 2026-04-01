@@ -197,7 +197,8 @@ static void chassis_init(void)
 	ramp_init(&chassis_move.chassis_cmd_slow_set_vx, CHASSIS_CONTROL_TIME_S, NORMAL_MAX_CHASSIS_SPEED_X, -NORMAL_MAX_CHASSIS_SPEED_X);
 	ramp_init(&chassis_move.chassis_cmd_slow_set_vy, CHASSIS_CONTROL_TIME_S, NORMAL_MAX_CHASSIS_SPEED_Y, -NORMAL_MAX_CHASSIS_SPEED_Y);
 	first_order_filter_init(&chassis_move.chassis_cmd_slow_set_wz, CHASSIS_CONTROL_TIME_S, chassis_wz_order_filter);
-
+	//low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vx.out, 0.05f, 1);
+	//low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vy.out, 0.05f, 1);
 	chassis_move.vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
 	chassis_move.vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
 	chassis_move.wz_max_speed = SPINNING_CHASSIS_MAX_OMEGA;

@@ -24,7 +24,7 @@
 #include "global_inc.h"
 
 // Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
-#define ENABLE_SHOOT_REDUNDANT_SWITCH 0
+#define ENABLE_SHOOT_REDUNDANT_SWITCH 1
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
@@ -284,6 +284,7 @@ typedef struct
     uint16_t barrel_1_heat;
     uint16_t chassis_power_buffer; 
     uint16_t chassis_power_limit;
+    int16_t encoded_chassis_power;
 } can_ref_info_t;
 
 //typedef struct 
@@ -396,6 +397,13 @@ void decode_supercap(uint8_t *data);
 
 void decode_power_meter(uint8_t *data);
 fp32 get_chassis_power_meter_data(void);
+typedef enum
+{
+    POWER_MANAGEMNT_CHASSIS_BIT = 1 << 0,
+    POWER_MANAGEMNT_SHOOTER_BIT = 1 << 1,
+    POWER_MANAGEMNT_GIMBAL_BIT = 1 << 2,
+
+} ePowerManagementBits;
 
 #if CAN_PASS_REF_INFO
 extern can_ref_info_t can_ref_info;
