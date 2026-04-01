@@ -396,7 +396,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
     }
 
-#if !(ROBOT_TYPE == SENTRY_2023_MECANUM) // remote controller logic
+#if !((ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)) // remote controller logic
 
     if (gimbal_emergency_stop())
     {
@@ -417,7 +417,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 		{
 			case RC_SW_UP:
 			{
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
                 gimbal_behaviour = GIMBAL_AUTO_AIM;
 #else
                 gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;

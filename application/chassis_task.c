@@ -35,6 +35,8 @@
 #define STEER_MOTOR_UPSIDE_DOWN_MOUNTING 0
 #define SWERVE_INVALID_HIP_DATA_RESET_TIMEOUT 1000
 
+fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
+
 /**
  * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors
  *                 data point initialization, gimbal motor data point initialization, and gyro sensor angle point initialization.
@@ -159,8 +161,6 @@ static void chassis_init(void)
 	// chassis angle PID
 	const static fp32 chassis_yaw_pid[3] = {CHASSIS_FOLLOW_GIMBAL_PID_KP, CHASSIS_FOLLOW_GIMBAL_PID_KI, CHASSIS_FOLLOW_GIMBAL_PID_KD};
 
-	const static fp32 chassis_x_order_filter[1] = {CHASSIS_ACCEL_X_NUM};
-	const static fp32 chassis_y_order_filter[1] = {CHASSIS_ACCEL_Y_NUM};
 	const static fp32 chassis_wz_order_filter[1] = {CHASSIS_ACCEL_WZ_NUM};
 
 	chassis_move.chassis_coord_sys = CHASSIS_COORDINATE_FOLLOW_CHASSIS_RELATIVE_FRONT;
@@ -174,6 +174,15 @@ static void chassis_init(void)
 	{
 		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
 	}
+
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+	const static fp32 motor_speed_pid[3] = {MG4010_MOTOR_SPEED_PID_KP, MG4010_MOTOR_SPEED_PID_KI, MG4010_MOTOR_SPEED_PID_KD};
+	for (uint8_t i = 0; i < sizeof(chassis_move.wheel_rot_radii) / sizeof(chassis_move.wheel_rot_radii[0]); i++)
+	{
+		chassis_move.motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i);
+		PID_init(&chassis_move.motor_speed_pid[i], PID_POSITION, motor_speed_pid, MG4010_MOTOR_SPEED_PID_MAX_OUT, MG4010_MOTOR_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
+		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
+	}
 #else
 	const static fp32 motor_speed_pid[3] = {M3508_MOTOR_SPEED_PID_KP, M3508_MOTOR_SPEED_PID_KI, M3508_MOTOR_SPEED_PID_KD};
 	for (uint8_t i = 0; i < sizeof(chassis_move.wheel_rot_radii) / sizeof(chassis_move.wheel_rot_radii[0]); i++)
@@ -185,20 +194,22 @@ static void chassis_init(void)
 #endif
 	PID_init(&chassis_move.chassis_angle_pid, PID_POSITION, chassis_yaw_pid, CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT, CHASSIS_FOLLOW_GIMBAL_PID_MAX_IOUT, 0, &rad_err_handler);
 
-	first_order_filter_init(&chassis_move.chassis_cmd_slow_set_vx, CHASSIS_CONTROL_TIME_S, chassis_x_order_filter);
-	first_order_filter_init(&chassis_move.chassis_cmd_slow_set_vy, CHASSIS_CONTROL_TIME_S, chassis_y_order_filter);
+	ramp_init(&chassis_move.chassis_cmd_slow_set_vx, CHASSIS_CONTROL_TIME_S, NORMAL_MAX_CHASSIS_SPEED_X, -NORMAL_MAX_CHASSIS_SPEED_X);
+	ramp_init(&chassis_move.chassis_cmd_slow_set_vy, CHASSIS_CONTROL_TIME_S, NORMAL_MAX_CHASSIS_SPEED_Y, -NORMAL_MAX_CHASSIS_SPEED_Y);
 	first_order_filter_init(&chassis_move.chassis_cmd_slow_set_wz, CHASSIS_CONTROL_TIME_S, chassis_wz_order_filter);
-	low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vx.out, 0.05f, 1);
-	low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vy.out, 0.05f, 1);
+	//low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vx.out, 0.05f, 1);
+	//low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vy.out, 0.05f, 1);
 	chassis_move.vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
 	chassis_move.vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
 	chassis_move.wz_max_speed = SPINNING_CHASSIS_MAX_OMEGA;
 
 	chassis_move.dial_channel_latched = 0;
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 	chassis_move.fRandomSpinOn = 1;
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	chassis_move.fUpperHeadEnabled = 0;
+#endif
 #else
 	chassis_move.fRandomSpinOn = 0;
 #endif
@@ -294,9 +305,18 @@ static void chassis_feedback_update(void)
 
 #if (ROBOT_TYPE != INFANTRY_2023_SWERVE)
 	// update chassis parameters: vertical speed x, horizontal speed y, rotation speed wz, right hand rule
+#if (WHEEL_TYPE ==ROBOT_CHASSIS_USE_MECANUM)
+	// Mecanum wheel feedback calculation
 	chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
 	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
 	chassis_move.wz = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
+#elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
+	// Omni wheel feedback calculation
+	// For omni wheels in square arrangement: sum and difference combinations give vx, vy, wz
+	chassis_move.vx = (chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
+	chassis_move.vy = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
+	chassis_move.wz = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
+#endif
 #endif
 #endif
 
@@ -335,83 +355,83 @@ void chassis_speed_max_adj(void)
 	fp32 vx_speed_limit = 0;
 	fp32 vy_speed_limit = 0;
 	uint16_t uiPowerLevel = fp32_constrain(ref_chassis_power_limit - 40, 0, 100) / 5;
-	switch (uiPowerLevel)
-	{
-		case 0:
-		case 1:
-		{
-			// 0-49
-			vx_speed_limit = 1.41;
-			vy_speed_limit = 1.41;
-			break;
-		}
-		case 2:
-		{
-			// 50-54
-			vx_speed_limit = 1.58;
-			vy_speed_limit = 1.58;
-			break;
-		}
-		case 3:
-		{
-			// 55-59
-			// low: 1.6
-			// high: 1.8
-			vx_speed_limit = 1.71;
-			vy_speed_limit = 1.71;
-			break;
-		}
-		case 4:
-		{
-			// 60-64
-			vx_speed_limit = 1.75;
-			vy_speed_limit = 1.75;
-			break;
-		}
-		case 5:
-		{
-			// 65-69
-			vx_speed_limit = 1.775;
-			vy_speed_limit = 1.775;
-			break;
-		}
-		case 6:
-		{
-			// 70-74
-			vx_speed_limit = 1.85;
-			vy_speed_limit = 1.85;
-			break;
-		}
-		case 7:
-		{
-			// 75-79
-			vx_speed_limit = 1.9;
-			vy_speed_limit = 1.9;
-			break;
-		}
-		case 8:
-		{
-			// 80-84
-			vx_speed_limit = 1.925;
-			vy_speed_limit = 1.925;
-			break;
-		}
-		case 9:
-		{
-			// 85-89
-			vx_speed_limit = 2.0;
-			vy_speed_limit = 2.0;
-			break;
-		}
-		case 10:
-		default:
-		{
-			// 90-94
-			vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X;
-			vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y;
-			break;
-		}
-	}
+	// switch (uiPowerLevel)
+	// {
+	// 	case 0:
+	// 	case 1:
+	// 	{
+	// 		// 0-49
+	// 		vx_speed_limit = 1.41;
+	// 		vy_speed_limit = 1.41;
+	// 		break;
+	// 	}
+	// 	case 2:
+	// 	{
+	// 		// 50-54
+	// 		vx_speed_limit = 1.58;
+	// 		vy_speed_limit = 1.58;
+	// 		break;
+	// 	}
+	// 	case 3:
+	// 	{
+	// 		// 55-59
+	// 		// low: 1.6
+	// 		// high: 1.8
+	// 		vx_speed_limit = 1.71;
+	// 		vy_speed_limit = 1.71;
+	// 		break;
+	// 	}
+	// 	case 4:
+	// 	{
+	// 		// 60-64
+	// 		vx_speed_limit = 1.75;
+	// 		vy_speed_limit = 1.75;
+	// 		break;
+	// 	}
+	// 	case 5:
+	// 	{
+	// 		// 65-69
+	// 		vx_speed_limit = 1.775;
+	// 		vy_speed_limit = 1.775;
+	// 		break;
+	// 	}
+	// 	case 6:
+	// 	{
+	// 		// 70-74
+	// 		vx_speed_limit = 1.85;
+	// 		vy_speed_limit = 1.85;
+	// 		break;
+	// 	}
+	// 	case 7:
+	// 	{
+	// 		// 75-79
+	// 		vx_speed_limit = 1.9;
+	// 		vy_speed_limit = 1.9;
+	// 		break;
+	// 	}
+	// 	case 8:
+	// 	{
+	// 		// 80-84
+	// 		vx_speed_limit = 1.925;
+	// 		vy_speed_limit = 1.925;
+	// 		break;
+	// 	}
+	// 	case 9:
+	// 	{
+	// 		// 85-89
+	// 		vx_speed_limit = 2.0;
+	// 		vy_speed_limit = 2.0;
+	// 		break;
+	// 	}
+	// 	case 10:
+	// 	default:
+	// 	{
+	// 		// 90-94
+	vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X;
+	vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y;
+	// 		break;
+	// 	}
+	// }
 	
 	if ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE) && (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE))
 	{
@@ -482,21 +502,24 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set)
 		vy_set_channel = -chassis_move.vy_max_speed;
 	}
 
-	// first order low-pass replace ramp function, calculate chassis speed set-point to improve control performance
-	first_order_filter_cali(&chassis_move.chassis_cmd_slow_set_vx, vx_set_channel);
-	first_order_filter_cali(&chassis_move.chassis_cmd_slow_set_vy, vy_set_channel);
-	low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vx.out, 0.05f, 0);
-	low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vy.out, 0.05f, 0);
-	// stop command, need not slow change, set zero derectly
-	if (fabs(vx_set_channel) < CHASSIS_RC_DEADLINE * vx_rc_sen)
-	{
-		chassis_move.chassis_cmd_slow_set_vx.out = 0.0f;
-	}
+	// RC input shaping with ramp: keep this at input layer so other control logic remains intact
+	chassis_move.chassis_cmd_slow_set_vx.max_value = chassis_move.vx_max_speed;
+	chassis_move.chassis_cmd_slow_set_vx.min_value = -chassis_move.vx_max_speed;
+	chassis_move.chassis_cmd_slow_set_vy.max_value = chassis_move.vy_max_speed;
+	chassis_move.chassis_cmd_slow_set_vy.min_value = -chassis_move.vy_max_speed;
 
-	if (fabs(vy_set_channel) < CHASSIS_RC_DEADLINE * vy_rc_sen)
-	{
-		chassis_move.chassis_cmd_slow_set_vy.out = 0.0f;
-	}
+	// decelerate faster only when command magnitude is reduced (stop/down-ramp)
+	fp32 vx_limit = (fabs(vx_set_channel) < fabs(chassis_move.chassis_cmd_slow_set_vx.out)) ? CHASSIS_DECEL_X_NUM : CHASSIS_ACCEL_X_NUM;
+	fp32 vx_ramp_input = fp32_constrain(
+		(vx_set_channel - chassis_move.chassis_cmd_slow_set_vx.out) / CHASSIS_CONTROL_TIME_S,
+		-vx_limit, vx_limit);
+	ramp_calc(&chassis_move.chassis_cmd_slow_set_vx, vx_ramp_input);
+
+	fp32 vy_limit = (fabs(vy_set_channel) < fabs(chassis_move.chassis_cmd_slow_set_vy.out)) ? CHASSIS_DECEL_Y_NUM : CHASSIS_ACCEL_Y_NUM;
+	fp32 vy_ramp_input = fp32_constrain(
+		(vy_set_channel - chassis_move.chassis_cmd_slow_set_vy.out) / CHASSIS_CONTROL_TIME_S,
+		-vy_limit, vy_limit);
+	ramp_calc(&chassis_move.chassis_cmd_slow_set_vy, vy_ramp_input);
 
 	*vx_set = chassis_move.chassis_cmd_slow_set_vx.out;
 	*vy_set = chassis_move.chassis_cmd_slow_set_vy.out;
@@ -719,7 +742,7 @@ static void chassis_set_control(void)
 	chassis_move.vy_set = fp32_abs_constrain(chassis_move.vy_set, chassis_move.vy_max_speed);
 }
 
-#if ROBOT_CHASSIS_USE_MECANUM
+#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM)
 /**
  * @brief          four mecanum wheels speed is calculated by three param.
  * @param[in]      vx_set: vertial speed
@@ -735,6 +758,41 @@ static void mecanum_chassis_vector_to_wheel_speed(const fp32 vx_set, const fp32 
 	wheel_speed[1] = vx_set - vy_set + (CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[1] * wz_set;
 	wheel_speed[2] = vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[2] * wz_set;
 	wheel_speed[3] = -vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[3] * wz_set;
+}
+#elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
+/**
+ * @brief          four omni wheels speed is calculated by three param.
+ * @note           Omni wheels (Swedish wheels) are arranged in a square pattern.
+ *                 Each wheel can move independently, providing omnidirectional motion
+ *                 without the need for rotation of the wheel itself.
+ * @param[in]      vx_set: vertical speed (forward/backward)
+ * @param[in]      vy_set: horizontal speed (left/right)
+ * @param[in]      wz_set: rotation speed (clockwise/counter-clockwise)
+ * @param[out]     wheel_speed: four omni wheels speed
+ * @retval         none
+ */
+static void omni_chassis_vector_to_wheel_speed(const fp32 vx_set, const fp32 vy_set, const fp32 wz_set, fp32 wheel_speed[4])
+{
+	// Omni wheel kinematics: each wheel contributes to forward, lateral, and rotational motion
+	// Wheel layout: 0=front-right, 1=front-left, 2=rear-left, 3=rear-right
+	// The rotation contribution is scaled by CHASSIS_WZ_SET_SCALE to account for gimbal position
+	
+	// Forward/backward contribution (vx)
+	fp32 vx_contrib = vx_set;
+	// Lateral contribution (vy)
+	fp32 vy_contrib = vy_set;
+	// Rotation contribution (wz) - scaled by distance to center
+	fp32 wz_contrib = (CHASSIS_WZ_SET_SCALE - 1.0f) * chassis_move.wheel_rot_radii[0] * wz_set;
+	
+	// Calculate wheel speeds for omni configuration
+	// Front-right wheel
+	wheel_speed[0] = -vx_contrib - vy_contrib + wz_contrib;
+	// Front-left wheel
+	wheel_speed[1] = +vx_contrib - vy_contrib + wz_contrib;
+	// Rear-left wheel
+	wheel_speed[2] = +vx_contrib + vy_contrib + wz_contrib;
+	// Rear-right wheel
+	wheel_speed[3] = -vx_contrib + vy_contrib + wz_contrib;
 }
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 /**
@@ -974,12 +1032,16 @@ static void chassis_control_loop(void)
 #else
 	fp32 max_vector = 0.0f, vector_rate = 0.0f;
 	fp32 temp = 0.0f;
-	fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
+	//fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
 	uint8_t i = 0;
 
-#if ROBOT_CHASSIS_USE_MECANUM
+#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM)
 	// mecanum chassis inverse kinematics
 	mecanum_chassis_vector_to_wheel_speed(chassis_move.vx_set, chassis_move.vy_set, chassis_move.wz_set, wheel_speed);
+#elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
+	// omni chassis inverse kinematics
+	omni_chassis_vector_to_wheel_speed(chassis_move.vx_set, chassis_move.vy_set, chassis_move.wz_set, wheel_speed);
+
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	// swerve chassis inverse kinematics
 	fp32 steer_wheel_angle[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit rad
@@ -990,7 +1052,7 @@ static void chassis_control_loop(void)
 	{
 		for (i = 0; i < 4; i++)
 		{
-			chassis_move.motor_chassis[i].give_current = (int16_t)(wheel_speed[i]);
+			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)(wheel_speed[i]);
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 			chassis_move.steer_motor_chassis[i].target_ecd = motor_angle_to_ecd_change(steer_wheel_angle[i]);
 #endif
@@ -1033,7 +1095,7 @@ static void chassis_control_loop(void)
 		}
 		for (i = 0; i < 4; i++)
 		{
-			chassis_move.motor_chassis[i].give_current = (int16_t)(chassis_move.motor_speed_pid[i].out);
+			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)((chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
 		}
 	}
 #endif

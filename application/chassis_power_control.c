@@ -51,96 +51,96 @@ fp32 current_scale;
 
 void chassis_power_control(uint8_t fEnablePowerSaving)
 {
-    static fp32 total_current_limit = 0;
-    fp32 total_current = 0.0f;
-    // calculate the original motor current set
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        total_current += fabs(chassis_move.motor_speed_pid[i].out);
-    }
-
-    chassis_power = get_current_chassis_power() / 100.0f;
-
-    // if (toe_is_error(REFEREE_TOE) || (get_robot_id() == 0))
-    // {
-    //     total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
-    // }
-    // else
-    // {
-        fp32 chassis_power_buffer;
-        //fp32 cap_voltage = cap_message_rx.cap_message.cap_milivoltage / 1000.0f;
-        get_chassis_power_data(&chassis_power_buffer, &chassis_power_limit);
-        //chassis_power = get_chassis_power_meter_data();
-        // Not use supercap
-        if (chassis_power_control_mode_change(fEnablePowerSaving))
-        {
-            // Avoid windup after power being limited
-            // @TODO: fix unsynchronization issue of M3508 speed after power limiter is triggered
-            if (chassis_move.motor_speed_pid[0].max_iout != 0)
-            {
-                for (uint8_t i = 0; i < 4; i++)
-                {
-                    chassis_move.motor_speed_pid[i].max_iout = 0;
-                    chassis_move.motor_speed_pid[i].Kp = M3508_MOTOR_SPEED_PID_KP * 0.8f;
-                }
-            }
-
-            fp32 raw_current_limit = M3508_POWER_TO_CURRENT(chassis_power_limit / M3508_POWER_CONTROL_DELAY_S);
-            if (chassis_power_buffer >= WARNING_POWER_BUFF)
-            {
-                if ((chassis_power <= (chassis_power_limit * WARNING_POWER_RATIO)) || (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT))
-                {
-                    raw_current_limit += M3508_POWER_TO_CURRENT(chassis_power_buffer / M3508_POWER_CONTROL_SHRINKED_DELAY_S);
-                }
-                else
-                {
-                    raw_current_limit += M3508_POWER_TO_CURRENT(chassis_power_buffer / M3508_POWER_CONTROL_DELAY_S);
-                }
-            }
-            else
-            {
-                raw_current_limit = M3508_POWER_TO_CURRENT(chassis_power_buffer / M3508_POWER_CONTROL_DELAY_S);
-            }
-            total_current_limit = first_order_filter(raw_current_limit, total_current_limit, CURRENT_LIMIT_FILTER_COEFF);
-
-            if (total_current > total_current_limit * 1.5f)
-            {
-                // only limit current of driver motors, because power usage by steering motors is small and difficult to estimate. Because we control voltage input to steering motor (GM6020), not current
-                current_scale = total_current_limit / total_current;
-                chassis_move.motor_speed_pid[0].out *= current_scale;
-                chassis_move.motor_speed_pid[1].out *= current_scale;
-                chassis_move.motor_speed_pid[2].out *= current_scale;
-                chassis_move.motor_speed_pid[3].out *= current_scale;
-            }
-        }
-        // Use supercap
-        else
-        {
-            // turn back integral term
-            if (chassis_move.motor_speed_pid[0].max_iout == 0)
-            {
-                for (uint8_t i = 0; i < 4; i++)
-                {
-                    chassis_move.motor_speed_pid[i].max_iout = M3508_MOTOR_SPEED_PID_MAX_IOUT;
-                    chassis_move.motor_speed_pid[i].Kp = M3508_MOTOR_SPEED_PID_KP;
-                }
-            }
-        }
+    //static fp32 total_current_limit = 0;
+    //fp32 total_current = 0.0f;
+    //// calculate the original motor current set
+    //for (uint8_t i = 0; i < 4; i++)
+    //{
+    //    total_current += fabs(chassis_move.motor_speed_pid[i].out);
+    //}
+//
+    //chassis_power = get_current_chassis_power() / 100.0f;
+//
+    //// if (toe_is_error(REFEREE_TOE) || (get_robot_id() == 0))
+    //// {
+    ////     total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
+    //// }
+    //// else
+    //// {
+    //    fp32 chassis_power_buffer;
+    //    //fp32 cap_voltage = cap_message_rx.cap_message.cap_milivoltage / 1000.0f;
+    //    get_chassis_power_data(&chassis_power_buffer, &chassis_power_limit);
+    //    //chassis_power = get_chassis_power_meter_data();
+    //    // Not use supercap
+    //    if (chassis_power_control_mode_change(fEnablePowerSaving))
+    //    {
+    //        // Avoid windup after power being limited
+    //        // @TODO: fix unsynchronization issue of M3508 speed after power limiter is triggered
+    //        if (chassis_move.motor_speed_pid[0].max_iout != 0)
+    //        {
+    //            for (uint8_t i = 0; i < 4; i++)
+    //            {
+    //                chassis_move.motor_speed_pid[i].max_iout = 0;
+    //                chassis_move.motor_speed_pid[i].Kp = M3508_MOTOR_SPEED_PID_KP * 0.8f;
+    //            }
+    //        }
+//
+    //        fp32 raw_current_limit = M3508_POWER_TO_CURRENT(chassis_power_limit / M3508_POWER_CONTROL_DELAY_S);
+    //        if (chassis_power_buffer >= WARNING_POWER_BUFF)
+    //        {
+    //            if ((chassis_power <= (chassis_power_limit * WARNING_POWER_RATIO)) || (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT))
+    //            {
+    //                raw_current_limit += M3508_POWER_TO_CURRENT(chassis_power_buffer / M3508_POWER_CONTROL_SHRINKED_DELAY_S);
+    //            }
+    //            else
+    //            {
+    //                raw_current_limit += M3508_POWER_TO_CURRENT(chassis_power_buffer / M3508_POWER_CONTROL_DELAY_S);
+    //            }
+    //        }
+    //        else
+    //        {
+    //            raw_current_limit = M3508_POWER_TO_CURRENT(chassis_power_buffer / M3508_POWER_CONTROL_DELAY_S);
+    //        }
+    //        total_current_limit = first_order_filter(raw_current_limit, total_current_limit, CURRENT_LIMIT_FILTER_COEFF);
+//
+    //        if (total_current > total_current_limit * 1.5f)
+    //        {
+    //            // only limit current of driver motors, because power usage by steering motors is small and difficult to estimate. Because we control voltage input to steering motor (GM6020), not current
+    //            current_scale = total_current_limit / total_current;
+    //            chassis_move.motor_speed_pid[0].out *= current_scale;
+    //            chassis_move.motor_speed_pid[1].out *= current_scale;
+    //            chassis_move.motor_speed_pid[2].out *= current_scale;
+    //            chassis_move.motor_speed_pid[3].out *= current_scale;
+    //        }
+    //    }
+    //    // Use supercap
+    //    else
+    //    {
+    //        // turn back integral term
+    //        if (chassis_move.motor_speed_pid[0].max_iout == 0)
+    //        {
+    //            for (uint8_t i = 0; i < 4; i++)
+    //            {
+    //                chassis_move.motor_speed_pid[i].max_iout = M3508_MOTOR_SPEED_PID_MAX_IOUT;
+    //                chassis_move.motor_speed_pid[i].Kp = M3508_MOTOR_SPEED_PID_KP;
+    //            }
+    //        }
+    //    }
     // }
 }
 
 bool_t chassis_power_control_mode_change(uint8_t fIsKeyPressed){
-    static uint8_t fLastKeyPressed = 0;
-    static uint8_t toggle_mode = 0;
-    if (fLastKeyPressed != fIsKeyPressed)
-    {
-        fLastKeyPressed = fIsKeyPressed;
-        if (fIsKeyPressed)
-        {
-            toggle_mode = !toggle_mode;
-            
-        }
-    }
-
-    return toggle_mode;
+    //static uint8_t fLastKeyPressed = 0;
+    //static uint8_t toggle_mode = 0;
+    //if (fLastKeyPressed != fIsKeyPressed)
+    //{
+    //    fLastKeyPressed = fIsKeyPressed;
+    //    if (fIsKeyPressed)
+    //    {
+    //        toggle_mode = !toggle_mode;
+    //        
+    //    }
+    //}
+//
+    //return toggle_mode;
 }

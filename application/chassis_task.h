@@ -25,9 +25,9 @@
 #include "user_lib.h"
 
 // default values
-#define SPINNING_CHASSIS_MAX_OMEGA RPM_TO_RADS(60.0f)
+#define SPINNING_CHASSIS_MAX_OMEGA RPM_TO_RADS(120.0f)
 #define SPINNING_CHASSIS_HIGH_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.833f)
-#define SPINNING_CHASSIS_MED_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.667f)
+#define SPINNING_CHASSIS_MED_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 1.1f)
 #define SPINNING_CHASSIS_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.583f)
 #define SPINNING_CHASSIS_ULTRA_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.167f)
 
@@ -35,8 +35,10 @@
 #define CHASSIS_TASK_INIT_TIME 357
 
 #define CHASSIS_ACCEL_WZ_NUM 0.06f
-#define CHASSIS_ACCEL_X_NUM 0.5f
-#define CHASSIS_ACCEL_Y_NUM 0.5f
+#define CHASSIS_ACCEL_X_NUM 1.0f
+#define CHASSIS_ACCEL_Y_NUM 1.0f
+#define CHASSIS_DECEL_X_NUM (CHASSIS_ACCEL_X_NUM * 20.0f) // stop in 1/4 of acceleration time
+#define CHASSIS_DECEL_Y_NUM (CHASSIS_ACCEL_Y_NUM * 20.0f)
 
 // joystick value deadline
 #define CHASSIS_RC_DEADLINE 20
@@ -79,7 +81,9 @@
 #define CHASSIS_LEG_TO_HORIZONTAL_ANGLE (PI / 4.0f)
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(CHASSIS_THETA_LOWER_LIMIT))
 #elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.3259247634040715f
+#define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.15f
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+#define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.15f
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.235f
 #elif (ROBOT_TYPE == HERO_2025_MECANUM)
@@ -104,7 +108,7 @@
 
 // drive wheel parameters
 #define M3508_MOTOR_GEAR_RATIO (3591.0f / 187.0f)
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 #define DRIVE_WHEEL_RADIUS 0.0785f
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define DRIVE_WHEEL_RADIUS 0.055f
@@ -112,11 +116,21 @@
 #define DRIVE_WHEEL_RADIUS 0.0675f
 #endif
 // Ratio of M3508 speed in rpm to chassis speed in m/s
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+#define MG4010_MOTOR_RPM_TO_VECTOR ((2.0f * PI / 60.0f) * DRIVE_WHEEL_RADIUS / MOTOR_MG4010_GEAR_RATIO)
+#define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN MG4010_MOTOR_RPM_TO_VECTOR
+#define MOTOR_ROTOR_TO_OUTPUT_CONSTANT  (1.0f / (2.0f * PI * DRIVE_WHEEL_RADIUS) * 360 * MOTOR_MG4010_GEAR_RATIO)
+#elif (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
 #define M3508_MOTOR_RPM_TO_VECTOR ((2.0f * PI / 60.0f) * DRIVE_WHEEL_RADIUS / M3508_MOTOR_GEAR_RATIO)
 #define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
+#define MOTOR_ROTOR_TO_OUTPUT_CONSTANT 1.0f
+#else
+#define M3508_MOTOR_RPM_TO_VECTOR ((2.0f * PI / 60.0f) * DRIVE_WHEEL_RADIUS / M3508_MOTOR_GEAR_RATIO)
+#define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
+#endif
 
 // single chassis motor max speed
-#define MAX_WHEEL_SPEED 4.0f
+#define MAX_WHEEL_SPEED 3.0f
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)
 // chassis forward or back max speed
 #define NORMAL_MAX_CHASSIS_SPEED_X 2.475f
@@ -126,18 +140,24 @@
 #define SPRINT_MAX_CHASSIS_SPEED_Y SPRINT_MAX_CHASSIS_SPEED_X
 #else
 // chassis forward or back max speed
-#define NORMAL_MAX_CHASSIS_SPEED_X 3.0f
-#define SPRINT_MAX_CHASSIS_SPEED_X 4.45f
+#define NORMAL_MAX_CHASSIS_SPEED_X 3.5f
+#define SPRINT_MAX_CHASSIS_SPEED_X 3.5f
 // chassis left or right max speed
-#define NORMAL_MAX_CHASSIS_SPEED_Y 3.0f
-#define SPRINT_MAX_CHASSIS_SPEED_Y 4.45f
+#define NORMAL_MAX_CHASSIS_SPEED_Y 5.0f
+#define SPRINT_MAX_CHASSIS_SPEED_Y 5.0f
 #endif
 #define NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO 1.5f
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+// Omni wheel kinematics conversion factors
+// Adjust these values based on your specific omni wheel configuration and chassis dimensions
+#define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
+#define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
+#define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 2.0f
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // avoid changing angle too often near zero speed
 #define STEER_TURN_X_SPEED_DEADZONE 0.01f
@@ -171,11 +191,17 @@
 
 // chassis motor speed PID
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define M3508_MOTOR_SPEED_PID_KP 35000.0f
-#define M3508_MOTOR_SPEED_PID_KI 1000.0f
+#define M3508_MOTOR_SPEED_PID_KP 30000.0f
+#define M3508_MOTOR_SPEED_PID_KI 500.0f
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
 #define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+#define MG4010_MOTOR_SPEED_PID_KP 0.8f
+#define MG4010_MOTOR_SPEED_PID_KI 0.0f
+#define MG4010_MOTOR_SPEED_PID_KD 0.0f
+#define MG4010_MOTOR_SPEED_PID_MAX_OUT 2.0f
+#define MG4010_MOTOR_SPEED_PID_MAX_IOUT 0.2f
 #elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define M3508_MOTOR_SPEED_PID_KP 30000.0f
 #define M3508_MOTOR_SPEED_PID_KI 500.0f
@@ -212,7 +238,7 @@ typedef struct
 	fp32 accel;
 	fp32 speed;
 	fp32 speed_set;
-	int16_t give_current;
+	int16_t give_chassis_motor_cmd; // control current command for chassis M3508 motor deg/s*(gear ratio) for MG4010
 } chassis_motor_t;
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
@@ -302,8 +328,8 @@ typedef struct
 	pid_type_def motor_speed_pid[4];           // motor speed PID
 #endif
 
-	first_order_filter_type_t chassis_cmd_slow_set_vx; // use first order filter to slow set-point
-	first_order_filter_type_t chassis_cmd_slow_set_vy; // use first order filter to slow set-point
+	ramp_function_source_t chassis_cmd_slow_set_vx;    // RC input ramp for vx command shaping
+	ramp_function_source_t chassis_cmd_slow_set_vy;    // RC input ramp for vy command shaping
 	first_order_filter_type_t chassis_cmd_slow_set_wz; // use first order filter to slow set-point
 
 #if !(ROBOT_TYPE == INFANTRY_2023_SWERVE)
