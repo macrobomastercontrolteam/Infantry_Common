@@ -247,6 +247,11 @@ typedef struct
 	fp32 target_pitch;
 	fp32 target_height;
 
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	fp32 target_height_front;
+	fp32 target_height_back;
+#endif
+
 	fp32 target_alpha1;
 	fp32 target_alpha2;
 

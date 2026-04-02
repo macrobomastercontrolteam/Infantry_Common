@@ -1182,15 +1182,15 @@ void CAN_cmd_chassis_hip(void)
 	if (chassis_move.fHipEnabled)
 	{
 		int16_t target_alpha1_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha1, CHASSIS_ANGLE_ECD_MAX_LIMIT) * chassis_angle_encoding_ratio;
-		int16_t target_alpha2_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha2, CHASSIS_ANGLE_ECD_MAX_LIMIT) * chassis_angle_encoding_ratio;
-		uint16_t target_height_cmd = fp32_constrain(chassis_move.chassis_platform.target_height, 0, CHASSIS_METER_ECD_MAX_LIMIT) * chassis_meter_encoding_ratio;
+		uint16_t target_height_front_cmd = fp32_constrain(chassis_move.chassis_platform.target_height_front, 0, CHASSIS_METER_ECD_MAX_LIMIT) * chassis_meter_encoding_ratio;
+		uint16_t target_height_back_cmd = fp32_constrain(chassis_move.chassis_platform.target_height_back, 0, CHASSIS_METER_ECD_MAX_LIMIT) * chassis_meter_encoding_ratio;
 
 		chassis_can_send_data[0] = target_alpha1_cmd >> 8;
 		chassis_can_send_data[1] = target_alpha1_cmd;
-		chassis_can_send_data[2] = target_alpha2_cmd >> 8;
-		chassis_can_send_data[3] = target_alpha2_cmd;
-		chassis_can_send_data[4] = target_height_cmd >> 8;
-		chassis_can_send_data[5] = target_height_cmd;
+		chassis_can_send_data[2] = target_height_front_cmd >> 8;
+		chassis_can_send_data[3] = target_height_front_cmd;
+		chassis_can_send_data[4] = target_height_back_cmd >> 8;
+		chassis_can_send_data[5] = target_height_back_cmd;
 		// reserved
 		// chassis_can_send_data[6] = rev >> 8;
 		// chassis_can_send_data[7] = rev;
