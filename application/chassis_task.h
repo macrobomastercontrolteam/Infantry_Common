@@ -62,7 +62,8 @@ typedef struct
 	// Upper board command values
 	fp32 target_alpha1;                                  ///< unit rad
 	fp32 target_alpha2;                                  ///< unit rad
-	fp32 target_height;                                  ///< unit m
+	fp32 target_height_front;                            ///< unit m, target height for front hips (hip 1 & 2)
+	fp32 target_height_back;                             ///< unit m, target height for back hips (hip 3 & 4)
 	                                                     // feedback values back to Upper board
 	fp32 current_alpha1;                                 ///< unit rad
 	fp32 current_alpha2;                                 ///< unit rad

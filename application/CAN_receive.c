@@ -255,25 +255,29 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 #if (HEADLESS_HIP_TEST == 0)
 				if (chassis_move.fHipMotorEnabled)
 				{
-					chassis_move.target_alpha1 = (int16_t)((rx_data[0] << 8) | rx_data[1]) / angle_encoding_ratio;
-					chassis_move.target_alpha2 = (int16_t)((rx_data[2] << 8) | rx_data[3]) / angle_encoding_ratio;
-					chassis_move.target_height = (uint16_t)((rx_data[4] << 8) | rx_data[5]) / meter_encoding_ratio;
+					chassis_move.target_alpha1       = (int16_t)((rx_data[0] << 8) | rx_data[1]) / angle_encoding_ratio;
+					chassis_move.target_height_front = (uint16_t)((rx_data[2] << 8) | rx_data[3]) / meter_encoding_ratio;
+					chassis_move.target_height_back  = (uint16_t)((rx_data[4] << 8) | rx_data[5]) / meter_encoding_ratio;
 
-					chassis_move.target_height = fp32_constrain(chassis_move.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
+					chassis_move.target_height_front = fp32_constrain(chassis_move.target_height_front, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
+					chassis_move.target_height_back  = fp32_constrain(chassis_move.target_height_back,  CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
 
-					// calculation for alpha limit: According to the matlab calculation, the available workspace in height-alpha space is triangular, so we assume height target has more priority than alpha target, and calculate alpha limit based on height
-					if (chassis_move.target_height >= CHASSIS_H_WORKSPACE_PEAK)
-					{
-						chassis_move.alpha_upper_limit = (chassis_move.target_height - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
-					}
+					// Compute workspace alpha limit from both heights; use the more constraining (smaller) limit
+					fp32 alpha_limit_front, alpha_limit_back;
+					if (chassis_move.target_height_front >= CHASSIS_H_WORKSPACE_PEAK)
+						alpha_limit_front = (chassis_move.target_height_front - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
 					else
-					{
-						chassis_move.alpha_upper_limit = (chassis_move.target_height - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
-					}
+						alpha_limit_front = (chassis_move.target_height_front - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
+
+					if (chassis_move.target_height_back >= CHASSIS_H_WORKSPACE_PEAK)
+						alpha_limit_back = (chassis_move.target_height_back - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
+					else
+						alpha_limit_back = (chassis_move.target_height_back - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
+
+					chassis_move.alpha_upper_limit = (alpha_limit_front < alpha_limit_back) ? alpha_limit_front : alpha_limit_back;
 					chassis_move.alpha_lower_limit = -chassis_move.alpha_upper_limit;
 
 					chassis_move.target_alpha1 = fp32_constrain(chassis_move.target_alpha1, chassis_move.alpha_lower_limit, chassis_move.alpha_upper_limit);
-					chassis_move.target_alpha2 = fp32_constrain(chassis_move.target_alpha2, chassis_move.alpha_lower_limit, chassis_move.alpha_upper_limit);
 				}
 #endif
 				detect_hook(SWERVE_CTRL_TOE);

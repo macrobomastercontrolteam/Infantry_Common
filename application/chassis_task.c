@@ -349,10 +349,12 @@ void chassis_init(void)
 	chassis_move.target_alpha1 = 0;
 	chassis_move.target_alpha2 = 0;
 #if HEADLESS_HIP_TEST
-	// chassis_move.target_height = CHASSIS_H_WORKSPACE_PEAK;
-	chassis_move.target_height = CHASSIS_H_UPPER_LIMIT;
+	// chassis_move.target_height_front = CHASSIS_H_WORKSPACE_PEAK;
+	chassis_move.target_height_front = CHASSIS_H_UPPER_LIMIT;
+	chassis_move.target_height_back  = CHASSIS_H_UPPER_LIMIT;
 #else
-	chassis_move.target_height = CHASSIS_H_LOWER_LIMIT;
+	chassis_move.target_height_front = CHASSIS_H_LOWER_LIMIT;
+	chassis_move.target_height_back  = CHASSIS_H_LOWER_LIMIT;
 #endif
 	chassis_move.current_alpha1 = 0;
 	chassis_move.current_alpha2 = 0;
@@ -452,11 +454,19 @@ void chassis_calc_targets(void)
 	fp32 current_theta3 = motor_info[CHASSIS_ID_HIP_3].feedback_abs_angle;
 	fp32 current_theta4 = motor_info[CHASSIS_ID_HIP_4].feedback_abs_angle;
 
-	// calculate for chassis_move.target_theta corresponding to (chassis_move.target_alpha1, chassis_move.target_alpha2, chassis_move.target_height)
-	// right diagonal
-	chassis_inv_kine_diagonal(chassis_move.target_alpha1, chassis_move.target_height, &chassis_move.target_theta[0], &chassis_move.target_theta[2]);
-	// left diagonal
-	chassis_inv_kine_diagonal(chassis_move.target_alpha2, chassis_move.target_height, &chassis_move.target_theta[3], &chassis_move.target_theta[1]);
+	// Calculate target_theta per hip using front/back heights.
+	// A local temp absorbs the unused second output while keeping the pointer-comparison
+	// sign logic inside chassis_inv_kine_diagonal intact:
+	//   theta_right == &target_theta[0]  →  negated  (hip 1, right diagonal)
+	//   theta_left  == &target_theta[2]  →  negated  (hip 3, right diagonal)
+	//   all others                       →  positive (hips 2 & 4, left diagonal)
+	fp32 temp;
+	// Front hips (target_height_front)
+	chassis_inv_kine_diagonal(chassis_move.target_alpha1, chassis_move.target_height_front, &chassis_move.target_theta[0], &temp); // hip 1: right → negated
+	chassis_inv_kine_diagonal(chassis_move.target_alpha1, chassis_move.target_height_front, &temp, &chassis_move.target_theta[1]); // hip 2: left  → positive
+	// Back hips (target_height_back)
+	chassis_inv_kine_diagonal(chassis_move.target_alpha1, chassis_move.target_height_back,  &temp, &chassis_move.target_theta[2]); // hip 3: right → negated (theta_left == &target_theta[2])
+	chassis_inv_kine_diagonal(chassis_move.target_alpha1, chassis_move.target_height_back,  &temp, &chassis_move.target_theta[3]); // hip 4: left  → positive
 
 	// @TODO: verify calculation for target_wheel_rot_radius_dot using current_theta, target_theta_dot, current_alpha1, current_alpha2
 	// right diagonal
