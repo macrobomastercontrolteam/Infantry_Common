@@ -39,7 +39,7 @@ typedef enum
   CAN_3508_M3_ID = 0x203,
   CAN_3508_M4_ID = 0x204,
 #if ROBOT_YAW_IS_4310
-  CAN_YAW_MOTOR_4310_TX_ID = 0x005,
+  CAN_YAW_MOTOR_4310_TX_ID = 0x005,//
   CAN_YAW_MOTOR_4310_RX_ID = 0x0FF,
 #else
   CAN_YAW_MOTOR_6020_RX_ID = 0x205,
@@ -70,9 +70,20 @@ typedef enum
   CAN_FRICTION_MOTOR_DOWN_ID = 0x204, // friction4
 
   CAN_PISTON_MOTOR_ID = 0x207, // On gimbal
+
+//added
+
+  CAN_ACTUATOR_1_ID = 0xFFF, // added, 20260402 edited, actuator CAN ID needs to be confirmed 
+  CAN_ACTUATOR_2_ID = 0xFFF,
+  CAN_ACTUATOR_3_ID = 0xFFF,
+  CAN_ACTUATOR_4_ID = 0xFFF,
+  #define MOTOR_INDEX_ACTUATOR_1  10  
+  #define MOTOR_INDEX_ACTUATOR_2  11
+  #define MOTOR_INDEX_ACTUATOR_3  12
+  #define MOTOR_INDEX_ACTUATOR_4  13
 #endif
 
-} can_msg_id_e;
+} can_msg_id_e;//
 
 typedef enum
 {

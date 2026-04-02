@@ -229,6 +229,39 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(PISTON_MOTOR_TOE);
 				break;
 			}
+
+			//20260402 edited, actuator CAN ids need to be confirmed 
+			case CAN_ACTUATOR_1_ID: //added 20260402
+			{
+				bMotorId = MOTOR_INDEX_ACTUATOR_1;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(PISTON_MOTOR_TOE);
+				break;
+			}
+			
+			case CAN_ACTUATOR_2_ID: //added 20260402
+			{
+				bMotorId = MOTOR_INDEX_ACTUATOR_2;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(PISTON_MOTOR_TOE);
+				break;
+			}
+
+			case CAN_ACTUATOR_3_ID: //added 20260402
+			{
+				bMotorId = MOTOR_INDEX_ACTUATOR_3;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(PISTON_MOTOR_TOE);
+				break;
+			}
+
+			case CAN_ACTUATOR_4_ID: //added 20260402
+			{
+				bMotorId = MOTOR_INDEX_ACTUATOR_4;
+				decode_rm_motor_feedback(rx_data, bMotorId);
+				detect_hook(PISTON_MOTOR_TOE);
+				break;
+			}
 #endif
 #if IS_TRIGGER_ON_GIMBAL
 			case CAN_TRIGGER_MOTOR_ID:
@@ -252,14 +285,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			case CAN_3508_M1_ID:
 			{
 				bMotorId = MOTOR_INDEX_3508_M1;
-				decode_rm_motor_feedback(rx_data, bMotorId);
+				decode_linear_actuator_feedback(rx_data, bMotorId);
         		detect_hook(CHASSIS_MOTOR1_TOE);
 				break;
 			}
 			case CAN_3508_M2_ID:
 			{
         		bMotorId = MOTOR_INDEX_3508_M2;
-				decode_rm_motor_feedback(rx_data, bMotorId);
+				decode_linear_actuator_feedback(rx_data, bMotorId);
 				detect_hook(CHASSIS_MOTOR2_TOE);
         
 				break;
@@ -267,14 +300,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			case CAN_3508_M3_ID:
 			{
         		bMotorId = MOTOR_INDEX_3508_M3;
-				decode_rm_motor_feedback(rx_data, bMotorId);
+				decode_linear_actuator_feedback(rx_data, bMotorId);
 				detect_hook(CHASSIS_MOTOR3_TOE);
 				break;
 			}
 			case CAN_3508_M4_ID:
 			{
         		bMotorId = MOTOR_INDEX_3508_M4;
-				decode_rm_motor_feedback(rx_data, bMotorId);
+				decode_linear_actuator_feedback(rx_data, bMotorId);
 				detect_hook(CHASSIS_MOTOR4_TOE);
 				break;
 			}
@@ -939,7 +972,7 @@ void CAN_cmd_chassis(void)
  * @param[in]      steer_motor4: target encoder value of 6020 motor; it's moved to a bus only controlled by chassis controller to reduce bus load
  * @retval         none
  */
-void CAN_cmd_3508_chassis(void)
+void CAN_cmd_3508_chassis(void)//
 {
 #if (ROBOT_TYPE != INFANTRY_2024_BIPED)
 	uint32_t send_mail_box;
@@ -1358,4 +1391,33 @@ void decode_power_meter(uint8_t *data)
 fp32 get_chassis_power_meter_data(void)
 {
 	return power_meter_can_rx_msg.chassis_power;
+}
+
+
+void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId) // added 20260402
+{
+	uint16_t temp_ecd = (uint16_t)(data[0] << 8 | data[1]);
+	int16_t temp_speed = (int16_t)(data[2] << 8 | data[3]);
+    
+
+	motor_chassis[bMotorId].last_ecd = motor_chassis[bMotorId].ecd;
+	motor_chassis[bMotorId].ecd = temp_ecd;
+	motor_chassis[bMotorId].speed_rpm = temp_speed;
+	motor_chassis[bMotorId].feedback_current = (int16_t)(data[4] << 8 | data[5]);
+	motor_chassis[bMotorId].temperate = data[6];
+}
+
+
+//added 20260402
+HAL_StatusTypeDef encode_linear_actuator_control(uint16_t id, uint8_t data[4], MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr)
+{
+	uint32_t send_mail_box;
+	gimbal_tx_message.StdId = id;
+	gimbal_tx_message.IDE = CAN_ID_STD;
+	gimbal_tx_message.RTR = CAN_RTR_DATA;
+	gimbal_tx_message.DLC = 0x08;
+
+
+
+	return HAL_CAN_AddTxMessage(hcan_ptr, &gimbal_tx_message, data, &send_mail_box);
 }
