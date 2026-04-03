@@ -243,7 +243,7 @@ void gimbal_task(void const *pvParameters)
         gimbal_safety_manager(&yaw_can_set_value, &pitch_can_set_value, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
         
         CAN_cmd_gimbal_upper_can_ID(yaw_can_set_value, pitch_can_set_value, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current, shoot_control.piston_given_current);
-#if ROBOT_PITCH_IS_4310
+#if (ROBOT_PITCH_IS_4310 || ROBOT_PITCH_IS_4340)
         CAN_cmd_gimbal_Damiao_motor(&gimbal_control.MIT_control_motor);
 #endif
 
