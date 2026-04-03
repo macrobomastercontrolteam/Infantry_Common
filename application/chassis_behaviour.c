@@ -32,6 +32,10 @@
 #define MID_SPIN_SPEED_CHANGE_PERIOD 1000.0f
 #define DELTA_SPIN_SPEED_CHANGE_PERIOD (MID_SPIN_SPEED_CHANGE_PERIOD / 2.0f)
 
+#define SPIN_RAMP_UP_TIME_MS 2500u
+
+static uint32_t spin_ramp_start_tick = 0;
+
 #define MOUSE_SCROLL_TO_DIAL_SEN_INC -(JOYSTICK_HALF_RANGE / MOUSE_X_EFFECTIVE_SPEED * 30)
 #define MOUSE_SCROLL_FILTER_COEFF 0.6f
 #define CHASSIS_WZ_CMD_DEADZONE 0.15f
@@ -188,6 +192,7 @@ void chassis_behaviour_change_transit(void)
 			{
 				// Relative angle implementation for chassis spinning mode
 				// chassis_move.chassis_relative_angle_set = chassis_move.chassis_yaw_motor->relative_angle;
+				spin_ramp_start_tick = osKernelSysTick();
 				break;
 			}
 			case CHASSIS_BASIC_FPV_MODE:
@@ -473,7 +478,16 @@ void chassis_spinning_speed_manager(fp32* wz_set)
 			spinning_speed = chassis_move.dial_channel_out * spin_rc_sen_negative + spin_rc_offset;
 		}
 	}
-	*wz_set = spinning_speed;
+	// Apply gradual ramp-up from zero to target speed when spinning mode is first enabled
+	uint32_t spin_elapsed = osKernelSysTick() - spin_ramp_start_tick;
+	if (spin_elapsed < SPIN_RAMP_UP_TIME_MS)
+	{
+		*wz_set = spinning_speed * ((fp32)spin_elapsed / (fp32)SPIN_RAMP_UP_TIME_MS);
+	}
+	else
+	{
+		*wz_set = spinning_speed;
+	}
 }
 
 static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set)
