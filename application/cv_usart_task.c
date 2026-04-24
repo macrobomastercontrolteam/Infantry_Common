@@ -35,6 +35,7 @@
 #define CHAR_UNUSED 0xFF
 #define SHOOT_TIMEOUT_MS 350
 #define CV_TRANDELTA_FILTER_SIZE 4 // TranDelta means Transmission delay
+#define CV_SPEED_FILTER_ALPHA 0.25f
 
 // Test result with pyserial: 0 to 2 millisecond of cv msg receiving interval; Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
 uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE];
@@ -87,6 +88,13 @@ typedef struct
 	uint16_t uiCvSyncTime;
 } tCvTimestamps;
 
+typedef struct
+{
+	fp32 xSpeed;
+	fp32 ySpeed;
+	uint8_t fInitialized;
+} tCvSpeedFilter;
+
 void CvCmder_Init(void);
 void CvCmder_PollForModeChange(void);
 static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size);
@@ -104,6 +112,7 @@ tCvCmdHandler CvCmdHandler;
 const uint16_t abExpectedAckPayload;
 uint8_t abExpectedUnusedPayload[DATA_PACKAGE_PAYLOAD_SIZE];
 tCvTimestamps CvTimestamps;
+tCvSpeedFilter CvSpeedFilter;
 
 #if DEBUG_CV_WITH_USB
 uint8_t fIsUserKeyPressingEdge = 0;
@@ -159,6 +168,9 @@ void CvCmder_Init(void)
 	CvCmdHandler.cv_rc_ctrl = get_remote_control_point(); // reserved, not used yet
 
 	CvCmdHandler.fCvMode = 0;
+	CvSpeedFilter.fInitialized = 0;
+	CvSpeedFilter.xSpeed = 0.0f;
+	CvSpeedFilter.ySpeed = 0.0f;
 
 	// Get a callback when DMA completes or IDLE
 	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, abUsartRxBuf, sizeof(abUsartRxBuf));
@@ -168,7 +180,6 @@ void CvCmder_Init(void)
 	// RXNE is not used
 	__HAL_UART_DISABLE_IT(&huart1, UART_IT_RXNE);
 }
-
 void CvCmder_toe_solve_lost_fun(void)
 {
 	//memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
@@ -468,17 +479,27 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 			{
         	    if (length == 8)
         	    {
-        	        fp32 xSpeed, ySpeed;
-        	        memcpy(&xSpeed, &pData[2], 4);
-        	        memcpy(&ySpeed, &pData[6], 4);
+		        	fp32 xSpeed, ySpeed;
+		        	memcpy(&xSpeed, &pData[2], 4);
+		        	memcpy(&ySpeed, &pData[6], 4);
+
+		        	if (!CvSpeedFilter.fInitialized)
+		        	{
+		        		CvSpeedFilter.xSpeed = xSpeed;
+		        		CvSpeedFilter.ySpeed = ySpeed;
+		        		CvSpeedFilter.fInitialized = 1;
+		        	}
+
+		        	CvSpeedFilter.xSpeed = xSpeed = first_order_filter(xSpeed, CvSpeedFilter.xSpeed, CV_SPEED_FILTER_ALPHA);
+		        	CvSpeedFilter.ySpeed = ySpeed = first_order_filter(ySpeed, CvSpeedFilter.ySpeed, CV_SPEED_FILTER_ALPHA);
 #if DEBUG_CV
-					CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
-					CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
+						CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
+						CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
 
 #else
 					if (is_game_started()){
-						CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
-						CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
+							CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
+							CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
 					}
 					else{
 						CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
