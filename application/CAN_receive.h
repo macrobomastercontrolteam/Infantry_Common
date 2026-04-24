@@ -156,6 +156,12 @@ typedef enum
   
   CAN_UI_INFO_RX_ID = 0x135,
 #endif
+#if SUSPENSION_WITH_ACTUATOR
+  CAN_SUSPENSION_ACTUATOR_CH1_TX_ID = 0x0A1,
+  CAN_SUSPENSION_ACTUATOR_CH1_RX_ID = 0x0B1,
+  CAN_SUSPENSION_ACTUATOR_CH2_TX_ID = 0x0A2,
+  CAN_SUSPENSION_ACTUATOR_CH2_RX_ID = 0x0B2,
+#endif
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
@@ -183,6 +189,25 @@ typedef struct
     fp32 chassis_power;
 }power_meter_can_rx_t;
 
+#if (SUSPENSION_WITH_ACTUATOR)
+typedef struct 
+{
+    uint16_t actuator_1_distance;
+    uint16_t actuator_2_distance;
+    uint16_t rsvd1; //Must be 0x2012
+    uint16_t rsvd2; //Must be 0x0712
+}actuator_controller_rx_t;
+
+/*Message come from actuator controller module */
+/*Expected message frequency = 100Hz */
+typedef struct
+{
+    uint16_t actuator_1_cmd;
+    uint16_t actuator_2_cmd;
+    int16_t rsvd1;
+    uint16_t rsvd2;
+}actuator_controller_tx_t;
+#endif
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
 typedef struct 
 {
@@ -397,6 +422,15 @@ void decode_supercap(uint8_t *data);
 
 void decode_power_meter(uint8_t *data);
 fp32 get_chassis_power_meter_data(void);
+
+#if SUSPENSION_WITH_ACTUATOR
+void CAN_cmd_suspension_actuator(void);
+void suspension_actuator_set_all_cmd(uint16_t cmd_word);
+uint8_t suspension_actuator_is_any_pair_mismatch(uint8_t mismatch_percent);
+void decode_suspension_actuator_ch1(uint8_t *data);
+void decode_suspension_actuator_ch2(uint8_t *data);
+#endif
+
 typedef enum
 {
     POWER_MANAGEMNT_CHASSIS_BIT = 1 << 0,

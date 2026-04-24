@@ -242,6 +242,10 @@ static void detect_init(uint32_t time)
             {200, 20, 5},  //referee
             {300, 0, 7},    //cv usart
             {100, 0, 11},    // super capacitor
+#if SUSPENSION_WITH_ACTUATOR
+            {300, 0, 8},    // suspension actuator ch1
+            {300, 0, 8},    // suspension actuator ch2
+#endif
             {200, 0, 9},  // power_meter
             {50, 0, 8},    // swerve controller
             {25, 0, 8},    // biped controller feedback (normally < 3)

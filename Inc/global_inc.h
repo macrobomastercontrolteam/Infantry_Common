@@ -38,6 +38,8 @@
 #define DEBUG_CV 1 // set to 1 before the game starts for INFANTRY & HERO ONLY
 #define ENABLE_LASER 1
 
+#define SUSPENSION_WITH_ACTUATOR 1
+
 #define USE_SERVO_TO_STIR_AMMO 0
 #define ENABLE_HIGHER_BAUD_RATE_FOR_CV 0
 /********************* Only Modify this area (end) *********************/

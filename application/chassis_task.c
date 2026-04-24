@@ -35,6 +35,13 @@
 #define STEER_MOTOR_UPSIDE_DOWN_MOUNTING 0
 #define SWERVE_INVALID_HIP_DATA_RESET_TIMEOUT 1000
 
+#if SUSPENSION_WITH_ACTUATOR
+#define SUSPENSION_CMD_FULL_RETRACT 0xFF00U
+#define SUSPENSION_CMD_FULL_EXTEND 0xFF11U
+#define SUSPENSION_MISMATCH_THRESHOLD_PERCENT 15U
+static void suspension_actuator_chassis_control(void);
+#endif
+
 fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // unit m/s
 
 /**
@@ -139,6 +146,11 @@ void chassis_task(void const *pvParameters)
 		CAN_cmd_supercap();
 #endif
 
+#if SUSPENSION_WITH_ACTUATOR
+		suspension_actuator_chassis_control();
+		CAN_cmd_suspension_actuator();
+#endif
+
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
 
 #if CHASSIS_TEST_MODE
@@ -150,6 +162,28 @@ void chassis_task(void const *pvParameters)
 #endif
 	}
 }
+
+#if SUSPENSION_WITH_ACTUATOR
+static void suspension_actuator_chassis_control(void)
+{
+	uint16_t key_value = chassis_move.chassis_RC->key.v;
+	uint8_t fCtrlPressed = ((key_value & KEY_PRESSED_OFFSET_CTRL) != 0U);
+
+	if (fCtrlPressed && ((key_value & KEY_PRESSED_OFFSET_V) != 0U))
+	{
+		suspension_actuator_set_all_cmd(SUSPENSION_CMD_FULL_RETRACT);
+	}
+	else if (fCtrlPressed && ((key_value & KEY_PRESSED_OFFSET_F) != 0U))
+	{
+		suspension_actuator_set_all_cmd(SUSPENSION_CMD_FULL_EXTEND);
+	}
+
+	if (suspension_actuator_is_any_pair_mismatch(SUSPENSION_MISMATCH_THRESHOLD_PERCENT))
+	{
+		suspension_actuator_set_all_cmd(SUSPENSION_CMD_FULL_RETRACT);
+	}
+}
+#endif
 
 /**
  * @brief          "chassis_move" valiable initialization, include pid initialization, remote control data point initialization, 3508 chassis motors

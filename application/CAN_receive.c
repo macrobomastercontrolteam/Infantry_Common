@@ -115,6 +115,13 @@ capcan_tx_t capcan_tx_msg;
 supcap_t cap_message_rx;
 #endif
 
+#if SUSPENSION_WITH_ACTUATOR
+actuator_controller_rx_t actuator_controller_1_rx_msg;
+actuator_controller_rx_t actuator_controller_2_rx_msg;
+
+actuator_controller_tx_t actuator_controller_1_tx_msg;
+actuator_controller_tx_t actuator_controller_2_tx_msg;
+#endif
 /**
  * @brief motor feedback data
  * Chassis CAN:
@@ -335,7 +342,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(SUPCAP_TOE);
 				break;
 			}
-
 			case CAN_POWER_METER_RX_ID:
 			{
 				decode_power_meter(rx_data);
@@ -347,6 +353,21 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			{
 				decode_ref_info(rx_data);
 				detect_hook(REFEREE_TOE);
+				break;
+			}
+#endif
+
+#if SUSPENSION_WITH_ACTUATOR
+			case CAN_SUSPENSION_ACTUATOR_CH1_RX_ID:
+			{
+				decode_suspension_actuator_ch1(rx_data);
+				detect_hook(SUSPENSION_ACTUATOR_CH1_TOE);
+				break;
+			}
+			case CAN_SUSPENSION_ACTUATOR_CH2_RX_ID:
+			{
+				decode_suspension_actuator_ch2(rx_data);
+				detect_hook(SUSPENSION_ACTUATOR_CH2_TOE);
 				break;
 			}
 #endif
@@ -1525,6 +1546,100 @@ void decode_supercap(uint8_t *data)
 #endif
 	detect_hook(SUPCAP_TOE);
 }
+
+#if SUSPENSION_WITH_ACTUATOR
+static void encode_suspension_actuator_cmd(const actuator_controller_rx_t *cmd, uint8_t *data)
+{
+	data[0] = (uint8_t)(cmd->actuator_1_distance >> 8);
+	data[1] = (uint8_t)(cmd->actuator_1_distance);
+	data[2] = (uint8_t)(cmd->actuator_2_distance >> 8);
+	data[3] = (uint8_t)(cmd->actuator_2_distance);
+	data[4] = (uint8_t)(cmd->rsvd1 >> 8);
+	data[5] = (uint8_t)(cmd->rsvd1);
+	data[6] = (uint8_t)(cmd->rsvd2 >> 8);
+	data[7] = (uint8_t)(cmd->rsvd2);
+}
+
+void suspension_actuator_set_all_cmd(uint16_t cmd_word)
+{
+	actuator_controller_1_rx_msg.actuator_1_distance = cmd_word;
+	actuator_controller_1_rx_msg.actuator_2_distance = cmd_word;
+	actuator_controller_2_rx_msg.actuator_1_distance = cmd_word;
+	actuator_controller_2_rx_msg.actuator_2_distance = cmd_word;
+}
+
+uint8_t suspension_actuator_is_any_pair_mismatch(uint8_t mismatch_percent)
+{
+	uint8_t fMismatch = 0;
+
+	if (toe_is_error(SUSPENSION_ACTUATOR_CH1_TOE) == 0)
+	{
+		uint16_t d1 = actuator_controller_1_tx_msg.actuator_1_cmd;
+		uint16_t d2 = actuator_controller_1_tx_msg.actuator_2_cmd;
+		uint16_t max_d = (d1 > d2) ? d1 : d2;
+		uint16_t diff_d = (d1 > d2) ? (d1 - d2) : (d2 - d1);
+		if ((max_d > 0U) && (((uint32_t)diff_d * 100U) > ((uint32_t)max_d * mismatch_percent)))
+		{
+			fMismatch = 1;
+		}
+	}
+
+	if ((fMismatch == 0U) && (toe_is_error(SUSPENSION_ACTUATOR_CH2_TOE) == 0))
+	{
+		uint16_t d1 = actuator_controller_2_tx_msg.actuator_1_cmd;
+		uint16_t d2 = actuator_controller_2_tx_msg.actuator_2_cmd;
+		uint16_t max_d = (d1 > d2) ? d1 : d2;
+		uint16_t diff_d = (d1 > d2) ? (d1 - d2) : (d2 - d1);
+		if ((max_d > 0U) && (((uint32_t)diff_d * 100U) > ((uint32_t)max_d * mismatch_percent)))
+		{
+			fMismatch = 1;
+		}
+	}
+
+	return fMismatch;
+}
+
+void CAN_cmd_suspension_actuator(void)
+{
+	uint32_t send_mail_box;
+
+	if (toe_is_error(SUSPENSION_ACTUATOR_CH1_TOE) || toe_is_error(SUSPENSION_ACTUATOR_CH2_TOE))
+	{
+		return;
+	}
+
+	chassis_tx_message.IDE = CAN_ID_STD;
+	chassis_tx_message.RTR = CAN_RTR_DATA;
+	chassis_tx_message.DLC = 0x08;
+	chassis_tx_message.ExtId = 0x00;
+
+	chassis_tx_message.StdId = CAN_SUSPENSION_ACTUATOR_CH1_TX_ID;
+	encode_suspension_actuator_cmd(&actuator_controller_1_rx_msg, chassis_can_send_data);
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+
+	chassis_tx_message.StdId = CAN_SUSPENSION_ACTUATOR_CH2_TX_ID;
+	encode_suspension_actuator_cmd(&actuator_controller_2_rx_msg, chassis_can_send_data);
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+static void decode_suspension_actuator(uint8_t *data, actuator_controller_tx_t *msg)
+{
+	msg->actuator_1_cmd = (uint16_t)((data[0] << 8) | data[1]);
+	msg->actuator_2_cmd = (uint16_t)((data[2] << 8) | data[3]);
+	msg->rsvd1 = (int16_t)((data[4] << 8) | data[5]);
+	msg->rsvd2 = (uint16_t)((data[6] << 8) | data[7]);
+}
+
+void decode_suspension_actuator_ch1(uint8_t *data)
+{
+	decode_suspension_actuator(data, &actuator_controller_1_tx_msg);
+}
+
+void decode_suspension_actuator_ch2(uint8_t *data)
+{
+	decode_suspension_actuator(data, &actuator_controller_2_tx_msg);
+}
+#endif
 
 void decode_power_meter(uint8_t *data)
 {
