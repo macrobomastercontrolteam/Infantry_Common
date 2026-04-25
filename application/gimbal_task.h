@@ -484,6 +484,9 @@
 
 #define FOLD_STEP_HOLD_MS 300
 #define FOLD_POS_TOL      0.05f //position bias tolerance, 0.05rad
+#define FOLD_POS_FILTER_COEFF 0.04f
+#define FOLD_BASE_POS_MAX_STEP 0.00223f
+#define FOLD_PITCH_POS_MAX_STEP 0.00190f
 
 
 typedef enum

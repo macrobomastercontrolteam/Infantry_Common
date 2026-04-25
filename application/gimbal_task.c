@@ -1299,10 +1299,24 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
     }
 
     MIT_control_motor_t* MIT_control_motor = &gimbal_control_set->MIT_control_motor;
+    static uint8_t fFoldFilterInit = 0;
+    static uint8_t bLastFoldTarget = UNFOLDED;
+    static fp32 pitch_base_pos_cmd_filtered = 0.0f;
+    static fp32 pitch_pos_cmd_filtered = 0.0f;
 
     fp32 pitch_motor_angle = motor_chassis[MOTOR_INDEX_PITCH].output_angle; //both have to be unprocessed motor feedback angle
     fp32 pitch_base_motor_angle = motor_chassis[MOTOR_INDEX_PITCH_BASE].output_angle;
     fp32 pitch_base_motor_vel = motor_chassis[MOTOR_INDEX_PITCH_BASE].velocity;
+    fp32 pitch_base_pos_cmd_target = pitch_base_motor_angle;
+    fp32 pitch_pos_cmd_target = pitch_motor_angle;
+
+    if ((!fFoldFilterInit) || (bLastFoldTarget != gimbal_control_set->gimbal_folding_status.target))
+    {
+        pitch_base_pos_cmd_filtered = pitch_base_motor_angle;
+        pitch_pos_cmd_filtered = pitch_motor_angle;
+        fFoldFilterInit = 1;
+        bLastFoldTarget = gimbal_control_set->gimbal_folding_status.target;
+    }
 
     //target=1 for center gimbal first and fold, target=0 for unfold
 	if(gimbal_control_set->gimbal_folding_status.target == FOLDED) // fold cmd, target=folded
@@ -1338,7 +1352,7 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
         {
             case 0:
             {
-                MIT_control_motor->pitch_base_MIT_variable.pos = PITCH_BASE_HALF_FOLD_POS; // fold to half first 
+                pitch_base_pos_cmd_target = PITCH_BASE_HALF_FOLD_POS; // fold to half first 
                 if ((fabs(pitch_base_motor_angle - PITCH_BASE_HALF_FOLD_POS) <= FOLD_POS_TOL) && (fabs(pitch_motor_angle - (-PITCH_BASE_HALF_FOLD_POS)) <= FOLD_POS_TOL))
                 {
                     gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 1;
@@ -1347,7 +1361,7 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
             }
             case 1:
             {
-                MIT_control_motor->pitch_base_MIT_variable.pos = PITCH_BASE_FOLD_POS;
+                pitch_base_pos_cmd_target = PITCH_BASE_FOLD_POS;
                 if ((fabs(pitch_base_motor_angle - PITCH_BASE_FOLD_POS) <= FOLD_POS_TOL) && (fabs(pitch_motor_angle - (-PITCH_BASE_FOLD_POS)) <= FOLD_POS_TOL))
                 {
                     gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 2;
@@ -1356,7 +1370,7 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
             }
             case 2:
             {
-                MIT_control_motor->pitch_base_MIT_variable.pos = PITCH_BASE_FULLY_FOLD_POS;
+                pitch_base_pos_cmd_target = PITCH_BASE_FULLY_FOLD_POS;
                 if ((fabs(pitch_base_motor_angle - PITCH_BASE_FULLY_FOLD_POS) <= FOLD_POS_TOL) && (fabs(pitch_motor_angle - (-PITCH_BASE_FULLY_FOLD_POS)) <= FOLD_POS_TOL))
                 {
                     gimbal_control_set->gimbal_folding_status.current = FOLDED;
@@ -1370,11 +1384,11 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
         //pitch
         if(gimbal_control_set->gimbal_folding_status.gimbal_folding_step == 2)
         {
-            MIT_control_motor->pitch_MIT_variable.pos = -(pitch_base_motor_angle) + 0.2f;// bias to correct the motor 0-pos difference //TODO:switch to better solution or change bias angle everytime after setting motor 0-pos
+            pitch_pos_cmd_target = -(pitch_base_motor_angle) + 0.2f;// bias to correct the motor 0-pos difference //TODO:switch to better solution or change bias angle everytime after setting motor 0-pos
         }
         else
         {
-            MIT_control_motor->pitch_MIT_variable.pos = -(pitch_base_motor_angle);
+            pitch_pos_cmd_target = -(pitch_base_motor_angle);
         }
         MIT_control_motor->pitch_MIT_variable.vel = -(pitch_base_motor_vel); //reverse conter base so vel also negative
         
@@ -1383,17 +1397,17 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
     {
         gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 0;
         //pitch_base
-        MIT_control_motor->pitch_base_MIT_variable.pos = PITCH_BASE_UNFOLD_POS; // TODO:check actual tgt fold angle
+        pitch_base_pos_cmd_target = PITCH_BASE_UNFOLD_POS; // TODO:check actual tgt fold angle
         MIT_control_motor->pitch_base_MIT_variable.torq = -1.7f * sinf(pitch_base_motor_angle); //negative to counter gravity gain
         
         //pitch
-        MIT_control_motor->pitch_MIT_variable.pos = -(pitch_base_motor_angle);
+        pitch_pos_cmd_target = -(pitch_base_motor_angle);
         MIT_control_motor->pitch_MIT_variable.vel = -(pitch_base_motor_vel);
         
 
         if(pitch_base_motor_angle >= PITCH_BASE_HALF_FOLD_POS) //if reached half range start to reset pitch to level
         {
-            MIT_control_motor->pitch_MIT_variable.pos = PITCH_UNFOLD_POS; //return to level after base fully unfolded
+            pitch_pos_cmd_target = PITCH_UNFOLD_POS; //return to level after base fully unfolded
             if(pitch_motor_angle >= FOLD_POS_TOL)
             {
                 MIT_motor_torque_control_config(MIT_control_motor); //unfold finished, config back for pitch motor torque control
@@ -1402,5 +1416,15 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
             }
         }
     }
+
+    {
+        fp32 pitch_base_pos_cmd_next = first_order_filter(pitch_base_pos_cmd_target, pitch_base_pos_cmd_filtered, FOLD_POS_FILTER_COEFF);
+        fp32 pitch_pos_cmd_next = first_order_filter(pitch_pos_cmd_target, pitch_pos_cmd_filtered, FOLD_POS_FILTER_COEFF);
+
+        pitch_base_pos_cmd_filtered += fp32_abs_constrain(pitch_base_pos_cmd_next - pitch_base_pos_cmd_filtered, FOLD_BASE_POS_MAX_STEP);
+        pitch_pos_cmd_filtered += fp32_abs_constrain(pitch_pos_cmd_next - pitch_pos_cmd_filtered, FOLD_PITCH_POS_MAX_STEP);
+    }
+	MIT_control_motor->pitch_base_MIT_variable.pos = pitch_base_pos_cmd_filtered;
+	MIT_control_motor->pitch_MIT_variable.pos = pitch_pos_cmd_filtered;
 }
 #endif
