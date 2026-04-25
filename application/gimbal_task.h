@@ -95,16 +95,16 @@
 #endif
 //TODO check 4310 PID
 #if ROBOT_PITCH_IS_4310
-#define PITCH_SPEED_PID_KP        0.45f
+#define PITCH_SPEED_PID_KP        0.7f
 #define PITCH_SPEED_PID_KI        0.0f
 #define PITCH_SPEED_PID_KD        0.0f
-#define PITCH_SPEED_PID_MAX_OUT   0.6f
+#define PITCH_SPEED_PID_MAX_OUT   6.5f
 #define PITCH_SPEED_PID_MAX_IOUT  0.0f
 
-#define PITCH_ANGLE_PID_KP 15.0f
+#define PITCH_ANGLE_PID_KP 30.0f
 #define PITCH_ANGLE_PID_KI 0.0f
 #define PITCH_ANGLE_PID_KD 0.0f
-#define PITCH_ANGLE_PID_MAX_OUT 6.5f
+#define PITCH_ANGLE_PID_MAX_OUT 35.0f
 #define PITCH_ANGLE_PID_MAX_IOUT 2.33f
 
 #else
@@ -477,7 +477,7 @@
 #define PITCH_BASE_FOLD_POS   -1.2f
 #define PITCH_BASE_FULLY_FOLD_POS   -1.42f
 #define PITCH_BASE_UNFOLD_POS   0.25f
-#define PITCH_BASE_KP  9.5f
+#define PITCH_BASE_KP  20.5f
 #define PITCH_BASE_KD  1.0f //must be larger than 0 when using MIT angle control
 
 #endif
