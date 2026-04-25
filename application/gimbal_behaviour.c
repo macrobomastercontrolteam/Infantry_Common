@@ -155,7 +155,9 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
   */
 static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
 
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 static void gimbal_fold_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set);
+#endif
 
 /**
   * @brief          when gimbal behaviour mode is GIMBAL_MOTIONLESS, the function is called
@@ -210,19 +212,32 @@ void gimbal_behaviour_mode_set(gimbal_control_t *gimbal_mode_set)
             gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
             break;
         }
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
         case GIMBAL_FOLD:
         {
-            if(gimbal_mode_set->gimbal_folding_status.current == UNFOLDED)
+            if(gimbal_mode_set->gimbal_folding_status.current == FOLDED && gimbal_mode_set->gimbal_folding_status.target == FOLDED)
             {
-                gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
+                fp32 yaw_err   = fabs(gimbal_mode_set->gimbal_yaw_motor.absolute_angle_set   - gimbal_mode_set->gimbal_yaw_motor.absolute_angle);
+                fp32 pitch_err = fabs(gimbal_mode_set->gimbal_pitch_motor.absolute_angle_set - gimbal_mode_set->gimbal_pitch_motor.absolute_angle);
+                if(yaw_err < GIMBAL_FOLD_ZERO_FORCE_DEADBAND && pitch_err < GIMBAL_FOLD_ZERO_FORCE_DEADBAND)
+                {
+                    gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode   = GIMBAL_MOTOR_ZERO_FORCE;
+                    gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_ZERO_FORCE;
+                }
+                else
+                {
+                    gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode   = GIMBAL_MOTOR_ZERO_FORCE;
+                    gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_MIT_ANGLE;
+                }
             }
             else
             {
-                gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_ZERO_FORCE;
+                gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = (gimbal_mode_set->gimbal_folding_status.target == UNFOLDED) ? GIMBAL_MOTOR_GYRO : GIMBAL_MOTOR_ZERO_FORCE;
+                gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_MIT_ANGLE;
             }
-            gimbal_mode_set->gimbal_pitch_motor.gimbal_motor_mode = GIMBAL_MOTOR_MIT_ANGLE;
             break;
         }
+#endif
         case GIMBAL_ABSOLUTE_ANGLE:
         {
             gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_GYRO;
@@ -287,11 +302,13 @@ void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, gimbal_control
             gimbal_cali_control(add_yaw, add_pitch, gimbal_control_set);
             break;
         }
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
         case GIMBAL_FOLD:
         {
             gimbal_fold_control(add_yaw, add_pitch, gimbal_control_set);
             break;
         }
+#endif
         case GIMBAL_ABSOLUTE_ANGLE:
         {
             gimbal_absolute_angle_control(add_yaw, add_pitch, gimbal_control_set);
@@ -338,6 +355,21 @@ bool_t gimbal_cmd_to_chassis_stop(void)
     {
         return 0;
     }
+}
+
+/**
+  * @brief          returns 1 when fold is commanded but chassis must align with gimbal first
+  * @retval         1: needs alignment 0:normal
+  */
+bool_t gimbal_cmd_to_chassis_align(void)
+{
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    return (gimbal_control.gimbal_folding_status.target == FOLDED &&
+            gimbal_control.gimbal_folding_status.current == UNFOLDED &&
+            fabs(gimbal_control.gimbal_yaw_motor.relative_angle) > FOLD_POS_TOL) ? 1 : 0;
+#else
+    return 0;
+#endif
 }
 
 /**
@@ -463,7 +495,17 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
                 /* Enter if fold command or in a folded state and need to wait until unfolded*/
                 if(gimbal_mode_set->gimbal_folding_status.target || gimbal_mode_set->gimbal_folding_status.current) 
                 {
-                    gimbal_behaviour = GIMBAL_FOLD;
+                    /* When about to fold, wait for chassis to align with gimbal first */
+                    if (gimbal_mode_set->gimbal_folding_status.target == FOLDED &&
+                        gimbal_mode_set->gimbal_folding_status.current == UNFOLDED &&
+                        fabs(gimbal_mode_set->gimbal_yaw_motor.relative_angle) > FOLD_POS_TOL)
+                    {
+                        gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;
+                    }
+                    else
+                    {
+                        gimbal_behaviour = GIMBAL_FOLD;
+                    }
                 }
                 else
 #endif
@@ -476,6 +518,10 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
             default:
             {
 				gimbal_behaviour = GIMBAL_ZERO_FORCE;
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+                /* Reset fold target so flipping the switch back up auto-unfolds if still folded */
+                gimbal_mode_set->gimbal_folding_status.target = UNFOLDED;
+#endif
 				break;
 			}
 		}
@@ -840,6 +886,7 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, gimbal_control
 }
 
 
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 static void gimbal_fold_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal_control_set) //ignore operator input during fold/unfold, actual folding control in gimbal task TODO: maybe remove and use gimbal_motionless_control
 {
     if (yaw == NULL || pitch == NULL || gimbal_control_set == NULL)
@@ -849,6 +896,7 @@ static void gimbal_fold_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *gimbal
     *yaw = 0.0f;
     *pitch = 0.0f;
 }
+#endif
 
 /**
   * @brief          when gimbal behaviour mode is GIMBAL_MOTIONLESS, the function is called

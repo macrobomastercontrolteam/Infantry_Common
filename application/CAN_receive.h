@@ -396,8 +396,9 @@ extern void send_ui_info(void);
 void decode_ref_info(uint8_t *rx_data);
 extern void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat);
 extern void CAN_get_chassis_power_info( fp32 *buffer, fp32 *power_limit);
-
+#if (ROBOT_PITCH_IS_4310 || ROBOT_PITCH_IS_4340)
 extern void CAN_cmd_gimbal_Damiao_motor(MIT_control_motor_t *MIT_control_motor);
+#endif
 #endif
 
 #endif

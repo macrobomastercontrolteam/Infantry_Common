@@ -487,6 +487,7 @@
 #define FOLD_POS_FILTER_COEFF 0.04f
 #define FOLD_BASE_POS_MAX_STEP 0.00223f
 #define FOLD_PITCH_POS_MAX_STEP 0.00190f
+#define GIMBAL_FOLD_ZERO_FORCE_DEADBAND (PI / 25.0f)
 
 
 typedef enum
@@ -633,7 +634,9 @@ extern fp32 get_gimbal_ecd_pitch_angle(void);
 
 void MIT_motor_set_torq(gimbal_control_t *control_loop);
 
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 void foldable_pitch_control(gimbal_control_t *gimbal_control_set);
+#endif
 
 void MIT_control_motor_init(MIT_control_motor_t *motor);
 void MIT_motor_angle_control_config(MIT_control_motor_t *motor);
