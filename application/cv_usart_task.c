@@ -34,6 +34,7 @@
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_HEADLESS_SIZE - sizeof(uint16_t) - sizeof(uint8_t)) // sizeof(uiTimestamp) and sizeof(bMsgType)
 #define CHAR_UNUSED 0xFF
 #define SHOOT_TIMEOUT_MS 350
+#define CHASSIS_SPIN_TIMEOUT_MS 15000
 #define CV_TRANDELTA_FILTER_SIZE 4 // TranDelta means Transmission delay
 #define CV_SPEED_FILTER_ALPHA 0.25f
 
@@ -147,6 +148,10 @@ void cv_usart_task(void const *argument)
 		{
 			CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 		}
+		if (CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT) && (osKernelSysTick() - CvCmdHandler.ulChassisSpinStartTime > CHASSIS_SPIN_TIMEOUT_MS))
+		{
+			CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
+		}
 #endif
 		osDelayUntil(&ulSystemTime, CV_CONTROL_TIME_MS);
 	}
@@ -168,6 +173,7 @@ void CvCmder_Init(void)
 	CvCmdHandler.cv_rc_ctrl = get_remote_control_point(); // reserved, not used yet
 
 	CvCmdHandler.fCvMode = 0;
+	CvCmdHandler.ulChassisSpinStartTime = 0;
 	CvSpeedFilter.fInitialized = 0;
 	CvSpeedFilter.xSpeed = 0.0f;
 	CvSpeedFilter.ySpeed = 0.0f;
@@ -574,7 +580,9 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					if((shootCmd == 0xFF)){
 	#endif
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 1);
+						CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 1);
 						CvCmdHandler.ulShootStartTime = osKernelSysTick();
+						CvCmdHandler.ulChassisSpinStartTime = CvCmdHandler.ulShootStartTime;
 					} else {
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 					}

@@ -48,6 +48,7 @@ typedef struct
     uint8_t fCvMode; ///< contains individual CV control flag bits defined by eModeControlBits
     uint8_t fIsModeChanged;
     uint32_t ulShootStartTime;
+    uint32_t ulChassisSpinStartTime;
     const RC_ctrl_t *cv_rc_ctrl; ///< remote control pointer
 } tCvCmdHandler;
 
