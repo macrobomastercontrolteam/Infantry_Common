@@ -457,6 +457,21 @@
 #define YAW_RC_CV_SEN_INC (PI / 100.0f)
 #define PITCH_RC_CV_SEN_INC (3.0f * PI / 500.0f)
 
+// CV aim error PID: outer loop converting normalized error [-1,1] -> angle increment (rad/tick)
+// Kp is initialised to match the previous proportional gain.
+// Increase Kd to damp overshoot; add small Ki only if steady-state offset is observed.
+#define CV_AIM_YAW_PID_KP       (YAW_RC_CV_SEN_INC * 0.33f)
+#define CV_AIM_YAW_PID_KI       0.5f
+#define CV_AIM_YAW_PID_KD       0.001f
+#define CV_AIM_YAW_PID_MAX_OUT  (YAW_RC_CV_SEN_INC * 3.0f)
+#define CV_AIM_YAW_PID_MAX_IOUT 0.0f
+
+#define CV_AIM_PITCH_PID_KP       (PITCH_RC_CV_SEN_INC * 0.33f)
+#define CV_AIM_PITCH_PID_KI       0.5f
+#define CV_AIM_PITCH_PID_KD       0.001f
+#define CV_AIM_PITCH_PID_MAX_OUT  (PITCH_RC_CV_SEN_INC * 3.0f)
+#define CV_AIM_PITCH_PID_MAX_IOUT 0.0f
+
 #define PITCH_RC_CHANGE_TIME_S 0.35f
 #define PITCH_RC_SEN_INC -(PI / 4.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
 #define PITCH_RC_MOUSE_SEN_INC (PI / 4.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / MOUSE_Y_EFFECTIVE_SPEED)

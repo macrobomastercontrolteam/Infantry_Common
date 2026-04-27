@@ -183,6 +183,9 @@ uint8_t fLastKeyVSignal = 0;
 fp32 cvAidedX, cvAidedY, debugx, debugy;
 fp32 cv_coeff_x = 0.5, cv_coeff_y = 0.5;
 
+static pid_type_def cv_yaw_aim_pid;
+static pid_type_def cv_pitch_aim_pid;
+
 /**
   * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME_MS (1ms) 
   * @param[in]      pvParameters: null
@@ -607,6 +610,11 @@ static void gimbal_init(gimbal_control_t *init)
     init->gimbal_yaw_motor.CvCmdAngleFilter.cursor = 0;
     init->gimbal_yaw_motor.CvCmdAngleFilter.ring = init->gimbal_yaw_motor.CvCmdAngleFilterBuffer;
     init->gimbal_yaw_motor.CvCmdAngleFilter.sum = 0;
+
+    static const fp32 cv_yaw_aim_pid_params[3]   = {CV_AIM_YAW_PID_KP,   CV_AIM_YAW_PID_KI,   CV_AIM_YAW_PID_KD};
+    static const fp32 cv_pitch_aim_pid_params[3] = {CV_AIM_PITCH_PID_KP, CV_AIM_PITCH_PID_KI, CV_AIM_PITCH_PID_KD};
+    PID_init(&cv_yaw_aim_pid,   PID_POSITION, cv_yaw_aim_pid_params,   CV_AIM_YAW_PID_MAX_OUT,   CV_AIM_YAW_PID_MAX_IOUT,   0.0f, &raw_err_handler);
+    PID_init(&cv_pitch_aim_pid, PID_POSITION, cv_pitch_aim_pid_params, CV_AIM_PITCH_PID_MAX_OUT, CV_AIM_PITCH_PID_MAX_IOUT, 0.0f, &raw_err_handler);
   #endif
 
     gimbal_yaw_pid_clear(init);
@@ -813,14 +821,17 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 
 		if (CvCmder_GetMode(CV_MODE_ASSIST_BIT) && fCvAutoAim())
 		{
-                cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC * 0.85f;
-                cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC * 0.85f;
-                // cvAidedX = debugx * YAW_RC_CV_SEN_INC;
-                // cvAidedY = debugy * PITCH_RC_CV_SEN_INC;
+                // PID on normalised aim error [-1, 1] -> angle increment (rad/tick)
+                // yaw: PID error = 0 - xAimError, so output is negative when target is right (correct)
+                // pitch: negate because +yAimError should produce a positive pitch increment
+                cvAidedX =  PID_calc(&cv_yaw_aim_pid,   CvCmdHandler.CvCmdMsg.xAimError, 0.0f, GIMBAL_CONTROL_TIME_S);
+                cvAidedY = -PID_calc(&cv_pitch_aim_pid, CvCmdHandler.CvCmdMsg.yAimError, 0.0f, GIMBAL_CONTROL_TIME_S);
                 
                 ui_info.auto_aim_state = 1;      
 		}
         else{
+            PID_clear(&cv_yaw_aim_pid);
+            PID_clear(&cv_pitch_aim_pid);
             cvAidedX = 0.0f;
             cvAidedY = 0.0f;
 
@@ -833,10 +844,12 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         if(toe_is_error(DBUS_TOE) && gimbal_behaviour == GIMBAL_AUTO_AIM)
 #endif
         {
-            cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC*0.35f;
-            cvAidedY = CvCmdHandler.CvCmdMsg.yAimError * PITCH_RC_CV_SEN_INC *0.35f;
+            cvAidedX =  PID_calc(&cv_yaw_aim_pid,   CvCmdHandler.CvCmdMsg.xAimError, 0.0f, GIMBAL_CONTROL_TIME_S);
+            cvAidedY = -PID_calc(&cv_pitch_aim_pid, CvCmdHandler.CvCmdMsg.yAimError, 0.0f, GIMBAL_CONTROL_TIME_S);
         }
         else{
+            PID_clear(&cv_yaw_aim_pid);
+            PID_clear(&cv_pitch_aim_pid);
             cvAidedX = 0.0f;
             cvAidedY = 0.0f;
         }
