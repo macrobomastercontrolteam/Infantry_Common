@@ -169,7 +169,7 @@
 #define YAW_SPEED_PID_MAX_IOUT  10000.0f
 #else
 #define YAW_SPEED_PID_KP        0.8f
-#define YAW_SPEED_PID_KI        1.0f
+#define YAW_SPEED_PID_KI        0.0f
 #define YAW_SPEED_PID_KD        0.05f
 #define YAW_SPEED_PID_MAX_OUT   6.5f
 #define YAW_SPEED_PID_MAX_IOUT  2.33f
