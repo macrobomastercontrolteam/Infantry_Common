@@ -89,7 +89,7 @@ void chassis_behaviour_set_mode(void)
 {
 
 #if !DEBUG_CV
-	if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE) && toe_is_error(DBUS_TOE))
+	if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE) && toe_is_error(REMOTE_TOE))
 #else
 	if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE) && chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
 #endif
@@ -277,7 +277,7 @@ void dial_channel_manager(void)
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 	if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE)
 	{
-		// if (toe_is_error(DBUS_TOE))
+		// if (toe_is_error(REMOTE_TOE))
 		// {
 		// 	// CV fully automatic mode without RC
 		// 	chassis_move.dial_channel_out = chassis_move.dial_channel_latched;
@@ -295,7 +295,7 @@ void dial_channel_manager(void)
 		chassis_move.dial_channel_out = dial_channel_raw;
 	}
 #else
-	if (toe_is_error(DBUS_TOE) == 0)
+	if (toe_is_error(REMOTE_TOE) == 0)
 	{
 		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
 		{

@@ -30,7 +30,7 @@
 #define POWER_TRAIN_USE_SPECIAL_CTRL 2
 
 /********************* Only Modify this area (start) *********************/
-#define ROBOT_TYPE HERO_2025_MECANUM
+#define ROBOT_TYPE SENTRY_2026_OMNI
 #define COMPETITION_TYPE RMUL
 #define SUPERCAP_TYPE MACRM_SUPERCAP
 #define CV_INTERFACE 1
@@ -40,7 +40,15 @@
 
 #define USE_SERVO_TO_STIR_AMMO 0
 #define ENABLE_HIGHER_BAUD_RATE_FOR_CV 0
+
+#define REMOTE_USE_DR16 0
+#define REMOTE_USE_VT13 1
+#define REMOTE_TYPE REMOTE_USE_VT13
 /********************* Only Modify this area (end) *********************/
+
+#if ((REMOTE_TYPE != REMOTE_USE_DR16) && (REMOTE_TYPE != REMOTE_USE_VT13))
+#error "REMOTE_TYPE must be REMOTE_USE_DR16 or REMOTE_USE_VT13"
+#endif
 
 #if ((ROBOT_TYPE == INFANTRY_2024_MECANUM)||(ROBOT_TYPE == HERO_2025_MECANUM))
 #define CAN_PASS_REF_INFO 1 

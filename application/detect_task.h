@@ -45,7 +45,7 @@
 enum errorList
 {
     // chassis related TOEs (make sure this group is continuous)
-    DBUS_TOE = 0,
+    REMOTE_TOE = 0,
     // M3508 control speed
     CHASSIS_MOTOR1_TOE,
     CHASSIS_MOTOR2_TOE,

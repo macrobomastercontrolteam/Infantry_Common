@@ -735,7 +735,7 @@ void CAN_cmd_biped_chassis_mode(void)
 	static uint8_t bLastRcRightSw = RC_SW_DOWN;
 	uint8_t bRcLeftSw = RC_SW_DOWN;
 	uint8_t bRcRightSw = RC_SW_DOWN;
-	if (toe_is_error(DBUS_TOE) == 0)
+	if (toe_is_error(REMOTE_TOE) == 0)
 	{
 		bRcLeftSw = rc_ctrl.rc.s[RC_LEFT_LEVER_CHANNEL];
 		bRcRightSw = rc_ctrl.rc.s[RC_RIGHT_LEVER_CHANNEL];

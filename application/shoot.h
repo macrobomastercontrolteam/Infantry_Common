@@ -29,6 +29,7 @@
 
 // After the shooting is enabled, the bullet is continuously fired for a period of time, used to clear the bullet
 #define RC_S_LONG_TIME              250
+#define VT13_TRIGGER_LONG_PRESS_TIME 1000  // ms: hold duration to activate force auto-fire on VT13 Hero
 
 
 
@@ -296,6 +297,7 @@ typedef struct
     bool_t last_press_l;
     bool_t last_press_r;
     uint16_t left_click_hold_time;
+    uint16_t vt13_trigger_hold_time;  // holds VT13 trigger press duration in ms (Hero only)
 
     uint16_t block_time;
     uint16_t piston_block_time;

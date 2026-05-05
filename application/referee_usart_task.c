@@ -54,12 +54,19 @@ void referee_usart_task(void const * argument)
 {
     init_referee_struct_data();
     fifo_s_init(&referee_fifo, referee_fifo_buf, REFEREE_FIFO_BUF_LENGTH);
+#if (REMOTE_TYPE != REMOTE_USE_VT13)
+    // VT13 owns USART6 (RC_Init configures hdma_usart6_rx for sbus_rx_buf).
+    // Calling usart6_init() here would overwrite M0AR/M1AR and silently break
+    // the VT13 receive path (DMA writes to usart6_buf, RC IRQ reads sbus_rx_buf).
     usart6_init(usart6_buf[0], usart6_buf[1], USART_RX_BUF_LENGTH);
+#endif
 
     while(1)
     {
 
+#if (REMOTE_TYPE != REMOTE_USE_VT13)
         referee_unpack_fifo_data();
+#endif
         osDelay(10);
     }
 }
@@ -168,6 +175,7 @@ void referee_unpack_fifo_data(void)
 }
 
 
+#if (REMOTE_TYPE != REMOTE_USE_VT13)
 void USART6_IRQHandler(void)
 {
     static volatile uint8_t res;
@@ -199,5 +207,6 @@ void USART6_IRQHandler(void)
         }
     }
 }
+#endif
 
 

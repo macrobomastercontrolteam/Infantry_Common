@@ -27,6 +27,7 @@
 #define SBUS_RX_BUF_NUM 36u
 
 #define RC_FRAME_LENGTH 18u
+#define VT13_FRAME_LENGTH 21u
 
 #define RC_CH_VALUE_MIN         ((uint16_t)364)
 #define RC_CH_VALUE_OFFSET      ((uint16_t)1024)
@@ -102,6 +103,8 @@ typedef __packed struct
         {
                 uint16_t v;
         } key;
+
+        uint8_t vt13_trigger;
 
 } RC_ctrl_t;
 
