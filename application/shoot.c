@@ -43,10 +43,15 @@
 #define TRIGGER_ANTI_STALL_BY_WAIT 0
 #endif
 
+
+#define VT13_TRIGGER_PRESSED() \
+    ((shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN) \
+     && (shoot_control.shoot_rc->vt13_trigger != 0))
+
 #if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
 #define VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE() (shoot_control.vt13_trigger_hold_time >= VT13_TRIGGER_LONG_PRESS_TIME)
 #elif (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE != HERO_2025_MECANUM)
-#define VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE() (shoot_control.shoot_rc->vt13_trigger != 0)
+#define VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE() (VT13_TRIGGER_PRESSED())
 #else
 #define VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE() (0)
 #endif
@@ -730,7 +735,7 @@ static void shoot_set_mode(void)
 				// VT13 Hero: trigger replaces rc.s[RC_LEFT_LEVER_CHANNEL] for fire control
 				{
 					static bool_t vt13_last_trigger = 0;
-					bool_t trigger_now = (bool_t)(shoot_control.shoot_rc->vt13_trigger);
+					bool_t trigger_now = (bool_t)VT13_TRIGGER_PRESSED();
 
 					if (shoot_control.vt13_trigger_hold_time >= VT13_TRIGGER_LONG_PRESS_TIME)
 					{
@@ -914,7 +919,7 @@ static void shoot_feedback_update(void)
 		shoot_control.left_click_hold_time = 0;
 	}
 #if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
-	if (shoot_control.shoot_rc->vt13_trigger)
+	if (VT13_TRIGGER_PRESSED())
 	{
 		if (shoot_control.vt13_trigger_hold_time < (VT13_TRIGGER_LONG_PRESS_TIME + SHOOT_CONTROL_TIME_MS))
 			shoot_control.vt13_trigger_hold_time += SHOOT_CONTROL_TIME_MS;
