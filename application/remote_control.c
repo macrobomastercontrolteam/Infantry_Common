@@ -139,7 +139,11 @@ error:
     rc_ctrl.mouse.press_l = 0;
     rc_ctrl.mouse.press_r = 0;
     rc_ctrl.key.v = 0;
-    rc_ctrl.vt13_trigger = 0;
+    rc_ctrl.vt13.trigger = 0;
+    rc_ctrl.vt13.customizable_button_left = 0;
+    rc_ctrl.vt13.customizable_button_right = 0;
+    rc_ctrl.vt13.pause_button = 0;
+    rc_ctrl.vt13.dial = 0;
     return 1;
 }
 
@@ -354,7 +358,11 @@ static void dr16_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
 	rc_ctrl->mouse.press_l = sbus_buf[12];                                                   //!< Mouse Left Is Press ?
 	rc_ctrl->mouse.press_r = sbus_buf[13];                                                   //!< Mouse Right Is Press ?
 	rc_ctrl->key.v = sbus_buf[14] | (sbus_buf[15] << 8);                                     //!< KeyBoard value
-    rc_ctrl->vt13_trigger = 0;
+    rc_ctrl->vt13.trigger = 0;
+    rc_ctrl->vt13.customizable_button_left = 0;
+    rc_ctrl->vt13.customizable_button_right = 0;
+    rc_ctrl->vt13.pause_button = 0;
+    rc_ctrl->vt13.dial = 0;
 
 	raw_rc_ch[0] -= RC_CH_VALUE_OFFSET;
 	raw_rc_ch[1] -= RC_CH_VALUE_OFFSET;
@@ -458,10 +466,19 @@ static uint8_t vt13_to_rc(const uint8_t *rx_buf, uint16_t rx_len, RC_ctrl_t *rc_
         rc_ctrl->rc.s[0] = mode_sw_norm;
         // VT13 has one mode switch; keep left lever neutral to avoid unexpected DR16-only side effects.
         rc_ctrl->rc.s[1] = RC_SW_MID;
-        rc_ctrl->vt13_trigger = (uint8_t)((packed >> 60) & 0x01u);
+        rc_ctrl->vt13.trigger = (uint8_t)((packed >> 60) & 0x01u);
+
+        // Extract VT13 buttons
+        rc_ctrl->vt13.pause_button = (uint8_t)((packed >> 46) & 0x01u);
+        rc_ctrl->vt13.customizable_button_left = (uint8_t)((packed >> 47) & 0x01u);
+        rc_ctrl->vt13.customizable_button_right = (uint8_t)((packed >> 48) & 0x01u);
+
+        // Extract VT13 dial (11 bits at offset 65, which is bits 49-59 in packed)
+        rc_ctrl->vt13.dial = (int16_t)((packed >> 49) & 0x07FFu);
+        rc_ctrl->vt13.dial = rc_constrain_to_dr16_range(rc_ctrl->vt13.dial - RC_CH_VALUE_OFFSET);
 
         rc_ctrl->mouse.x = (int16_t)(frame[10] | (frame[11] << 8));
-        rc_ctrl->mouse.y = (int16_t)(frame[12] | (frame[13] << 8));
+        rc_ctrl->mouse.y = -((int16_t)(frame[12] | (frame[13] << 8)));  // Negate Y for correct orientation
         rc_ctrl->mouse.z = (int16_t)(frame[14] | (frame[15] << 8));
 
         uint8_t mouse_bits = frame[16];

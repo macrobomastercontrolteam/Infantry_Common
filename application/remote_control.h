@@ -104,7 +104,14 @@ typedef __packed struct
                 uint16_t v;
         } key;
 
-        uint8_t vt13_trigger;
+        __packed struct
+        {
+                uint8_t trigger;
+                uint8_t customizable_button_left;
+                uint8_t customizable_button_right;
+                uint8_t pause_button;
+                int16_t dial;
+        } vt13;
 
 } RC_ctrl_t;
 
