@@ -514,6 +514,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 #endif
 					CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 1);
 					CvCmder_SendAck(MSG_CV_CHASSIS_MOVE_STATE);
+					detect_hook(CV_TOE);
         	    }
 
 
