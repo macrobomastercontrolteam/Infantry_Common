@@ -44,9 +44,15 @@
 #endif
 
 
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
 #define VT13_TRIGGER_PRESSED() \
     ((shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN) \
-     && (shoot_control.shoot_rc->vt13_trigger != 0))
+     && (shoot_control.shoot_rc->vt13.trigger != 0))
+#else
+#define VT13_TRIGGER_PRESSED() \
+    ((shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN) \
+     && (shoot_control.shoot_rc->vt13.trigger != 0))
+#endif
 
 #if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
 #define VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE() (shoot_control.vt13_trigger_hold_time >= VT13_TRIGGER_LONG_PRESS_TIME)
@@ -452,8 +458,13 @@ int16_t shoot_control_loop(void)
 				else // Manual control
 				{
 
-					// Check for left lever position on remote controller.
+					// Check for mode switch position on remote controller.
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+					// VT13 Hero: trigger-based with mode switch safety gate (position 2 disables shooting)
+					if ((shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN) && VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE())
+#else
 					if ((shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP) || VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE())
+#endif
 					{
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 						shoot_control.shoot_mode = HERO_LAUNCHER_READY;
@@ -509,7 +520,11 @@ int16_t shoot_control_loop(void)
 		case HERO_LAUNCHER_SHOOT: // Specific shooting mode for HERO_2025_MECANUM.
 		{
 
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+			if ((shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN) && VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE()) // VT13 Hero: mode switch pos 2 disables shooting
+#else
 			if ((shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP) || VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE()) // RC left lever UP or VT13 long press (force auto fire)
+#endif
 			{
 				if (launcher_status.Launcher_Opened == 1)
 				{
@@ -580,7 +595,11 @@ int16_t shoot_control_loop(void)
 			}
 			else // Manual control mode
 			{
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+				if ((shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN) && VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE()) // VT13 Hero: mode switch pos 2 disables shooting
+#else
 				if ((shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP) || VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE()) // Remote controller left lever is UP (force auto fire)
+#endif
 				{
 					// stay in auto fire mode
 				}
@@ -698,7 +717,43 @@ static void shoot_set_mode(void)
 	else // Manual control mode based on remote controller's left lever (S1 switch).
 	{
 		static int8_t last_switch_state = RC_SW_UP; 
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+		// VT13 Hero: read mode switch (right lever) as safety gate - position 2 disables shooting
+		int8_t new_switch_state = shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL];
+#else
 		int8_t new_switch_state = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL]; // Current state of S1 switch.
+#endif
+
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+		// VT13 Hero: use physical customizable buttons on VT13 remote for jam handling
+		// Note: B/V/F keys only work if computer keyboard connected to receiver
+		bool_t trigger_now = (bool_t)VT13_TRIGGER_PRESSED();
+		bool_t launcher_jam_input = (shoot_control.shoot_rc->vt13.customizable_button_left) || (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_B);
+		bool_t loader_jam_input = (shoot_control.shoot_rc->vt13.customizable_button_right) || (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_V);
+		bool_t heat_override_input = (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_F);
+
+		if (launcher_jam_input) // Re-init launcher to handle jam (left button or B key if keyboard connected)
+		{
+			launcher_status.Launcher_Initialized = 0;
+			launcher_status.init_step = 0;
+			launcher_status.Launcher_Jamed = 1;
+			launcher_status.Loader_Jamed = 0;
+			return;
+		}
+		else if (loader_jam_input) // Handle loader jam (right button or V key if keyboard connected)
+		{
+			launcher_status.Launcher_Initialized = 0;
+			launcher_status.init_step = 0;
+			launcher_status.Loader_Jamed = 1;
+			launcher_status.Launcher_Jamed = 0;
+			return;
+		}
+		else if (heat_override_input) // Toggle heat limit override (F key only - requires computer keyboard)
+		{
+			launcher_status.Heat_Limit_Ignored = !(launcher_status.Heat_Limit_Ignored);
+			return;
+		}
+#endif
 
 		if (VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE())
 		{
@@ -719,6 +774,42 @@ static void shoot_set_mode(void)
 		}
 #endif
 
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+		// VT13 Hero: ignore mode switch position, use trigger-based logic only
+		{
+			static bool_t vt13_last_trigger = 0;
+
+			// Handle trigger state
+			if (shoot_control.vt13_trigger_hold_time >= VT13_TRIGGER_LONG_PRESS_TIME)
+			{
+				// Long press (>1s): force auto-fire
+				shoot_control.shoot_mode = SHOOT_READY_FRIC;
+			}
+			else if (trigger_now && !vt13_last_trigger) // short press: rising edge
+			{
+				if (launcher_status.Launcher_Initialized == 0)
+				{
+					shoot_control.shoot_mode = HERO_INIT_LAUNCHER;
+				}
+				else
+				{
+					fCvAutoAimReady = 1;
+					shoot_control.shoot_mode = SHOOT_READY_FRIC;
+				}
+			}
+			else if (!trigger_now)
+			{
+				fCvAutoAimReady = 0;
+				if (shoot_control.shoot_mode != HERO_INIT_LAUNCHER)
+				{
+					shoot_control.shoot_mode = SHOOT_STOP;
+				}
+			}
+
+			vt13_last_trigger = trigger_now;
+		}
+#else
+		// DR16: use switch position-based logic
 		switch (new_switch_state)
 		{
 			case RC_SW_UP: // Lever is UP, auto fire mode by RC (for testing).
@@ -731,67 +822,8 @@ static void shoot_set_mode(void)
 			}
 			case RC_SW_MID: // mouse-controlled fire mode
 			{
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
-				// VT13 Hero: trigger replaces rc.s[RC_LEFT_LEVER_CHANNEL] for fire control
-				{
-					static bool_t vt13_last_trigger = 0;
-					bool_t trigger_now = (bool_t)VT13_TRIGGER_PRESSED();
-
-					if (shoot_control.vt13_trigger_hold_time >= VT13_TRIGGER_LONG_PRESS_TIME)
-					{
-						// Long press (>1s): force auto-fire, equivalent to RC_SW_UP
-						if (last_switch_state != RC_SW_UP)
-						{
-							shoot_control.shoot_mode = SHOOT_READY_FRIC;
-						}
-						last_switch_state = RC_SW_UP;
-					}
-					else if (trigger_now && !vt13_last_trigger) // short press: rising edge
-					{
-						if (launcher_status.Launcher_Initialized == 0)
-						{
-							shoot_control.shoot_mode = HERO_INIT_LAUNCHER;
-						}
-						else
-						{
-							fCvAutoAimReady = 1;
-							shoot_control.shoot_mode = SHOOT_READY_FRIC;
-						}
-						last_switch_state = RC_SW_MID;
-					}
-					else if (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_B) // re-init to handle jam
-					{
-						launcher_status.Launcher_Initialized = 0;
-						launcher_status.init_step = 0;
-						launcher_status.Launcher_Jamed = 1;
-						launcher_status.Loader_Jamed = 0;
-					}
-					else if (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_V)
-					{
-						launcher_status.Launcher_Initialized = 0;
-						launcher_status.init_step = 0;
-						launcher_status.Loader_Jamed = 1;
-						launcher_status.Launcher_Jamed = 0;
-					}
-					else if (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_F)
-					{
-						launcher_status.Heat_Limit_Ignored = !(launcher_status.Heat_Limit_Ignored);
-					}
-					else if (!trigger_now)
-					{
-						fCvAutoAimReady = 0;
-						if (shoot_control.shoot_mode != HERO_INIT_LAUNCHER)
-						{
-							shoot_control.shoot_mode = SHOOT_STOP;
-						}
-						last_switch_state = RC_SW_MID;
-					}
-
-					vt13_last_trigger = trigger_now;
-				}
-#else
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-                // For HERO_2025_MECANUM (DR16), initialize to clear launcher and load the ammo chain first
+				// For HERO_2025_MECANUM (DR16), initialize to clear launcher and load the ammo chain first
 				if (launcher_status.Launcher_Initialized == 0)
 				{
 					shoot_control.shoot_mode = HERO_INIT_LAUNCHER;
@@ -800,14 +832,14 @@ static void shoot_set_mode(void)
 				else // Chain is loaded, proceed to check mouse input.
 #endif
 				{
-                    // hold right mouse to keep friction wheels rotating. 
+					// hold right mouse to keep friction wheels rotating. 
 					if (shoot_control.press_r) 
 					{
-                        // If right mouse was just pressed.
+						// If right mouse was just pressed.
 						if (shoot_control.last_press_r == 0)
 						{
 							fCvAutoAimReady = 1;
-						shoot_control.shoot_mode = SHOOT_READY_FRIC; // Start spinning friction wheels. Actual shooting mode will be set corespondingly inside this mode.
+							shoot_control.shoot_mode = SHOOT_READY_FRIC; // Start spinning friction wheels. Actual shooting mode will be set corespondingly inside this mode.
 						}
 					}
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
@@ -836,7 +868,6 @@ static void shoot_set_mode(void)
 						shoot_control.shoot_mode = SHOOT_STOP; 
 					}
 				}
-#endif // VT13 + HERO
 				break;
 			}
 			case RC_SW_DOWN: // Lever is DOWN (safe/disabled mode).
@@ -848,6 +879,7 @@ static void shoot_set_mode(void)
 			}
 		}
 		last_switch_state = new_switch_state; // Update last switch state.
+#endif // DR16 switch-based logic
 	}
 }
 
