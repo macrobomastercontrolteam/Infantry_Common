@@ -151,12 +151,12 @@ uint8_t decode_swerve_chassis_feedback(uint8_t *data);
 #elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 #define CHASSIS_METER_PER_SEC_ECD_MAX_LIMIT 1.5f
 #define CHASSIS_METER_ECD_MAX_LIMIT 0.5f
-#define CHASSIS_ANGLE_ECD_MAX_LIMIT (PI / 12.0f)
+#define CHASSIS_ANGLE_ECD_MAX_LIMIT CHASSIS_ALPHA_WORKSPACE_PEAK
 #define CHASSIS_WHEEL_ROT_RADIUS_DOT_DEADZONE 0.008f
 
-const fp32 chassis_speed_encoding_ratio = (1 << 15) / CHASSIS_METER_PER_SEC_ECD_MAX_LIMIT;
-const fp32 chassis_meter_encoding_ratio = (1 << 16) / CHASSIS_METER_ECD_MAX_LIMIT;
-const fp32 chassis_angle_encoding_ratio = (1 << 15) / CHASSIS_ANGLE_ECD_MAX_LIMIT;
+const fp32 chassis_speed_encoding_ratio = ((1 << 15) - 1) / CHASSIS_METER_PER_SEC_ECD_MAX_LIMIT;
+const fp32 chassis_meter_encoding_ratio = ((1 << 16) - 1) / CHASSIS_METER_ECD_MAX_LIMIT;
+const fp32 chassis_angle_encoding_ratio = ((1 << 15) - 1) / CHASSIS_ANGLE_ECD_MAX_LIMIT;
 
 const fp32 chassis_meter_encoding_ratio_shrinked = (1 << 8) / CHASSIS_METER_ECD_MAX_LIMIT;
 const fp32 chassis_angle_encoding_ratio_shrinked = (1 << 7) / CHASSIS_ANGLE_ECD_MAX_LIMIT;
@@ -1178,6 +1178,8 @@ void CAN_cmd_swerve_hip(void)
 }
 
 #elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+int16_t target_alpha_cmd;
+uint16_t hight_cmd ;
 void CAN_cmd_chassis_hip(void)
 {
 	uint32_t send_mail_box;
@@ -1186,16 +1188,15 @@ void CAN_cmd_chassis_hip(void)
 #if ENABLE_HIP_MOTOR_POWER
 	if (chassis_move.fHipEnabled)
 	{
-		int16_t target_alpha1_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha1, CHASSIS_ANGLE_ECD_MAX_LIMIT) * chassis_angle_encoding_ratio;
-		uint16_t target_height_front_cmd = fp32_constrain(chassis_move.chassis_platform.target_height_front, 0, CHASSIS_METER_ECD_MAX_LIMIT) * chassis_meter_encoding_ratio;
-		uint16_t target_height_back_cmd = fp32_constrain(chassis_move.chassis_platform.target_height_back, 0, CHASSIS_METER_ECD_MAX_LIMIT) * chassis_meter_encoding_ratio;
+		target_alpha_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha, CHASSIS_ANGLE_ECD_MAX_LIMIT) * chassis_angle_encoding_ratio;
+		hight_cmd = fp32_constrain(chassis_move.chassis_platform.target_height, 0, CHASSIS_METER_ECD_MAX_LIMIT) * chassis_meter_encoding_ratio;
 
-		chassis_can_send_data[0] = target_alpha1_cmd >> 8;
-		chassis_can_send_data[1] = target_alpha1_cmd;
-		chassis_can_send_data[2] = target_height_front_cmd >> 8;
-		chassis_can_send_data[3] = target_height_front_cmd;
-		chassis_can_send_data[4] = target_height_back_cmd >> 8;
-		chassis_can_send_data[5] = target_height_back_cmd;
+		chassis_can_send_data[0] = target_alpha_cmd >> 8;
+		chassis_can_send_data[1] = target_alpha_cmd;
+		chassis_can_send_data[2] = hight_cmd >> 8;
+		chassis_can_send_data[3] = hight_cmd;
+		chassis_can_send_data[4] = 0;
+		chassis_can_send_data[5] = 0;
 		// reserved
 		// chassis_can_send_data[6] = rev >> 8;
 		// chassis_can_send_data[7] = rev;

@@ -66,7 +66,7 @@
 #define CHASSIS_PITCH_UPPER_LIMIT (PI / 4.0f)
 
 #elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
-#define CHASSIS_A_LENGTH 0.322815f
+#define CHASSIS_A_LENGTH 0.25f
 #define CHASSIS_HALF_A_LENGTH (CHASSIS_A_LENGTH / 2.0f)
 #define CHASSIS_L1_LENGTH 0.16f
 #define CHASSIS_THETA_LOWER_LIMIT 0.0f
@@ -76,9 +76,9 @@
 
 // calculated by Matlab offline
 #define CHASSIS_H_LOWER_LIMIT 0.0785f
-#define CHASSIS_H_UPPER_LIMIT 0.287656f
-#define CHASSIS_H_WORKSPACE_PEAK 0.239777f
-#define CHASSIS_ALPHA_WORKSPACE_PEAK 0.206667f
+#define CHASSIS_H_UPPER_LIMIT 0.21f
+#define CHASSIS_H_WORKSPACE_PEAK 0.16797f
+#define CHASSIS_ALPHA_WORKSPACE_PEAK (17.5f * DEG_TO_RAD(1.0f)) //17.5 is obtained from the formula joint_motor_angle = alpha + sin-1((chassis_length+Leg_length)/leg_length*sin(alpha)), so we use 17.5 degree as the alpha value when joint_motor_angle reaches the upper limit 68.28 degree
 #define CHASSIS_H_WORKSPACE_SLOPE1 0.302051f
 #define CHASSIS_H_WORKSPACE_SLOPE2 (-0.231672f)
 // @TODO: calculate for roll and pitch limits
@@ -248,12 +248,11 @@ typedef struct
 	fp32 target_height;
 
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
-	fp32 target_height_front;
-	fp32 target_height_back;
-#endif
-
+	fp32 target_alpha;
+#else
 	fp32 target_alpha1;
 	fp32 target_alpha2;
+#endif
 
 	fp32 alpha_lower_limit;
 	fp32 alpha_upper_limit;
