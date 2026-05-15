@@ -29,7 +29,7 @@
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 #define ENABLE_STEER_MOTOR_POWER 0
-#define ENABLE_HIP_MOTOR_POWER 1
+#define ENABLE_HIP_MOTOR_POWER 0
 
 // reverse hip motor direction
 #define REVERSE_1_HIP_MOTOR_DIRECTION 1
@@ -85,9 +85,9 @@ static uint8_t can_tx_data[8];
 static uint32_t send_mail_box;
 const uint8_t abAllFF[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-const fp32 speed_encoding_ratio = (1 << 15) / METER_PER_SEC_ECD_MAX_LIMIT;
-const fp32 meter_encoding_ratio = (1 << 16) / METER_ENCODER_MAX_LIMIT;
-const fp32 angle_encoding_ratio = (1 << 15) / ANGLE_ECD_MAX_LIMIT;
+const fp32 speed_encoding_ratio = ((1 << 15)- 1) / METER_PER_SEC_ECD_MAX_LIMIT;
+const fp32 meter_encoding_ratio = ((1 << 16)- 1) / METER_ENCODER_MAX_LIMIT;
+const fp32 angle_encoding_ratio = ((1 << 15)- 1) / ANGLE_ECD_MAX_LIMIT;
 
 const fp32 meter_encoding_ratio_shrinked = (1 << 8) / METER_ENCODER_MAX_LIMIT;
 const fp32 angle_encoding_ratio_shrinked = (1 << 7) / ANGLE_ECD_MAX_LIMIT;
@@ -255,26 +255,15 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 #if (HEADLESS_HIP_TEST == 0)
 				if (chassis_move.fHipMotorEnabled)
 				{
-					chassis_move.target_alpha1       = (int16_t)((rx_data[0] << 8) | rx_data[1]) / angle_encoding_ratio;
-					chassis_move.target_height_front = (uint16_t)((rx_data[2] << 8) | rx_data[3]) / meter_encoding_ratio;
-					chassis_move.target_height_back  = (uint16_t)((rx_data[4] << 8) | rx_data[5]) / meter_encoding_ratio;
+					chassis_move.target_alpha1 = (int16_t)((rx_data[0] << 8) | rx_data[1]) / angle_encoding_ratio;
+					chassis_move.target_height = (uint16_t)((rx_data[2] << 8) | rx_data[3]) / meter_encoding_ratio;
+					chassis_move.target_height = fp32_constrain(chassis_move.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
 
-					chassis_move.target_height_front = fp32_constrain(chassis_move.target_height_front, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
-					chassis_move.target_height_back  = fp32_constrain(chassis_move.target_height_back,  CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
-
-					// Compute workspace alpha limit from both heights; use the more constraining (smaller) limit
-					fp32 alpha_limit_front, alpha_limit_back;
-					if (chassis_move.target_height_front >= CHASSIS_H_WORKSPACE_PEAK)
-						alpha_limit_front = (chassis_move.target_height_front - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
+					// Compute workspace alpha limit from the single height command
+					if (chassis_move.target_height >= CHASSIS_H_WORKSPACE_PEAK)
+						chassis_move.alpha_upper_limit = (chassis_move.target_height - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
 					else
-						alpha_limit_front = (chassis_move.target_height_front - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
-
-					if (chassis_move.target_height_back >= CHASSIS_H_WORKSPACE_PEAK)
-						alpha_limit_back = (chassis_move.target_height_back - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
-					else
-						alpha_limit_back = (chassis_move.target_height_back - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
-
-					chassis_move.alpha_upper_limit = (alpha_limit_front < alpha_limit_back) ? alpha_limit_front : alpha_limit_back;
+						chassis_move.alpha_upper_limit = (chassis_move.target_height - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
 					chassis_move.alpha_lower_limit = -chassis_move.alpha_upper_limit;
 
 					chassis_move.target_alpha1 = fp32_constrain(chassis_move.target_alpha1, chassis_move.alpha_lower_limit, chassis_move.alpha_upper_limit);

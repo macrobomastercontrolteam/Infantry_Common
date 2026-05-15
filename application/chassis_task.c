@@ -479,40 +479,24 @@ void chassis_calc_targets(void)
 
 void chassis_inv_kine_diagonal(fp32 alpha, fp32 height, fp32 *theta_right, fp32 *theta_left)
 {
-	//fp32 A_right = height / AHRS_cosf(alpha) - CHASSIS_HALF_A_LENGTH * AHRS_tanf(alpha) - CHASSIS_L2_LENGTH;
-	//fp32 A_left = height / AHRS_cosf(alpha) + CHASSIS_HALF_A_LENGTH * AHRS_tanf(alpha) - CHASSIS_L2_LENGTH;
-	//fp32 B_right = A_right * AHRS_cosf(alpha) / CHASSIS_L1_LENGTH;
-	//fp32 B_left = A_left * AHRS_cosf(alpha) / CHASSIS_L1_LENGTH;
-//
-	//*theta_right = fabs(alpha - AHRS_asinf(B_right));
-	//*theta_left = fabs(alpha + AHRS_asinf(B_left));
-//
-	//if (theta_right == &chassis_move.target_theta[0])
-    //{
-    //    *theta_right = -(*theta_right);
-    //}
-//
-	//if (theta_left == &chassis_move.target_theta[2])
-	//{
-	//	*theta_left = -(*theta_left);
-	//}
+	float sin_alpha_term = ((CHASSIS_A_LENGTH + CHASSIS_L1_LENGTH) / CHASSIS_L1_LENGTH) * AHRS_sinf(alpha);
+	if (sin_alpha_term > 1.0f) sin_alpha_term = 1.0f;
+	else if (sin_alpha_term < -1.0f) sin_alpha_term = -1.0f;
 
+	float sin_height_term = (height - CHASSIS_WHEEL_REDIUS) / CHASSIS_L1_LENGTH;
+	if (sin_height_term > 1.0f) sin_height_term = 1.0f;
+	else if (sin_height_term < -1.0f) sin_height_term = -1.0f;
 
-	// Simplified inverse kinematics based on H = L1*sin(theta) + R
-	// This formulation corresponds to the "Left" diagonal (Plus sine) from the provided forward kinematics.
-	// Note: Right diagonal legs (Minus sine) would theoretically require negative theta for H > R.
+	float alpha_term = AHRS_asinf(sin_alpha_term);
+	float height_term = AHRS_asinf(sin_height_term);
+	uint8_t is_rear = ((theta_right == &chassis_move.target_theta[2]) || (theta_left == &chassis_move.target_theta[2]) ||
+	                   (theta_right == &chassis_move.target_theta[3]) || (theta_left == &chassis_move.target_theta[3]));
+	float theta = height_term + alpha + (is_rear ? -alpha_term : alpha_term);
 
-	float sin_val = (height - CHASSIS_WHEEL_REDIUS) / CHASSIS_L1_LENGTH;
-	// Clamp sine value to valid range [-1, 1]
-	if (sin_val > 1.0f) sin_val = 1.0f;
-	else if (sin_val < -1.0f) sin_val = -1.0f;
-
-	float theta = AHRS_asinf(sin_val);
-
-    if ((theta_right == &chassis_move.target_theta[0]) || (theta_left == &chassis_move.target_theta[2]))
-    {
-        theta = -theta;
-    }
+	if ((theta_right == &chassis_move.target_theta[0]) || (theta_left == &chassis_move.target_theta[2]))
+	{
+		theta = -theta;
+	}
 
 	*theta_right = theta;
 	*theta_left = theta;

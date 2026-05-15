@@ -28,9 +28,9 @@
 
 #define METER_PER_SEC_ECD_MAX_LIMIT 1.5f
 #define METER_ENCODER_MAX_LIMIT 0.5f
-#define ANGLE_ECD_MAX_LIMIT (PI / 12.0f)
+#define ANGLE_ECD_MAX_LIMIT (17.5f * DEG_TO_RAD(1.0f))
 
-#define CHASSIS_A_LENGTH 0.16f
+#define CHASSIS_A_LENGTH 0.25f
 #define CHASSIS_HALF_A_LENGTH (CHASSIS_A_LENGTH / 2.0f)
 #define CHASSIS_L1_LENGTH 0.16f
 #define CHASSIS_L2_LENGTH 0.177353f
@@ -50,8 +50,8 @@
 
 // calculated by Matlab offline
 #define CHASSIS_H_LOWER_LIMIT 0.0785f
-#define CHASSIS_H_UPPER_LIMIT 0.146031f
-#define CHASSIS_H_WORKSPACE_PEAK 0.088072f
+#define CHASSIS_H_UPPER_LIMIT 0.21f
+#define CHASSIS_H_WORKSPACE_PEAK 0.16797f
 #define CHASSIS_ALPHA_WORKSPACE_PEAK 0.206667f
 #define CHASSIS_H_WORKSPACE_SLOPE1 0.302051f
 #define CHASSIS_H_WORKSPACE_SLOPE2 (-0.231672f)
@@ -62,8 +62,7 @@ typedef struct
 	// Upper board command values
 	fp32 target_alpha1;                                  ///< unit rad
 	fp32 target_alpha2;                                  ///< unit rad
-	fp32 target_height_front;                            ///< unit m, target height for front hips (hip 1 & 2)
-	fp32 target_height_back;                             ///< unit m, target height for back hips (hip 3 & 4)
+	fp32 target_height;                                  ///< unit m, target height for all hips
 	                                                     // feedback values back to Upper board
 	fp32 current_alpha1;                                 ///< unit rad
 	fp32 current_alpha2;                                 ///< unit rad
