@@ -473,10 +473,11 @@
 #define PITCH_UNFOLD_POS   0.0f
 
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
-#define PITCH_BASE_HALF_FOLD_POS   -0.6f
-#define PITCH_BASE_FOLD_POS   -1.2f
-#define PITCH_BASE_FULLY_FOLD_POS   -1.42f
+#define PITCH_BASE_HALF_FOLD_POS   -0.3f
+#define PITCH_BASE_FOLD_POS   -0.8f
+#define PITCH_BASE_FULLY_FOLD_POS   -1.0f
 #define PITCH_BASE_UNFOLD_POS   0.25f
+#define PITCH_FOLD_UP_BIAS -0.05f
 #define PITCH_BASE_KP  20.5f
 #define PITCH_BASE_KD  1.0f //must be larger than 0 when using MIT angle control
 
@@ -487,7 +488,7 @@
 #define FOLD_POS_FILTER_COEFF 0.04f
 #define FOLD_BASE_POS_MAX_STEP 0.00223f
 #define FOLD_PITCH_POS_MAX_STEP 0.00190f
-#define GIMBAL_FOLD_ZERO_FORCE_DEADBAND (PI / 25.0f)
+#define GIMBAL_FOLD_ZERO_FORCE_DEADBAND DEG_TO_RAD(30.0f)
 
 
 typedef enum
