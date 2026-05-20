@@ -79,7 +79,7 @@
 #define CHASSIS_H_SPINNING_LOWER_LIMIT 0.0965f // this is used for spinning mode with random chassis height, 0.018m offset is added so the ammo won't stuck under the chassis
 #define CHASSIS_H_UPPER_LIMIT 0.21f
 #define CHASSIS_H_WORKSPACE_PEAK 0.16797f
-#define CHASSIS_ALPHA_WORKSPACE_PEAK (17.5f * DEG_TO_RAD(1.0f)) //17.5 is obtained from the formula joint_motor_angle = alpha + sin-1((chassis_length+Leg_length)/leg_length*sin(alpha)), so we use 17.5 degree as the alpha value when joint_motor_angle reaches the upper limit 68.28 degree
+#define CHASSIS_ALPHA_WORKSPACE_PEAK (DEG_TO_RAD(16.0f)) //17.5 is obtained from the formula joint_motor_angle = alpha + sin-1((chassis_length+Leg_length)/leg_length*sin(alpha)), so we use 17.5 degree as the alpha value when joint_motor_angle reaches the upper limit 68.28 degree
 #define CHASSIS_H_WORKSPACE_SLOPE1 0.302051f
 #define CHASSIS_H_WORKSPACE_SLOPE2 (-0.231672f)
 // @TODO: calculate for roll and pitch limits
