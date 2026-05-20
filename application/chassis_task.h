@@ -76,6 +76,7 @@
 
 // calculated by Matlab offline
 #define CHASSIS_H_LOWER_LIMIT 0.0785f
+#define CHASSIS_H_SPINNING_LOWER_LIMIT 0.0965f // this is used for spinning mode with random chassis height, 0.018m offset is added so the ammo won't stuck under the chassis
 #define CHASSIS_H_UPPER_LIMIT 0.21f
 #define CHASSIS_H_WORKSPACE_PEAK 0.16797f
 #define CHASSIS_ALPHA_WORKSPACE_PEAK (17.5f * DEG_TO_RAD(1.0f)) //17.5 is obtained from the formula joint_motor_angle = alpha + sin-1((chassis_length+Leg_length)/leg_length*sin(alpha)), so we use 17.5 degree as the alpha value when joint_motor_angle reaches the upper limit 68.28 degree
@@ -365,6 +366,9 @@ typedef struct
 	fp32 chassis_roll;  // the roll angle calculated by gyro sensor and gimbal motor
 
 	uint8_t fRandomSpinOn;
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	uint8_t fRandomHeightOn;
+#endif
 	int16_t dial_channel_latched;
 	int16_t dial_channel_out;
 

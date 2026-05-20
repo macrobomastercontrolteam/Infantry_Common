@@ -25,6 +25,10 @@
 #include "custom_ui_task.h"
 
 // random spin mode parameters
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define MID_HEIGHT_CHANGE_PERIOD 1000.0f
+#endif
+
 #define MIN_SPIN_PARAM_CHANGE_PERIOD 1.0f
 #define NORMAL_SPIN_PARAM_CHANGE_PERIOD 5.0f
 #define DELTA_SPIN_PARAM_CHANGE_PERIOD 2.0f
@@ -245,9 +249,19 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, fp3
 			case CHASSIS_SPINNING_MODE:
 			{
 				uint8_t fSpinningOn = 1;
+#if(ROBOT_TYPE == INFANTRY_2026_MECANUM)
+                static uint8_t last_key_f = 0;
+                uint8_t current_key_f = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_X) != 0);
+
+                if (key_rising_edge(&last_key_f, current_key_f))
+                {
+                    chassis_move.fRandomHeightOn = !chassis_move.fRandomHeightOn;
+                }
+#endif
+				
 				chassis_basic_control(vx_set, vy_set, wz_set, fSpinningOn);
 				break;
-			}
+			} 
 			case CHASSIS_CV_CONTROL_MODE:
 			{
 				chassis_cv_control(vx_set, vy_set, wz_set);
@@ -469,6 +483,31 @@ void chassis_spinning_speed_manager(fp32* wz_set)
 			spinning_speed = chassis_move.dial_channel_out * spin_rc_sen_negative + spin_rc_offset;
 		}
 	}
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	if(chassis_move.fRandomHeightOn){
+		// Dial changes: range of possible speed and interval to change speed; positive dial value more rapid, negative less rapid
+		static uint32_t ulLastUpdateTime = 0;
+		static uint8_t param_change_counter = 0;
+		static uint32_t height_change_period = MID_HEIGHT_CHANGE_PERIOD;
+		static uint8_t flg_height = 0;
+		
+		// once per height_change_period, update spinning speed to a random number in between random_min_height and random_max_height
+		if (osKernelSysTick() - ulLastUpdateTime >= height_change_period)
+		{
+			flg_height = RNG_get_random_range_int32(0, 1);
+			if(flg_height){
+				chassis_move.chassis_platform.target_height = CHASSIS_H_SPINNING_LOWER_LIMIT;
+			}
+			else{
+				chassis_move.chassis_platform.target_height = CHASSIS_H_UPPER_LIMIT;
+
+			}
+			ulLastUpdateTime = osKernelSysTick();
+			param_change_counter++;
+		}
+
+	}
+#endif
 	*wz_set = spinning_speed;
 }
 
