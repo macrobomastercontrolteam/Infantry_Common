@@ -212,7 +212,7 @@ void gimbal_task(void const *pvParameters)
     {
         enable_DaMiao_motor(CAN_PITCH_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
     }
-#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM) && ENABLE_PITCH_BASE_MOTOR_POWER 
     if (toe_is_error(PITCH_BASE_GIMBAL_MOTOR_TOE))
     {
         enable_DaMiao_motor(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
@@ -1321,19 +1321,7 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
     }
 
     //target=1 for center gimbal first and fold, target=0 for unfold
-	if(gimbal_control_set->gimbal_folding_status.target == FOLDED) // fold cmd, target=folded
-        
-    // if (gimbal_control_set->gimbal_folding_status.gimbal_centered == 0) //center the gimbal first
-    // {
-    //     gimbal_control_set->gimbal_yaw_motor.relative_angle_set = 0;
-    //     gimbal_control_set->gimbal_pitch_motor.relative_angle_set = 0;
-
-    //     if ((fabs(gimbal_control_set->gimbal_yaw_motor.relative_angle) <= 0.1f)&&(fabs(gimbal_control_set->gimbal_pitch_motor.relative_angle) <= 0.1f))
-    //     {
-    //         gimbal_control_set->gimbal_folding_status.gimbal_centered = 1;
-    //     }
-    // }
-    // else
+    if(gimbal_control_set->gimbal_folding_status.target == FOLDED) // fold cmd, target=folded
     {
         MIT_motor_angle_control_config(MIT_control_motor);                  // config for fold/unfold
         //ensure the correct step base on current angle TODO:improve this logic or pact as function
@@ -1386,10 +1374,12 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
         //pitch
         if(gimbal_control_set->gimbal_folding_status.gimbal_folding_step == 2)
         {
-            pitch_pos_cmd_target = -(pitch_base_motor_angle) + 0.2f;// bias to correct the motor 0-pos difference //TODO:switch to better solution or change bias angle everytime after setting motor 0-pos
+            //pitch_pos_cmd_target = -(pitch_base_motor_angle) + 0.2f - PITCH_FOLD_UP_BIAS; // adjust up to avoid armor plate contact
+            pitch_pos_cmd_target = -(pitch_base_motor_angle) + 0.2f; // adjust up to avoid armor plate contact
         }
         else
         {
+            //pitch_pos_cmd_target = -(pitch_base_motor_angle) - PITCH_FOLD_UP_BIAS;
             pitch_pos_cmd_target = -(pitch_base_motor_angle);
         }
         MIT_control_motor->pitch_MIT_variable.vel = -(pitch_base_motor_vel); //reverse conter base so vel also negative
