@@ -31,13 +31,6 @@
 #define CHASSIS_CONTROL_TIME_MS 5.0f
 #define CHASSIS_CONTROL_TIME_S (CHASSIS_CONTROL_TIME_MS / 1000.0f)
 
-#define M6020_MOTOR_ANGLE_PID_KP 80.0f
-// #define M6020_MOTOR_ANGLE_PID_KI 1.5f
-// #define M6020_MOTOR_ANGLE_PID_KD 2.5f
-#define M6020_MOTOR_ANGLE_PID_KI 300.0f
-#define M6020_MOTOR_ANGLE_PID_KD 0.0125f
-#define M6020_MOTOR_ANGLE_PID_MAX_OUT M6020_MAX_VOLTAGE
-#define M6020_MOTOR_ANGLE_PID_MAX_IOUT 10000.0f
 
 #if HIP_MOTOR_TYPE == MG_6012
 // MG6012 hip motor configs
@@ -47,7 +40,7 @@
 #define HIP_MOTOR_ANGLE_PID_MAX_OUT 10.0f
 #define HIP_MOTOR_ANGLE_PID_MAX_IOUT 0.0f
 
-#define HIP_MOTOR_SPEED_PID_KP 5.5f
+#define HIP_MOTOR_SPEED_PID_KP 7.5f
 // #define HIP_MOTOR_SPEED_PID_KI 0.125f
 #define HIP_MOTOR_SPEED_PID_KI 25.0f
 #define HIP_MOTOR_SPEED_PID_KD 0.0f
@@ -55,13 +48,13 @@
 #define HIP_MOTOR_SPEED_PID_MAX_IOUT MG6012_MAX_TORQUE
 #elif HIP_MOTOR_TYPE == DM_4340P
 // DM4340_P hip motor configs
-#define HIP_MOTOR_ANGLE_PID_KP 1.0f
+#define HIP_MOTOR_ANGLE_PID_KP 2.5f
 #define HIP_MOTOR_ANGLE_PID_KI 0.0f
 #define HIP_MOTOR_ANGLE_PID_KD 0.0f
 #define HIP_MOTOR_ANGLE_PID_MAX_OUT 10.5f
 #define HIP_MOTOR_ANGLE_PID_MAX_IOUT 0.0f
 
-#define HIP_MOTOR_SPEED_PID_KP 0.1f
+#define HIP_MOTOR_SPEED_PID_KP 0.05f
 // #define DM_4340_P_MOTOR_SPEED_PID_KI 0.125f
 #define HIP_MOTOR_SPEED_PID_KI 0.0f
 #define HIP_MOTOR_SPEED_PID_KD 0.0f
@@ -71,7 +64,7 @@
 static const fp32 hip_ff_sign[4] = { -1.0f, 1.0f, -1.0f, 1.0f };
 
 // MIT position profile parameters for DM4340P hip motors
-#define HIP_MIT_PROFILE_KP            35.0f    ///< position gain (matches prior hardcoded value)
+#define HIP_MIT_PROFILE_KP            40.0f    ///< position gain (matches prior hardcoded value)
 #define HIP_MIT_PROFILE_KD            1.0f   ///< damping gain  (matches prior hardcoded value)
 #define HIP_MIT_PROFILE_MAX_VEL       0.5f    ///< slew-rate limit (rad/s) — tune as needed
 #define HIP_MIT_PROFILE_TORQ_FF_BIAS  5.0f    ///< constant feedforward torque (Nm)
@@ -81,12 +74,6 @@ static const fp32 hip_ff_sign[4] = { -1.0f, 1.0f, -1.0f, 1.0f };
 #define HIP_MIT_PROFILE_TORQ_FF_MAX   (10.0f)
 #else
 #endif
-#define ROTATE_6020_OFFSET 0
-#define M6020_MOTOR_0_ANGLE_ECD_OFFSET ((1667U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
-#define M6020_MOTOR_1_ANGLE_ECD_OFFSET ((7776U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
-#define M6020_MOTOR_2_ANGLE_ECD_OFFSET ((4450U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
-#define M6020_MOTOR_3_ANGLE_ECD_OFFSET ((6416U + ROTATE_6020_OFFSET) % M6020_ECD_RANGE)
-
 #if HIP_MOTOR_TYPE == MG_6012
 // Zero position of 6012 motors are calibrated to the CHASSIS_THETA_LOWER_LIMIT_ECD
 #define MG6012_MOTOR_0_ANGLE_ECD_OFFSET (MG6012_ECD_RANGE - CHASSIS_THETA_LOWER_LIMIT_ECD)
@@ -117,11 +104,8 @@ void param_asserts(void);
 void chassis_init(void);
 void chassis_calc_feedbacks(void);
 void chassis_calc_targets(void);
-void chassis_inv_kine_diagonal(fp32 alpha, fp32 height, fp32 *theta_right, fp32 *theta_left);
+void chassis_inv_kine(fp32 alpha, fp32 height);
 void chassis_safe_guard(void);
-
-float M6020_abs_angle_pid_calc(pid_type_def *pid, float feedback_abs_ecd_fp32, float target_ecd);
-float MG6012_abs_angle_pid_calc(pid_type_def *pid, float feedback_abs_ecd_fp32, float target_ecd);
 
 #if CHASSIS_TEST_MODE
 // fp32 hip1_angle;
@@ -176,16 +160,6 @@ static void J_scope_chassis_test(void)
 	// target_theta2_fp32 = chassis_move.target_theta[1] * 180.0f / PI;
 	// target_theta3_fp32 = chassis_move.target_theta[2] * 180.0f / PI;
 	// target_theta4_fp32 = chassis_move.target_theta[3] * 180.0f / PI;
-
-	// rot_radius1_fp32 = chassis_move.wheel_rot_radius[0] * 1000.0f;
-	// rot_radius2_fp32 = chassis_move.wheel_rot_radius[1] * 1000.0f;
-	// rot_radius3_fp32 = chassis_move.wheel_rot_radius[2] * 1000.0f;
-	// rot_radius4_fp32 = chassis_move.wheel_rot_radius[3] * 1000.0f;
-
-	// rot_radius1_dot_fp32 = chassis_move.target_wheel_rot_radius_dot[0] * 1000.0f;
-	// rot_radius2_dot_fp32 = chassis_move.target_wheel_rot_radius_dot[1] * 1000.0f;
-	// rot_radius3_dot_fp32 = chassis_move.target_wheel_rot_radius_dot[2] * 1000.0f;
-	// rot_radius4_dot_fp32 = chassis_move.target_wheel_rot_radius_dot[3] * 1000.0f;
 
 	// target_theta1_dot_fp32 = chassis_move.target_theta_dot[0] * 180.0f / PI;
 	// target_theta2_dot_fp32 = chassis_move.target_theta_dot[1] * 180.0f / PI;
@@ -245,30 +219,13 @@ void chassis_task(void const *pvParameters)
 		// @TODO: reenable this after fixing fatal error
 		// if (chassis_move.fFatalError)
 		// {
-		// 	chassis_move.fSteerMotorEnabled = 0;
 		// 	chassis_move.fHipMotorEnabled = 0;
 		// }
 
 		// PID calculation
-		for (bMotorId = 0; bMotorId < CHASSIS_ID_LAST; bMotorId++)
+		for (bMotorRelativeId = 0; bMotorRelativeId < HIP_MOTOR_COUNT; bMotorRelativeId++)
 		{
-			switch (bMotorId)
-			{
-				case CHASSIS_ID_STEER_1:
-				case CHASSIS_ID_STEER_2:
-				case CHASSIS_ID_STEER_3:
-				case CHASSIS_ID_STEER_4:
-				{
-					bMotorRelativeId = bMotorId - CHASSIS_ID_STEER_1;
-					motor_info[bMotorId].set_voltage = PID_calc(&chassis_move.steer_angle_pid[bMotorRelativeId], motor_info[bMotorId].feedback_abs_ecd_fp32, motor_info[bMotorId].target_ecd, CHASSIS_CONTROL_TIME_S);
-					break;
-				}
-				case CHASSIS_ID_HIP_1:
-				case CHASSIS_ID_HIP_2:
-				case CHASSIS_ID_HIP_3:
-				case CHASSIS_ID_HIP_4:
-				{
-					bMotorRelativeId = bMotorId - CHASSIS_ID_HIP_1;
+			bMotorId = bMotorRelativeId + CHASSIS_ID_HIP_1;
 #if HIP_MOTOR_TYPE == DM_4340P
 				mit_pos_profile_update(
 					&hip_profile_state[bMotorRelativeId],
@@ -284,13 +241,6 @@ void chassis_task(void const *pvParameters)
 				chassis_move.target_theta_dot[bMotorRelativeId] = PID_calc(&chassis_move.hip_angle_pid[bMotorRelativeId], motor_info[bMotorId].feedback_abs_ecd_fp32, chassis_move.target_theta[bMotorRelativeId] * MG6012_MOTOR_RAD_TO_ECD, CHASSIS_CONTROL_TIME_S);
 					motor_info[bMotorId].set_torque = PID_calc(&chassis_move.hip_speed_pid[bMotorRelativeId], DEG_TO_RAD(motor_info[bMotorId].rotor_speed), chassis_move.target_theta_dot[bMotorRelativeId], CHASSIS_CONTROL_TIME_S);
 #endif /* HIP_MOTOR_TYPE == DM_4340P */
-					break;
-				}
-				default:
-				{
-					break;
-				}
-			}
 		}
 		CAN_cmd_wrapper();
 		osDelayUntil(&ulSystemTime, CHASSIS_CONTROL_TIME_MS);
@@ -322,14 +272,6 @@ void chassis_init(void)
 {
 	uint8_t bMotorId;
 	uint8_t bMotorRelativeId;
-	const uint16_t steer_motor_offset_ecd[4] = {M6020_MOTOR_0_ANGLE_ECD_OFFSET, M6020_MOTOR_1_ANGLE_ECD_OFFSET, M6020_MOTOR_2_ANGLE_ECD_OFFSET, M6020_MOTOR_3_ANGLE_ECD_OFFSET};
-	const fp32 steer_angle_pid_params[3] = {M6020_MOTOR_ANGLE_PID_KP, M6020_MOTOR_ANGLE_PID_KI, M6020_MOTOR_ANGLE_PID_KD};
-	for (bMotorRelativeId = 0; bMotorRelativeId < STEER_MOTOR_COUNT; bMotorRelativeId++)
-	{
-		bMotorId = bMotorRelativeId + CHASSIS_ID_STEER_1;
-		PID_init(&chassis_move.steer_angle_pid[bMotorRelativeId], PID_POSITION, steer_angle_pid_params, M6020_MOTOR_ANGLE_PID_MAX_OUT, M6020_MOTOR_ANGLE_PID_MAX_IOUT, 0, &M6020_ecd_err_handler);
-		motor_info[bMotorId].offset_ecd = steer_motor_offset_ecd[bMotorRelativeId];
-	}
 #if HIP_MOTOR_TYPE == MG_6012
 	const uint16_t hip_motor_offset_ecd[4] = {MG6012_MOTOR_0_ANGLE_ECD_OFFSET, MG6012_MOTOR_1_ANGLE_ECD_OFFSET, MG6012_MOTOR_2_ANGLE_ECD_OFFSET, MG6012_MOTOR_3_ANGLE_ECD_OFFSET};
 #elif HIP_MOTOR_TYPE == DM_4340P
@@ -362,15 +304,12 @@ void chassis_init(void)
 	chassis_move.alpha_lower_limit = 0;
 	chassis_move.alpha_upper_limit = 0;
 
-	for (bMotorId = 0; bMotorId < STEER_MOTOR_COUNT; bMotorId++)
+	for (bMotorId = 0; bMotorId < HIP_MOTOR_COUNT; bMotorId++)
 	{
-		chassis_move.wheel_rot_radius[bMotorId] = 0;
-		chassis_move.target_wheel_rot_radius_dot[bMotorId] = 0;
 		chassis_move.target_theta[bMotorId] = CHASSIS_THETA_LOWER_LIMIT;
 		chassis_move.target_theta_dot[bMotorId] = 0;
 	}
 
-	chassis_move.fSteerMotorEnabled = 0;
 	chassis_move.fHipMotorEnabled = 0;
 	chassis_move.fFatalError = 0;
 	chassis_move.fHipDataIsValid = 0;
@@ -397,13 +336,6 @@ void chassis_init(void)
 		hip_profile_state[bProfileId].last_pos_cmd = 0.0f;
 	}
 #endif
-}
-
-void chassis_swerve_params_reset(void)
-{
-	chassis_move.fSteerMotorEnabled = 0;
-	chassis_move.fHipMotorEnabled = 0;
-	chassis_move.fHipDataIsValid = 0;
 }
 
 void chassis_calc_feedbacks(void)
@@ -438,68 +370,36 @@ void chassis_calc_feedbacks(void)
 		chassis_move.height = temp_heights_max;
 	}
 
-	// calculation for chassis_move.wheel_rot_radius
-	// right diagonal
-	chassis_move.wheel_rot_radius[0] = (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(current_theta1)) / AHRS_cosf(chassis_move.current_alpha1) - chassis_move.height * AHRS_tanf(chassis_move.current_alpha1);
-	chassis_move.wheel_rot_radius[2] = (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(current_theta3)) / AHRS_cosf(chassis_move.current_alpha1) + chassis_move.height * AHRS_tanf(chassis_move.current_alpha1);
-	// left diagonal
-	chassis_move.wheel_rot_radius[3] = (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(current_theta4)) / AHRS_cosf(chassis_move.current_alpha2) - chassis_move.height * AHRS_tanf(chassis_move.current_alpha2);
-	chassis_move.wheel_rot_radius[1] = (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(current_theta2)) / AHRS_cosf(chassis_move.current_alpha2) + chassis_move.height * AHRS_tanf(chassis_move.current_alpha2);
 }
 
 void chassis_calc_targets(void)
 {
-	fp32 current_theta1 = motor_info[CHASSIS_ID_HIP_1].feedback_abs_angle;
-	fp32 current_theta2 = motor_info[CHASSIS_ID_HIP_2].feedback_abs_angle;
-	fp32 current_theta3 = motor_info[CHASSIS_ID_HIP_3].feedback_abs_angle;
-	fp32 current_theta4 = motor_info[CHASSIS_ID_HIP_4].feedback_abs_angle;
+	// Calculate target_theta for all hips in one call.
+	chassis_inv_kine(chassis_move.target_alpha1, chassis_move.target_height);
 
-	// Calculate target_theta per hip using front/back heights.
-	// A local temp absorbs the unused second output while keeping the pointer-comparison
-	// sign logic inside chassis_inv_kine_diagonal intact:
-	//   theta_right == &target_theta[0]  →  negated  (hip 1, right diagonal)
-	//   theta_left  == &target_theta[2]  →  negated  (hip 3, right diagonal)
-	//   all others                       →  positive (hips 2 & 4, left diagonal)
-	fp32 temp;
-	// Front hips (target_height_front)
-	chassis_inv_kine_diagonal(chassis_move.target_alpha1, chassis_move.target_height_front, &chassis_move.target_theta[0], &temp); // hip 1: right → negated
-	chassis_inv_kine_diagonal(chassis_move.target_alpha1, chassis_move.target_height_front, &temp, &chassis_move.target_theta[1]); // hip 2: left  → positive
-	// Back hips (target_height_back)
-	chassis_inv_kine_diagonal(chassis_move.target_alpha1, chassis_move.target_height_back,  &temp, &chassis_move.target_theta[2]); // hip 3: right → negated (theta_left == &target_theta[2])
-	chassis_inv_kine_diagonal(chassis_move.target_alpha1, chassis_move.target_height_back,  &temp, &chassis_move.target_theta[3]); // hip 4: left  → positive
-
-	// @TODO: verify calculation for target_wheel_rot_radius_dot using current_theta, target_theta_dot, current_alpha1, current_alpha2
-	// right diagonal
-	chassis_move.target_wheel_rot_radius_dot[0] = -CHASSIS_L1_LENGTH * AHRS_sinf(current_theta1) / AHRS_cosf(chassis_move.current_alpha1) * chassis_move.target_theta_dot[0];
-	chassis_move.target_wheel_rot_radius_dot[2] = -CHASSIS_L1_LENGTH * AHRS_sinf(current_theta3) / AHRS_cosf(chassis_move.current_alpha1) * chassis_move.target_theta_dot[2];
-	// left diagonal
-	chassis_move.target_wheel_rot_radius_dot[3] = -CHASSIS_L1_LENGTH * AHRS_sinf(current_theta4) / AHRS_cosf(chassis_move.current_alpha2) * chassis_move.target_theta_dot[3];
-	chassis_move.target_wheel_rot_radius_dot[1] = -CHASSIS_L1_LENGTH * AHRS_sinf(current_theta2) / AHRS_cosf(chassis_move.current_alpha2) * chassis_move.target_theta_dot[1];
 }
 
-void chassis_inv_kine_diagonal(fp32 alpha, fp32 height, fp32 *theta_right, fp32 *theta_left)
+void chassis_inv_kine(fp32 alpha, fp32 height)
 {
-	float sin_alpha_term = ((CHASSIS_A_LENGTH + CHASSIS_L1_LENGTH) / CHASSIS_L1_LENGTH) * AHRS_sinf(alpha);
-	if (sin_alpha_term > 1.0f) sin_alpha_term = 1.0f;
-	else if (sin_alpha_term < -1.0f) sin_alpha_term = -1.0f;
+	fp32 sin_alpha_term = ((CHASSIS_A_LENGTH + CHASSIS_L1_LENGTH) / CHASSIS_L1_LENGTH) * AHRS_sinf(alpha);
 
-	float sin_height_term = (height - CHASSIS_WHEEL_REDIUS) / CHASSIS_L1_LENGTH;
-	if (sin_height_term > 1.0f) sin_height_term = 1.0f;
-	else if (sin_height_term < -1.0f) sin_height_term = -1.0f;
+	fp32 sin_height_term = (height - CHASSIS_WHEEL_REDIUS) / CHASSIS_L1_LENGTH;
 
-	float alpha_term = AHRS_asinf(sin_alpha_term);
-	float height_term = AHRS_asinf(sin_height_term);
-	uint8_t is_rear = ((theta_right == &chassis_move.target_theta[2]) || (theta_left == &chassis_move.target_theta[2]) ||
-	                   (theta_right == &chassis_move.target_theta[3]) || (theta_left == &chassis_move.target_theta[3]));
-	float theta = height_term + alpha + (is_rear ? -alpha_term : alpha_term);
 
-	if ((theta_right == &chassis_move.target_theta[0]) || (theta_left == &chassis_move.target_theta[2]))
+	fp32 alpha_term = AHRS_asinf(sin_alpha_term);
+	fp32 height_term = AHRS_asinf(sin_height_term);
+	fp32 base_theta = height_term + alpha;
+
+	for (uint8_t hip_id = 0; hip_id < HIP_MOTOR_COUNT; hip_id++)
 	{
-		theta = -theta;
+		uint8_t is_rear = (hip_id >= 2);
+		fp32 theta = base_theta + (is_rear ? -alpha_term : alpha_term);
+		if ((hip_id == 0) || (hip_id == 2))
+		{
+			theta = -theta;
+		}
+		chassis_move.target_theta[hip_id] = theta;
 	}
-
-	*theta_right = theta;
-	*theta_left = theta;
 }
 
 void chassis_safe_guard(void)
@@ -510,7 +410,7 @@ void chassis_safe_guard(void)
 	// {
 	// 	if (chassis_move.fFatalError == 0)
 	// 	{
-	// 		if ((chassis_move.current_alpha1 != chassis_move.current_alpha1) || (chassis_move.current_alpha2 != chassis_move.current_alpha2) || (chassis_move.height != chassis_move.height) || (chassis_move.wheel_rot_radius[0] != chassis_move.wheel_rot_radius[0]) || (chassis_move.wheel_rot_radius[1] != chassis_move.wheel_rot_radius[1]) || (chassis_move.wheel_rot_radius[2] != chassis_move.wheel_rot_radius[2]) || (chassis_move.wheel_rot_radius[3] != chassis_move.wheel_rot_radius[3]) || (chassis_move.target_wheel_rot_radius_dot[0] != chassis_move.target_wheel_rot_radius_dot[0]) || (chassis_move.target_wheel_rot_radius_dot[1] != chassis_move.target_wheel_rot_radius_dot[1]) || (chassis_move.target_wheel_rot_radius_dot[2] != chassis_move.target_wheel_rot_radius_dot[2]) || (chassis_move.target_wheel_rot_radius_dot[3] != chassis_move.target_wheel_rot_radius_dot[3]))
+	// 		if ((chassis_move.current_alpha1 != chassis_move.current_alpha1) || (chassis_move.current_alpha2 != chassis_move.current_alpha2) || (chassis_move.height != chassis_move.height))
 	// 		{
 	// 			chassis_move.fFatalError = 1;
 	// 		}
@@ -521,14 +421,6 @@ void chassis_safe_guard(void)
 	// 		else if (chassis_move.alpha_upper_limit > CHASSIS_ALPHA_WORKSPACE_PEAK)
 	// 		{
 	// 			chassis_move.fFatalError = 1;
-	// 		}
-
-	// 		for (uint8_t bMotorRelativeId = 0; bMotorRelativeId < STEER_MOTOR_COUNT; bMotorRelativeId++)
-	// 		{
-	// 			if ((chassis_move.wheel_rot_radius[bMotorRelativeId] < 0) || (chassis_move.wheel_rot_radius[bMotorRelativeId] > METER_ENCODER_MAX_LIMIT))
-	// 			{
-	// 				chassis_move.fFatalError = 1;
-	// 			}
 	// 		}
 
 	// 		for (uint8_t bMotorRelativeId = 0; bMotorRelativeId < HIP_MOTOR_COUNT; bMotorRelativeId++)

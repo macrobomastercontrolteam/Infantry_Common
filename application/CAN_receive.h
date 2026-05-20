@@ -26,24 +26,17 @@
 #define DM_4340P 1
 #define HIP_MOTOR_TYPE DM_4340P
 
-#define CAN_CONTROL_ID_BASE 0x1ff
-#define CAN_CONTROL_ID_EXTEND 0x2ff
-#define STEER_MOTOR_COUNT (CHASSIS_ID_STEER_4 - CHASSIS_ID_STEER_1 + 1)
 #define HIP_MOTOR_COUNT (CHASSIS_ID_HIP_4 - CHASSIS_ID_HIP_1 + 1)
 
-#define M6020_MAX_VOLTAGE 20000.0f
 #define MG6012_MAX_TORQUE 6.0f
 
 typedef struct
 {
 	float set_torque;
-	float set_angle;
 	float feedback_abs_angle;
 	float feedback_abs_ecd_fp32;
-	int16_t set_voltage;
 	uint16_t offset_ecd;
 	uint16_t feedback_raw_ecd;
-	uint16_t target_ecd;
 	int16_t rotor_speed;
 	// int16_t  torque_current;
 	// uint8_t  temperature;
@@ -65,25 +58,13 @@ typedef enum
 typedef enum
 {
 	// Custom IDs
-	CAN_STEER_CONTROLLER_RX_ID = 0x112,
-	// CAN_CHASSIS_LOAD_SERVO_RX_ID = 0x113, // implementation is in Infantry_3_4Steer, not migrated here unless it becomes demanding
 	// receives target chassis platform params: alpha1, alpha2, center height
-	CAN_SWERVE_CONTROLLERE_RX_ID = 0x114,
-	// sends target derivative of rotational radius of each wheel
-	CAN_SWERVE_RADII_DOT_TX_ID = 0x115,
-	// sends current chassis platform params: alpha1, alpha2, center height, rotational radius of each wheels
-	CAN_SHRINKED_CONTROLLER_TX_ID = 0x116,
-
-	// steer motor tx
-	CAN_CHASSIS_GM6020_TX_ID = 0x1FF,
+	CAN_CHASSIS_CONTROLLER_RX_ID = 0x114,
+	// sends current chassis platform params: alpha1, alpha2, center height
+	CAN_CHASSIS_STATUS_TX_ID = 0x116,
 	// hip motor tx
 	// CAN_HIP_MOTOR_SINGLECMD_TX_ID = 0x140,
 	CAN_HIP_MOTOR_MULTICMD_TX_ID = 0x280,
-
-	CAN_STEER1_RX_ID = 0x205,
-	CAN_STEER2_RX_ID = 0x206,
-	CAN_STEER3_RX_ID = 0x207,
-	CAN_STEER4_RX_ID = 0x208,
 
 	#if HIP_MOTOR_TYPE == MG_6012
 	// 6012 motor as hip
@@ -107,25 +88,17 @@ typedef enum
 
 typedef enum
 {
-	CHASSIS_ID_STEER_1 = 0, // right front
-	CHASSIS_ID_STEER_2 = 1, // left front
-	CHASSIS_ID_STEER_3 = 2, // left back
-	CHASSIS_ID_STEER_4 = 3, // right back
-	CHASSIS_ID_HIP_1 = 4,   // right front
-	CHASSIS_ID_HIP_2 = 5,   // left front
-	CHASSIS_ID_HIP_3 = 6,   // left back
-	CHASSIS_ID_HIP_4 = 7,   // right back
+	CHASSIS_ID_HIP_1 = 0,   // right front
+	CHASSIS_ID_HIP_2 = 1,   // left front
+	CHASSIS_ID_HIP_3 = 2,   // left back
+	CHASSIS_ID_HIP_4 = 3,   // right back
 	CHASSIS_ID_LAST,
 } chassis_motor_ID_e;
 
 extern motor_info_t motor_info[CHASSIS_ID_LAST];
 
-void chassis_swerve_params_reset(void);
 void can_user_init(void);
-void CAN_cmd_steer_motors(uint8_t id_range, int16_t voltage1, int16_t voltage2, int16_t voltage3, int16_t voltage4);
 uint8_t CAN_cmd_hip_motors(float torque1, float torque2, float torque3, float torque4);
-void CAN_send_shrinked_params_to_upper_board(fp32 radius1, fp32 radius2, fp32 radius3, fp32 radius4, fp32 current_alpha1, fp32 current_alpha2, fp32 current_height);
-void CAN_send_radius_dot_to_upper_board(fp32 target_radius_dot1, fp32 target_radius_dot2, fp32 target_radius_dot3, fp32 target_radius_dot4);
 void encode_6012_multi_motor_torque_control(float torque1, float torque2, float torque3, float torque4);
 void CAN_cmd_wrapper(void);
 

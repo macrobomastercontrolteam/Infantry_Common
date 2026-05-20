@@ -220,10 +220,6 @@ static void detect_init(uint32_t time)
     uint16_t set_item[ERROR_LIST_LENGTH][3] =
         {
             {30, 40, 15},   //SBUS
-            {25, 0, 11},   //motor1
-            {25, 0, 10},   //motor2
-            {25, 0, 9},    //motor3
-            {25, 0, 8},    //motor4
             {25, 0, 11},   //hip1
             {25, 0, 10},   //hip2
             {25, 0, 9},    //hip3
@@ -239,7 +235,6 @@ static void detect_init(uint32_t time)
             // {100, 100, 5},  //referee
             // {50, 0, 7},    //cv usart
             // {40, 0, 11},    // super capacitor
-            {50, 0, 8},    // swerve controller
             // {100, 100, 1},  //oled
         };
 
@@ -273,10 +268,6 @@ static void detect_init(uint32_t time)
 // #if CV_INTERFACE
 //     error_list[CV_TOE].solve_lost_fun = CvCmder_toe_solve_lost_fun;
 // #endif
-
-#if (ROBOT_TYPE == INFANTRY_2024_SWERVE_HIP)
-    error_list[SWERVE_CTRL_TOE].solve_lost_fun = chassis_swerve_params_reset;
-#endif
 
 	// error_list[OLED_TOE].data_is_error_fun = NULL;
     // error_list[OLED_TOE].solve_lost_fun = OLED_com_reset;

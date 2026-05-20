@@ -28,7 +28,7 @@
 
 #define METER_PER_SEC_ECD_MAX_LIMIT 1.5f
 #define METER_ENCODER_MAX_LIMIT 0.5f
-#define ANGLE_ECD_MAX_LIMIT (17.5f * DEG_TO_RAD(1.0f))
+#define ANGLE_ECD_MAX_LIMIT (DEG_TO_RAD(16.0f))
 
 #define CHASSIS_A_LENGTH 0.25f
 #define CHASSIS_HALF_A_LENGTH (CHASSIS_A_LENGTH / 2.0f)
@@ -62,13 +62,13 @@ typedef struct
 	// Upper board command values
 	fp32 target_alpha1;                                  ///< unit rad
 	fp32 target_alpha2;                                  ///< unit rad
-	fp32 target_height;                                  ///< unit m, target height for all hips
+	fp32 target_height;                                  ///< unit m, target height for all hips (legacy/common)
+	fp32 target_height_front;                            ///< unit m, target height for front hips
+	fp32 target_height_back;                             ///< unit m, target height for back hips
 	                                                     // feedback values back to Upper board
 	fp32 current_alpha1;                                 ///< unit rad
 	fp32 current_alpha2;                                 ///< unit rad
 	fp32 height;                                         ///< unit m
-	fp32 wheel_rot_radius[STEER_MOTOR_COUNT];            ///< unit m
-	fp32 target_wheel_rot_radius_dot[STEER_MOTOR_COUNT]; ///< unit m
 
 	// internal control values
 	fp32 target_theta[HIP_MOTOR_COUNT];
@@ -77,13 +77,11 @@ typedef struct
 	fp32 alpha_lower_limit;
 	fp32 alpha_upper_limit;
 
-	uint8_t fSteerMotorEnabled;
 	uint8_t fHipMotorEnabled;
 	uint8_t fFatalError;
 	// lower board notify upper board whether to use the feedback of chassis platform from lower board
 	uint8_t fHipDataIsValid;
 
-	pid_type_def steer_angle_pid[STEER_MOTOR_COUNT];
 	pid_type_def hip_angle_pid[HIP_MOTOR_COUNT]; // outputs target speed
 	pid_type_def hip_speed_pid[HIP_MOTOR_COUNT]; // outputs target torque
 
