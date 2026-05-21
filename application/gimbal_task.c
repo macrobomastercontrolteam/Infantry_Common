@@ -212,7 +212,7 @@ void gimbal_task(void const *pvParameters)
     {
         enable_DaMiao_motor(CAN_PITCH_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
     }
-#if (ROBOT_TYPE == INFANTRY_2026_MECANUM) && ENABLE_PITCH_BASE_MOTOR_POWER 
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
     if (toe_is_error(PITCH_BASE_GIMBAL_MOTOR_TOE))
     {
         enable_DaMiao_motor(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
