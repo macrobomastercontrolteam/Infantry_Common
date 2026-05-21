@@ -69,7 +69,7 @@ typedef struct
 	fp32 current_alpha1;                                 ///< unit rad
 	fp32 current_alpha2;                                 ///< unit rad
 	fp32 height;                                         ///< unit m
-
+	fp32 hip_motor_kp;
 	// internal control values
 	fp32 target_theta[HIP_MOTOR_COUNT];
 	fp32 target_theta_dot[HIP_MOTOR_COUNT]; ///< unit rad/s

@@ -64,7 +64,9 @@
 static const fp32 hip_ff_sign[4] = { -1.0f, 1.0f, -1.0f, 1.0f };
 
 // MIT position profile parameters for DM4340P hip motors
-#define HIP_MIT_PROFILE_KP            40.0f    ///< position gain (matches prior hardcoded value)
+#define HIP_MIT_PROFILE_KP            35.0f    ///< position gain (matches prior hardcoded value)
+#define HIP_MIT_PROFILE_KP_MIN        10.0f
+#define HIP_MIT_PROFILE_KP_MAX        75.0f
 #define HIP_MIT_PROFILE_KD            1.0f   ///< damping gain  (matches prior hardcoded value)
 #define HIP_MIT_PROFILE_MAX_VEL       0.5f    ///< slew-rate limit (rad/s) — tune as needed
 #define HIP_MIT_PROFILE_TORQ_FF_BIAS  5.0f    ///< constant feedforward torque (Nm)
@@ -201,11 +203,13 @@ void chassis_task(void const *pvParameters)
 	while (1)
 	{
 #if HIP_MOTOR_TYPE == DM_4340P
+		hip_profile_param.kp = fp32_constrain(chassis_move.hip_motor_kp, HIP_MIT_PROFILE_KP_MIN, HIP_MIT_PROFILE_KP_MAX);
 		if(toe_is_error(CHASSIS_HIP1_TOE) || 
            toe_is_error(CHASSIS_HIP2_TOE) ||  
            toe_is_error(CHASSIS_HIP3_TOE) || 
            toe_is_error(CHASSIS_HIP4_TOE))
 		{
+			chassis_move.hip_motor_kp = HIP_MIT_PROFILE_KP;
 			enable_all_DaMiao_motors(1);
 		}
 		
@@ -326,6 +330,8 @@ void chassis_init(void)
 	hip_profile_param.angle_offset   = HIP_MIT_PROFILE_ANGLE_OFFSET;
 	hip_profile_param.torque_ff_min  = HIP_MIT_PROFILE_TORQ_FF_MIN;
 	hip_profile_param.torque_ff_max  = HIP_MIT_PROFILE_TORQ_FF_MAX;
+
+	chassis_move.hip_motor_kp = HIP_MIT_PROFILE_KP;
 
 	// Clear state — mit_pos_profile_update seeds from measured_pos on first call
 	uint8_t bProfileId;

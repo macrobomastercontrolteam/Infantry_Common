@@ -210,6 +210,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				{
 					chassis_move.target_alpha1 = (int16_t)((rx_data[0] << 8) | rx_data[1]) / angle_encoding_ratio;
 					chassis_move.target_height = (uint16_t)((rx_data[2] << 8) | rx_data[3]) / meter_encoding_ratio;
+					chassis_move.hip_motor_kp = ((uint16_t)((rx_data[4] << 8) | rx_data[5])) * 0.1f;
 					chassis_move.target_height = fp32_constrain(chassis_move.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
 
 					// Compute workspace alpha limit from the single height command
@@ -590,13 +591,13 @@ void CAN_cmd_wrapper(void)
 	encode_6012_motor_torque_control(CAN_HIP4_RX_ID, hip_torque4);
 #elif HIP_MOTOR_TYPE == DM_4340P
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP1_TX_ID, chassis_move.hip_cmd[0].pos, chassis_move.hip_cmd[0].vel, chassis_move.hip_cmd[0].KP, chassis_move.hip_cmd[0].KD, chassis_move.hip_cmd[0].torq, DM_4340, &HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP1_TX_ID, chassis_move.hip_cmd[0].pos, chassis_move.hip_cmd[0].vel, chassis_move.hip_motor_kp, chassis_move.hip_cmd[0].KD, chassis_move.hip_cmd[0].torq, DM_4340, &HIP_CAN);
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP2_TX_ID, chassis_move.hip_cmd[1].pos, chassis_move.hip_cmd[1].vel, chassis_move.hip_cmd[1].KP, chassis_move.hip_cmd[1].KD, chassis_move.hip_cmd[1].torq, DM_4340, &HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP2_TX_ID, chassis_move.hip_cmd[1].pos, chassis_move.hip_cmd[1].vel, chassis_move.hip_motor_kp, chassis_move.hip_cmd[1].KD, chassis_move.hip_cmd[1].torq, DM_4340, &HIP_CAN);
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP3_TX_ID, chassis_move.hip_cmd[2].pos, chassis_move.hip_cmd[2].vel, chassis_move.hip_cmd[2].KP, chassis_move.hip_cmd[2].KD, chassis_move.hip_cmd[2].torq, DM_4340, &HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP3_TX_ID, chassis_move.hip_cmd[2].pos, chassis_move.hip_cmd[2].vel, chassis_move.hip_motor_kp, chassis_move.hip_cmd[2].KD, chassis_move.hip_cmd[2].torq, DM_4340, &HIP_CAN);
 	osDelay(1);
-	encode_MIT_motor_control(CAN_HIP4_TX_ID, chassis_move.hip_cmd[3].pos, chassis_move.hip_cmd[3].vel, chassis_move.hip_cmd[3].KP, chassis_move.hip_cmd[3].KD, chassis_move.hip_cmd[3].torq, DM_4340, &HIP_CAN);
+	encode_MIT_motor_control(CAN_HIP4_TX_ID, chassis_move.hip_cmd[3].pos, chassis_move.hip_cmd[3].vel, chassis_move.hip_motor_kp, chassis_move.hip_cmd[3].KD, chassis_move.hip_cmd[3].torq, DM_4340, &HIP_CAN);
 #endif
 
 }
