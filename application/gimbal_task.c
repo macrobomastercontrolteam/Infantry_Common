@@ -1353,7 +1353,7 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
             case 0:
             {
                 pitch_base_pos_cmd_target = PITCH_BASE_HALF_FOLD_POS; // fold to half first 
-                if ((fabs(pitch_base_motor_angle - PITCH_BASE_HALF_FOLD_POS) <= FOLD_POS_TOL) && (fabs(pitch_motor_angle - (-PITCH_BASE_HALF_FOLD_POS)) <= FOLD_POS_TOL))
+                if ((fabs(pitch_base_motor_angle - PITCH_BASE_HALF_FOLD_POS) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND) && (fabs(pitch_motor_angle - (-PITCH_BASE_HALF_FOLD_POS)) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND))
                 {
                     gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 1;
                 }
@@ -1362,7 +1362,7 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
             case 1:
             {
                 pitch_base_pos_cmd_target = PITCH_BASE_FOLD_POS;
-                if ((fabs(pitch_base_motor_angle - PITCH_BASE_FOLD_POS) <= FOLD_POS_TOL) && (fabs(pitch_motor_angle - (-PITCH_BASE_FOLD_POS)) <= FOLD_POS_TOL))
+                if ((fabs(pitch_base_motor_angle - PITCH_BASE_FOLD_POS) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND) && (fabs(pitch_motor_angle - (-PITCH_BASE_FOLD_POS)) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND))
                 {
                     gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 2;
                 }
@@ -1371,7 +1371,7 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
             case 2:
             {
                 pitch_base_pos_cmd_target = PITCH_BASE_FULLY_FOLD_POS;
-                if ((fabs(pitch_base_motor_angle - PITCH_BASE_FULLY_FOLD_POS) <= FOLD_POS_TOL) && (fabs(pitch_motor_angle - (-PITCH_BASE_FULLY_FOLD_POS)) <= FOLD_POS_TOL))
+                if ((fabs(pitch_base_motor_angle - PITCH_BASE_FULLY_FOLD_POS) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND) && (fabs(pitch_motor_angle - (-PITCH_BASE_FULLY_FOLD_POS)) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND))
                 {
                     gimbal_control_set->gimbal_folding_status.current = FOLDED;
                 }
@@ -1412,7 +1412,7 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
         if(pitch_base_motor_angle >= PITCH_BASE_HALF_FOLD_POS) //if reached half range start to reset pitch to level
         {
             pitch_pos_cmd_target = PITCH_UNFOLD_POS; //return to level after base fully unfolded
-            if(pitch_motor_angle >= FOLD_POS_TOL)
+            if(pitch_motor_angle >= GIMBAL_FOLD_ZERO_FORCE_DEADBAND)
             {
                 MIT_motor_torque_control_config(MIT_control_motor); //unfold finished, config back for pitch motor torque control
                 //gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 0;
