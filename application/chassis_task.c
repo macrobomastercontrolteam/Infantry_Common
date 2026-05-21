@@ -208,6 +208,8 @@ static void chassis_init(void)
 	// special assignment to ensure fHipDisabledEdge not being miscalculated by the garbage data
 	chassis_move.fHipEnabled = 0;
 	swerve_chassis_params_reset();
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	chassis_move.chassis_platform.chassis_hip_kp = HIP_MIT_PROFILE_KP;
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	biped_chassis_params_reset();
 #endif

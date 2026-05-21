@@ -39,6 +39,9 @@
 #define MOUSE_SCROLL_TO_DIAL_SEN_INC -(JOYSTICK_HALF_RANGE / MOUSE_X_EFFECTIVE_SPEED * 30)
 #define MOUSE_SCROLL_FILTER_COEFF 0.6f
 #define CHASSIS_WZ_CMD_DEADZONE 0.15f
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define HIP_MIT_PROFILE_KP_SCROLL_SEN_INC 0.01f
+#endif
 
 /**
  * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
@@ -325,7 +328,12 @@ void dial_channel_manager(void)
 	// Add mouse scroll input
 	static fp32 last_mouse_z_ch = 0;
 	fp32 mouse_z_ch = first_order_filter(chassis_move.chassis_RC->mouse.z, last_mouse_z_ch, MOUSE_SCROLL_FILTER_COEFF);
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	chassis_move.chassis_platform.chassis_hip_kp += mouse_z_ch * HIP_MIT_PROFILE_KP_SCROLL_SEN_INC;
+	chassis_move.chassis_platform.chassis_hip_kp = fp32_constrain(chassis_move.chassis_platform.chassis_hip_kp, HIP_MIT_PROFILE_KP_MIN, HIP_MIT_PROFILE_KP_MAX);
+#else
 	chassis_move.dial_channel_out += mouse_z_ch * MOUSE_SCROLL_TO_DIAL_SEN_INC;
+#endif
 #endif
 }
 

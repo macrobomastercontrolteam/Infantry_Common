@@ -250,6 +250,10 @@ typedef struct
 
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 	fp32 target_alpha;
+	fp32 chassis_hip_kp;
+#define HIP_MIT_PROFILE_KP 35.0f
+#define HIP_MIT_PROFILE_KP_MIN 10.0f
+#define HIP_MIT_PROFILE_KP_MAX 75.0f
 #else
 	fp32 target_alpha1;
 	fp32 target_alpha2;

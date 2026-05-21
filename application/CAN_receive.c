@@ -1183,7 +1183,8 @@ void CAN_cmd_swerve_hip(void)
 
 #elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 int16_t target_alpha_cmd;
-uint16_t hight_cmd ;
+uint16_t hight_cmd;
+uint16_t hip_kp_cmd;
 void CAN_cmd_chassis_hip(void)
 {
 	uint32_t send_mail_box;
@@ -1194,13 +1195,14 @@ void CAN_cmd_chassis_hip(void)
 	{
 		target_alpha_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha, CHASSIS_ANGLE_ECD_MAX_LIMIT) * chassis_angle_encoding_ratio;
 		hight_cmd = fp32_constrain(chassis_move.chassis_platform.target_height, 0, CHASSIS_METER_ECD_MAX_LIMIT) * chassis_meter_encoding_ratio;
+		hip_kp_cmd = (uint16_t)(fp32_constrain(chassis_move.chassis_platform.chassis_hip_kp, HIP_MIT_PROFILE_KP_MIN, HIP_MIT_PROFILE_KP_MAX) * 10.0f);
 
 		chassis_can_send_data[0] = target_alpha_cmd >> 8;
 		chassis_can_send_data[1] = target_alpha_cmd;
 		chassis_can_send_data[2] = hight_cmd >> 8;
 		chassis_can_send_data[3] = hight_cmd;
-		chassis_can_send_data[4] = 0;
-		chassis_can_send_data[5] = 0;
+		chassis_can_send_data[4] = hip_kp_cmd >> 8;
+		chassis_can_send_data[5] = hip_kp_cmd;
 		// reserved
 		// chassis_can_send_data[6] = rev >> 8;
 		// chassis_can_send_data[7] = rev;
