@@ -553,7 +553,7 @@ typedef struct
     uint8_t gimbal_centered;
 
     uint8_t gimbal_fold_control_cmd; //1 for unfold, 2 for fold
-    uint8_t gimbal_folding_step; //0:fold to half, 1:fold to slightly above, 3: fold to end
+    uint8_t gimbal_folding_step; //0:pre-rotate pitch, 1:fold to half, 2:fold to mid, 3:fold to end
     
 }gimbal_folding_status_t; //control flags for foldable gimbal 
 

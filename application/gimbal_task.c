@@ -1315,6 +1315,8 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
     static uint32_t folded_start_tick = 0;
     static uint8_t folded_disable_done = 0;
     static uint8_t last_fold_target = UNFOLDED;
+    static uint8_t last_fold_step = 0;
+    static fp32 fold_base_start_angle = 0.0f;
 
     fp32 pitch_motor_angle = motor_chassis[MOTOR_INDEX_PITCH].output_angle; //both have to be unprocessed motor feedback angle
     fp32 pitch_base_motor_angle = motor_chassis[MOTOR_INDEX_PITCH_BASE].output_angle;
@@ -1322,7 +1324,9 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
     fp32 pitch_base_pos_cmd_target = pitch_base_motor_angle;
     fp32 pitch_pos_cmd_target = pitch_motor_angle;
 
-    if ((!fFoldFilterInit) || (bLastFoldTarget != gimbal_control_set->gimbal_folding_status.target))
+    uint8_t target_changed = (!fFoldFilterInit) || (bLastFoldTarget != gimbal_control_set->gimbal_folding_status.target);
+
+    if (target_changed)
     {
         pitch_base_pos_cmd_filtered = pitch_base_motor_angle;
         pitch_pos_cmd_filtered = pitch_motor_angle;
@@ -1334,26 +1338,39 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
     if(gimbal_control_set->gimbal_folding_status.target == FOLDED) // fold cmd, target=folded
     {
         MIT_motor_angle_control_config(MIT_control_motor);                  // config for fold/unfold
-        //ensure the correct step base on current angle TODO:improve this logic or pact as function
-        if (pitch_base_motor_angle > PITCH_BASE_HALF_FOLD_POS)
+        fp32 pitch_max_rel_target = gimbal_control_set->gimbal_pitch_motor.max_relative_angle;
+        if (target_changed)
         {
-            gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 0;
-        }
-        else if (pitch_base_motor_angle > PITCH_BASE_FOLD_POS)
-        {
-            gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 1;
-        }
-        else
-        {
-            gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 2;
+            //ensure the correct step base on current angle TODO:improve this logic or pact as function
+            if (pitch_base_motor_angle > PITCH_BASE_HALF_FOLD_POS)
+            {
+                gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 0;
+            }
+            else if (pitch_base_motor_angle > PITCH_BASE_FOLD_POS)
+            {
+                gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 2;
+            }
+            else
+            {
+                gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 3;
+            }
         }
         //folding control
+        if (gimbal_control_set->gimbal_folding_status.gimbal_folding_step != last_fold_step)
+        {
+            if (gimbal_control_set->gimbal_folding_status.gimbal_folding_step == 1)
+            {
+                fold_base_start_angle = pitch_base_motor_angle;
+            }
+            last_fold_step = gimbal_control_set->gimbal_folding_status.gimbal_folding_step;
+        }
         switch (gimbal_control_set->gimbal_folding_status.gimbal_folding_step)
         {
             case 0:
             {
-                pitch_base_pos_cmd_target = PITCH_BASE_HALF_FOLD_POS; // fold to half first 
-                if ((fabs(pitch_base_motor_angle - PITCH_BASE_HALF_FOLD_POS) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND) && (fabs(pitch_motor_angle - (-PITCH_BASE_HALF_FOLD_POS)) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND))
+                pitch_base_pos_cmd_target = pitch_base_motor_angle;
+                pitch_pos_cmd_target = pitch_max_rel_target;
+                if (fabs(pitch_motor_angle - pitch_max_rel_target) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND)
                 {
                     gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 1;
                 }
@@ -1361,14 +1378,23 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
             }
             case 1:
             {
-                pitch_base_pos_cmd_target = PITCH_BASE_FOLD_POS;
-                if ((fabs(pitch_base_motor_angle - PITCH_BASE_FOLD_POS) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND) && (fabs(pitch_motor_angle - (-PITCH_BASE_FOLD_POS)) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND))
+                pitch_base_pos_cmd_target = PITCH_BASE_HALF_FOLD_POS; // fold to half first 
+                if ((fabs(pitch_base_motor_angle - PITCH_BASE_HALF_FOLD_POS) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND) && (fabs(pitch_motor_angle - (-PITCH_BASE_HALF_FOLD_POS)) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND))
                 {
                     gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 2;
                 }
                 break;
             }
             case 2:
+            {
+                pitch_base_pos_cmd_target = PITCH_BASE_FOLD_POS;
+                if ((fabs(pitch_base_motor_angle - PITCH_BASE_FOLD_POS) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND) && (fabs(pitch_motor_angle - (-PITCH_BASE_FOLD_POS)) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND))
+                {
+                    gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 3;
+                }
+                break;
+            }
+            case 3:
             {
                 pitch_base_pos_cmd_target = PITCH_BASE_FULLY_FOLD_POS;
                 if ((fabs(pitch_base_motor_angle - PITCH_BASE_FULLY_FOLD_POS) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND) && (fabs(pitch_motor_angle - (-PITCH_BASE_FULLY_FOLD_POS)) <= GIMBAL_FOLD_ZERO_FORCE_DEADBAND))
@@ -1382,17 +1408,31 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
         MIT_control_motor->pitch_base_MIT_variable.torq = -1.7f * sinf(pitch_base_motor_angle); //negative to counter gravity gain
         
         //pitch
-        if(gimbal_control_set->gimbal_folding_status.gimbal_folding_step == 2)
+        if(gimbal_control_set->gimbal_folding_status.gimbal_folding_step == 3)
         {
             //pitch_pos_cmd_target = -(pitch_base_motor_angle) + 0.2f - PITCH_FOLD_UP_BIAS; // adjust up to avoid armor plate contact
             pitch_pos_cmd_target = -(pitch_base_motor_angle) + 0.2f; // adjust up to avoid armor plate contact
         }
-        else
+        else if (gimbal_control_set->gimbal_folding_status.gimbal_folding_step == 1)
+        {
+            fp32 denom = (PITCH_BASE_HALF_FOLD_POS - fold_base_start_angle);
+            fp32 blend = (denom != 0.0f) ? ((pitch_base_motor_angle - fold_base_start_angle) / denom) : 1.0f;
+            blend = fp32_constrain(blend, 0.0f, 1.0f);
+            pitch_pos_cmd_target = (1.0f - blend) * pitch_max_rel_target + blend * (-(pitch_base_motor_angle));
+        }
+        else if (gimbal_control_set->gimbal_folding_status.gimbal_folding_step != 0)
         {
             //pitch_pos_cmd_target = -(pitch_base_motor_angle) - PITCH_FOLD_UP_BIAS;
             pitch_pos_cmd_target = -(pitch_base_motor_angle);
         }
-        MIT_control_motor->pitch_MIT_variable.vel = -(pitch_base_motor_vel); //reverse conter base so vel also negative
+        if (gimbal_control_set->gimbal_folding_status.gimbal_folding_step == 0)
+        {
+            MIT_control_motor->pitch_MIT_variable.vel = 0.0f;
+        }
+        else
+        {
+            MIT_control_motor->pitch_MIT_variable.vel = -(pitch_base_motor_vel); //reverse conter base so vel also negative
+        }
         
     }
     else//unfold
@@ -1400,6 +1440,7 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
         folded_start_tick = 0;
         folded_disable_done = 0;
         gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 0;
+        last_fold_step = 0;
         //pitch_base
         pitch_base_pos_cmd_target = PITCH_BASE_UNFOLD_POS; // TODO:check actual tgt fold angle
         MIT_control_motor->pitch_base_MIT_variable.torq = -1.7f * sinf(pitch_base_motor_angle); //negative to counter gravity gain
