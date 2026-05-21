@@ -730,6 +730,12 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     {
         return;
     }
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    if (gimbal_control.gimbal_folding_status.current == FOLDED)
+    {
+        goto gimbal_feedback_update_sensors;
+    }
+#endif
 #if ROBOT_YAW_IS_4310
     if (toe_is_error(YAW_GIMBAL_MOTOR_TOE))
     {
@@ -753,6 +759,7 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
         enable_DaMiao_motor(CAN_PITCH_MOTOR_4340_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
     }
 #endif
+gimbal_feedback_update_sensors:
     feedback_update->gimbal_pitch_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
 
 #if PITCH_REVERSED
@@ -1305,6 +1312,9 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
     static uint8_t bLastFoldTarget = UNFOLDED;
     static fp32 pitch_base_pos_cmd_filtered = 0.0f;
     static fp32 pitch_pos_cmd_filtered = 0.0f;
+    static uint32_t folded_start_tick = 0;
+    static uint8_t folded_disable_done = 0;
+    static uint8_t last_fold_target = UNFOLDED;
 
     fp32 pitch_motor_angle = motor_chassis[MOTOR_INDEX_PITCH].output_angle; //both have to be unprocessed motor feedback angle
     fp32 pitch_base_motor_angle = motor_chassis[MOTOR_INDEX_PITCH_BASE].output_angle;
@@ -1387,6 +1397,8 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
     }
     else//unfold
     {
+        folded_start_tick = 0;
+        folded_disable_done = 0;
         gimbal_control_set->gimbal_folding_status.gimbal_folding_step = 0;
         //pitch_base
         pitch_base_pos_cmd_target = PITCH_BASE_UNFOLD_POS; // TODO:check actual tgt fold angle
@@ -1408,6 +1420,29 @@ void foldable_pitch_control(gimbal_control_t *gimbal_control_set)
             }
         }
     }
+
+    if (gimbal_control_set->gimbal_folding_status.target == FOLDED && last_fold_target == UNFOLDED)
+    {
+        folded_start_tick = osKernelSysTick();
+        folded_disable_done = 0;
+    }
+
+    if (gimbal_control_set->gimbal_folding_status.target == FOLDED)
+    {
+        if (!folded_disable_done && ((osKernelSysTick() - folded_start_tick) >= 2000U))
+        {
+            enable_DaMiao_motor(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 0, &GIMBAL_CAN);
+            enable_DaMiao_motor(CAN_PITCH_MOTOR_4310_TX_ID, 0, &GIMBAL_CAN);
+            enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 0, &CHASSIS_CAN);
+            folded_disable_done = 1;
+        }
+    }
+    else
+    {
+        folded_start_tick = 0;
+        folded_disable_done = 0;
+    }
+    last_fold_target = gimbal_control_set->gimbal_folding_status.target;
 
     {
         fp32 pitch_base_pos_cmd_next = first_order_filter(pitch_base_pos_cmd_target, pitch_base_pos_cmd_filtered, FOLD_POS_FILTER_COEFF);

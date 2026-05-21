@@ -52,6 +52,9 @@
 #include "chassis_behaviour.h"
 #include "arm_math.h"
 #include "bsp_buzzer.h"
+#include "can.h"
+#include "CAN_receive.h"
+#include "cmsis_os.h"
 #include "detect_task.h"
 #include "referee.h"
 
@@ -171,6 +174,11 @@ static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, gimbal_control_t *
 
 // Watchout for the default value
 gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+static uint32_t fold_cmd_start_tick = 0;
+static uint8_t fold_cmd_disable_done = 0;
+static uint8_t last_fold_cmd_target = UNFOLDED;
+#endif
 // uint8_t fLastKeyVSignal = 0;
 // fp32 cvAidedX, cvAidedY, debugx, debugy;
 
@@ -490,7 +498,36 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
                 if (key_rising_edge(&last_key_f, current_key_f))
                 {
                     gimbal_mode_set->gimbal_folding_status.target = !gimbal_mode_set->gimbal_folding_status.target;
+                    if (gimbal_mode_set->gimbal_folding_status.target == UNFOLDED)
+                    {
+                        enable_DaMiao_motor(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN);
+                        enable_DaMiao_motor(CAN_PITCH_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN);
+                        enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN);
+                    }
                 }
+
+                if (gimbal_mode_set->gimbal_folding_status.target == FOLDED && last_fold_cmd_target == UNFOLDED)
+                {
+                    fold_cmd_start_tick = osKernelSysTick();
+                    fold_cmd_disable_done = 0;
+                }
+
+                if (gimbal_mode_set->gimbal_folding_status.target == FOLDED)
+                {
+                    if (!fold_cmd_disable_done && ((osKernelSysTick() - fold_cmd_start_tick) >= 4500U))
+                    {
+                        enable_DaMiao_motor(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 0, &GIMBAL_CAN);
+                        enable_DaMiao_motor(CAN_PITCH_MOTOR_4310_TX_ID, 0, &GIMBAL_CAN);
+                        enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 0, &CHASSIS_CAN);
+                        fold_cmd_disable_done = 1;
+                    }
+                }
+                else
+                {
+                    fold_cmd_start_tick = 0;
+                    fold_cmd_disable_done = 0;
+                }
+                last_fold_cmd_target = gimbal_mode_set->gimbal_folding_status.target;
 
                 /* Enter if fold command or in a folded state and need to wait until unfolded*/
                 if(gimbal_mode_set->gimbal_folding_status.target || gimbal_mode_set->gimbal_folding_status.current) 
