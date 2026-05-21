@@ -658,8 +658,8 @@ static void gimbal_init(gimbal_control_t *init)
     init->gimbal_pitch_motor.motor_gyro_set = init->gimbal_pitch_motor.motor_gyro;
 
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
-    init->gimbal_folding_status.target = UNFOLDED;
-    init->gimbal_folding_status.current = UNFOLDED;
+    init->gimbal_folding_status.target = FOLDED;
+    init->gimbal_folding_status.current = FOLDED;
 
 	init->gimbal_folding_status.gimbal_centered = 0;
     init->gimbal_folding_status.gimbal_fold_control_cmd = 0;
