@@ -285,9 +285,9 @@ static void detect_init(uint32_t time)
     // error_list[OLED_TOE].solve_lost_fun = OLED_com_reset;
     // error_list[OLED_TOE].solve_data_error_fun = NULL;
 
-//    error_list[DBUS_TOE].data_is_error_fun = RC_data_is_error;
-//    error_list[DBUS_TOE].solve_lost_fun = solve_RC_lost;
-//    error_list[DBUS_TOE].solve_data_error_fun = solve_data_error;
+//    error_list[REMOTE_TOE].data_is_error_fun = RC_data_is_error;
+//    error_list[REMOTE_TOE].solve_lost_fun = solve_RC_lost;
+//    error_list[REMOTE_TOE].solve_data_error_fun = solve_data_error;
 
 }
 

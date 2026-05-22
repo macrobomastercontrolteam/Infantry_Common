@@ -417,7 +417,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         return;
     }
     //if other operate make step change to start, means enter cali mode
-    if (gimbal_mode_set->gimbal_cali.step == GIMBAL_CALI_START_STEP && !toe_is_error(DBUS_TOE))
+    if (gimbal_mode_set->gimbal_cali.step == GIMBAL_CALI_START_STEP && !toe_is_error(REMOTE_TOE))
     {
         gimbal_behaviour = GIMBAL_CALI;
         return;
@@ -450,7 +450,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 
         //The initialization process is terminated due to exceeding the maximum initialization time, reaching a stable median value for an extended period, or the switch is down, or the remote control is offline
         if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME &&
-            !switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]) && !toe_is_error(DBUS_TOE))
+            !switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[RC_RIGHT_LEVER_CHANNEL]) && !toe_is_error(REMOTE_TOE))
         {
             return;
         }
@@ -461,7 +461,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
         }
     }
 
-#if !(ROBOT_TYPE == SENTRY_2023_MECANUM) // remote controller logic
+#if !((ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)) // remote controller logic
 
     if (gimbal_emergency_stop())
     {
@@ -482,7 +482,7 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
 		{
 			case RC_SW_UP:
 			{
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
                 gimbal_behaviour = GIMBAL_AUTO_AIM;
 #else
                 gimbal_behaviour = GIMBAL_ABSOLUTE_ANGLE;

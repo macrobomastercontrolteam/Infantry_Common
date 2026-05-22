@@ -58,7 +58,7 @@
 #define ENABLE_STEER_MOTOR_POWER 0
 #define ENABLE_HIP_MOTOR_POWER 0
 #elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
-#define ENABLE_HIP_MOTOR_POWER 0
+#define ENABLE_HIP_MOTOR_POWER 1
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM) && !ENABLE_PITCH_BASE_MOTOR_POWER && ENABLE_PITCH_MOTOR_POWER
@@ -70,9 +70,14 @@
 #define REVERSE_M3508_3 0
 #define REVERSE_M3508_4 0
 
+#define REVERSE_MG4010_1 0
+#define REVERSE_MG4010_2 0
+#define REVERSE_MG4010_3 0
+#define REVERSE_MG4010_4 0
+
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 1
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 0
 #else
 #define IS_TRIGGER_ON_GIMBAL 0
@@ -85,13 +90,27 @@ extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 power_meter_can_rx_t power_meter_can_rx_msg;
 
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+static uint8_t can_send_data[8];
+static CAN_TxHeaderTypeDef can_tx_message;
+uint32_t send_mail_box;
+
+HAL_StatusTypeDef encode_ktech_broadcast_speed_control(const int16_t speedControlCmd[4], uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr);
+HAL_StatusTypeDef Send_CAN_Cmd(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data, uint8_t blocking_call);
+HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data);
+void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId);
+void CAN_cmd_4010_chassis(void);
+#endif
+
 void CAN_cmd_3508_chassis(void);
 fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits);
 int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits);
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr);
 HAL_StatusTypeDef decode_4310_motor_feedback(uint8_t *data, uint8_t bMotorId);
 HAL_StatusTypeDef decode_4340_motor_feedback(uint8_t *data, uint8_t bMotorId);
+
 void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId);
+
 void decode_power_meter(uint8_t *data);
 fp32 get_chassis_power_meter_data(void);
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
@@ -294,6 +313,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
 		switch (rx_header.StdId)
 		{
+#if (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
 			case CAN_3508_M1_ID:
 			{
 				bMotorId = MOTOR_INDEX_3508_M1;
@@ -323,6 +343,37 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(CHASSIS_MOTOR4_TOE);
 				break;
 			}
+#elif (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+			case CAN_4010_M1_ID:
+			{
+				bMotorId = MOTOR_INDEX_4010_M1;
+				decode_MG_4010_motor_feedback(rx_data, bMotorId);
+        		detect_hook(CHASSIS_MOTOR1_TOE);
+				break;
+			}
+			case CAN_4010_M2_ID:
+			{
+        		bMotorId = MOTOR_INDEX_4010_M2;
+				decode_MG_4010_motor_feedback(rx_data, bMotorId);
+				detect_hook(CHASSIS_MOTOR2_TOE);
+        
+				break;
+			}
+			case CAN_4010_M3_ID:
+			{
+        		bMotorId = MOTOR_INDEX_4010_M3;
+				decode_MG_4010_motor_feedback(rx_data, bMotorId);
+				detect_hook(CHASSIS_MOTOR3_TOE);
+				break;
+			}
+			case CAN_4010_M4_ID:
+			{
+        		bMotorId = MOTOR_INDEX_4010_M4;
+				decode_MG_4010_motor_feedback(rx_data, bMotorId);
+				detect_hook(CHASSIS_MOTOR4_TOE);
+				break;
+			}
+#endif
 			case SUPCAP_RX_ID:
 			{
 				decode_supercap(rx_data);
@@ -464,6 +515,82 @@ void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId)
 	motor_chassis[bMotorId].temperate = data[6];
 }
 
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId)
+{
+
+	int16_t current_int = (data[3]<<8) | data[2]; //Uniy Ampere
+	int16_t v_int = (data[5]<<8) | data[4]; //deg/s
+	uint16_t p_int = (data[7]<<8) | data[6]; //encode value
+
+	motor_chassis[bMotorId].feedback_current = (fp32)current_int;
+	motor_chassis[bMotorId].speed_rpm = (int16_t)(v_int / 6.0f) / MOTOR_MG4010_GEAR_RATIO;  // convert deg/s to RPM: 360 deg/s = 60 RPM
+	motor_chassis[bMotorId].velocity = ((fp32)v_int) / MOTOR_MG4010_GEAR_RATIO / 180.0f * PI;
+	motor_chassis[bMotorId].output_angle = ((fp32)p_int) / (1 << 14) * 2.0f * PI;
+	motor_chassis[bMotorId].temperature = data[1];
+}
+
+HAL_StatusTypeDef encode_ktech_broadcast_speed_control(const int16_t speedControlCmd[4], uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
+{
+	can_tx_message.StdId = CAN_KTECH_BROADCAST_SPEED_TX_ID;
+	can_tx_message.ExtId = 0x00;
+	can_tx_message.IDE = CAN_ID_STD;
+	can_tx_message.RTR = CAN_RTR_DATA;
+	can_tx_message.DLC = 8;
+
+	can_send_data[0] = (uint8_t)speedControlCmd[0];
+	can_send_data[1] = (uint8_t)(speedControlCmd[0] >> 8);
+	can_send_data[2] = (uint8_t)speedControlCmd[1];
+	can_send_data[3] = (uint8_t)(speedControlCmd[1] >> 8);
+	can_send_data[4] = (uint8_t)speedControlCmd[2];
+	can_send_data[5] = (uint8_t)(speedControlCmd[2] >> 8);
+	can_send_data[6] = (uint8_t)speedControlCmd[3];
+	can_send_data[7] = (uint8_t)(speedControlCmd[3] >> 8);
+
+	return Send_CAN_Cmd(hcan_ptr, &can_tx_message, can_send_data, blocking_call);
+}
+
+HAL_StatusTypeDef Send_CAN_Cmd(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data, uint8_t blocking_call)
+{
+	if (blocking_call)
+	{
+		return blocking_can_send(hcan, tx_header, tx_data);
+	}
+	else
+	{
+		return HAL_CAN_AddTxMessage(hcan, tx_header, tx_data, &send_mail_box);
+	}
+}
+
+HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data)
+{
+	HAL_StatusTypeDef CAN_status = HAL_TIMEOUT;
+	uint16_t try_cnt = 0;
+	const uint16_t retry_delay_ms = 1;
+	const uint16_t retry_timeout_ms = 5000;
+	while (1)
+	{
+		if ((hcan->State == HAL_CAN_STATE_READY) || (hcan->State == HAL_CAN_STATE_LISTENING))
+		{
+			CAN_status = HAL_CAN_AddTxMessage(hcan, tx_header, tx_data, &send_mail_box);
+		}
+
+		if (CAN_status == HAL_OK)
+		{
+			break;
+		}
+		else if (try_cnt > retry_timeout_ms / retry_delay_ms)
+		{
+			CAN_status = HAL_TIMEOUT;
+			break;
+		}
+		try_cnt++;
+		osDelay(retry_delay_ms);
+	}
+	return CAN_status;
+}
+
+#endif
 fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits)
 {
 	/// converts unsigned int to fp32, given range and number of bits ///
@@ -727,7 +854,7 @@ void CAN_cmd_biped_chassis_mode(void)
 	static uint8_t bLastRcRightSw = RC_SW_DOWN;
 	uint8_t bRcLeftSw = RC_SW_DOWN;
 	uint8_t bRcRightSw = RC_SW_DOWN;
-	if (toe_is_error(DBUS_TOE) == 0)
+	if (toe_is_error(REMOTE_TOE) == 0)
 	{
 		bRcLeftSw = rc_ctrl.rc.s[RC_LEFT_LEVER_CHANNEL];
 		bRcRightSw = rc_ctrl.rc.s[RC_RIGHT_LEVER_CHANNEL];
@@ -961,7 +1088,7 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
  */
 void CAN_cmd_chassis_reset_ID(void)
 {
-#if ROBOT_CHASSIS_USE_MECANUM || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	uint32_t send_mail_box;
 	chassis_tx_message.StdId = 0x700;
 	chassis_tx_message.IDE = CAN_ID_STD;
@@ -1041,10 +1168,9 @@ void CAN_cmd_chassis(void)
 	CAN_cmd_swerve_steer();
 	osDelay(1);
 	CAN_cmd_swerve_hip();
-#elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
-	CAN_cmd_3508_chassis();
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+	CAN_cmd_4010_chassis();
 	osDelay(1);
-	CAN_cmd_upper_head();
 #elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 	CAN_cmd_3508_chassis();
 	osDelay(1);
@@ -1053,7 +1179,12 @@ void CAN_cmd_chassis(void)
 	CAN_cmd_biped_chassis();
 	CAN_cmd_biped_chassis_mode();
 #else
+#if (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
 	CAN_cmd_3508_chassis();
+	osDelay(1);
+#elif (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+	CAN_cmd_4010_chassis();
+#endif
 #endif
 }
 
@@ -1071,7 +1202,7 @@ void CAN_cmd_chassis(void)
  */
 void CAN_cmd_3508_chassis(void)
 {
-#if (ROBOT_TYPE != INFANTRY_2024_BIPED)
+#if !((ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == SENTRY_2026_OMNI))
 	uint32_t send_mail_box;
 	// driver motors (M3508)
 	chassis_tx_message.StdId = CAN_3508_OR_2006_LOW_RANGE_TX_ID;
@@ -1080,10 +1211,10 @@ void CAN_cmd_3508_chassis(void)
 	chassis_tx_message.DLC = 0x08;
 
 #if ENABLE_DRIVE_MOTOR_POWER
-	int16_t motor1 = chassis_move.motor_chassis[0].give_current;
-	int16_t motor2 = chassis_move.motor_chassis[1].give_current;
-	int16_t motor3 = chassis_move.motor_chassis[2].give_current;
-	int16_t motor4 = chassis_move.motor_chassis[3].give_current;
+	int16_t motor1 = chassis_move.motor_chassis[0].give_chassis_motor_cmd;
+	int16_t motor2 = chassis_move.motor_chassis[1].give_chassis_motor_cmd;
+	int16_t motor3 = chassis_move.motor_chassis[2].give_chassis_motor_cmd;
+	int16_t motor4 = chassis_move.motor_chassis[3].give_chassis_motor_cmd;
 #else
 	int16_t motor1 = 0;
 	int16_t motor2 = 0;
@@ -1118,6 +1249,54 @@ void CAN_cmd_3508_chassis(void)
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 #endif
 }
+
+#if (ROBOT_TYPE == SENTRY_2026_OMNI)
+void CAN_cmd_4010_chassis(void)
+{
+	uint8_t blocking_call = 1;
+
+	// MG4010 motors are controlled via speed commands sent to individual motor IDs
+#if ENABLE_DRIVE_MOTOR_POWER
+	fp32 motor1_speed = chassis_move.motor_chassis[0].give_chassis_motor_cmd;
+	fp32 motor2_speed = chassis_move.motor_chassis[1].give_chassis_motor_cmd;
+	fp32 motor3_speed = chassis_move.motor_chassis[2].give_chassis_motor_cmd;
+	fp32 motor4_speed = chassis_move.motor_chassis[3].give_chassis_motor_cmd;
+#else
+	fp32 motor1_speed = 0;
+	fp32 motor2_speed = 0;
+	fp32 motor3_speed = 0;
+	fp32 motor4_speed = 0;
+#endif
+
+#if REVERSE_MG4010_1
+	motor1_speed = -motor1_speed;
+#endif
+
+#if REVERSE_MG4010_2
+	motor2_speed = -motor2_speed;
+#endif
+
+#if REVERSE_MG4010_3
+	motor3_speed = -motor3_speed;
+#endif
+
+#if REVERSE_MG4010_4
+	motor4_speed = -motor4_speed;
+#endif
+
+	// Convert speeds from rad/s to dps (deg/s) and then to control command (0.01 dps per LSB)
+	// Motor speed in rad/s -> deg/s via gear ratio -> control cmd (multiply by 100 for 0.01 dps per LSB)
+	int16_t motor1_cmd = (int16_t)fp32_abs_constrain((motor1_speed) , MOTOR_MG4010_MAX_CMD);
+	int16_t motor2_cmd = (int16_t)fp32_abs_constrain((motor2_speed) , MOTOR_MG4010_MAX_CMD);
+	int16_t motor3_cmd = (int16_t)fp32_abs_constrain((motor3_speed) , MOTOR_MG4010_MAX_CMD);
+	int16_t motor4_cmd = (int16_t)fp32_abs_constrain((motor4_speed) , MOTOR_MG4010_MAX_CMD);
+
+	// Send speed commands to each MG4010 motor using the ktech broadcast function
+	int16_t motor_cmds[4] = {motor1_cmd, motor2_cmd, motor3_cmd, motor4_cmd};
+	encode_ktech_broadcast_speed_control(motor_cmds, blocking_call, &CHASSIS_CAN);
+	osDelay(1);
+}
+#endif
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void CAN_cmd_swerve_steer(void)

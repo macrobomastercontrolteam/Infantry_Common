@@ -117,7 +117,7 @@ void cv_usart_task(void const *argument)
 	CvCmder_Init();
 
 //enable auto aim mode for Sentry 2023 Mecanum robots
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)	
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)	|| (ROBOT_TYPE == SENTRY_2026_OMNI)
 	CvCmder_ToggleMode(CV_MODE_AUTO_AIM_BIT);
 #endif
 	//Init all the flags at the beginning of the task
@@ -133,7 +133,7 @@ void cv_usart_task(void const *argument)
 	{
 		CvCmder_PollForModeChange();
 		// shoot mode timeout logic for automatic robots
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT) && (osKernelSysTick() - CvCmdHandler.ulShootStartTime > SHOOT_TIMEOUT_MS))
 		{
 			CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
@@ -305,7 +305,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 				}
 				case CV_INFO_ROBOT_TYPE:{
 					ackBuf[2] = 0x02;
-#if SENTRY_2023_MECANUM
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)	
 					ackBuf[3] = 0x00;
 #else
 					ackBuf[3] = 0xFF;
@@ -545,7 +545,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				get_projectile_allowance_17mm(&projectile_allowance_17mm);
 				if(length == 1){
 //setting shoot flag for automatic robots					
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 					uint8_t shootCmd = pData[2];
 	#if !DEBUG_CV
 					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-30)< shoot_heat_limit) && is_game_started()){

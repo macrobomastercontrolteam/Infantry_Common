@@ -36,6 +36,10 @@
 #define MID_SPIN_SPEED_CHANGE_PERIOD 1000.0f
 #define DELTA_SPIN_SPEED_CHANGE_PERIOD (MID_SPIN_SPEED_CHANGE_PERIOD / 2.0f)
 
+#define SPIN_RAMP_UP_TIME_MS 2500u
+
+static uint32_t spin_ramp_start_tick = 0;
+
 #define MOUSE_SCROLL_TO_DIAL_SEN_INC -(JOYSTICK_HALF_RANGE / MOUSE_X_EFFECTIVE_SPEED * 30)
 #define MOUSE_SCROLL_FILTER_COEFF 0.6f
 #define CHASSIS_WZ_CMD_DEADZONE 0.15f
@@ -92,7 +96,7 @@ void chassis_behaviour_set_mode(void)
 {
 
 #if !DEBUG_CV
-	if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE) && toe_is_error(DBUS_TOE))
+	if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE) && toe_is_error(REMOTE_TOE))
 #else
 	if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE) && chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
 #endif
@@ -113,7 +117,7 @@ void chassis_behaviour_set_mode(void)
 		{
 			case RC_SW_UP:
 			{
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 				chassis_behaviour_mode = CHASSIS_CV_CONTROL_MODE;
 #else
 				chassis_behaviour_mode = CHASSIS_SPINNING_MODE;
@@ -135,9 +139,11 @@ void chassis_behaviour_set_mode(void)
 		}
 	}
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 	CvCmder_ChangeMode(CV_MODE_AUTO_AIM_BIT | CV_MODE_AUTO_MOVE_BIT, (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE));
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	chassis_move.fUpperHeadEnabled = (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE);
+#endif
 #endif
 
 	ui_info.spinning_state = (chassis_behaviour_mode == CHASSIS_SPINNING_MODE);
@@ -193,6 +199,7 @@ void chassis_behaviour_change_transit(void)
 			{
 				// Relative angle implementation for chassis spinning mode
 				// chassis_move.chassis_relative_angle_set = chassis_move.chassis_yaw_motor->relative_angle;
+				spin_ramp_start_tick = osKernelSysTick();
 				break;
 			}
 			case CHASSIS_BASIC_FPV_MODE:
@@ -284,10 +291,10 @@ void dial_channel_manager(void)
 {
 	int16_t dial_channel_raw;
 	deadband_limit(chassis_move.chassis_RC->rc.ch[RC_DIAL_CHANNEL], dial_channel_raw, CHASSIS_RC_DEADLINE);
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 	if (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE)
 	{
-		// if (toe_is_error(DBUS_TOE))
+		// if (toe_is_error(REMOTE_TOE))
 		// {
 		// 	// CV fully automatic mode without RC
 		// 	chassis_move.dial_channel_out = chassis_move.dial_channel_latched;
@@ -305,7 +312,7 @@ void dial_channel_manager(void)
 		chassis_move.dial_channel_out = dial_channel_raw;
 	}
 #else
-	if (toe_is_error(DBUS_TOE) == 0)
+	if (toe_is_error(REMOTE_TOE) == 0)
 	{
 		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
 		{
@@ -355,7 +362,9 @@ static void chassis_zero_force_control(fp32 *vx_can_set, fp32 *vy_can_set, fp32 
 	*vx_can_set = 0;
 	*vy_can_set = 0;
 	*wz_can_set = 0;
+	chassis_move.chassis_cmd_slow_set_vx.input = 0;
 	chassis_move.chassis_cmd_slow_set_vx.out = 0;
+	chassis_move.chassis_cmd_slow_set_vy.input = 0;
 	chassis_move.chassis_cmd_slow_set_vy.out = 0;
 	chassis_move.chassis_cmd_slow_set_wz.out = 0;
 }
@@ -516,7 +525,16 @@ void chassis_spinning_speed_manager(fp32* wz_set)
 
 	}
 #endif
-	*wz_set = spinning_speed;
+	// Apply gradual ramp-up from zero to target speed when spinning mode is first enabled
+	uint32_t spin_elapsed = osKernelSysTick() - spin_ramp_start_tick;
+	if (spin_elapsed < SPIN_RAMP_UP_TIME_MS)
+	{
+		*wz_set = spinning_speed * ((fp32)spin_elapsed / (fp32)SPIN_RAMP_UP_TIME_MS);
+	}
+	else
+	{
+		*wz_set = spinning_speed;
+	}
 }
 
 static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set)

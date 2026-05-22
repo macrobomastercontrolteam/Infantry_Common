@@ -185,8 +185,8 @@ void MX_FREERTOS_Init(void) {
     osThreadDef(refree_uart, referee_usart_task, osPriorityNormal, 0, 128);
     referee_usart_task_handle = osThreadCreate(osThread(refree_uart), NULL);
 #endif
-    osThreadDef(customUITask, custom_ui_task, osPriorityBelowNormal, 0, 512);
-    custom_ui_task_handle = osThreadCreate(osThread(customUITask), NULL);
+    //osThreadDef(customUITask, custom_ui_task, osPriorityBelowNormal, 0, 512);
+    //custom_ui_task_handle = osThreadCreate(osThread(customUITask), NULL);
 
     // osThreadDef(USBTask, usb_task, osPriorityNormal, 0, 128);
     // usb_task_handle = osThreadCreate(osThread(USBTask), NULL);

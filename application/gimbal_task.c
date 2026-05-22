@@ -932,7 +932,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
         return;
     }
 
-#if (ROBOT_TYPE != SENTRY_2023_MECANUM)
+#if !((ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI))
 
 		if (CvCmder_GetMode(CV_MODE_ASSIST_BIT) && fCvAutoAim())
 		{
@@ -953,7 +953,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 #if DEBUG_CV
         if(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
 #else
-        if(toe_is_error(DBUS_TOE) && gimbal_behaviour == GIMBAL_AUTO_AIM)
+        if(toe_is_error(REMOTE_TOE) && gimbal_behaviour == GIMBAL_AUTO_AIM)
 #endif
         {
             cvAidedX = -CvCmdHandler.CvCmdMsg.xAimError * YAW_RC_CV_SEN_INC*0.35f;
@@ -1265,7 +1265,7 @@ bool_t gimbal_emergency_stop(void)
     }
 	else
 	{
-		fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL) && toe_is_error(DBUS_TOE));
+		fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL) && toe_is_error(REMOTE_TOE));
 	}
 	return fEStop;
 }

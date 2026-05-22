@@ -35,7 +35,7 @@
 
 #define GIMBAL_TEST_MODE 0
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) //TODO: check if PITCH_REVERSED for Inf_2026
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) //TODO: check if PITCH_REVERSED for Inf_2026 || (ROBOT_TYPE == SENTRY_2026_OMNI)
 #define PITCH_REVERSED  1
 #else
 #define PITCH_REVERSED  0
@@ -146,7 +146,11 @@
 #define YAW_SPEED_PID_MAX_OUT   30000.0f
 #define YAW_SPEED_PID_MAX_IOUT  10000.0f
 #else
-#error "4310 yaw pid not defined for this robot type"
+#define YAW_SPEED_PID_KP        0.8f
+#define YAW_SPEED_PID_KI        1.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   6.5f
+#define YAW_SPEED_PID_MAX_IOUT  2.33f
 #endif
 
 //pitch gyro angle close-loop PID params, max out and max iout
@@ -157,9 +161,49 @@
 #define PITCH_ANGLE_PID_MAX_IOUT 10.0f
 
 //yaw gyro angle close-loop PID params, max out and max iout
-#define YAW_ANGLE_PID_KP        22.5f
+#define YAW_ANGLE_PID_KP        25.0f
 #define YAW_ANGLE_PID_KI        0.0f
 #define YAW_ANGLE_PID_KD        0.0f
+#define YAW_ANGLE_PID_MAX_OUT   10.0f
+#define YAW_ANGLE_PID_MAX_IOUT  10.0f
+
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+
+//pitch speed close-loop PID params, max out and max iout
+#define PITCH_SPEED_PID_KP        15000.0f
+#define PITCH_SPEED_PID_KI        15000.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   30000.0f
+#define PITCH_SPEED_PID_MAX_IOUT  10000.0f
+
+#if (ROBOT_YAW_IS_4310 == 0)
+//yaw speed close-loop PID params, max out and max iout
+#define YAW_SPEED_PID_KP        20000.0f
+#define YAW_SPEED_PID_KI        20000.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   30000.0f
+#define YAW_SPEED_PID_MAX_IOUT  10000.0f
+#else
+#define YAW_SPEED_PID_KP        0.8f
+#define YAW_SPEED_PID_KI        1.0f
+#define YAW_SPEED_PID_KD        0.05f
+#define YAW_SPEED_PID_MAX_OUT   6.5f
+#define YAW_SPEED_PID_MAX_IOUT  2.33f
+
+
+#endif
+
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_ANGLE_PID_KP 25.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.5f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
+
+//yaw gyro angle close-loop PID params, max out and max iout
+#define YAW_ANGLE_PID_KP        25.0f
+#define YAW_ANGLE_PID_KI        0.0f
+#define YAW_ANGLE_PID_KD        0.05f
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
@@ -328,7 +372,7 @@
 
 #if ROBOT_YAW_IS_4310
 #define YAW_CAMERA_SPEED_PID_KP        0.7f
-#define YAW_CAMERA_SPEED_PID_KI        1.0f
+#define YAW_CAMERA_SPEED_PID_KI        0.0f
 #define YAW_CAMERA_SPEED_PID_KD        0.0f
 #define YAW_CAMERA_SPEED_PID_MAX_OUT   7.0f
 #define YAW_CAMERA_SPEED_PID_MAX_IOUT  2.33f
@@ -382,7 +426,7 @@
 #define TURN_SPEED    0.04f
 #define TEST_KEYBOARD KEY_PRESSED_OFFSET_R
 //joystick value deadband
-#define RC_DEADBAND   20
+#define RC_DEADBAND   30
 
 #if CV_INTERFACE
 // #define CV_CAMERA_YAW_DEADBAND   0.0174533f // 1 degree
