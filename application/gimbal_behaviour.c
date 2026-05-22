@@ -492,10 +492,15 @@ static void gimbal_behavour_set(gimbal_control_t *gimbal_mode_set)
             case RC_SW_MID:
             {
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
-                static uint8_t last_key_f = 0;
-                uint8_t current_key_f = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B) != 0);
+                static uint8_t last_pause_button = 0;
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+                uint8_t current_pause_button = (gimbal_mode_set->gimbal_rc_ctrl->vt13.pause_button != 0u) ||
+                                              ((gimbal_mode_set->gimbal_rc_ctrl->key.v & KEY_PRESSED_OFFSET_B) != 0u);
+#else
+                uint8_t current_pause_button = ((gimbal_mode_set->gimbal_rc_ctrl->key.v & KEY_PRESSED_OFFSET_B) != 0u);
+#endif
 
-                if (key_rising_edge(&last_key_f, current_key_f))
+                if (key_rising_edge(&last_pause_button, current_pause_button))
                 {
                     gimbal_mode_set->gimbal_folding_status.target = !gimbal_mode_set->gimbal_folding_status.target;
                     if (gimbal_mode_set->gimbal_folding_status.target == UNFOLDED)

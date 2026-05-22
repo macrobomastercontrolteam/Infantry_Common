@@ -766,28 +766,41 @@ void chassis_platform_rc_mapping(void)
 		//	chassis_move.chassis_platform.target_roll -= CHASSIS_PLATFORM_ROLL_KEYBOARD_SEN_INC;
 		//}
 
-		if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+		if (chassis_move.chassis_RC->vt13.customizable_button_left)
 		{
-			// height (Ctrl+F/V: increment/decrement)
-			if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
-			{
-				chassis_move.chassis_platform.target_height += CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
-			}
-			else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
-			{
-				chassis_move.chassis_platform.target_height -= CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
-			}
+			chassis_move.chassis_platform.target_height -= CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+		}
+		else if (chassis_move.chassis_RC->vt13.customizable_button_right)
+		{
+			chassis_move.chassis_platform.target_height += CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
 		}
 		else
+#endif
 		{
-			// F/V: adjust platform alpha
-			if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+			if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
 			{
-				chassis_move.chassis_platform.target_alpha += CHASSIS_PLATFORM_ALPHA_KEYBOARD_SEN_INC;
+				// height (Ctrl+F/V: increment/decrement)
+				if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+				{
+					chassis_move.chassis_platform.target_height += CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+				}
+				else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+				{
+					chassis_move.chassis_platform.target_height -= CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+				}
 			}
-			else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+			else
 			{
-				chassis_move.chassis_platform.target_alpha -= CHASSIS_PLATFORM_ALPHA_KEYBOARD_SEN_INC;
+				// F/V: adjust platform alpha
+				if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+				{
+					chassis_move.chassis_platform.target_alpha += CHASSIS_PLATFORM_ALPHA_KEYBOARD_SEN_INC;
+				}
+				else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+				{
+					chassis_move.chassis_platform.target_alpha -= CHASSIS_PLATFORM_ALPHA_KEYBOARD_SEN_INC;
+				}
 			}
 		}
 		// constrain target roll, pitch, and height values
