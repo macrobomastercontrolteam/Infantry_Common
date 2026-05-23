@@ -487,7 +487,7 @@
 #define INIT_YAW_SET    0.0f
 #define INIT_PITCH_SET  0.0f
 
-#if ROBOT_PITCH_IS_4310 || ROBOT_PITCH_IS_4340
+#if (ROBOT_PITCH_IS_4310 && (ROBOT_TYPE == INFANTRY_2026_MECANUM))
 //torque control mode cali output TODO: check if also work for hero bot
 #define GIMBAL_CALI_MOTOR_SET   0.25f 
 #else

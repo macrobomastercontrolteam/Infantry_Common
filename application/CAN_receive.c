@@ -626,8 +626,8 @@ void CAN_cmd_gimbal_Damiao_motor(MIT_control_motor_t *MIT_control_motor)
 
 #if ROBOT_PITCH_IS_4310
 	encode_MIT_motor_control(CAN_PITCH_MOTOR_4310_TX_ID, pitch_variable.pos, pitch_variable.vel, pitch_variable.KP, pitch_variable.KD, pitch_variable.torq, DM_4310, &GIMBAL_CAN);
-#elif ROBOT_PITCH_IS_4340
-	encode_MIT_motor_control(CAN_PITCH_MOTOR_4340_TX_ID, pitch_variable.pos, pitch_variable.vel, pitch_variable.KP, pitch_variable.KD, pitch_variable.torq, DM_4340, &GIMBAL_CAN);
+// #elif ROBOT_PITCH_IS_4340
+// 	encode_MIT_motor_control(CAN_PITCH_MOTOR_4340_TX_ID, pitch_variable.pos, pitch_variable.vel, pitch_variable.KP, pitch_variable.KD, pitch_variable.torq, DM_4340, &GIMBAL_CAN);
 #endif
 #endif
 
