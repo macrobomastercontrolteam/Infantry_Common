@@ -27,6 +27,7 @@
 #define Note_B3 (247) // 493.88Hz, 2052us
 
 #define Note_C4 (262) // 261.63Hz, 3822us
+#define Note_C4S (277) // 277.18Hz
 #define Note_D4 (294) // 293.66Hz, 3405us
 #define Note_E4 (330) // 329.63Hz, 3034us
 #define Note_F4 (349) // 349.23Hz, 2863us
@@ -35,6 +36,7 @@
 #define Note_B4 (494) // 493.88Hz, 2052us
 
 #define Note_C5 (523) // 523.25Hz, 1911us
+#define Note_C5S (554.37) 
 #define Note_D5 (587) // 587.33Hz, 1703us
 #define Note_E5 (659) // 659.26Hz, 1517us
 #define Note_F5 (698) // 698.46Hz, 1432us
@@ -43,6 +45,7 @@
 #define Note_B5 (988) // 987.77Hz, 1012us
 
 #define Note_C6 (1047) // 1046.50Hz, 956us
+#define Note_C6S (1108.73)
 #define Note_D6 (1175) // 1174.66Hz, 851us
 #define Note_E6 (1319) // 1318.51Hz, 758us
 #define Note_F6 (1397) // 1396.91Hz, 716us
@@ -72,15 +75,17 @@
 #define MORSE_SHORT 932
 #define MORSE_GAP 2637
 
-#define QUINARY_0 Note_A5
-#define QUINARY_1 Note_B6
-#define QUINARY_5 Note_C6
+#define QUINARY_0 Note_C5S
+#define QUINARY_1 Note_F5
+#define QUINARY_5 Note_C6S
 
 #define QUINARY_TEST {\
-    {Note_A5,300},\
-    {Note_B6,100},\
-    {Note_C6,150},\
-    {Note_00,WHOLE_NOTE_DURATION}}
+    {QUINARY_0,200},\
+    {Note_00,50},\
+    {QUINARY_1,100},\
+    {Note_00,100},\
+    {QUINARY_5,150},\
+    {Note_00,50}}
 
 #define START {\
     {Note_00,WHOLE_NOTE_DURATION},\
@@ -616,7 +621,8 @@ typedef struct
 
     uint8_t battery_flag;
     uint8_t overpower_flag;
-    uint8_t toe_flag;
+    uint8_t auto_toe_flag;
+    uint8_t manual_toe_flag;
     uint8_t song_flag;
     uint8_t info_flag;
 } buzzer_flag_t;
@@ -631,6 +637,7 @@ extern void play_toe_status(uint32_t toe_list);
 
 extern void play_num_quinary(int number);
 
+extern bool_t is_debug_key_pressed(void);
 //void buzzer_toe_check(void);
 #endif /* _BUZZER_TASK_H */
 

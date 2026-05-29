@@ -152,7 +152,7 @@ Music_Data quinary_test = {
     .gap = 100,
     .psc = 100,
     .pwm = 60,
-    .music_length = 4,
+    .music_length = 5,
     .music = QUINARY_TEST,
 };
 Music_Data overpower_warning = {
@@ -178,7 +178,8 @@ void buzzer_init()
     buzzer_flag.playing_flag = 0;
     buzzer_flag.battery_flag = 0;
     buzzer_flag.overpower_flag = 0;
-    buzzer_flag.toe_flag = 0;
+    buzzer_flag.auto_toe_flag = 0;
+    buzzer_flag.manual_toe_flag = 0;
     buzzer_flag.song_flag = 0;
     buzzer_flag.info_flag = 0;
 
@@ -261,7 +262,6 @@ void play_toe_status(uint32_t toe_list)
         buzzer_off();
         osDelay(500);
         buzzer_flag.playing_flag = 0;
-        //toe_flag = 0;
     }
 }
 
@@ -302,12 +302,17 @@ void buzzer_task(void const *argument)
                 osDelay(500);
                 if (toe_check() != toe)//double check
                 {
-                    buzzer_flag.toe_flag = 1; //play unit code when new unit offline detected
+                    buzzer_flag.auto_toe_flag = 1; //play unit code when new unit offline detected
                     toe = toe_check();
                 }
             }
             buzzer_control.toe_timeout = TOE_TIMEOUT;
             buzzer_control.last_toe_report_time = osKernelSysTick();
+        }
+        else if (is_debug_key_pressed()) // manual check
+        {
+            toe = toe_check();
+            buzzer_flag.manual_toe_flag = 1;      
         }
 
         //play
@@ -318,13 +323,22 @@ void buzzer_task(void const *argument)
             buzzer_flag.overpower_flag = 0;
         }
         //play toe code
-        else if(buzzer_flag.toe_flag)
+        else if(buzzer_flag.manual_toe_flag)
         {
             buzzer_play(quinary_test);//play sound for 0,1,5 in sequence
             osDelay(1000);
             play_toe_status(toe);
             buzzer_play(end);
-            buzzer_flag.toe_flag = 0;
+            buzzer_flag.manual_toe_flag = 0;
+                        
+        }
+        else if(buzzer_flag.auto_toe_flag)
+        {
+            // buzzer_play(quinary_test);//play sound for 0,1,5 in sequence
+            // osDelay(1000);
+            // play_toe_status(toe);
+            buzzer_play(end);
+            buzzer_flag.auto_toe_flag = 0;
                         
         }
 #if INCLUDE_uxTaskGetStackHighWaterMark
@@ -333,3 +347,10 @@ void buzzer_task(void const *argument)
     }
 }
 
+
+bool_t is_debug_key_pressed(void)
+{
+    static uint8_t debug_key = 0;
+    key_falling_edge(&debug_key, !(HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_0)));//reverse reading because key is active low
+    return debug_key; 
+}

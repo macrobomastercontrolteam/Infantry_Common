@@ -126,6 +126,9 @@ extern void Set_Bit(uint8_t* Target_Byte, uint8_t Target_Bit, uint8_t bitValue);
 extern int16_t encode_float_as_int16(fp32 input);
 extern fp32 decode_int16_to_fp32(int16_t input);
 
+extern bool_t key_rising_edge(uint8_t *last, uint8_t current);
+extern bool_t key_falling_edge(uint8_t *last, uint8_t current);
+
 #define rad_format(Ang) loop_fp32_constrain((Ang), -PI, PI)
 
 #define DEG_TO_RAD(_deg) (_deg * PI / 180.0f)
