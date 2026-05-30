@@ -482,21 +482,23 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set)
 		vy_set_channel = -chassis_move.vy_max_speed;
 	}
 
+	// rc deadband
+	if (fabs(vx_set_channel) < CHASSIS_RC_DEADLINE * vx_rc_sen)
+	{
+		vx_set_channel = 0.0f;
+	}
+
+	if (fabs(vy_set_channel) < CHASSIS_RC_DEADLINE * vy_rc_sen)
+	{
+		vy_set_channel = 0.0f;
+	}
+
 	// first order low-pass replace ramp function, calculate chassis speed set-point to improve control performance
 	first_order_filter_cali(&chassis_move.chassis_cmd_slow_set_vx, vx_set_channel);
 	first_order_filter_cali(&chassis_move.chassis_cmd_slow_set_vy, vy_set_channel);
 	low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vx.out, 0.05f, 0);
 	low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vy.out, 0.05f, 0);
-	// stop command, need not slow change, set zero derectly
-	if (fabs(vx_set_channel) < CHASSIS_RC_DEADLINE * vx_rc_sen)
-	{
-		chassis_move.chassis_cmd_slow_set_vx.out = 0.0f;
-	}
 
-	if (fabs(vy_set_channel) < CHASSIS_RC_DEADLINE * vy_rc_sen)
-	{
-		chassis_move.chassis_cmd_slow_set_vy.out = 0.0f;
-	}
 
 	*vx_set = chassis_move.chassis_cmd_slow_set_vx.out;
 	*vy_set = chassis_move.chassis_cmd_slow_set_vy.out;
