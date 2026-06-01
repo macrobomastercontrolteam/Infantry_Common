@@ -726,20 +726,11 @@ static void gimbal_set_mode(gimbal_control_t *set_mode)
   */
 static void gimbal_feedback_update(gimbal_control_t *feedback_update)
 {
-#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
     if (feedback_update == NULL)
     {
         return;
     }
-#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
-    if (gimbal_control.gimbal_folding_status.current == FOLDED)
-    {
-        goto gimbal_feedback_update_sensors;
-    }
-    gimbal_feedback_update_sensors:
-        feedback_update->gimbal_pitch_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
 
-#endif
 #if ROBOT_YAW_IS_4310
     if (toe_is_error(YAW_GIMBAL_MOTOR_TOE))
     {
@@ -763,7 +754,14 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
         enable_DaMiao_motor(CAN_PITCH_MOTOR_4340_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
     }
 #endif
-
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    if (gimbal_control.gimbal_folding_status.current == FOLDED)
+    {
+        goto gimbal_feedback_update_sensors;
+    }
+    gimbal_feedback_update_sensors:
+#endif
+    feedback_update->gimbal_pitch_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
 #if PITCH_REVERSED
     //feedback_update->gimbal_pitch_motor.relative_angle = -motor_chassis[MOTOR_INDEX_PITCH].output_angle;
     feedback_update->gimbal_pitch_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
@@ -791,50 +789,6 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
 #endif
     feedback_update->gimbal_yaw_motor.motor_gyro = AHRS_cosf(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_Z_ADDRESS_OFFSET))
                                                         - AHRS_sinf(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_X_ADDRESS_OFFSET));
-
-#else
-    if (feedback_update == NULL)
-    {
-        return;
-    }
-#if ROBOT_YAW_IS_4310
-    if (toe_is_error(YAW_GIMBAL_MOTOR_TOE))
-    {
-        enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN); // attempt re-enable yaw motor when offline
-    }
-#endif
-#if ROBOT_PITCH_IS_4340
-    if (toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
-    {
-        enable_DaMiao_motor(CAN_PITCH_MOTOR_4340_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable pitch motor when offline
-    }
-#endif
-    feedback_update->gimbal_pitch_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
-
-#if PITCH_REVERSED
-    feedback_update->gimbal_pitch_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
-                                                                                          feedback_update->gimbal_pitch_motor.offset_ecd);
-#else
-
-    feedback_update->gimbal_pitch_motor.relative_angle = motor_ecd_to_angle_change(feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
-                                                                                          feedback_update->gimbal_pitch_motor.offset_ecd);
-#endif
-
-    feedback_update->gimbal_pitch_motor.motor_gyro = *(feedback_update->gimbal_INT_gyro_point + INS_GYRO_Y_ADDRESS_OFFSET);
-
-    feedback_update->gimbal_yaw_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_YAW_ADDRESS_OFFSET);
-
-#if YAW_REVERSED
-    feedback_update->gimbal_yaw_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_yaw_motor.gimbal_motor_measure->ecd,
-                                                                                        feedback_update->gimbal_yaw_motor.offset_ecd);
-
-#else
-    feedback_update->gimbal_yaw_motor.relative_angle = motor_ecd_to_angle_change(feedback_update->gimbal_yaw_motor.gimbal_motor_measure->ecd,
-                                                                                        feedback_update->gimbal_yaw_motor.offset_ecd);
-#endif
-    feedback_update->gimbal_yaw_motor.motor_gyro = AHRS_cosf(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_Z_ADDRESS_OFFSET))
-                                                        - AHRS_sinf(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_X_ADDRESS_OFFSET));
-#endif
 }
 
 /**
