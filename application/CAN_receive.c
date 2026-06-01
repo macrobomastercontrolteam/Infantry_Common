@@ -63,6 +63,8 @@
 
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM) && !ENABLE_PITCH_BASE_MOTOR_POWER && ENABLE_PITCH_MOTOR_POWER
 #error "INFANTRY_2026_MECANUM must has its pitch base motor power enabled for normal operation"
+#elif (ROBOT_TYPE != INFANTRY_2026_MECANUM) && ENABLE_PITCH_BASE_MOTOR_POWER
+#error "This robot type should not enable pitch base motor power"
 #endif
 
 #define REVERSE_M3508_1 0
