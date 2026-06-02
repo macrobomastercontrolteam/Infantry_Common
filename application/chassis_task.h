@@ -211,8 +211,8 @@
 #else
 // @TODO: tune pid for other robots
 // @TODO: fix drift in spinning mode when power is limited
-#define M3508_MOTOR_SPEED_PID_KP 25000.0f
-#define M3508_MOTOR_SPEED_PID_KI 1000.0f
+#define M3508_MOTOR_SPEED_PID_KP 21000.0f
+#define M3508_MOTOR_SPEED_PID_KI 0.0f
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
 #define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
@@ -238,7 +238,7 @@ typedef struct
 	fp32 accel;
 	fp32 speed;
 	fp32 speed_set;
-	int16_t give_chassis_motor_cmd; // control current command for chassis M3508 motor deg/s*(gear ratio) for MG4010
+	int16_t give_chassis_motor_cmd; // control current command for chassis M3508 motor deg/s*(gear ratio) for MG4010 //in DJI motor CAN current, 16384 => 10 A 
 } chassis_motor_t;
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)

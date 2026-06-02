@@ -253,3 +253,17 @@ fp32 decode_int16_to_fp32(int16_t input)
     return (fp32)input / 100.0f;
 }
 
+bool_t key_rising_edge(uint8_t *last, uint8_t current)
+{
+    bool_t rising = (current && !(*last));
+    *last = current;
+    return rising;
+}
+
+bool_t key_falling_edge(uint8_t *last, uint8_t current)
+{
+    bool_t rising = (!current && *last);
+    *last = current;
+    return rising;
+}
+

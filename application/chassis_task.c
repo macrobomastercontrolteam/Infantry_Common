@@ -469,7 +469,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set)
 		return;
 	}
 
-	chassis_speed_max_adj();
+	//chassis_speed_max_adj();//TODO: integrate to power control and remove
 
 	int16_t vx_channel, vy_channel;
 	fp32 vx_set_channel, vy_set_channel;
@@ -1089,14 +1089,9 @@ static void chassis_control_loop(void)
 		{
 			PID_calc(&chassis_move.motor_speed_pid[i], chassis_move.motor_chassis[i].speed, chassis_move.motor_chassis[i].speed_set, CHASSIS_CONTROL_TIME_S);
 		}
-		if (!toe_is_error(SUPCAP_TOE))
-		{
-			chassis_power_control((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C) != 0);
-		}
-		for (i = 0; i < 4; i++)
-		{
-			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)((chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
-		}
+
+		chassis_power_control(); //chassis_move.motor_chassis[i].give_chassis_motor_cmd assigned inside
+
 	}
 #endif
 }

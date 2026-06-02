@@ -24,7 +24,7 @@
 #include "global_inc.h"
 
 // Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
-#define ENABLE_SHOOT_REDUNDANT_SWITCH 1
+#define ENABLE_SHOOT_REDUNDANT_SWITCH 0
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
@@ -127,7 +127,7 @@ typedef enum { //also update transmitting end after change
   PROJECTILE_ALLOWANCE_17MM,
   
   CHASSIS_POWER_INFO,
-  CHASSIS_POWER_BUFFER,
+  CHASSIS_POWERMETER_DATA,
   CHASSIS_POWER_LIMIT,
 
 } request_ref_info_code_t;
@@ -285,18 +285,10 @@ typedef struct
     uint16_t chassis_power_buffer; 
     uint16_t chassis_power_limit;
     int16_t encoded_chassis_power;
+    fp32 PowerMeter_reading;
+    fp32 PowerMeter_current;
+    fp32 PowerMeter_voltage;
 } can_ref_info_t;
-
-//typedef struct 
-//{
-//  int8_t temperature;
-//  uint16_t ecd;
-//  fp32 output_angle;
-//  fp32 velocity;
-//  fp32 torque;
-//  fp32 feedback_current;
-//} motor_measure_t;
-
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
   * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000] 
@@ -372,7 +364,6 @@ extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t motor_inde
 HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTypeDef *hcan_ptr);
 
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
-
 
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
 void decode_ubc_cap_tx_data(uint8_t *data);
