@@ -12,21 +12,21 @@ DataPacket vofa_data_packet = {
 
 void vofa_init(void)
 {
-    HAL_UART_Transmit_IT(&huart1, (uint8_t*)&vofa_data_packet, 36);
-    HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
+    HAL_UART_Transmit_IT(VOFA_UART_AD, (uint8_t*)&vofa_data_packet, 36);
+    HAL_UART_Receive_IT(VOFA_UART_AD, (uint8_t *)RxBuffer, 1);
 }
 
 void vofa_send(void)
 {
-	HAL_UART_Transmit_IT(&huart1, (uint8_t*)&vofa_data_packet, 36);
-    __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+	HAL_UART_Transmit_IT(VOFA_UART_AD, (uint8_t*)&vofa_data_packet, 36);
+    __HAL_DMA_DISABLE_IT(VOFA_UART.hdmarx, DMA_IT_HT);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-    if(UartHandle->Instance==USART1)
+    if(UartHandle->Instance==VOFA_UART.Instance)
     {
-        HAL_UART_Receive_IT(&huart1, (uint8_t *)RxBuffer, 1);
+        HAL_UART_Receive_IT(VOFA_UART_AD, (uint8_t *)RxBuffer, 1);
         RxLine++;
         DataBuff[RxLine - 1] = RxBuffer[0];
         if (RxBuffer[0] == 0x21)
@@ -38,7 +38,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
         }
         RxBuffer[0] = 0;
         
-        __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+        __HAL_DMA_DISABLE_IT(VOFA_UART.hdmarx, DMA_IT_HT);
     }
 }
 

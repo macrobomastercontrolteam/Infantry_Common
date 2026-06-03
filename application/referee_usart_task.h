@@ -17,6 +17,9 @@
 #ifndef REFEREE_USART_TASK_H
 #define REFEREE_USART_TASK_H
 #include "main.h"
+#include "global_inc.h"
+#include "usart.h"
+#include "bsp_usart.h"
 
 #define USART_RX_BUF_LENGTH     512
 #define REFEREE_FIFO_BUF_LENGTH 1024
