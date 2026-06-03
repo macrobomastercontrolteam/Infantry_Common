@@ -7,6 +7,8 @@
 #include "string.h"
 #include  "cmsis_os.h"
 
+#define VOFA_UART_USE 1 //1 for uart1(shown as uart2), 0 for uart6(shown as uart1)
+
 typedef struct {
     fp32 data[8];
     char tail[4];
@@ -21,4 +23,5 @@ extern fp32 vofa_return_data(uint8_t place);
 extern void vofa_update(uint8_t place, fp32 data);
 
 extern void vofa_task(void const * argument);
+
 #endif

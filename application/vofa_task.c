@@ -7,9 +7,10 @@ uint8_t DataBuff[200];
 
 
 DataPacket vofa_data_packet = {
-    .data = {1.1f, 2.2f, 3.3f, 4.4f, 5.5f, 6.6f, 7.7f, 8.8f},
+    .data = {1.5f, 2.2f, 3.3f, 4.4f, 5.5f, 6.6f, 7.7f, 8.8f},
     .tail = {0x00, 0x00, 0x80, 0x7f}};
 
+#if VOFA_UART_USE
 void vofa_init(void)
 {
     HAL_UART_Transmit_IT(&huart1, (uint8_t*)&vofa_data_packet, 36);
@@ -41,6 +42,39 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
         __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
     }
 }
+#else
+void vofa_init(void)
+{
+    HAL_UART_Transmit_IT(&huart6, (uint8_t*)&vofa_data_packet, 36);
+    HAL_UART_Receive_IT(&huart6, (uint8_t *)RxBuffer, 1);
+}
+
+void vofa_send(void)
+{
+	HAL_UART_Transmit_IT(&huart6, (uint8_t*)&vofa_data_packet, 36);
+    __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+    if(UartHandle->Instance==USART6)
+    {
+        HAL_UART_Receive_IT(&huart6, (uint8_t *)RxBuffer, 1);
+        RxLine++;
+        DataBuff[RxLine - 1] = RxBuffer[0];
+        if (RxBuffer[0] == 0x21)
+        {
+
+            vofa_update(get_place(),get_data());
+            memset(DataBuff, 0, sizeof(DataBuff));
+            RxLine = 0;
+        }
+        RxBuffer[0] = 0;
+        
+        __HAL_DMA_DISABLE_IT(huart6.hdmarx, DMA_IT_HT);
+    }
+}
+#endif
 
 fp32 get_data(void)
 {
