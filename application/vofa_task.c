@@ -7,7 +7,7 @@ uint8_t DataBuff[200];
 
 
 DataPacket vofa_data_packet = {
-    .data = {1.5f, 2.3f, 3.4f, 4.4f, 5.5f, 6.6f, 7.7f, 8.8f},
+    .data = {1.5f, 2.3f, 3.4f, 4.4f, 5.0f, 6.6f, 7.7f, 8.8f},
     .tail = {0x00, 0x00, 0x80, 0x7f}};
 
 void vofa_init(void)
