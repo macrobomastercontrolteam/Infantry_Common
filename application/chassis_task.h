@@ -140,11 +140,11 @@
 #define SPRINT_MAX_CHASSIS_SPEED_Y SPRINT_MAX_CHASSIS_SPEED_X
 #else
 // chassis forward or back max speed
-#define NORMAL_MAX_CHASSIS_SPEED_X 3.5f
-#define SPRINT_MAX_CHASSIS_SPEED_X 3.5f
+#define NORMAL_MAX_CHASSIS_SPEED_X 5.5f //Forward/Backward Direction
+#define SPRINT_MAX_CHASSIS_SPEED_X 6.5f
 // chassis left or right max speed
-#define NORMAL_MAX_CHASSIS_SPEED_Y 5.0f
-#define SPRINT_MAX_CHASSIS_SPEED_Y 5.0f
+#define NORMAL_MAX_CHASSIS_SPEED_Y 4.5f //Sideway
+#define SPRINT_MAX_CHASSIS_SPEED_Y 5.5f
 #endif
 #define NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO 1.5f
 

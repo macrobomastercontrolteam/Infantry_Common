@@ -34,6 +34,7 @@
 #include "arm_math.h"
 #include "detect_task.h"
 #include "chassis_task.h"
+#include "vofa_task.h"
 #include "cmsis_os.h"
 #include <string.h>
 
@@ -100,7 +101,7 @@ static fp32 compute_p_ref(fp32 remaining_energy, fp32 p_referee_max)
     fp32 p_min;
 
     if (remaining_energy < pwr_e_danger)
-        return 0.0f;
+        return p_referee_max; //to handel case where buffer energy couldn't be successfy received TODO:validate if would disrupt power control  //0.0f;
 
     p_ref = p_referee_max + pwr_p_slope * (remaining_energy - pwr_e_converge);
     p_max = p_referee_max * pwr_p_ref_max_ratio;
@@ -135,7 +136,7 @@ fp32 motor_power_get_real_current(const motor_power_t *mp, fp32 current)
 }
 
 fp32 motor_power_update(motor_power_t *mp, fp32 current, fp32 speed,
-    predict_status_e predict_status, motor_power_negative_e negative_status)
+                        predict_status_e predict_status, motor_power_negative_e negative_status)
 {
     fp32 product = current * speed;
     fp32 power_sign = 1.0f;
@@ -150,12 +151,7 @@ fp32 motor_power_update(motor_power_t *mp, fp32 current, fp32 speed,
     current = fabs(motor_power_get_real_current(mp, current));
     speed = fabs(speed);
 
-    power = (mp->K0
-        + mp->K1 * current
-        + mp->K2 * speed
-        + mp->K3 * current * speed
-        + mp->K4 * current * current
-        + mp->K5 * speed * speed) * power_sign;
+    power = (mp->K0 + mp->K1 * current + mp->K2 * speed + mp->K3 * current * speed + mp->K4 * current * current + mp->K5 * speed * speed) * power_sign;
 
     if (predict_status == MOTOR_PWR_PREDICT_ENABLED)
         mp->predict_power = power;
@@ -580,7 +576,7 @@ void chassis_power_control(void)
     {
         pid_out = chassis_move.motor_speed_pid[i].out; //copy the pid out to local to isolate from pid control loop
         k = motor_power_limiter(&chassis_motor_power[i], &pid_out,
-                                chassis_move.motor_chassis[i].speed, chassis_motor_power[i].power_limit);
+                                motor_chassis[i].speed_rpm, chassis_motor_power[i].power_limit);
         
         temp_processed_out[i] = (int16_t)pid_out;
         chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)pid_out;//first_order_filter((int16_t)(chassis_move.motor_speed_pid[i].out), chassis_move.motor_chassis[i].give_chassis_motor_cmd, 0.5f);//not apply processed value first

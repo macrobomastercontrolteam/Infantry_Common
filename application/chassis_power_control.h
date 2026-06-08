@@ -72,13 +72,14 @@
 #define MOVING_AVG_FILTER_MAX_SIZE 32       // maximum buffer length for moving-average filter
 
 #if(ROBOT_TYPE == INFANTRY_2024_MECANUM)
-#define M3508_power_param_K0 0.837573
-#define M3508_power_param_K1 0.175117f
-#define M3508_power_param_K2 -0.000651f
-#define M3508_power_param_K3 0.003180f
-#define M3508_power_param_K4 0.387271f
-#define M3508_power_param_K5 -0.000000f
+#define M3508_power_param_K0 1.296006f
+#define M3508_power_param_K1 0.003200f
+#define M3508_power_param_K2 0.000628f
+#define M3508_power_param_K3 0.000046f
+#define M3508_power_param_K4 0.000508f
+#define M3508_power_param_K5 0.000001f
 #define M3508_Current_Convertion 1638.4f
+
 
 #elif(ROBOT_TYPE == HERO_2025_MECANUM)
 #define M3508_power_param_K0 0.837573

@@ -354,6 +354,26 @@ void chassis_speed_max_adj(void)
 	// Tuning guide: normal mode only uses 10% power buffer; sprint mode only use 75%
 	fp32 vx_speed_limit = 0;
 	fp32 vy_speed_limit = 0;
+	
+
+	if(ref_chassis_power_buffer < 20.0f)
+	{
+		vx_speed_limit = 1.0f;
+		vy_speed_limit = 1.0f;
+	}
+	else if(ref_chassis_power_buffer < 40.0f)
+	{
+		vx_speed_limit = first_order_filter(NORMAL_MAX_CHASSIS_SPEED_X * 0.6f, vx_speed_limit, 0.7);
+		vy_speed_limit = first_order_filter(NORMAL_MAX_CHASSIS_SPEED_Y * 0.6f, vy_speed_limit, 0.7);
+	}
+	else
+	{
+		vx_speed_limit = first_order_filter(NORMAL_MAX_CHASSIS_SPEED_X, vx_speed_limit, 0.7);
+		vy_speed_limit = first_order_filter(NORMAL_MAX_CHASSIS_SPEED_Y, vy_speed_limit, 0.7);
+	}
+	vofa_update(5,(fp32)vx_speed_limit);
+    vofa_update(6,(fp32)vy_speed_limit);
+	/*
 	uint16_t uiPowerLevel = fp32_constrain(ref_chassis_power_limit - 40, 0, 100) / 5;
 	switch (uiPowerLevel)
 	{
@@ -432,7 +452,8 @@ void chassis_speed_max_adj(void)
 			break;
 		}
 	}
-	
+	*/
+
 	if ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE) && (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE))
 	{
 		chassis_move.vx_max_speed = vy_speed_limit;
@@ -469,7 +490,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set)
 		return;
 	}
 
-	//chassis_speed_max_adj();//TODO: integrate to power control and remove
+	chassis_speed_max_adj();//TODO: integrate to power control and remove
 
 	int16_t vx_channel, vy_channel;
 	fp32 vx_set_channel, vy_set_channel;
