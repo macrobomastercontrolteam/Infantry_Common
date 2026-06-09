@@ -32,7 +32,7 @@
 #include "user_lib.h"
 #include <assert.h>
 #include "referee.h"
-
+#include "vofa_task.h"
 #define STEER_MOTOR_UPSIDE_DOWN_MOUNTING 0
 #define SWERVE_INVALID_HIP_DATA_RESET_TIMEOUT 1000
 

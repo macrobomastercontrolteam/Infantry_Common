@@ -717,12 +717,6 @@ static void shoot_set_mode(void)
 	else // Manual control mode based on remote controller's left lever (S1 switch).
 	{
 		static int8_t last_switch_state = RC_SW_UP; 
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
-		// VT13 Hero: read mode switch (right lever) as safety gate - position 2 disables shooting
-		int8_t new_switch_state = shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL];
-#else
-		int8_t new_switch_state = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL]; // Current state of S1 switch.
-#endif
 
 #if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
 		// VT13 Hero: use physical customizable buttons on VT13 remote for jam handling
@@ -810,6 +804,7 @@ static void shoot_set_mode(void)
 		}
 #else
 		// DR16: use switch position-based logic
+		int8_t new_switch_state = shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL]; // Current state of S1 switch.
 		switch (new_switch_state)
 		{
 			case RC_SW_UP: // Lever is UP, auto fire mode by RC (for testing).

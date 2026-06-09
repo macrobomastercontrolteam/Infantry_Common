@@ -713,6 +713,11 @@
               <FileType>5</FileType>
               <FilePath>..\application\referee_can_task.h</FilePath>
             </File>
+            <File>
+              <FileName>vofa_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\vofa_task.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

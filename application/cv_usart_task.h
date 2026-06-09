@@ -13,8 +13,6 @@
 
 #define CV_CONTROL_TIME_MS 500.0f
 
-#if CV_INTERFACE
-
 typedef struct __attribute__((packed))
 {
     fp32 xAimError; ///< unit: rad
@@ -51,6 +49,9 @@ typedef struct
     const RC_ctrl_t *cv_rc_ctrl; ///< remote control pointer
 } tCvCmdHandler;
 
+extern tCvCmdHandler CvCmdHandler;
+
+#if CV_INTERFACE
 void cv_usart_task(void const *argument);
 uint8_t CvCmder_GetMode(uint8_t bCvModeBit);
 void CvCmder_ToggleMode(uint8_t bCvModeBit);
@@ -61,9 +62,49 @@ void CvCmder_toe_solve_lost_fun(void);
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_CheckAndResetUserKeyEdge(void);
 #endif // DEBUG_CV_WITH_USB
+#else
+static inline void cv_usart_task(void const *argument)
+{
+    (void)argument;
+}
 
-extern tCvCmdHandler CvCmdHandler;
+static inline uint8_t CvCmder_GetMode(uint8_t bCvModeBit)
+{
+    (void)bCvModeBit;
+    return 0;
+}
 
+static inline void CvCmder_ToggleMode(uint8_t bCvModeBit)
+{
+    (void)bCvModeBit;
+}
+
+static inline void CvCmder_ChangeMode(uint8_t bCvModeBit, uint8_t fFlag)
+{
+    (void)bCvModeBit;
+    (void)fFlag;
+}
+
+static inline tCvCmdHandler* CvCmder_GetHandler(void)
+{
+    return &CvCmdHandler;
+}
+
+static inline void CvCmder_DetectAutoAimSwitchEdge(uint8_t fRcCmd)
+{
+    (void)fRcCmd;
+}
+
+static inline void CvCmder_toe_solve_lost_fun(void)
+{
+}
+
+#if DEBUG_CV_WITH_USB
+static inline uint8_t CvCmder_CheckAndResetUserKeyEdge(void)
+{
+    return 0;
+}
+#endif // DEBUG_CV_WITH_USB
 #endif // CV_INTERFACE
 
 #endif // CV_USART_TASK_H

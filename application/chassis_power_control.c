@@ -143,4 +143,7 @@ bool_t chassis_power_control_mode_change(uint8_t fIsKeyPressed){
     //}
 //
     //return toggle_mode;
+
+    (void)fIsKeyPressed;
+    return 0;
 }

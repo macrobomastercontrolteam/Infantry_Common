@@ -380,6 +380,11 @@ void INS_task(void const *pvParameters)
             prev_INS_gyro[0] = INS_gyro[0];
             prev_INS_gyro[1] = INS_gyro[1];
             prev_INS_gyro[2] = INS_gyro[2];
+
+            // Kept for telemetry/debug and future control loops under feature flags.
+            (void)angular_accel_raw[0];
+            (void)angular_accel_raw[1];
+            (void)angular_accel_raw[2];
         }
     }
 }
