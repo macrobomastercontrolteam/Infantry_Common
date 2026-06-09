@@ -76,6 +76,8 @@
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 // Pitch use DaMiao 4310
 #define ROBOT_PITCH_IS_4340 1
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+#define ROBOT_PITCH_IS_3507 1
 #else
 #define ROBOT_PITCH_IS_4340 0
 #endif
