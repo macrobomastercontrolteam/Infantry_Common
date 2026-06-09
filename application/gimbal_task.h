@@ -34,7 +34,7 @@
 
 #define GIMBAL_TEST_MODE 0
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 #define PITCH_REVERSED  1
 #else
 #define PITCH_REVERSED  0
@@ -153,33 +153,12 @@
 
 #elif (ROBOT_TYPE == SENTRY_2026_OMNI)
 
-#if ROBOT_PITCH_IS_3507
-#define PITCH_SPEED_PID_KP        1.0f
-#define PITCH_SPEED_PID_KI        0.0f
-#define PITCH_SPEED_PID_KD        0.0f
-#define PITCH_SPEED_PID_MAX_OUT   9.5f
-#define PITCH_SPEED_PID_MAX_IOUT  9.5f
-
-#define PITCH_ANGLE_PID_KP 20.0f
-#define PITCH_ANGLE_PID_KI 0.0f
-#define PITCH_ANGLE_PID_KD 0.05f
-#define PITCH_ANGLE_PID_MAX_OUT 10.0f
-#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
-#else
 //pitch speed close-loop PID params, max out and max iout
 #define PITCH_SPEED_PID_KP        15000.0f
 #define PITCH_SPEED_PID_KI        15000.0f
 #define PITCH_SPEED_PID_KD        0.0f
 #define PITCH_SPEED_PID_MAX_OUT   30000.0f
 #define PITCH_SPEED_PID_MAX_IOUT  10000.0f
-
-//pitch gyro angle close-loop PID params, max out and max iout
-#define PITCH_ANGLE_PID_KP 25.0f
-#define PITCH_ANGLE_PID_KI 0.0f
-#define PITCH_ANGLE_PID_KD 0.5f
-#define PITCH_ANGLE_PID_MAX_OUT 10.0f
-#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
-#endif
 
 #if (ROBOT_YAW_IS_4310 == 0)
 //yaw speed close-loop PID params, max out and max iout
@@ -198,7 +177,12 @@
 
 #endif
 
-
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_ANGLE_PID_KP 25.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.5f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
 
 //yaw gyro angle close-loop PID params, max out and max iout
 #define YAW_ANGLE_PID_KP        25.0f
@@ -413,7 +397,7 @@
 
 #define PITCH_MOTOR_CURRENT_LIMIT  30000
 // @TODO: tune PITCH_4310_MOTOR_LIMIT
-#define PITCH_4310_MOTOR_TORQUE_LIMIT 5.0f
+#define PITCH_4310_MOTOR_TORQUE_LIMIT 7.0f
 // @TODO: tune YAW_4310_MOTOR_TORQUE_LIMIT
 #define YAW_4310_MOTOR_TORQUE_LIMIT  7.0f
 #define YAW_6020_MOTOR_CURRENT_LIMIT  30000
