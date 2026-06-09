@@ -7,6 +7,7 @@
 #include "protocol.h"
 #include "referee.h"
 #include "usart.h"
+#include "global_inc.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -50,7 +51,11 @@ uint16_t get_receiver_id(uint16_t sender_ID)
 
 void ui_sendbyte(unsigned char ch)
 {
+#if ENABLE_REFREE_UART_PORT
 	HAL_UART_Transmit(&huart6, (uint8_t *)&ch, 1, 999);
+#else
+	UNUSED(ch);
+#endif
 }
 
 /********************************************Delete Operation*************************************
@@ -453,6 +458,7 @@ void float_draw(string_data *image, char figure_name[3], uint32_t graph_operate,
 
 void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uint16_t len)
 {
+#if ENABLE_REFREE_UART_PORT
 	uint8_t tx_buff[MAX_SIZE];
 
 	uint16_t frame_length = FRAMEHEADER_LEN + CMD_LEN + len + CRC_LEN; // Data frame length
@@ -481,6 +487,12 @@ void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uin
 	{
 		HAL_UART_Transmit(&huart6, tx_buff + i, 1, 99);
 	}
+#else
+	UNUSED(sof);
+	UNUSED(cmd_id);
+	UNUSED(p_data);
+	UNUSED(len);
+#endif
 }
 
 // TODO: Maybe make it so can upload multiple graphics at once as supported by the protocol
