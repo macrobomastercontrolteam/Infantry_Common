@@ -193,8 +193,12 @@ void MX_FREERTOS_Init(void) {
     //osThreadDef(customUITask, custom_ui_task, osPriorityBelowNormal, 0, 512);
     //custom_ui_task_handle = osThreadCreate(osThread(customUITask), NULL);
 
+  #if VOFA_UART_USE
     osThreadDef(vofaTask, vofa_task, osPriorityBelowNormal, 0, 512);
     vofa_task_handle = osThreadCreate(osThread(vofaTask), NULL);
+  #else
+    UNUSED(vofa_task_handle);
+  #endif
 
     // osThreadDef(USBTask, usb_task, osPriorityNormal, 0, 128);
     // usb_task_handle = osThreadCreate(osThread(USBTask), NULL);

@@ -7,12 +7,12 @@
 #include "string.h"
 #include  "cmsis_os.h"
 
-#if VOFA_UART_USE //1 for uart1(shown as uart2), 0 for uart6(shown as uart1)
-#define VOFA_UART_AD (&huart1)
-#define VOFA_UART (huart1)
-#else
+#if (VOFA_UART_USE == 1)
 #define VOFA_UART_AD (&huart6)
 #define VOFA_UART (huart6)
+#elif (VOFA_UART_USE == 2)
+#define VOFA_UART_AD (&huart1)
+#define VOFA_UART (huart1)
 #endif
 
 typedef struct {

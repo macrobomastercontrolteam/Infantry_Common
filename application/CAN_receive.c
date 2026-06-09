@@ -1413,7 +1413,6 @@ void CAN_cmd_supercap(void)
 	chassis_tx_message.RTR = CAN_RTR_DATA;
 	chassis_tx_message.DLC = 0x08;
 
-   	fp32 chassis_power;
 	fp32 chassis_power_buffer;
     fp32 chassis_power_limit;
     get_chassis_power_data(&chassis_power_buffer, &chassis_power_limit);

@@ -85,7 +85,7 @@ void referee_usart_task(void const * argument)
   * @param[in]      void
   * @retval         none
   */
-#if ENABLE_REFREE_UART_PORT
+#if ENABLE_REFREE_UART_PORT && (REMOTE_TYPE != REMOTE_USE_VT13)
 static void referee_unpack_fifo_data(void)
 {
   uint8_t byte = 0;

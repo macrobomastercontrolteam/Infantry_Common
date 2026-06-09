@@ -699,6 +699,10 @@ uint8_t CvCmder_MockModeChange(void)
 
 #endif // CV_INTERFACE
 
+#if !CV_INTERFACE
+tCvCmdHandler CvCmdHandler;
+#endif
+
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     if (huart->Instance == USART1)

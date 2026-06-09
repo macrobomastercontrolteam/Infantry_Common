@@ -1,5 +1,7 @@
 #include "vofa_task.h"
 
+#if VOFA_UART_USE
+
 uint8_t RxBuffer[1];
 uint16_t RxLine = 0;
 uint8_t DataBuff[200];
@@ -109,3 +111,5 @@ void vofa_task(void const * argument)
         osDelay(100);
     }
 }
+
+#endif

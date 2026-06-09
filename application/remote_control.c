@@ -45,17 +45,25 @@ extern DMA_HandleTypeDef hdma_usart3_rx;
 
 
 static int16_t RC_abs(int16_t value);
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
 static int16_t rc_constrain_to_dr16_range(int16_t value);
+#endif
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
 static uint8_t vt13_mode_to_switch(uint8_t mode_raw);
 static uint8_t vt13_verify_frame_crc(const uint8_t *frame);
+#endif
 /**
   * @brief          remote control protocol resolution
   * @param[in]      sbus_buf: raw data point
   * @param[out]     rc_ctrl: remote control data struct point
   * @retval         none
   */
+#if (REMOTE_TYPE == REMOTE_USE_DR16)
 static void dr16_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl);
+#endif
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
 static uint8_t vt13_to_rc(const uint8_t *rx_buf, uint16_t rx_len, RC_ctrl_t *rc_ctrl);
+#endif
 
 //remote control data 
 RC_ctrl_t rc_ctrl;
@@ -320,6 +328,7 @@ static int16_t RC_abs(int16_t value)
     }
 }
 
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
 static int16_t rc_constrain_to_dr16_range(int16_t value)
 {
     if (value > RC_CHANNEL_DROPIN_LIMIT)
@@ -332,12 +341,14 @@ static int16_t rc_constrain_to_dr16_range(int16_t value)
     }
     return value;
 }
+#endif
 /**
   * @brief          remote control protocol resolution
   * @param[in]      sbus_buf: raw data point
   * @param[out]     rc_ctrl: remote control data struct point
   * @retval         none
   */
+#if (REMOTE_TYPE == REMOTE_USE_DR16)
 static void dr16_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
 {
     if (sbus_buf == NULL || rc_ctrl == NULL)
@@ -390,7 +401,9 @@ static void dr16_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
     CvCmder_DetectAutoAimSwitchEdge((rc_ctrl->key.v & AUTO_AIM_TOGGLE_KEYBOARD) != 0);
 #endif
 }
+#endif
 
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
 static uint8_t vt13_to_rc(const uint8_t *rx_buf, uint16_t rx_len, RC_ctrl_t *rc_ctrl)
 {
     if ((rx_buf == NULL) || (rc_ctrl == NULL) || (rx_len < VT13_FRAME_LENGTH))
@@ -519,6 +532,7 @@ static uint8_t vt13_verify_frame_crc(const uint8_t *frame)
 {
     return verify_CRC16_check_sum((uint8_t *)frame, VT13_FRAME_LENGTH) ? 1u : 0u;
 }
+#endif
 
 // // We don't use this feature. USART1 is used to communicate with CV instead.
 // /**
