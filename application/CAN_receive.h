@@ -22,6 +22,7 @@
 
 #include "stm32f4xx_hal.h"
 #include "global_inc.h"
+#include "gimbal_interface_types.h"
 
 // Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
 #define ENABLE_SHOOT_REDUNDANT_SWITCH 1
@@ -63,6 +64,12 @@ typedef enum
 #elif ROBOT_PITCH_IS_3507
   CAN_PITCH_MOTOR_3507_TX_ID = 0x006,
   CAN_PITCH_MOTOR_3507_RX_ID = 0x0FD,
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+  CAN_PITCH_MOTOR_4310_TX_ID = 0x006,
+  CAN_PITCH_MOTOR_4310_RX_ID = 0x0FD,
+
+  CAN_PITCH_BASE_MOTOR_4310_TX_ID = 0x007,
+  CAN_PITCH_BASE_MOTOR_4310_RX_ID = 0x0FC,
 #else
   CAN_PIT_MOTOR_ID = 0x206,
 #endif
@@ -102,7 +109,11 @@ typedef enum
 	MOTOR_INDEX_4010_M4,
 #endif
 	MOTOR_INDEX_YAW,
-	MOTOR_INDEX_PITCH,
+  MOTOR_INDEX_PITCH,
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+  MOTOR_INDEX_PITCH_BASE,
+#endif
+	
 	MOTOR_INDEX_TRIGGER,
   MOTOR_INDEX_FRICTION_LEFT,
   MOTOR_INDEX_FRICTION_RIGHT,
@@ -161,13 +172,13 @@ typedef enum
 #endif
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#elif ((ROBOT_TYPE == INFANTRY_2023_SWERVE)||(ROBOT_TYPE == INFANTRY_2026_MECANUM))
 	CAN_STEER_CONTROLLER_TX_ID = 0x112,
 	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
   // sends target chassis platform params: alpha1, alpha2, center height
-	CAN_SWERVE_CONTROLLERE_TX_ID = 0x114,
+	CAN_CHASSIS_CONTROLLERE_TX_ID = 0x114,
   // receives target derivative of rotational radius of each wheel
-	CAN_SWERVE_RADII_DOT_RX_ID = 0x115,
+	CAN_CHASSIS_RADII_DOT_RX_ID = 0x115,
   // receives current chassis platform params: alpha1, alpha2, center height, rotational radius of each wheels
 	CAN_SHRINKED_CONTROLLER_RX_ID = 0x116,
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
@@ -346,6 +357,10 @@ void CAN_cmd_swerve_steer(void);
 void CAN_cmd_swerve_hip(void);
 #endif
 
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+void CAN_cmd_chassis_hip(void);
+#endif
+
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)
 void CAN_cmd_biped_chassis(void);
 void CAN_cmd_biped_chassis_mode(void);
@@ -416,6 +431,9 @@ extern void send_ui_info(void);
 void decode_ref_info(uint8_t *rx_data);
 extern void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat);
 extern void CAN_get_chassis_power_info( fp32 *buffer, fp32 *power_limit);
+#if (ROBOT_PITCH_IS_4310 && (ROBOT_TYPE == INFANTRY_2026_MECANUM))
+extern void CAN_cmd_gimbal_Damiao_motor(MIT_control_motor_t *MIT_control_motor);
+#endif
 #endif
 
 #endif

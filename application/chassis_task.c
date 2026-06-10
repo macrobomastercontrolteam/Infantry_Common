@@ -17,6 +17,7 @@
   */
 #include "chassis_task.h"
 #include "chassis_behaviour.h"
+#include "gimbal_task.h"
 
 #include "cmsis_os.h"
 
@@ -218,6 +219,8 @@ static void chassis_init(void)
 	// special assignment to ensure fHipDisabledEdge not being miscalculated by the garbage data
 	chassis_move.fHipEnabled = 0;
 	swerve_chassis_params_reset();
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	chassis_move.chassis_platform.chassis_hip_kp = HIP_MIT_PROFILE_KP;
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	biped_chassis_params_reset();
 #endif
@@ -683,6 +686,150 @@ void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32
 	fp32 sin_total = AHRS_sinf(PI / 4.0f + gimbal_chassis_relative_yaw_angle);
 	*roll = cos_total * alpha2 + sin_total * alpha1;
 	*pitch = -sin_total * alpha2 + cos_total * alpha1;
+}
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+
+void chassis_back_home(void)
+{
+	// back to middle height, which has the largest workspace for alpha angle
+	chassis_move.chassis_platform.target_roll = 0;
+	chassis_move.chassis_platform.target_pitch = 0;
+	chassis_move.chassis_platform.target_alpha = 0;
+	chassis_move.chassis_platform.target_height = CHASSIS_H_WORKSPACE_PEAK;
+}
+
+/**
+ * @brief  Ramp chassis height toward CHASSIS_H_LOWER_LIMIT when gimbal is
+ *         folded (or folding), and back to CHASSIS_H_WORKSPACE_PEAK when
+ *         unfolded. Must be called every chassis control cycle.
+ */
+static void chassis_platform_fold_height_update(void)
+{
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	fp32 height_target;
+	if (gimbal_control.gimbal_folding_status.target == FOLDED ||
+	    gimbal_control.gimbal_folding_status.current == FOLDED)
+	{
+		height_target = CHASSIS_H_LOWER_LIMIT;
+	}
+	else
+	{
+		return; // No automatic height change when unfolded
+	}
+
+	if (chassis_move.chassis_platform.target_height > height_target)
+	{
+		chassis_move.chassis_platform.target_height -= CHASSIS_FOLD_HEIGHT_RAMP_RATE;
+		if (chassis_move.chassis_platform.target_height < height_target)
+		{
+			chassis_move.chassis_platform.target_height = height_target;
+		}
+	}
+	else if (chassis_move.chassis_platform.target_height < height_target)
+	{
+		chassis_move.chassis_platform.target_height += CHASSIS_FOLD_HEIGHT_RAMP_RATE;
+		if (chassis_move.chassis_platform.target_height > height_target)
+		{
+			chassis_move.chassis_platform.target_height = height_target;
+		}
+	}
+
+#endif
+}
+
+void chassis_platform_rc_mapping(void)
+{
+	chassis_platform_fold_height_update();
+
+	// configuration for pseudo RPY-to-tilt conversion
+	const fp32 CHASSIS_PLATFORM_ROLL_KEYBOARD_CHANGE_TIME_S = 0.4f;
+	const fp32 CHASSIS_PLATFORM_ROLL_KEYBOARD_SEN_INC = 2.0f * CHASSIS_ALPHA_WORKSPACE_PEAK / CHASSIS_PLATFORM_ROLL_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S;
+	const fp32 CHASSIS_PLATFORM_PITCH_KEYBOARD_CHANGE_TIME_S = 0.4f;
+	const fp32 CHASSIS_PLATFORM_PITCH_KEYBOARD_SEN_INC = 2.5f * CHASSIS_ALPHA_WORKSPACE_PEAK / CHASSIS_PLATFORM_PITCH_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S;
+	const fp32 CHASSIS_PLATFORM_ALPHA_KEYBOARD_SEN_INC = CHASSIS_PLATFORM_PITCH_KEYBOARD_SEN_INC;
+	const fp32 CHASSIS_PLATFORM_HEIGHT_KEYBOARD_CHANGE_TIME_S = 0.4f;
+	const fp32 CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC = (CHASSIS_H_UPPER_LIMIT - CHASSIS_H_LOWER_LIMIT) * 0.2f / CHASSIS_PLATFORM_HEIGHT_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S;
+
+	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) && (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C))
+	{
+		chassis_back_home();
+	}
+	else
+	{
+		// roll
+		//if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
+		//{
+		//	chassis_move.chassis_platform.target_roll += CHASSIS_PLATFORM_ROLL_KEYBOARD_SEN_INC;
+		//}
+		//else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C)
+		//{
+		//	chassis_move.chassis_platform.target_roll -= CHASSIS_PLATFORM_ROLL_KEYBOARD_SEN_INC;
+		//}
+
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+		if (chassis_move.chassis_RC->vt13.customizable_button_left)
+		{
+			chassis_move.chassis_platform.target_height -= CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+		}
+		else if (chassis_move.chassis_RC->vt13.customizable_button_right)
+		{
+			chassis_move.chassis_platform.target_height += CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+		}
+		else
+#endif
+		{
+			if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
+			{
+				// height (Ctrl+F/V: increment/decrement)
+				if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+				{
+					chassis_move.chassis_platform.target_height += CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+				}
+				else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+				{
+					chassis_move.chassis_platform.target_height -= CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+				}
+			}
+			else
+			{
+				// F/V: adjust platform alpha
+				if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+				{
+					chassis_move.chassis_platform.target_alpha += CHASSIS_PLATFORM_ALPHA_KEYBOARD_SEN_INC;
+				}
+				else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+				{
+					chassis_move.chassis_platform.target_alpha -= CHASSIS_PLATFORM_ALPHA_KEYBOARD_SEN_INC;
+				}
+			}
+		}
+		// constrain target roll, pitch, and height values
+		//chassis_move.chassis_platform.target_roll = fp32_constrain(chassis_move.chassis_platform.target_roll, -CHASSIS_ROLL_UPPER_LIMIT, CHASSIS_ROLL_UPPER_LIMIT);
+		//chassis_move.chassis_platform.target_pitch = fp32_constrain(chassis_move.chassis_platform.target_pitch, -CHASSIS_PITCH_UPPER_LIMIT, CHASSIS_PITCH_UPPER_LIMIT);
+		chassis_move.chassis_platform.target_height = fp32_constrain(chassis_move.chassis_platform.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
+		chassis_move.chassis_platform.target_alpha = fp32_constrain(chassis_move.chassis_platform.target_alpha, -CHASSIS_ALPHA_WORKSPACE_PEAK, CHASSIS_ALPHA_WORKSPACE_PEAK);
+
+		// chassis platform posture conversion
+		//swerve_convert_from_rpy_to_alpha(chassis_move.chassis_platform.target_roll, chassis_move.chassis_platform.target_pitch, &(chassis_move.chassis_platform.target_alpha1), &(chassis_move.chassis_platform.target_alpha2), chassis_move.chassis_yaw_motor->relative_angle);
+
+		// constrain target alpha1 and alpha2 values
+		// calculation for alpha limit: According to the matlab calculation, the available workspace in height-alpha space is triangular, so we assume height target has more priority than alpha target, and calculate alpha limit based on height
+		//if (chassis_move.chassis_platform.target_height >= CHASSIS_H_WORKSPACE_PEAK)
+		//{
+		//	chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
+		//}
+		//else
+		//{
+		//	chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
+		//}
+		//chassis_move.chassis_platform.alpha_lower_limit = -chassis_move.chassis_platform.alpha_upper_limit;
+//
+		//chassis_move.chassis_platform.target_alpha1 = fp32_constrain(chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
+		//chassis_move.chassis_platform.target_alpha2 = fp32_constrain(chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
+
+		// chassis platform posture inverse conversion to reflect limited alpha values onto the set roll and pitch values
+		//swerve_convert_from_alpha_to_rpy(&(chassis_move.chassis_platform.target_roll), &(chassis_move.chassis_platform.target_pitch), chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_yaw_motor->relative_angle);
+	}
 }
 #endif
 

@@ -39,6 +39,9 @@
 #define ENABLE_DRIVE_MOTOR_POWER 0
 #define ENABLE_YAW_MOTOR_POWER 0
 #define ENABLE_PITCH_MOTOR_POWER 0
+///////////////enable fo 2026 standard only begin///////////////////
+#define ENABLE_PITCH_BASE_MOTOR_POWER 0
+////////////////enable fo 2026 standard only end////////////////////
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
 #define ENABLE_TRIGGER_MOTOR_POWER 0
 #define ENABLE_FRICTION_1_MOTOR_POWER 0
@@ -54,6 +57,14 @@
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define ENABLE_STEER_MOTOR_POWER 0
 #define ENABLE_HIP_MOTOR_POWER 0
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define ENABLE_HIP_MOTOR_POWER 1
+#endif
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM) && !ENABLE_PITCH_BASE_MOTOR_POWER && ENABLE_PITCH_MOTOR_POWER
+#error "INFANTRY_2026_MECANUM must has its pitch base motor power enabled for normal operation"
+#elif (ROBOT_TYPE != INFANTRY_2026_MECANUM) && ENABLE_PITCH_BASE_MOTOR_POWER
+#error "This robot type should not enable pitch base motor power"
 #endif
 
 #define REVERSE_M3508_1 0
@@ -68,7 +79,7 @@
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 1
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 0
 #else
 #define IS_TRIGGER_ON_GIMBAL 0
@@ -163,6 +174,22 @@ const fp32 swerve_angle_encoding_ratio_shrinked = (1 << 7) / SWERVE_ANGLE_ECD_MA
 uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data);
 uint8_t decode_swerve_chassis_feedback(uint8_t *data);
 
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define CHASSIS_METER_PER_SEC_ECD_MAX_LIMIT 1.5f
+#define CHASSIS_METER_ECD_MAX_LIMIT 0.5f
+#define CHASSIS_ANGLE_ECD_MAX_LIMIT CHASSIS_ALPHA_WORKSPACE_PEAK
+#define CHASSIS_WHEEL_ROT_RADIUS_DOT_DEADZONE 0.008f
+
+const fp32 chassis_speed_encoding_ratio = ((1 << 15) - 1) / CHASSIS_METER_PER_SEC_ECD_MAX_LIMIT;
+const fp32 chassis_meter_encoding_ratio = ((1 << 16) - 1) / CHASSIS_METER_ECD_MAX_LIMIT;
+const fp32 chassis_angle_encoding_ratio = ((1 << 15) - 1) / CHASSIS_ANGLE_ECD_MAX_LIMIT;
+
+const fp32 chassis_meter_encoding_ratio_shrinked = (1 << 8) / CHASSIS_METER_ECD_MAX_LIMIT;
+const fp32 chassis_angle_encoding_ratio_shrinked = (1 << 7) / CHASSIS_ANGLE_ECD_MAX_LIMIT;
+
+uint8_t decode_chassis_target_radius_dot(uint8_t *data);
+uint8_t decode_chassis_feedback(uint8_t *data);
+
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 #define BIPED_METER_PER_SEC_ECD_MAX_LIMIT 3.5f
 #define BIPED_METER_ECD_MAX_LIMIT 0.5f
@@ -211,6 +238,26 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				if (decode_3507_motor_feedback(rx_data, bMotorId) == HAL_OK)
 				{
 					detect_hook(PITCH_GIMBAL_MOTOR_TOE);
+				}
+				break;
+			}
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+			case CAN_PITCH_MOTOR_4310_RX_ID:
+			{
+				bMotorId = MOTOR_INDEX_PITCH;
+				if (decode_4310_motor_feedback(rx_data, bMotorId) == HAL_OK)
+				{
+					detect_hook(PITCH_GIMBAL_MOTOR_TOE);
+				}
+				break;
+			}
+
+			case CAN_PITCH_BASE_MOTOR_4310_RX_ID:
+			{
+				bMotorId = MOTOR_INDEX_PITCH_BASE;
+				if (decode_4310_motor_feedback(rx_data, bMotorId) == HAL_OK)
+				{
+					detect_hook(PITCH_BASE_GIMBAL_MOTOR_TOE);
 				}
 				break;
 			}
@@ -399,7 +446,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				}
 				break;
 			}
-			case CAN_SWERVE_RADII_DOT_RX_ID:
+			case CAN_CHASSIS_RADII_DOT_RX_ID:
 			{
 				if (decode_swerve_chassis_target_radius_dot(rx_data))
 				{
@@ -414,6 +461,24 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				if (decode_biped_chassis_feedback(rx_data))
 				{
 					detect_hook(BIPED_CTRL_TOE);
+				}
+				break;
+			}
+#endif
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+			case CAN_SHRINKED_CONTROLLER_RX_ID:
+			{
+				if (decode_chassis_feedback(rx_data))
+				{
+					detect_hook(SWERVE_CTRL_TOE);
+				}
+				break;
+			}
+			case CAN_CHASSIS_RADII_DOT_RX_ID:
+			{
+				if (decode_chassis_target_radius_dot(rx_data))
+				{
+					detect_hook(SWERVE_CTRL_TOE);
 				}
 				break;
 			}
@@ -566,6 +631,27 @@ int fp32_to_uint_motor(fp32 x, fp32 x_min, fp32 x_max, int bits)
 	}
 }
 
+void CAN_cmd_gimbal_Damiao_motor(MIT_control_motor_t *MIT_control_motor)
+{	
+#if ENABLE_PITCH_MOTOR_POWER
+
+	MIT_control_variable_t pitch_variable = MIT_control_motor->pitch_MIT_variable;
+
+#if ROBOT_PITCH_IS_4310
+	encode_MIT_motor_control(CAN_PITCH_MOTOR_4310_TX_ID, pitch_variable.pos, pitch_variable.vel, pitch_variable.KP, pitch_variable.KD, pitch_variable.torq, DM_4310, &GIMBAL_CAN);
+// #elif ROBOT_PITCH_IS_4340
+// 	encode_MIT_motor_control(CAN_PITCH_MOTOR_4340_TX_ID, pitch_variable.pos, pitch_variable.vel, pitch_variable.KP, pitch_variable.KD, pitch_variable.torq, DM_4340, &GIMBAL_CAN);
+#endif
+#endif
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM) && ENABLE_PITCH_BASE_MOTOR_POWER 
+	MIT_control_variable_t pitch_base_variable = MIT_control_motor->pitch_base_MIT_variable;
+	encode_MIT_motor_control(CAN_PITCH_BASE_MOTOR_4310_TX_ID, pitch_base_variable.pos, pitch_base_variable.vel, pitch_base_variable.KP, pitch_base_variable.KD, pitch_base_variable.torq, DM_4310, &GIMBAL_CAN);
+#endif
+
+
+}
+
 HAL_StatusTypeDef encode_MIT_motor_control(uint16_t id, fp32 _pos, fp32 _vel, fp32 _KP, fp32 _KD, fp32 _torq, MIT_controlled_motor_type_e motor_type, CAN_HandleTypeDef *hcan_ptr)
 {
 	uint32_t send_mail_box;
@@ -707,6 +793,41 @@ uint8_t decode_swerve_chassis_target_radius_dot(uint8_t *data)
 			int16_t radius_dot = (data[2 * wheel_id + 1] << 8) | data[2 * wheel_id];
 			chassis_move.target_wheel_rot_radii_dot[wheel_id] = (fp32)radius_dot / swerve_speed_encoding_ratio;
 			fp32_deadzone(&chassis_move.target_wheel_rot_radii_dot[wheel_id], SWERVE_WHEEL_ROT_RADIUS_DOT_DEADZONE);
+			// first_order_filter(chassis_move.wheel_rot_radii_dot[wheel_id], chassis_move.wheel_rot_radii_dot_last[wheel_id], 0.8f);
+		}
+	}
+	return fDataValid;
+}
+#endif
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+uint8_t decode_chassis_feedback(uint8_t *data)
+{
+	uint8_t fDataValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
+	if (fDataValid)
+	{
+		for (uint8_t wheel_id = 0; wheel_id < 4; wheel_id++)
+		{
+			chassis_move.wheel_rot_radii[wheel_id] = data[wheel_id] / chassis_meter_encoding_ratio_shrinked;
+		}
+		chassis_move.chassis_platform.feedback_alpha1 = data[4] / chassis_angle_encoding_ratio_shrinked;
+		chassis_move.chassis_platform.feedback_alpha2 = data[5] / chassis_angle_encoding_ratio_shrinked;
+		chassis_move.chassis_platform.feedback_height = data[6] / chassis_meter_encoding_ratio_shrinked;
+		// data[7] reserved
+	}
+	return fDataValid;
+}
+
+uint8_t decode_chassis_target_radius_dot(uint8_t *data)
+{
+	uint8_t fDataValid = (memcmp(data, abAllFF, sizeof(abAllFF)) != 0);
+	if (fDataValid)
+	{
+		for (uint8_t wheel_id = 0; wheel_id < 4; wheel_id++)
+		{
+			int16_t radius_dot = (data[2 * wheel_id + 1] << 8) | data[2 * wheel_id];
+			chassis_move.target_wheel_rot_radii_dot[wheel_id] = (fp32)radius_dot / chassis_speed_encoding_ratio;
+			fp32_deadzone(&chassis_move.target_wheel_rot_radii_dot[wheel_id], CHASSIS_WHEEL_ROT_RADIUS_DOT_DEADZONE);
 			// first_order_filter(chassis_move.wheel_rot_radii_dot[wheel_id], chassis_move.wheel_rot_radii_dot_last[wheel_id], 0.8f);
 		}
 	}
@@ -896,7 +1017,7 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 	gimbal_can_send_data[0] = (fric_left >> 8);
 	gimbal_can_send_data[1] = fric_left;
 
-#if ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_3507
+#if (ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_3507 || ROBOT_PITCH_IS_4310)
 	//encode and send MIT control saperately
 	//gimbal_can_send_data[2] = (open >> 8);
 	//gimbal_can_send_data[3] = open;
@@ -934,7 +1055,14 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 #elif ROBOT_PITCH_IS_3507
 	encode_MIT_motor_control(CAN_PITCH_MOTOR_3507_TX_ID, 0, 0, 0, 0, pitch, DM_3507, &GIMBAL_CAN);
 #endif
+//TODO: delete after test
+// #if ENABLE_PITCH_MOTOR_POWER
+// 	encode_MIT_motor_control(CAN_PITCH_MOTOR_4310_TX_ID, 0, 0, 0, 0, pitch, DM_4310, &GIMBAL_CAN);
+// #if ENABLE_PITCH_BASE_MOTOR_POWER 
+// 	encode_MIT_motor_control(CAN_PITCH_BASE_MOTOR_4310_TX_ID, 0, 0, temp_base_kp, temp_base_kd, 0, DM_4310, &GIMBAL_CAN);
+// #endif
 
+// #endif
 }
 
 void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down)
@@ -1084,6 +1212,10 @@ void CAN_cmd_chassis(void)
 #elif (ROBOT_TYPE == SENTRY_2026_OMNI)
 	CAN_cmd_4010_chassis();
 	osDelay(1);
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	CAN_cmd_3508_chassis();
+	osDelay(1);
+	CAN_cmd_chassis_hip();
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	CAN_cmd_biped_chassis();
 	CAN_cmd_biped_chassis_mode();
@@ -1243,7 +1375,7 @@ void CAN_cmd_swerve_hip(void)
 {
 	uint32_t send_mail_box;
 
-	chassis_tx_message.StdId = CAN_SWERVE_CONTROLLERE_TX_ID;
+	chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLERE_TX_ID;
 #if ENABLE_HIP_MOTOR_POWER
 	if (chassis_move.fHipEnabled)
 	{
@@ -1257,6 +1389,40 @@ void CAN_cmd_swerve_hip(void)
 		chassis_can_send_data[3] = target_alpha2_cmd;
 		chassis_can_send_data[4] = target_height_cmd >> 8;
 		chassis_can_send_data[5] = target_height_cmd;
+		// reserved
+		// chassis_can_send_data[6] = rev >> 8;
+		// chassis_can_send_data[7] = rev;
+	}
+	else
+#endif
+	{
+		memset(chassis_can_send_data, 0xFF, sizeof(chassis_can_send_data));
+	}
+	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
+}
+
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+int16_t target_alpha_cmd;
+uint16_t hight_cmd;
+uint16_t hip_kp_cmd;
+void CAN_cmd_chassis_hip(void)
+{
+	uint32_t send_mail_box;
+
+	chassis_tx_message.StdId = CAN_CHASSIS_CONTROLLERE_TX_ID;
+#if ENABLE_HIP_MOTOR_POWER
+	if (chassis_move.fHipEnabled)
+	{
+		target_alpha_cmd = fp32_abs_constrain(chassis_move.chassis_platform.target_alpha, CHASSIS_ANGLE_ECD_MAX_LIMIT) * chassis_angle_encoding_ratio;
+		hight_cmd = fp32_constrain(chassis_move.chassis_platform.target_height, 0, CHASSIS_METER_ECD_MAX_LIMIT) * chassis_meter_encoding_ratio;
+		hip_kp_cmd = (uint16_t)(fp32_constrain(chassis_move.chassis_platform.chassis_hip_kp, HIP_MIT_PROFILE_KP_MIN, HIP_MIT_PROFILE_KP_MAX) * 10.0f);
+
+		chassis_can_send_data[0] = target_alpha_cmd >> 8;
+		chassis_can_send_data[1] = target_alpha_cmd;
+		chassis_can_send_data[2] = hight_cmd >> 8;
+		chassis_can_send_data[3] = hight_cmd;
+		chassis_can_send_data[4] = hip_kp_cmd >> 8;
+		chassis_can_send_data[5] = hip_kp_cmd;
 		// reserved
 		// chassis_can_send_data[6] = rev >> 8;
 		// chassis_can_send_data[7] = rev;
@@ -1344,7 +1510,12 @@ void chassis_enable_platform_flag(uint8_t fEnabled)
 #else
 	chassis_move.fLegEnabled = 0;
 #endif
-
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#if ENABLE_DRIVE_MOTOR_POWER
+	chassis_move.fHipEnabled = fEnabled;
+#else
+	chassis_move.fHipEnabled = 0;
+#endif
 #endif
 }
 

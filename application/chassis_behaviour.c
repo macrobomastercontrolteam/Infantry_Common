@@ -25,6 +25,10 @@
 #include "custom_ui_task.h"
 
 // random spin mode parameters
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define MID_HEIGHT_CHANGE_PERIOD 1000.0f
+#endif
+
 #define MIN_SPIN_PARAM_CHANGE_PERIOD 1.0f
 #define NORMAL_SPIN_PARAM_CHANGE_PERIOD 5.0f
 #define DELTA_SPIN_PARAM_CHANGE_PERIOD 2.0f
@@ -39,6 +43,9 @@ static uint32_t spin_ramp_start_tick = 0;
 #define MOUSE_SCROLL_TO_DIAL_SEN_INC -(JOYSTICK_HALF_RANGE / MOUSE_X_EFFECTIVE_SPEED * 30)
 #define MOUSE_SCROLL_FILTER_COEFF 0.6f
 #define CHASSIS_WZ_CMD_DEADZONE 0.15f
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define HIP_MIT_PROFILE_KP_SCROLL_SEN_INC 0.01f
+#endif
 
 /**
  * @brief          when chassis behaviour mode is CHASSIS_ZERO_FORCE, the function is called
@@ -252,9 +259,19 @@ void chassis_behaviour_control_set(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, fp3
 			case CHASSIS_SPINNING_MODE:
 			{
 				uint8_t fSpinningOn = 1;
+#if(ROBOT_TYPE == INFANTRY_2026_MECANUM)
+                static uint8_t last_key_f = 0;
+                uint8_t current_key_f = ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_X) != 0);
+
+                if (key_rising_edge(&last_key_f, current_key_f))
+                {
+                    chassis_move.fRandomHeightOn = !chassis_move.fRandomHeightOn;
+                }
+#endif
+				
 				chassis_basic_control(vx_set, vy_set, wz_set, fSpinningOn);
 				break;
-			}
+			} 
 			case CHASSIS_CV_CONTROL_MODE:
 			{
 				chassis_cv_control(vx_set, vy_set, wz_set);
@@ -318,7 +335,12 @@ void dial_channel_manager(void)
 	// Add mouse scroll input
 	static fp32 last_mouse_z_ch = 0;
 	fp32 mouse_z_ch = first_order_filter(chassis_move.chassis_RC->mouse.z, last_mouse_z_ch, MOUSE_SCROLL_FILTER_COEFF);
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	chassis_move.chassis_platform.chassis_hip_kp += mouse_z_ch * HIP_MIT_PROFILE_KP_SCROLL_SEN_INC;
+	chassis_move.chassis_platform.chassis_hip_kp = fp32_constrain(chassis_move.chassis_platform.chassis_hip_kp, HIP_MIT_PROFILE_KP_MIN, HIP_MIT_PROFILE_KP_MAX);
+#else
 	chassis_move.dial_channel_out += mouse_z_ch * MOUSE_SCROLL_TO_DIAL_SEN_INC;
+#endif
 #endif
 }
 
@@ -478,6 +500,31 @@ void chassis_spinning_speed_manager(fp32* wz_set)
 			spinning_speed = chassis_move.dial_channel_out * spin_rc_sen_negative + spin_rc_offset;
 		}
 	}
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	if(chassis_move.fRandomHeightOn){
+		// Dial changes: range of possible speed and interval to change speed; positive dial value more rapid, negative less rapid
+		static uint32_t ulLastUpdateTime = 0;
+		static uint8_t param_change_counter = 0;
+		static uint32_t height_change_period = MID_HEIGHT_CHANGE_PERIOD;
+		static uint8_t flg_height = 0;
+		
+		// once per height_change_period, update spinning speed to a random number in between random_min_height and random_max_height
+		if (osKernelSysTick() - ulLastUpdateTime >= height_change_period)
+		{
+			flg_height = RNG_get_random_range_int32(0, 1);
+			if(flg_height){
+				chassis_move.chassis_platform.target_height = CHASSIS_H_SPINNING_LOWER_LIMIT;
+			}
+			else{
+				chassis_move.chassis_platform.target_height = CHASSIS_H_UPPER_LIMIT;
+
+			}
+			ulLastUpdateTime = osKernelSysTick();
+			param_change_counter++;
+		}
+
+	}
+#endif
 	// Apply gradual ramp-up from zero to target speed when spinning mode is first enabled
 	uint32_t spin_elapsed = osKernelSysTick() - spin_ramp_start_tick;
 	if (spin_elapsed < SPIN_RAMP_UP_TIME_MS)
@@ -547,6 +594,9 @@ static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint
 	chassis_rc_to_control_vector(vx_set, vy_set);
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 	swerve_platform_rc_mapping();
+
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	chassis_platform_rc_mapping();
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	biped_platform_rc_mapping();
 #endif
@@ -564,25 +614,36 @@ static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint
 void chassis_align_to_gimbal(fp32* wz_set)
 {
 #if (ROBOT_TYPE != INFANTRY_2024_BIPED)
-	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) && ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) == 0))
+	static fp32 wz_align_filtered = 0.0f;
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	uint8_t fFoldAlign = gimbal_cmd_to_chassis_align();
+#else
+	uint8_t fFoldAlign = 0;
+#endif
+	if (fFoldAlign ||
+	    ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_R) && ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) == 0)))
 	{
-		// Keep rotating until chassis align with gimbal
+		// Use FOLD_POS_TOL when auto-aligning for fold, otherwise use manual-align deadzone
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+		const fp32 gimbal_align_angle_deadzone = fFoldAlign ? FOLD_POS_TOL : DEG_TO_RAD(3.5f);
+#else
 		const fp32 gimbal_align_angle_deadzone = DEG_TO_RAD(3.5f);
+#endif
+		fp32 target_wz = 0.0f;
 		if (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) > gimbal_align_angle_deadzone)
 		{
-			*wz_set = (chassis_move.wz_max_speed - chassis_get_low_wz_limit()) * (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) / (PI / 2.0f)) + chassis_get_low_wz_limit();
+			target_wz = (chassis_move.wz_max_speed - chassis_get_low_wz_limit()) * (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) / (PI / 2.0f)) + chassis_get_low_wz_limit();
 			if (gimbal_control.gimbal_yaw_motor.relative_angle < 0)
 			{
-				*wz_set *= -1;
+				target_wz *= -1;
 			}
 		}
-		else
-		{
-			*wz_set = 0;
-		}
+		wz_align_filtered = first_order_filter(target_wz, wz_align_filtered, 0.08f);
+		*wz_set = wz_align_filtered;
 	}
 	else
 	{
+		wz_align_filtered = 0.0f; // Reset filter so next R press always ramps up from zero
 		*wz_set = (chassis_move.wz_max_speed / JOYSTICK_HALF_RANGE) * chassis_move.dial_channel_out;
 	}
 #endif

@@ -44,36 +44,40 @@
 // TOE: table of equipment
 enum errorList
 {
-    // chassis related TOEs (make sure this group is continuous)
-    REMOTE_TOE = 0,
-    // M3508 control speed
-    CHASSIS_MOTOR1_TOE,
-    CHASSIS_MOTOR2_TOE,
-    CHASSIS_MOTOR3_TOE,
-    CHASSIS_MOTOR4_TOE,
-    // "gimbal" motors
-    YAW_GIMBAL_MOTOR_TOE,
-    PITCH_GIMBAL_MOTOR_TOE,
-    // shoot motors
-    TRIGGER_MOTOR_TOE,
-    FRICTIONAL_MOTOR_LEFT_TOE,
-    FRICTIONAL_MOTOR_RIGHT_TOE,
-    FRICTIONAL_MOTOR_UP_TOE,
-    FRICTIONAL_MOTOR_DOWN_TOE,
-    PISTON_MOTOR_TOE,
-    // on-board IMU
-    BOARD_GYRO_TOE,
-    BOARD_ACCEL_TOE,
-    BOARD_MAG_TOE,
-    // others
-    REFEREE_TOE,
-    CV_TOE,
-    SUPCAP_TOE,
-    POWER_METER_TOE,
-    SWERVE_CTRL_TOE,
-    BIPED_CTRL_TOE,
-    // OLED_TOE,
-    ERROR_LIST_LENGTH,
+  // chassis related TOEs (make sure this group is continuous)
+  REMOTE_TOE = 0,
+  // M3508 control speed
+  CHASSIS_MOTOR1_TOE,
+  CHASSIS_MOTOR2_TOE,
+  CHASSIS_MOTOR3_TOE,
+  CHASSIS_MOTOR4_TOE,
+  // "gimbal" motors
+  YAW_GIMBAL_MOTOR_TOE,
+  PITCH_GIMBAL_MOTOR_TOE,
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+  PITCH_BASE_GIMBAL_MOTOR_TOE,
+#endif
+
+  // shoot motors
+  TRIGGER_MOTOR_TOE,
+  FRICTIONAL_MOTOR_LEFT_TOE,
+  FRICTIONAL_MOTOR_RIGHT_TOE,
+  FRICTIONAL_MOTOR_UP_TOE,
+  FRICTIONAL_MOTOR_DOWN_TOE,
+  PISTON_MOTOR_TOE,
+  // on-board IMU
+  BOARD_GYRO_TOE,
+  BOARD_ACCEL_TOE,
+  BOARD_MAG_TOE,
+  // others
+  REFEREE_TOE,
+  CV_TOE,
+  SUPCAP_TOE,
+  POWER_METER_TOE,
+  SWERVE_CTRL_TOE,
+  BIPED_CTRL_TOE,
+  // OLED_TOE,
+  ERROR_LIST_LENGTH,
 };
 
 typedef enum
