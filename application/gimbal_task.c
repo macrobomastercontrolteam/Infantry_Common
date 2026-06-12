@@ -74,7 +74,7 @@ uint32_t gimbal_high_water;
 
 static void gimbal_pitch_abs_angle_PID_init(gimbal_control_t *init);
 static void gimbal_yaw_abs_angle_PID_init(gimbal_control_t *init);
-static void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_value_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr);
+static void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *secondary_yaw_can_set_value_ptr, fp32 *pitch_can_set_value_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr);
 
 /**
   * @brief          "gimbal_control" valiable initialization, include pid initialization, remote control data point initialization, gimbal motors
@@ -179,8 +179,89 @@ static void J_scope_gimbal_test(void);
 
 gimbal_control_t gimbal_control;
 static fp32 yaw_can_set_value = 0;
+static fp32 secondary_yaw_can_set_value = 0;
 static fp32 pitch_can_set_value = 0;
 static int16_t trigger_set_current = 0;
+
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
+{
+    fp32 target_imu_yaw;
+    fp32 current_imu_yaw;
+    fp32 delta_imu_yaw;
+    fp32 current_second_yaw;
+    fp32 second_target_cmd;
+    fp32 desired_second_yaw;
+    fp32 second_yaw_soft_limit;
+    fp32 secondary_step;
+    uint8_t secondary_only = 0;
+
+    if (control_loop == NULL)
+    {
+        return;
+    }
+
+    target_imu_yaw = control_loop->gimbal_yaw_motor.absolute_angle_set;
+    // Compare against compensated yaw angle (same frame as target setpoint).
+    current_imu_yaw = control_loop->gimbal_yaw_motor.absolute_angle;
+    current_second_yaw = control_loop->gimbal_second_yaw_motor.relative_angle;
+    delta_imu_yaw = rad_format(target_imu_yaw - current_imu_yaw);
+    desired_second_yaw = 0.0f;
+    second_yaw_soft_limit = SECOND_YAW_MECH_LIMIT_RAD - SECOND_YAW_HOME_ENTER_ERR_RAD;
+    second_target_cmd = fp32_constrain(target_imu_yaw, -second_yaw_soft_limit, second_yaw_soft_limit);
+
+    if (chassis_behaviour_mode == CHASSIS_SPINNING_MODE)
+    {
+        desired_second_yaw = 0.0f;
+    }
+    else if (fabs(delta_imu_yaw) <= SECOND_YAW_DEADBAND_RAD)
+    {
+        // Deadband to prevent hunting around target.
+        desired_second_yaw = current_second_yaw;
+        secondary_only = 0;
+    }
+    else if ((fabs(current_second_yaw) >= second_yaw_soft_limit) && ((delta_imu_yaw * current_second_yaw) > 0.0f))
+    {
+        // At/near mechanical limit and command pushes further outward: hold secondary and let primary yaw absorb the rest.
+        desired_second_yaw = fp32_constrain(current_second_yaw, -second_yaw_soft_limit, second_yaw_soft_limit);
+        secondary_only = 0;
+    }
+    else if (fabs(delta_imu_yaw) <= SECOND_YAW_SMALL_MOVE_LIMIT_RAD)
+    {
+        // Small move: secondary yaw takes the delta first.
+        desired_second_yaw = fp32_constrain(current_second_yaw + delta_imu_yaw, -second_yaw_soft_limit, second_yaw_soft_limit);
+        secondary_only = 1;
+    }
+    else
+    {
+        // Large move: follow commanded secondary target with damped slew to avoid coupled oscillation.
+        secondary_step = fp32_constrain((second_target_cmd - current_second_yaw) * SECOND_YAW_LARGE_MOVE_GAIN,
+                                        -SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD,
+                                        SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD);
+        desired_second_yaw = fp32_constrain(current_second_yaw + secondary_step, -second_yaw_soft_limit, second_yaw_soft_limit);
+    }
+
+    control_loop->gimbal_second_yaw_motor.relative_angle_set = desired_second_yaw;
+
+    // Cascaded control significantly improves damping for 4310 torque mode.
+    control_loop->gimbal_second_yaw_motor.motor_gyro_set = PID_calc_with_dot(&control_loop->gimbal_second_yaw_motor.gimbal_motor_relative_angle_pid,
+                                                                              control_loop->gimbal_second_yaw_motor.relative_angle,
+                                                                              control_loop->gimbal_second_yaw_motor.relative_angle_set,
+                                                                              GIMBAL_CONTROL_TIME_S,
+                                                                              control_loop->gimbal_second_yaw_motor.motor_gyro);
+    control_loop->gimbal_second_yaw_motor.cmd_value = PID_calc(&control_loop->gimbal_second_yaw_motor.gimbal_motor_speed_pid,
+                                                               control_loop->gimbal_second_yaw_motor.motor_gyro,
+                                                               control_loop->gimbal_second_yaw_motor.motor_gyro_set,
+                                                               GIMBAL_CONTROL_TIME_S);
+
+    // Secondary-first strategy for small yaw moves.
+    if (secondary_only)
+    {
+        control_loop->gimbal_yaw_motor.cmd_value = 0.0f;
+        control_loop->gimbal_yaw_motor.motor_gyro_set = 0.0f;
+    }
+}
+#endif
 
 uint8_t fLastKeyVSignal = 0;
 fp32 cvAidedX, cvAidedY, debugx, debugy;
@@ -203,6 +284,9 @@ void gimbal_task(void const *pvParameters)
     {
 #if ROBOT_YAW_IS_4310
         enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN);
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+    enable_DaMiao_motor(CAN_SECOND_YAW_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN);
+#endif
 #endif
 #if ROBOT_PITCH_IS_4340
         enable_DaMiao_motor(CAN_PITCH_MOTOR_4340_TX_ID, 1, &GIMBAL_CAN);
@@ -235,14 +319,16 @@ void gimbal_task(void const *pvParameters)
 #endif
     
 #endif
-        CAN_cmd_gimbal_upper_can_ID(0, 0, 0, 0, 0, 0);
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+        CAN_cmd_gimbal_upper_can_ID(0, 0, 0, 0, 0, 0, 0);
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
         CAN_cmd_gimbal_lower_can_id(0, 0);
 #endif
         osDelay(GIMBAL_CONTROL_TIME_MS);
         gimbal_feedback_update(&gimbal_control);
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)        
     } while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_BASE_GIMBAL_MOTOR_TOE));
+#elif (ROBOT_TYPE == HERO_2026_OMNI)
+    } while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(SECOND_YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE));
 #else
     } while (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE));
 #endif
@@ -255,14 +341,14 @@ void gimbal_task(void const *pvParameters)
         gimbal_set_control(&gimbal_control);
         gimbal_control_loop(&gimbal_control);
         trigger_set_current = shoot_control_loop();
-        gimbal_safety_manager(&yaw_can_set_value, &pitch_can_set_value, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
+        gimbal_safety_manager(&yaw_can_set_value, &secondary_yaw_can_set_value, &pitch_can_set_value, &trigger_set_current, &shoot_control.fric1_given_current, &shoot_control.fric2_given_current);
         
-        CAN_cmd_gimbal_upper_can_ID(yaw_can_set_value, pitch_can_set_value, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current, shoot_control.piston_given_current);
+        CAN_cmd_gimbal_upper_can_ID(yaw_can_set_value, secondary_yaw_can_set_value, pitch_can_set_value, trigger_set_current, shoot_control.fric1_given_current, shoot_control.fric2_given_current, shoot_control.piston_given_current);
 #if ((ROBOT_PITCH_IS_4310 || ROBOT_PITCH_IS_4340) && (ROBOT_TYPE == INFANTRY_2026_MECANUM))
         CAN_cmd_gimbal_Damiao_motor(&gimbal_control.MIT_control_motor);
 #endif
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
         CAN_cmd_gimbal_lower_can_id(shoot_control.fric3_given_current, shoot_control.fric4_given_current);
 #endif
 
@@ -278,7 +364,7 @@ void gimbal_task(void const *pvParameters)
     }
 }
 
-void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_value_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr)
+void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *secondary_yaw_can_set_value_ptr, fp32 *pitch_can_set_value_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr)
 {
     //TODO: uncomment before-push
     //safety for gimbal  
@@ -298,9 +384,12 @@ void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_valu
         *yaw_can_set_value_ptr = gimbal_control.gimbal_yaw_motor.cmd_value;
 #endif
 
-#if PITCH_REVERSED
-        *pitch_can_set_value_ptr = -gimbal_control.gimbal_pitch_motor.cmd_value;
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+#if SECOND_YAW_REVERSED
+        *secondary_yaw_can_set_value_ptr = -gimbal_control.gimbal_second_yaw_motor.cmd_value;
 #else
+        *secondary_yaw_can_set_value_ptr = gimbal_control.gimbal_second_yaw_motor.cmd_value;
+#endif
         *pitch_can_set_value_ptr = gimbal_control.gimbal_pitch_motor.cmd_value;
 #endif
     }
@@ -631,15 +720,29 @@ static void gimbal_init(gimbal_control_t *init)
 #endif
     init->gimbal_yaw_motor.gimbal_motor_measure = get_yaw_gimbal_motor_measure_point();
     init->gimbal_pitch_motor.gimbal_motor_measure = get_pitch_gimbal_motor_measure_point();
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+    init->gimbal_second_yaw_motor.gimbal_motor_measure = &motor_chassis[MOTOR_INDEX_SECOND_YAW];
+#endif
     init->gimbal_INT_angle_point = get_INS_angle_point();
     init->gimbal_INT_gyro_point = get_gyro_data_point();
     init->gimbal_rc_ctrl = get_remote_control_point();
     init->gimbal_yaw_motor.gimbal_motor_mode = init->gimbal_yaw_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_RAW;
     init->gimbal_pitch_motor.gimbal_motor_mode = init->gimbal_pitch_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_RAW;
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+    init->gimbal_second_yaw_motor.gimbal_motor_mode = init->gimbal_second_yaw_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_ENCODER;
+#endif
 
     static const fp32 yaw_encode_relative_angle_pid[3] = {YAW_ENCODE_RELATIVE_PID_KP, YAW_ENCODE_RELATIVE_PID_KI, YAW_ENCODE_RELATIVE_PID_KD};
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+    static const fp32 second_yaw_encode_relative_angle_pid[3] = {SECOND_YAW_ANGLE_PID_KP, SECOND_YAW_ANGLE_PID_KI, SECOND_YAW_ANGLE_PID_KD};
+    static const fp32 second_yaw_speed_pid[3] = {SECOND_YAW_SPEED_PID_KP, SECOND_YAW_SPEED_PID_KI, SECOND_YAW_SPEED_PID_KD};
+#endif
     static const fp32 pitch_encode_relative_angle_pid[3] = {PITCH_ENCODE_RELATIVE_PID_KP, PITCH_ENCODE_RELATIVE_PID_KI, PITCH_ENCODE_RELATIVE_PID_KD};
     PID_init(&init->gimbal_yaw_motor.gimbal_motor_relative_angle_pid, PID_POSITION, yaw_encode_relative_angle_pid, YAW_ENCODE_RELATIVE_PID_MAX_OUT, YAW_ENCODE_RELATIVE_PID_MAX_IOUT, 0, &rad_err_handler);
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+    PID_init(&init->gimbal_second_yaw_motor.gimbal_motor_relative_angle_pid, PID_POSITION, second_yaw_encode_relative_angle_pid, SECOND_YAW_ANGLE_PID_MAX_OUT, SECOND_YAW_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+    PID_init(&init->gimbal_second_yaw_motor.gimbal_motor_speed_pid, PID_POSITION, second_yaw_speed_pid, SECOND_YAW_SPEED_PID_MAX_OUT, SECOND_YAW_SPEED_PID_MAX_IOUT, 0.85f, &filter_err_handler);
+#endif
     gimbal_yaw_abs_angle_PID_init(init);
     PID_init(&init->gimbal_pitch_motor.gimbal_motor_relative_angle_pid, PID_POSITION, pitch_encode_relative_angle_pid, PITCH_ENCODE_RELATIVE_PID_MAX_OUT, PITCH_ENCODE_RELATIVE_PID_MAX_IOUT, 0, &rad_err_handler);
     gimbal_pitch_abs_angle_PID_init(init);
@@ -665,6 +768,19 @@ static void gimbal_init(gimbal_control_t *init)
     init->gimbal_yaw_motor.absolute_angle_offset = 0;
     init->gimbal_yaw_motor.relative_angle_set = init->gimbal_yaw_motor.relative_angle;
     init->gimbal_yaw_motor.motor_gyro_set = init->gimbal_yaw_motor.motor_gyro;
+
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+    init->gimbal_second_yaw_motor.offset_ecd = 0;
+    init->gimbal_second_yaw_motor.max_relative_angle = SECOND_YAW_MECH_LIMIT_RAD;
+    init->gimbal_second_yaw_motor.min_relative_angle = -SECOND_YAW_MECH_LIMIT_RAD;
+#if SECOND_YAW_REVERSED
+    init->gimbal_second_yaw_motor.relative_angle = -motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle;
+#else
+    init->gimbal_second_yaw_motor.relative_angle = motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle;
+#endif
+    init->gimbal_second_yaw_motor.relative_angle_set = init->gimbal_second_yaw_motor.relative_angle;
+    init->gimbal_second_yaw_motor.cmd_value = 0.0f;
+#endif
 
 
     init->gimbal_pitch_motor.absolute_angle_set = init->gimbal_pitch_motor.absolute_angle;
@@ -751,6 +867,12 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     {
         enable_DaMiao_motor(CAN_YAW_MOTOR_4310_TX_ID, 1, &CHASSIS_CAN); // attempt re-enable yaw motor when offline
     }
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+    if (toe_is_error(SECOND_YAW_GIMBAL_MOTOR_TOE))
+    {
+        enable_DaMiao_motor(CAN_SECOND_YAW_MOTOR_4310_TX_ID, 1, &GIMBAL_CAN); // attempt re-enable second yaw motor when offline
+    }
+#endif
 #endif
 
 #if ROBOT_PITCH_IS_4310
@@ -809,6 +931,16 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
 #endif
     feedback_update->gimbal_yaw_motor.motor_gyro = AHRS_cosf(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_Z_ADDRESS_OFFSET))
                                                         - AHRS_sinf(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_X_ADDRESS_OFFSET));
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+#if SECOND_YAW_REVERSED
+    feedback_update->gimbal_second_yaw_motor.relative_angle = -motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle;
+    feedback_update->gimbal_second_yaw_motor.motor_gyro = -motor_chassis[MOTOR_INDEX_SECOND_YAW].velocity;
+#else
+    feedback_update->gimbal_second_yaw_motor.relative_angle = motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle;
+    feedback_update->gimbal_second_yaw_motor.motor_gyro = motor_chassis[MOTOR_INDEX_SECOND_YAW].velocity;
+#endif
+    feedback_update->gimbal_yaw_motor.absolute_angle = rad_format(feedback_update->gimbal_yaw_motor.absolute_angle - feedback_update->gimbal_second_yaw_motor.relative_angle);
+#endif
 }
 
 /**
@@ -1123,18 +1255,30 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
     if(control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ZERO_FORCE)
     {
         gimbal_motor_zero_force_control(&control_loop->gimbal_yaw_motor);
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+        control_loop->gimbal_second_yaw_motor.cmd_value = 0.0f;
+#endif
     }
     else if (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         gimbal_motor_raw_angle_control(&control_loop->gimbal_yaw_motor);
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+        control_loop->gimbal_second_yaw_motor.cmd_value = 0.0f;
+#endif
     }
     else if ((control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
         gimbal_motor_absolute_angle_control(&control_loop->gimbal_yaw_motor);
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+        hero_2026_dual_yaw_allocate(control_loop);
+#endif
     }
     else if (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
     {
         gimbal_motor_relative_angle_control(&control_loop->gimbal_yaw_motor);
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+        control_loop->gimbal_second_yaw_motor.cmd_value = 0.0f;
+#endif
     }
 
     if(control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ZERO_FORCE)
@@ -1272,22 +1416,29 @@ bool_t gimbal_emergency_stop(void)
 {
     uint8_t fEStop = 1;
     static uint8_t fFatalError = 0;
-    if (fFatalError)
-    {
-        // do nothing
-    }
+    uint8_t current_fault = 0;
 #if ROBOT_YAW_IS_4310
     #if (ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_3507 || ROBOT_PITCH_IS_4310)
-        else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_4310_MOTOR_TORQUE_LIMIT))
+        current_fault = ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_4310_MOTOR_TORQUE_LIMIT));
     #else
-        else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+        current_fault = ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT));
     #endif
 #else
-    else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->feedback_current) >= YAW_6020_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
+    current_fault = ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->feedback_current) >= YAW_6020_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT));
 #endif
+    if (current_fault)
     {
         fFatalError = 1;
     }
+	else if (!toe_is_error(REMOTE_TOE))
+	{
+		fFatalError = 0;
+	}
+
+	if (fFatalError)
+	{
+		fEStop = 1;
+	}
 	else
 	{
 		fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL) && toe_is_error(REMOTE_TOE));

@@ -231,10 +231,13 @@ static void detect_init(uint32_t time)
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
             {30, 3, 13},     //pitch_base
 #endif
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+            {30, 3, 14},     //second_yaw
+#endif
             {20, 10, 12},   //trigger
             {20, 10, 16},   //fric 1 (left)
             {20, 10, 17},   //fric 2 (right)
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
             {20, 10, 16},   //fric 3 (up)
             {20, 10, 17},   //fric 4 (down)
             {20, 10, 16},   //piston

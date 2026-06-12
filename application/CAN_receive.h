@@ -57,6 +57,10 @@ typedef enum
   CAN_YAW_MOTOR_6020_RX_ID = 0x205,
 #endif
 
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+  CAN_SECOND_YAW_MOTOR_4310_TX_ID = 0x008,
+  CAN_SECOND_YAW_MOTOR_4310_RX_ID = 0x0FB,
+#endif
 /********Gimbal CAN IDs********/
 #if ROBOT_PITCH_IS_4340
   CAN_PITCH_MOTOR_4340_TX_ID = 0x006,
@@ -86,7 +90,7 @@ typedef enum
 
   CAN_FRICTION_MOTOR_LEFT_ID = 0x205,  // friction1
   CAN_FRICTION_MOTOR_RIGHT_ID = 0x208, // friction2
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
   CAN_FRICTION_MOTOR_UP_ID = 0x203,   // friction3
   CAN_FRICTION_MOTOR_DOWN_ID = 0x204, // friction4
 
@@ -113,11 +117,13 @@ typedef enum
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
   MOTOR_INDEX_PITCH_BASE,
 #endif
-	
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+  MOTOR_INDEX_SECOND_YAW,
+#endif
 	MOTOR_INDEX_TRIGGER,
   MOTOR_INDEX_FRICTION_LEFT,
   MOTOR_INDEX_FRICTION_RIGHT,
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
   MOTOR_INDEX_FRICTION_UP,
   MOTOR_INDEX_FRICTION_DOWN,
   MOTOR_INDEX_PISTON,
@@ -320,7 +326,7 @@ typedef struct
   * @param[in]      rev: (0x208) reserve motor control current
   * @retval         none
   */
-extern void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric1, int16_t fric2, int16_t piston_motor);
+extern void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 secondary_yaw, fp32 pitch, int16_t trigger, int16_t fric1, int16_t fric2, int16_t piston_motor);
 extern void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down);
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)

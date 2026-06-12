@@ -50,6 +50,9 @@
 #elif(ROBOT_TYPE == HERO_2025_MECANUM)
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO 1.0f
 #define TRIGGER_WHEEL_CAPACITY 6.0f
+#elif(ROBOT_TYPE == HERO_2026_OMNI)
+#define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO 1.0f
+#define TRIGGER_WHEEL_CAPACITY 6.0f
 #endif
 
 #define TRIGGER_MOTOR_GEAR_RATIO  36.0f
@@ -69,6 +72,8 @@
 #define SPEED_COMPENSATION_RATIO 1.22f
 #elif (ROBOT_TYPE == HERO_2025_MECANUM)
 #define SPEED_COMPENSATION_RATIO 0.85f 
+#elif (ROBOT_TYPE == HERO_2026_OMNI)
+#define SPEED_COMPENSATION_RATIO 0.85f
 #else
 #warning "SPEED_COMPENSATION_RATIO not defined for this robot type, using default value 1.0. If you're sure about this, temporarily uncomment this line."
 #define SPEED_COMPENSATION_RATIO 1.0f
@@ -86,7 +91,7 @@
 #endif
 
 //***************2025_Hero *******************/
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 
 #if ENABLE_SHOOT_REDUNDANT_SWITCH
 #define HERO_FRICTION_MOTOR_SPEED  12.0f
@@ -143,7 +148,7 @@
 #define SWITCH_TRIGGER_OFF          1
 
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 #define TRIGGER_BLOCK_TIME          200
 #define TRIGGER_REVERSE_TIME        50
 #define REVERSE_SPEED_LIMIT         0
@@ -159,6 +164,16 @@
 #define TRIGGER_ANGLE_INCREMENT     (2.0f * PI / TRIGGER_WHEEL_CAPACITY)
 
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
+#define TRIGGER_ANGLE_PID_KP        2000.0f
+#define TRIGGER_ANGLE_PID_KI        0.75f
+#define TRIGGER_ANGLE_PID_KD        0.12f
+
+#define TRIGGER_BULLET_PID_MAX_OUT  10000.0f
+#define TRIGGER_BULLET_PID_MAX_IOUT 5000.0f
+
+#define BLOCK_TRIGGER_SPEED         0.2f //READY_TRIGGER_SPEED * 0.5f
+#define IDLE_TRIGGER_SPEED          2.0f
+#elif (ROBOT_TYPE == HERO_2026_OMNI)
 #define TRIGGER_ANGLE_PID_KP        2000.0f
 #define TRIGGER_ANGLE_PID_KI        0.75f
 #define TRIGGER_ANGLE_PID_KD        0.12f
@@ -224,6 +239,29 @@
 #define PISTON_SPEED_PID_MAX_OUT       MAX_3508_MOTOR_CAN_CURRENT
 #define PISTON_SPEED_PID_MAX_IOUT      1000.0f
 
+#elif (ROBOT_TYPE == HERO_2026_OMNI)
+//DUMMY VALUES
+//Frictional wheel 3 PID (UP)
+#define FRICTION_3_SPEED_PID_KP        55.0f
+#define FRICTION_3_SPEED_PID_KI        0.0f
+#define FRICTION_3_SPEED_PID_KD        0.0f
+#define FRICTION_3_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
+#define FRICTION_3_SPEED_PID_MAX_IOUT  500.0f
+
+//Frictional wheel 4 PID (DOWN)
+#define FRICTION_4_SPEED_PID_KP        55.0f
+#define FRICTION_4_SPEED_PID_KI        0.0f
+#define FRICTION_4_SPEED_PID_KD        0.0f
+#define FRICTION_4_SPEED_PID_MAX_OUT   MAX_3508_MOTOR_CAN_CURRENT
+#define FRICTION_4_SPEED_PID_MAX_IOUT  500.0f
+
+//Piston Motor PID
+#define PISTON_SPEED_PID_KP            13500.0f
+#define PISTON_SPEED_PID_KI            500.0f
+#define PISTON_SPEED_PID_KD            1.5f
+#define PISTON_SPEED_PID_MAX_OUT       MAX_3508_MOTOR_CAN_CURRENT
+#define PISTON_SPEED_PID_MAX_IOUT      1000.0f
+
 #endif
 
 typedef enum
@@ -260,7 +298,7 @@ typedef struct
     fp32 friction_motor2_rpm_set;
     fp32 friction_motor2_rpm;
     // fp32 friction_motor2_angle;
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 
     int16_t fric3_given_current;
     int16_t fric4_given_current;

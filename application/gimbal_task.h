@@ -41,6 +41,7 @@
 #define PITCH_REVERSED  0
 #endif
 #define YAW_REVERSED    0
+#define SECOND_YAW_REVERSED 0
 
 #define int_abs(x) ((x) > 0 ? (x) : (-x))
 
@@ -293,7 +294,7 @@
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
-#elif (ROBOT_TYPE == HERO_2025_MECANUM)
+#elif (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 //#warning "PID for this robot type HERO_2025_MECNUM is not defined yet all values are set to 0"
 
 //pitch speed close-loop PID params, max out and max iout
@@ -309,13 +310,13 @@
 
 #if ROBOT_YAW_IS_4310
 //yaw speed close-loop PID params, max out and max iout
-#define YAW_SPEED_PID_KP        0.75f
+#define YAW_SPEED_PID_KP        0.6f
 #define YAW_SPEED_PID_KI        0.5f
 #define YAW_SPEED_PID_KD        0.1f
 #define YAW_SPEED_PID_MAX_OUT   6.5f
 #define YAW_SPEED_PID_MAX_IOUT  2.33f
 #else
-#error "Yaw PID is not setup for this robot type"
+f#error "Yaw PID is not setup for this robot type"
 #endif
 
 //pitch gyro angle close-loop PID params, max out and max iout
@@ -329,6 +330,22 @@
 #define YAW_ANGLE_PID_KP        35.0f
 #define YAW_ANGLE_PID_KI        2.0f
 #define YAW_ANGLE_PID_KD        0.9f
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+//secondary yaw speed close-loop PID params, max out and max iout
+#define SECOND_YAW_SPEED_PID_KP        0.5f
+#define SECOND_YAW_SPEED_PID_KI        0.0f
+#define SECOND_YAW_SPEED_PID_KD        0.0f
+#define SECOND_YAW_SPEED_PID_MAX_OUT   10.0f
+#define SECOND_YAW_SPEED_PID_MAX_IOUT  2.33f
+
+//secondary yaw gyro angle close-loop PID params, max out and max iout
+#define SECOND_YAW_ANGLE_PID_KP        4.0f
+#define SECOND_YAW_ANGLE_PID_KI        0.0f
+#define SECOND_YAW_ANGLE_PID_KD        0.0f
+#define SECOND_YAW_ANGLE_PID_MAX_OUT   10.0f
+#define SECOND_YAW_ANGLE_PID_MAX_IOUT  10.0f
+#endif
+
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
@@ -550,6 +567,15 @@
 #define FOLD_PITCH_POS_MAX_STEP 0.00380f
 #define GIMBAL_FOLD_ZERO_FORCE_DEADBAND DEG_TO_RAD(10.0f)
 
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+#define SECOND_YAW_SMALL_MOVE_LIMIT_RAD DEG_TO_RAD(15.0f)
+#define SECOND_YAW_MECH_LIMIT_RAD DEG_TO_RAD(20.0f)
+#define SECOND_YAW_HOME_ENTER_ERR_RAD DEG_TO_RAD(2.0f)
+#define SECOND_YAW_DEADBAND_RAD DEG_TO_RAD(0.5f)
+#define SECOND_YAW_LARGE_MOVE_GAIN 2.0f
+#define SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD DEG_TO_RAD(0.4f)
+#endif
+
 
 typedef enum
 {
@@ -628,6 +654,9 @@ typedef struct
     const fp32 *gimbal_INT_angle_point;
     const fp32 *gimbal_INT_gyro_point;
     gimbal_motor_t gimbal_yaw_motor;
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+  gimbal_motor_t gimbal_second_yaw_motor;
+#endif
     gimbal_motor_t gimbal_pitch_motor;
     gimbal_motor_t gimbal_pitch_base_motor;
     gimbal_step_cali_t gimbal_cali;

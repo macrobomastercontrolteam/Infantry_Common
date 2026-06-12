@@ -51,6 +51,9 @@
 #define ENABLE_FRICTION_4_MOTOR_POWER 0
 #define ENABLE_PISTON_MOTOR_POWER 0
 ////////////////enable fo 2025 Hero only end////////////////////
+///////////////enable fo 2026 Hero only begin///////////////////
+#define ENABLE_SECOND_YAW_MOTOR_POWER 0
+////////////////enable fo 2026 Hero only end////////////////////
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define ENABLE_UPPER_HEAD_POWER 0
@@ -79,7 +82,7 @@
 
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 1
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 #define IS_TRIGGER_ON_GIMBAL 0
 #else
 #define IS_TRIGGER_ON_GIMBAL 0
@@ -270,6 +273,17 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				break;
 			}
 #endif
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+			case CAN_SECOND_YAW_MOTOR_4310_RX_ID:
+			{
+				bMotorId = MOTOR_INDEX_SECOND_YAW;
+				if (decode_4310_motor_feedback(rx_data, bMotorId) == HAL_OK)
+				{
+					detect_hook(SECOND_YAW_GIMBAL_MOTOR_TOE);
+				}
+				break;
+			}
+#endif
 			case CAN_FRICTION_MOTOR_LEFT_ID:
 			{
 				bMotorId = MOTOR_INDEX_FRICTION_LEFT;
@@ -284,7 +298,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(FRICTIONAL_MOTOR_RIGHT_TOE);
 				break;
 			}
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 			case CAN_FRICTION_MOTOR_UP_ID:
 			{
 				bMotorId = MOTOR_INDEX_FRICTION_UP;
@@ -428,6 +442,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				break;
 			}
 #endif
+
 #if (IS_TRIGGER_ON_GIMBAL == 0)
 			case CAN_TRIGGER_MOTOR_ID:
 			{
@@ -963,7 +978,7 @@ uint8_t decode_biped_chassis_feedback(uint8_t *data)
  * @param[in]      fric_right: 3508 motor control current when used as friction motor
  * @retval         none
  */
-void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t fric_left, int16_t fric_right, int16_t piston_motor)
+void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 secondary_yaw, fp32 pitch, int16_t trigger, int16_t fric_left, int16_t fric_right, int16_t piston_motor)
 {
 	uint32_t send_mail_box;
 	// CAN_6020_LOW_RANGE_TX_ID same as CAN_3508_OR_2006_HIGH_RANGE_TX_ID
@@ -974,6 +989,9 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 
 #if (ENABLE_YAW_MOTOR_POWER == 0)
 	yaw = 0;
+#endif
+#if (ENABLE_SECOND_YAW_MOTOR_POWER == 0)
+	secondary_yaw = 0;
 #endif
 #if (ENABLE_TRIGGER_MOTOR_POWER == 0)
 	trigger = 0;
@@ -1030,8 +1048,8 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 	gimbal_can_send_data[4] = (trigger >> 8);
 	gimbal_can_send_data[5] = trigger;
 #else
-//Piston motor for hero 2023
-#if (ROBOT_TYPE == HERO_2025_MECANUM) //This is for the piston motor with higher can ID 7
+//Piston motor for hero 2023 and 2026
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI) //This is for the piston motor with higher can ID 7
 	gimbal_can_send_data[4] = (piston_motor >> 8); //Higher 8-bit
 	gimbal_can_send_data[5] = piston_motor; //Lower 8-bit
 #endif
@@ -1048,6 +1066,10 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 pitch, int16_t trigger, int16_t 
 
 #if ROBOT_YAW_IS_4310
 	encode_MIT_motor_control(CAN_YAW_MOTOR_4310_TX_ID, 0, 0, 0, 0, yaw, DM_4310, &CHASSIS_CAN);
+#endif
+
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+	encode_MIT_motor_control(CAN_SECOND_YAW_MOTOR_4310_TX_ID, 0, 0, 0, 0, secondary_yaw, DM_4310, &GIMBAL_CAN);
 #endif
 
 #if ROBOT_PITCH_IS_4340

@@ -37,14 +37,14 @@
 #define BUTTEN_TRIG_PIN HAL_GPIO_ReadPin(BUTTON_TRIG_GPIO_Port, BUTTON_TRIG_Pin)
 #define AUTOAIM_READY_TIMEOUT 4000
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 #define TRIGGER_ANTI_STALL_BY_WAIT 1
 #else
 #define TRIGGER_ANTI_STALL_BY_WAIT 0
 #endif
 
 
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && ((ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI))
 #define VT13_TRIGGER_PRESSED() \
     ((shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN) \
      && (shoot_control.shoot_rc->vt13.trigger != 0))
@@ -54,9 +54,9 @@
      && (shoot_control.shoot_rc->vt13.trigger != 0))
 #endif
 
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && ((ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI))
 #define VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE() (shoot_control.vt13_trigger_hold_time >= VT13_TRIGGER_LONG_PRESS_TIME)
-#elif (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE != HERO_2025_MECANUM)
+#elif (REMOTE_TYPE == REMOTE_USE_VT13) && ((ROBOT_TYPE != HERO_2025_MECANUM) && (ROBOT_TYPE != HERO_2026_OMNI))
 #define VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE() (VT13_TRIGGER_PRESSED())
 #else
 #define VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE() (0)
@@ -80,7 +80,7 @@ static void shoot_feedback_update(void);
  */
 static void trigger_motor_stall_handler(void);
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 static bool_t piston_motor_control(int8_t move_direction);
 #endif
 
@@ -106,7 +106,7 @@ void shoot_init(void)
 	// initialize PID
 	static const fp32 shoot_speed_pid1[3] = {FRICTION_1_SPEED_PID_KP, FRICTION_1_SPEED_PID_KI, FRICTION_1_SPEED_PID_KD};
 	static const fp32 shoot_speed_pid2[3] = {FRICTION_2_SPEED_PID_KP, FRICTION_2_SPEED_PID_KI, FRICTION_2_SPEED_PID_KD};
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 	static const fp32 shoot_speed_pid3[3] = {FRICTION_3_SPEED_PID_KP, FRICTION_3_SPEED_PID_KI, FRICTION_3_SPEED_PID_KD};
 	static const fp32 shoot_speed_pid4[3] = {FRICTION_4_SPEED_PID_KP, FRICTION_4_SPEED_PID_KI, FRICTION_4_SPEED_PID_KD};
 	static const fp32 piston_speed_pid[3] = {PISTON_SPEED_PID_KP, PISTON_SPEED_PID_KI, PISTON_SPEED_PID_KD};
@@ -115,7 +115,7 @@ void shoot_init(void)
 	PID_init(&shoot_control.friction_motor1_pid, PID_POSITION, shoot_speed_pid1, FRICTION_1_SPEED_PID_MAX_OUT, FRICTION_1_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 	PID_init(&shoot_control.friction_motor2_pid, PID_POSITION, shoot_speed_pid2, FRICTION_2_SPEED_PID_MAX_OUT, FRICTION_2_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 	PID_init(&shoot_control.trigger_motor_pid, PID_POSITION, trigger_speed_pid, TRIGGER_BULLET_PID_MAX_OUT, TRIGGER_BULLET_PID_MAX_IOUT, 0, &raw_err_handler);
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 	PID_init(&shoot_control.friction_motor3_pid, PID_POSITION, shoot_speed_pid3, FRICTION_3_SPEED_PID_MAX_OUT, FRICTION_3_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 	PID_init(&shoot_control.friction_motor4_pid, PID_POSITION, shoot_speed_pid4, FRICTION_4_SPEED_PID_MAX_OUT, FRICTION_4_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 	PID_init(&shoot_control.piston_motor_pid, PID_POSITION, piston_speed_pid, PISTON_SPEED_PID_MAX_OUT, PISTON_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
@@ -125,7 +125,7 @@ void shoot_init(void)
 
 	shoot_control.friction_motor1_rpm_set = 0.0f;
 	shoot_control.friction_motor2_rpm_set = 0.0f;
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 	shoot_control.friction_motor3_rpm_set = 0.0f;
 	shoot_control.friction_motor4_rpm_set = 0.0f;
 
@@ -196,7 +196,7 @@ int16_t shoot_control_loop(void)
 #endif
 				break;
 			}
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 			case HERO_INIT_LAUNCHER: 
 			{
 
@@ -242,7 +242,7 @@ int16_t shoot_control_loop(void)
 				shoot_control.friction_motor1_rpm_set = -FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
 				shoot_control.friction_motor2_rpm_set = FRICTION_MOTOR_SPEED * FRICTION_MOTOR_SPEED_TO_RPM;
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
                 // Additional friction motors for HERO_2025_MECANUM.
 				
 				PID_clear(&shoot_control.friction_motor3_pid);
@@ -269,7 +269,7 @@ int16_t shoot_control_loop(void)
 				PID_clear(&shoot_control.trigger_motor_pid);
 				break;
 			}
-#if (ROBOT_TYPE != HERO_2025_MECANUM)
+#if (ROBOT_TYPE != HERO_2025_MECANUM) || (ROBOT_TYPE != HERO_2026_OMNI)
 			case SHOOT_AUTO_FIRE:
 			{
 				// No specific setup needed when entering auto fire directly,
@@ -307,7 +307,7 @@ int16_t shoot_control_loop(void)
 			shoot_control.friction_motor2_rpm_set = 0.0f;
 			// If friction motors are almost stopped, set PID max_out to 0 to prevent oscillation, Otherwise, set a small max_out to allow them to brake.
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 			shoot_control.friction_motor3_rpm_set = 0.0f;
 			shoot_control.friction_motor4_rpm_set = 0.0f;
 
@@ -345,7 +345,7 @@ int16_t shoot_control_loop(void)
 #endif
 			break;
 		}
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 		case HERO_INIT_LAUNCHER:
 		{
 			if (launcher_status.init_step == 0)
@@ -421,7 +421,7 @@ int16_t shoot_control_loop(void)
 		case SHOOT_READY_FRIC:
 		{
             // Wait for friction wheels to reach target speed.
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 			if (launcher_status.Chain_Loaded == 0)
 			{
 				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
@@ -448,7 +448,7 @@ int16_t shoot_control_loop(void)
 					if (CvCmder_GetMode(CV_MODE_SHOOT_BIT)) // CV requests shooting
 					{
 						// If CV is requesting shoot, transition to auto fire mode.
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 						shoot_control.shoot_mode = HERO_LAUNCHER_READY; // HERO_2025_MECANUM has a specific launcher shoot mode.
 #else
                         shoot_control.shoot_mode = SHOOT_AUTO_FIRE; // Standard robots go to auto fire.
@@ -459,14 +459,14 @@ int16_t shoot_control_loop(void)
 				{
 
 					// Check for mode switch position on remote controller.
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && ((ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI))
 					// VT13 Hero: trigger-based with mode switch safety gate (position 2 disables shooting)
 					if ((shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN) && VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE())
 #else
 					if ((shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP) || VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE())
 #endif
 					{
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 						shoot_control.shoot_mode = HERO_LAUNCHER_READY;
 #else
 						shoot_control.shoot_mode = SHOOT_AUTO_FIRE;
@@ -474,7 +474,7 @@ int16_t shoot_control_loop(void)
 					}
 					else if (shoot_control.press_l)
 					{
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 						if(isOverheated() == 0)
 						{
 							shoot_control.shoot_mode = HERO_LAUNCHER_READY;
@@ -495,7 +495,7 @@ int16_t shoot_control_loop(void)
 			}
 			break;
 		}
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 
 		case HERO_LAUNCHER_READY: // Specific ready mode for HERO_2025_MECANUM.
 		{
@@ -520,7 +520,7 @@ int16_t shoot_control_loop(void)
 		case HERO_LAUNCHER_SHOOT: // Specific shooting mode for HERO_2025_MECANUM.
 		{
 
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && ((ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI))
 			if ((shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN) && VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE()) // VT13 Hero: mode switch pos 2 disables shooting
 #else
 			if ((shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP) || VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE()) // RC left lever UP or VT13 long press (force auto fire)
@@ -560,7 +560,7 @@ int16_t shoot_control_loop(void)
 		}
 #endif
 
-#if (ROBOT_TYPE != HERO_2025_MECANUM)
+#if (ROBOT_TYPE != HERO_2025_MECANUM) && (ROBOT_TYPE != HERO_2026_OMNI)
 		case SHOOT_SEMI_AUTO_FIRE: // Standard robot semi-automatic fire.
 		{
 			// In SHOOT_SEMI_AUTO_FIRE mode:
@@ -595,7 +595,7 @@ int16_t shoot_control_loop(void)
 			}
 			else // Manual control mode
 			{
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && ((ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI))
 				if ((shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN) && VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE()) // VT13 Hero: mode switch pos 2 disables shooting
 #else
 				if ((shoot_control.shoot_rc->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP) || VT13_FORCE_AUTO_FIRE_TRIGGER_ACTIVE()) // Remote controller left lever is UP (force auto fire)
@@ -649,7 +649,7 @@ int16_t shoot_control_loop(void)
 	PID_calc(&shoot_control.friction_motor2_pid, shoot_control.friction_motor2_rpm, shoot_control.friction_motor2_rpm_set, SHOOT_CONTROL_TIME_S);
 	shoot_control.fric2_given_current = (int16_t)(shoot_control.friction_motor2_pid.out);
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
     // Calculate PID outputs for additional friction motors on HERO_2025_MECANUM.
 	PID_calc(&shoot_control.friction_motor3_pid, shoot_control.friction_motor3_rpm, shoot_control.friction_motor3_rpm_set, SHOOT_CONTROL_TIME_S);
 	shoot_control.fric3_given_current = (int16_t)(shoot_control.friction_motor3_pid.out);
@@ -674,7 +674,7 @@ static void shoot_set_mode(void)
 {
 
 	// normal RC control
-#if (ROBOT_TYPE == HERO_2025_MECANUM) 
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 	// HERO_2025_MECANUM: Check for gimbal command to stop or errors in any of the 4 friction motors or trigger motor.
 	if (gimbal_cmd_to_shoot_stop() || toe_is_error(FRICTIONAL_MOTOR_LEFT_TOE) || toe_is_error(FRICTIONAL_MOTOR_RIGHT_TOE) || toe_is_error(FRICTIONAL_MOTOR_UP_TOE) || toe_is_error(FRICTIONAL_MOTOR_DOWN_TOE) || toe_is_error(TRIGGER_MOTOR_TOE))	
 #else
@@ -718,7 +718,7 @@ static void shoot_set_mode(void)
 	{
 		static int8_t last_switch_state = RC_SW_UP; 
 
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && ((ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI))
 		// VT13 Hero: use physical customizable buttons on VT13 remote for jam handling
 		// Note: B/V/F keys only work if computer keyboard connected to receiver
 		bool_t trigger_now = (bool_t)VT13_TRIGGER_PRESSED();
@@ -758,7 +758,7 @@ static void shoot_set_mode(void)
 			last_switch_state = RC_SW_UP;
 			return;
 		}
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE != HERO_2025_MECANUM)
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE != HERO_2025_MECANUM && ROBOT_TYPE != HERO_2026_OMNI)
 		// Trigger just released after being active: stop immediately regardless of mouse state
 		if (last_switch_state == RC_SW_UP)
 		{
@@ -768,7 +768,7 @@ static void shoot_set_mode(void)
 		}
 #endif
 
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && ((ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI))
 		// VT13 Hero: ignore mode switch position, use trigger-based logic only
 		{
 			static bool_t vt13_last_trigger = 0;
@@ -817,7 +817,7 @@ static void shoot_set_mode(void)
 			}
 			case RC_SW_MID: // mouse-controlled fire mode
 			{
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 				// For HERO_2025_MECANUM (DR16), initialize to clear launcher and load the ammo chain first
 				if (launcher_status.Launcher_Initialized == 0)
 				{
@@ -837,7 +837,7 @@ static void shoot_set_mode(void)
 							shoot_control.shoot_mode = SHOOT_READY_FRIC; // Start spinning friction wheels. Actual shooting mode will be set corespondingly inside this mode.
 						}
 					}
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 					else if (shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_B) //rerun the clearing process to handel jam
 					{
 						launcher_status.Launcher_Initialized = 0;
@@ -896,7 +896,7 @@ static void shoot_feedback_update(void)
 
 	shoot_control.friction_motor1_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm, shoot_control.friction_motor1_rpm, 0.8f);
 	shoot_control.friction_motor2_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm, shoot_control.friction_motor2_rpm, 0.8f);
-#if (ROBOT_TYPE == HERO_2025_MECANUM) 
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 	shoot_control.friction_motor3_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm, shoot_control.friction_motor3_rpm, 0.8f);
 	shoot_control.friction_motor4_rpm = first_order_filter(motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm, shoot_control.friction_motor4_rpm, 0.8f);
 	shoot_control.piston_speed = first_order_filter(motor_chassis[MOTOR_INDEX_PISTON].speed_rpm * PISTON_MOTOR_RPM_TO_SPEED, shoot_control.piston_speed, 0.8f);
@@ -945,7 +945,7 @@ static void shoot_feedback_update(void)
 	{
 		shoot_control.left_click_hold_time = 0;
 	}
-#if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (REMOTE_TYPE == REMOTE_USE_VT13) && ((ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)) 
 	if (VT13_TRIGGER_PRESSED())
 	{
 		if (shoot_control.vt13_trigger_hold_time < (VT13_TRIGGER_LONG_PRESS_TIME + SHOOT_CONTROL_TIME_MS))
@@ -968,7 +968,7 @@ static void shoot_feedback_update(void)
 	ui_info.Heat_Limit_Ignored = launcher_status.Heat_Limit_Ignored;
 	ui_info.trigger_state = ((shoot_control.speed_set / shoot_control.speed) > 0.5f); // sctual trigger speed larger than 50% of set speed
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 	ui_info.firc_state = ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD));
 	ui_info.Launcher_Loaded = launcher_status.Launcher_Loaded;
 	ui_info.Launcher_Opened = launcher_status.Launcher_Opened;
@@ -981,7 +981,7 @@ static void shoot_feedback_update(void)
 
 static void trigger_motor_stall_handler(void)
 {
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 	if ((is_launcher_loaded() == 1) && (launcher_status.Launcher_Opened == 1))
 	{
 		launcher_status.Launcher_Loaded = 1;
@@ -1044,7 +1044,7 @@ static void trigger_motor_stall_handler(void)
 bool_t isOverheated(void)
 {
 	bool_t out = 0;
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 	if (launcher_status.Heat_Limit_Ignored == 1) //if ignored heat limit, bypass limitingg function directly
 	{
 		return 0;
@@ -1068,7 +1068,7 @@ bool_t isOverheated(void)
 }
 
 
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
+#if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 static bool_t piston_motor_control(int8_t move_direction) // direction = +-1
 {	
 	static int8_t current_move_direction = 0;
