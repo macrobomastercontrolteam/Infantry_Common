@@ -327,19 +327,19 @@ f#error "Yaw PID is not setup for this robot type"
 #define PITCH_ANGLE_PID_MAX_IOUT 15.0f
 
 //yaw gyro angle close-loop PID params, max out and max iout
-#define YAW_ANGLE_PID_KP        35.0f
+#define YAW_ANGLE_PID_KP        25.0f
 #define YAW_ANGLE_PID_KI        2.0f
 #define YAW_ANGLE_PID_KD        0.9f
 #if (ROBOT_TYPE == HERO_2026_OMNI)
 //secondary yaw speed close-loop PID params, max out and max iout
-#define SECOND_YAW_SPEED_PID_KP        0.5f
+#define SECOND_YAW_SPEED_PID_KP        0.6f
 #define SECOND_YAW_SPEED_PID_KI        0.0f
 #define SECOND_YAW_SPEED_PID_KD        0.0f
 #define SECOND_YAW_SPEED_PID_MAX_OUT   10.0f
 #define SECOND_YAW_SPEED_PID_MAX_IOUT  2.33f
 
 //secondary yaw gyro angle close-loop PID params, max out and max iout
-#define SECOND_YAW_ANGLE_PID_KP        4.0f
+#define SECOND_YAW_ANGLE_PID_KP        30.0f
 #define SECOND_YAW_ANGLE_PID_KI        0.0f
 #define SECOND_YAW_ANGLE_PID_KD        0.0f
 #define SECOND_YAW_ANGLE_PID_MAX_OUT   10.0f
@@ -571,9 +571,13 @@ f#error "Yaw PID is not setup for this robot type"
 #define SECOND_YAW_SMALL_MOVE_LIMIT_RAD DEG_TO_RAD(15.0f)
 #define SECOND_YAW_MECH_LIMIT_RAD DEG_TO_RAD(20.0f)
 #define SECOND_YAW_HOME_ENTER_ERR_RAD DEG_TO_RAD(2.0f)
-#define SECOND_YAW_DEADBAND_RAD DEG_TO_RAD(0.5f)
-#define SECOND_YAW_LARGE_MOVE_GAIN 2.0f
+#define SECOND_YAW_DEADBAND_RAD DEG_TO_RAD(1.5f)
+#define SECOND_YAW_LARGE_MOVE_GAIN 4.0f
 #define SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD DEG_TO_RAD(0.4f)
+#define SECOND_YAW_REMOTE_INPUT_GAIN 3.0f
+#define SECOND_YAW_STEP_BOOST_NEAR 3.0f
+#define SECOND_YAW_STEP_BOOST_FAR 5.0f
+#define SECOND_YAW_MIN_TRACK_STEP_RAD DEG_TO_RAD(0.15f)
 #endif
 
 

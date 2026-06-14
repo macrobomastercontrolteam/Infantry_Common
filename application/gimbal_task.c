@@ -194,7 +194,10 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
     fp32 desired_second_yaw;
     fp32 second_yaw_soft_limit;
     fp32 secondary_step;
-    uint8_t secondary_only = 0;
+    fp32 secondary_step_limit;
+    fp32 second_cmd_err;
+    fp32 primary_cmd_scale;
+    uint8_t second_outward_limited;
 
     if (control_loop == NULL)
     {
@@ -207,37 +210,53 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
     current_second_yaw = control_loop->gimbal_second_yaw_motor.relative_angle;
     delta_imu_yaw = rad_format(target_imu_yaw - current_imu_yaw);
     desired_second_yaw = 0.0f;
+    primary_cmd_scale = 1.0f;
+    second_outward_limited = 0;
     second_yaw_soft_limit = SECOND_YAW_MECH_LIMIT_RAD - SECOND_YAW_HOME_ENTER_ERR_RAD;
-    second_target_cmd = fp32_constrain(target_imu_yaw, -second_yaw_soft_limit, second_yaw_soft_limit);
+    second_target_cmd = fp32_constrain(target_imu_yaw * SECOND_YAW_REMOTE_INPUT_GAIN, -second_yaw_soft_limit, second_yaw_soft_limit);
 
-    if (chassis_behaviour_mode == CHASSIS_SPINNING_MODE)
+    // All modes: Both primary and secondary move together with secondary responding faster (lighter weight).
+    // Secondary yaw is strictly constrained to ±20° mechanical limit to prevent motor damage.
+    if (fabs(delta_imu_yaw) <= SECOND_YAW_DEADBAND_RAD)
     {
-        desired_second_yaw = 0.0f;
-    }
-    else if (fabs(delta_imu_yaw) <= SECOND_YAW_DEADBAND_RAD)
-    {
-        // Deadband to prevent hunting around target.
-        desired_second_yaw = current_second_yaw;
-        secondary_only = 0;
+        // On target: gradually center secondary yaw to reduce relative angle to 0.
+        // Both primary and secondary work together to stabilize at target.
+        fp32 centering_step = fp32_constrain((0.0f - current_second_yaw) * 0.5f,
+                                             -SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD,
+                                             SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD);
+        desired_second_yaw = fp32_constrain(current_second_yaw + centering_step, -second_yaw_soft_limit, second_yaw_soft_limit);
     }
     else if ((fabs(current_second_yaw) >= second_yaw_soft_limit) && ((delta_imu_yaw * current_second_yaw) > 0.0f))
     {
         // At/near mechanical limit and command pushes further outward: hold secondary and let primary yaw absorb the rest.
+        // This protects secondary yaw motor from damage due to weight difference.
         desired_second_yaw = fp32_constrain(current_second_yaw, -second_yaw_soft_limit, second_yaw_soft_limit);
-        secondary_only = 0;
-    }
-    else if (fabs(delta_imu_yaw) <= SECOND_YAW_SMALL_MOVE_LIMIT_RAD)
-    {
-        // Small move: secondary yaw takes the delta first.
-        desired_second_yaw = fp32_constrain(current_second_yaw + delta_imu_yaw, -second_yaw_soft_limit, second_yaw_soft_limit);
-        secondary_only = 1;
+        second_outward_limited = 1;
     }
     else
     {
-        // Large move: follow commanded secondary target with damped slew to avoid coupled oscillation.
-        secondary_step = fp32_constrain((second_target_cmd - current_second_yaw) * SECOND_YAW_LARGE_MOVE_GAIN,
-                                        -SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD,
-                                        SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD);
+        // Moving to target: secondary yaw moves faster toward target with damped slew rate.
+        // Primary yaw simultaneously moves to correct remaining error. Secondary is lighter so responds faster.
+        second_cmd_err = rad_format(second_target_cmd - current_second_yaw);
+        secondary_step_limit = SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD;
+        if (fabs(delta_imu_yaw) > DEG_TO_RAD(2.0f))
+        {
+            secondary_step_limit *= SECOND_YAW_STEP_BOOST_FAR;
+        }
+        else
+        {
+            secondary_step_limit *= SECOND_YAW_STEP_BOOST_NEAR;
+        }
+
+        secondary_step = fp32_constrain(second_cmd_err * SECOND_YAW_LARGE_MOVE_GAIN,
+                                        -secondary_step_limit,
+                                        secondary_step_limit);
+
+        // Avoid tiny setpoint motion when command error is still meaningful.
+        if ((fabs(second_cmd_err) > SECOND_YAW_DEADBAND_RAD) && (fabs(secondary_step) < SECOND_YAW_MIN_TRACK_STEP_RAD))
+        {
+            secondary_step = (secondary_step >= 0.0f) ? SECOND_YAW_MIN_TRACK_STEP_RAD : -SECOND_YAW_MIN_TRACK_STEP_RAD;
+        }
         desired_second_yaw = fp32_constrain(current_second_yaw + secondary_step, -second_yaw_soft_limit, second_yaw_soft_limit);
     }
 
@@ -254,12 +273,27 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
                                                                control_loop->gimbal_second_yaw_motor.motor_gyro_set,
                                                                GIMBAL_CONTROL_TIME_S);
 
-    // Secondary-first strategy for small yaw moves.
-    if (secondary_only)
+    // Make secondary yaw visibly lead: when secondary still has tracking error, reduce primary output.
+    // Keep full primary authority when secondary is outward-limited by the soft mechanical boundary.
+    if ((!second_outward_limited) && (fabs(delta_imu_yaw) > SECOND_YAW_DEADBAND_RAD))
     {
-        control_loop->gimbal_yaw_motor.cmd_value = 0.0f;
-        control_loop->gimbal_yaw_motor.motor_gyro_set = 0.0f;
+        fp32 second_track_err = fabs(rad_format(desired_second_yaw - current_second_yaw));
+        if (second_track_err > SECOND_YAW_DEADBAND_RAD)
+        {
+            primary_cmd_scale = 0.35f;
+        }
+        else
+        {
+            primary_cmd_scale = 0.70f;
+        }
     }
+
+    control_loop->gimbal_yaw_motor.motor_gyro_set *= primary_cmd_scale;
+    control_loop->gimbal_yaw_motor.cmd_value *= primary_cmd_scale;
+
+    // Both primary and secondary yaw always calculate their motor commands during GYRO/CAMERA mode.
+    // Primary is already calculated by gimbal_motor_absolute_angle_control() before this function.
+    // Secondary is calculated above. This enables secondary to move faster while primary provides correction.
 }
 #endif
 
