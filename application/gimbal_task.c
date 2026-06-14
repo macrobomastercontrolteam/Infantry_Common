@@ -58,6 +58,13 @@
         PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_relative_angle_pid);   \
         PID_clear(&(gimbal_clear)->gimbal_yaw_motor.gimbal_motor_speed_pid);                    \
     }
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+#define gimbal_second_yaw_pid_clear(gimbal_clear)                                               \
+    {                                                                                           \
+        PID_clear(&(gimbal_clear)->gimbal_second_yaw_motor.gimbal_motor_relative_angle_pid);   \
+        PID_clear(&(gimbal_clear)->gimbal_second_yaw_motor.gimbal_motor_speed_pid);            \
+    }
+#endif
 #define gimbal_pitch_pid_clear(gimbal_clear)                                                   \
     {                                                                                          \
         PID_clear(&(gimbal_clear)->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid); \
@@ -187,15 +194,22 @@ static int16_t trigger_set_current = 0;
 static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
 {
     fp32 target_imu_yaw;
-    fp32 current_imu_yaw;
-    fp32 delta_imu_yaw;
+    fp32 current_primary_yaw;
+    fp32 delta_primary_yaw;
     fp32 current_second_yaw;
-    fp32 second_target_cmd;
+    fp32 current_second_set;
+    fp32 second_target_raw;
     fp32 desired_second_yaw;
     fp32 second_yaw_soft_limit;
     fp32 secondary_step;
     fp32 secondary_step_limit;
     fp32 second_cmd_err;
+    fp32 second_assist_weight;
+    fp32 step_boost;
+    fp32 abs_primary_err;
+    fp32 second_target_from_primary;
+    fp32 second_target_from_launcher;
+    fp32 primary_target_yaw;
     fp32 primary_cmd_scale;
     uint8_t second_outward_limited;
 
@@ -205,60 +219,60 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
     }
 
     target_imu_yaw = control_loop->gimbal_yaw_motor.absolute_angle_set;
-    // Compare against compensated yaw angle (same frame as target setpoint).
-    current_imu_yaw = control_loop->gimbal_yaw_motor.absolute_angle;
+    current_primary_yaw = control_loop->gimbal_yaw_motor.absolute_angle;
     current_second_yaw = control_loop->gimbal_second_yaw_motor.relative_angle;
-    delta_imu_yaw = rad_format(target_imu_yaw - current_imu_yaw);
+    current_second_set = control_loop->gimbal_second_yaw_motor.relative_angle_set;
+    // Use the same compensated yaw frame as gimbal_yaw_motor.absolute_angle_set.
+    delta_primary_yaw = rad_format(target_imu_yaw - current_primary_yaw);
+    abs_primary_err = fabs(delta_primary_yaw);
     desired_second_yaw = 0.0f;
     primary_cmd_scale = 1.0f;
     second_outward_limited = 0;
     second_yaw_soft_limit = SECOND_YAW_MECH_LIMIT_RAD - SECOND_YAW_HOME_ENTER_ERR_RAD;
-    second_target_cmd = fp32_constrain(target_imu_yaw * SECOND_YAW_REMOTE_INPUT_GAIN, -second_yaw_soft_limit, second_yaw_soft_limit);
+    second_target_from_primary = fp32_constrain(delta_primary_yaw * SECOND_YAW_REMOTE_INPUT_GAIN,
+                                                -second_yaw_soft_limit,
+                                                second_yaw_soft_limit);
+    // Secondary-first allocation uses primary-gap (target vs primary yaw) so secondary can take large target steps first.
+    second_target_raw = fp32_constrain(rad_format(target_imu_yaw - current_primary_yaw) * SECOND_YAW_REMOTE_INPUT_GAIN,
+                                       -second_yaw_soft_limit,
+                                       second_yaw_soft_limit);
 
-    // All modes: Both primary and secondary move together with secondary responding faster (lighter weight).
-    // Secondary yaw is strictly constrained to ±20° mechanical limit to prevent motor damage.
-    if (fabs(delta_imu_yaw) <= SECOND_YAW_DEADBAND_RAD)
+    // Direct secondary target law:
+    // - Track launcher/primary error aggressively away from target.
+    // - Unwind secondary back to zero near target.
+    if (fabs(delta_primary_yaw) > SECOND_YAW_DEADBAND_RAD)
     {
-        // On target: gradually center secondary yaw to reduce relative angle to 0.
-        // Both primary and secondary work together to stabilize at target.
-        fp32 centering_step = fp32_constrain((0.0f - current_second_yaw) * 0.5f,
-                                             -SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD,
-                                             SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD);
-        desired_second_yaw = fp32_constrain(current_second_yaw + centering_step, -second_yaw_soft_limit, second_yaw_soft_limit);
-    }
-    else if ((fabs(current_second_yaw) >= second_yaw_soft_limit) && ((delta_imu_yaw * current_second_yaw) > 0.0f))
-    {
-        // At/near mechanical limit and command pushes further outward: hold secondary and let primary yaw absorb the rest.
-        // This protects secondary yaw motor from damage due to weight difference.
-        desired_second_yaw = fp32_constrain(current_second_yaw, -second_yaw_soft_limit, second_yaw_soft_limit);
-        second_outward_limited = 1;
+        desired_second_yaw = second_target_from_primary;
+
+        // Small-angle move capture: let secondary take lead before primary fully catches up.
+        second_cmd_err = rad_format(desired_second_yaw - current_second_set);
+        if ((abs_primary_err <= SECOND_YAW_SMALL_MOVE_ERR_RAD) && (fabs(second_cmd_err) > SECOND_YAW_SMALL_CAPTURE_DONE_RAD))
+        {
+            primary_cmd_scale = SECOND_YAW_PRIMARY_SMALLMOVE_SCALE;
+        }
     }
     else
     {
-        // Moving to target: secondary yaw moves faster toward target with damped slew rate.
-        // Primary yaw simultaneously moves to correct remaining error. Secondary is lighter so responds faster.
-        second_cmd_err = rad_format(second_target_cmd - current_second_yaw);
-        secondary_step_limit = SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD;
-        if (fabs(delta_imu_yaw) > DEG_TO_RAD(2.0f))
-        {
-            secondary_step_limit *= SECOND_YAW_STEP_BOOST_FAR;
-        }
-        else
-        {
-            secondary_step_limit *= SECOND_YAW_STEP_BOOST_NEAR;
-        }
-
-        secondary_step = fp32_constrain(second_cmd_err * SECOND_YAW_LARGE_MOVE_GAIN,
-                                        -secondary_step_limit,
-                                        secondary_step_limit);
-
-        // Avoid tiny setpoint motion when command error is still meaningful.
-        if ((fabs(second_cmd_err) > SECOND_YAW_DEADBAND_RAD) && (fabs(secondary_step) < SECOND_YAW_MIN_TRACK_STEP_RAD))
-        {
-            secondary_step = (secondary_step >= 0.0f) ? SECOND_YAW_MIN_TRACK_STEP_RAD : -SECOND_YAW_MIN_TRACK_STEP_RAD;
-        }
-        desired_second_yaw = fp32_constrain(current_second_yaw + secondary_step, -second_yaw_soft_limit, second_yaw_soft_limit);
+        desired_second_yaw = 0.0f;
     }
+
+    desired_second_yaw = fp32_constrain(desired_second_yaw, -second_yaw_soft_limit, second_yaw_soft_limit);
+
+    if ((fabs(current_second_yaw) >= second_yaw_soft_limit) && ((second_target_from_primary * current_second_yaw) > 0.0f))
+    {
+        // At/near mechanical limit and command pushes further outward: hold secondary and let primary yaw absorb the rest.
+        desired_second_yaw = fp32_constrain(current_second_yaw, -second_yaw_soft_limit, second_yaw_soft_limit);
+        second_outward_limited = 1;
+    }
+
+    second_cmd_err = rad_format(desired_second_yaw - current_second_set);
+    second_assist_weight = fp32_constrain(abs_primary_err / SECOND_YAW_REACQUIRE_ERR_RAD, 0.0f, 1.0f);
+    step_boost = SECOND_YAW_STEP_BOOST_NEAR + (SECOND_YAW_STEP_BOOST_FAR - SECOND_YAW_STEP_BOOST_NEAR) * second_assist_weight;
+    secondary_step_limit = SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD * step_boost;
+    secondary_step = fp32_constrain(second_cmd_err * SECOND_YAW_LARGE_MOVE_GAIN,
+                                    -secondary_step_limit,
+                                    secondary_step_limit);
+    desired_second_yaw = fp32_constrain(current_second_set + secondary_step, -second_yaw_soft_limit, second_yaw_soft_limit);
 
     control_loop->gimbal_second_yaw_motor.relative_angle_set = desired_second_yaw;
 
@@ -273,27 +287,30 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
                                                                control_loop->gimbal_second_yaw_motor.motor_gyro_set,
                                                                GIMBAL_CONTROL_TIME_S);
 
-    // Make secondary yaw visibly lead: when secondary still has tracking error, reduce primary output.
-    // Keep full primary authority when secondary is outward-limited by the soft mechanical boundary.
-    if ((!second_outward_limited) && (fabs(delta_imu_yaw) > SECOND_YAW_DEADBAND_RAD))
+    // Primary target is the launcher target minus the portion currently assigned to secondary yaw.
+    primary_target_yaw = rad_format(target_imu_yaw - desired_second_yaw);
+    control_loop->gimbal_yaw_motor.motor_gyro_set = PID_calc_with_dot(&control_loop->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid,
+                                                                      control_loop->gimbal_yaw_motor.absolute_angle,
+                                                                      primary_target_yaw,
+                                                                      GIMBAL_CONTROL_TIME_S,
+                                                                      control_loop->gimbal_yaw_motor.motor_gyro);
+    control_loop->gimbal_yaw_motor.cmd_value = PID_calc(&control_loop->gimbal_yaw_motor.gimbal_motor_speed_pid,
+                                                        control_loop->gimbal_yaw_motor.motor_gyro,
+                                                        control_loop->gimbal_yaw_motor.motor_gyro_set,
+                                                        GIMBAL_CONTROL_TIME_S);
+
+    // Secondary should react faster than primary to remote-set launcher angle changes.
+    // Keep full primary authority near target and whenever secondary is outward-limited.
+    if ((!second_outward_limited) && (fabs(delta_primary_yaw) > SECOND_YAW_PRIMARY_FAST_RECOVER_ERR_RAD) &&
+        (primary_cmd_scale > SECOND_YAW_PRIMARY_SLOW_SCALE))
     {
-        fp32 second_track_err = fabs(rad_format(desired_second_yaw - current_second_yaw));
-        if (second_track_err > SECOND_YAW_DEADBAND_RAD)
-        {
-            primary_cmd_scale = 0.35f;
-        }
-        else
-        {
-            primary_cmd_scale = 0.70f;
-        }
+        primary_cmd_scale = SECOND_YAW_PRIMARY_SLOW_SCALE;
     }
 
     control_loop->gimbal_yaw_motor.motor_gyro_set *= primary_cmd_scale;
     control_loop->gimbal_yaw_motor.cmd_value *= primary_cmd_scale;
 
-    // Both primary and secondary yaw always calculate their motor commands during GYRO/CAMERA mode.
-    // Primary is already calculated by gimbal_motor_absolute_angle_control() before this function.
-    // Secondary is calculated above. This enables secondary to move faster while primary provides correction.
+    // Primary yaw is computed from the Hero-only split target so other robot types remain unchanged.
 }
 #endif
 
@@ -1027,6 +1044,10 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             gimbal_yaw_abs_angle_PID_init(gimbal_mode_change);
             gimbal_yaw_pid_clear(gimbal_mode_change);
             gimbal_mode_change->gimbal_yaw_motor.absolute_angle_set = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+            gimbal_mode_change->gimbal_second_yaw_motor.relative_angle_set = gimbal_mode_change->gimbal_second_yaw_motor.relative_angle;
+            gimbal_second_yaw_pid_clear(gimbal_mode_change);
+#endif
             break;
         }
         case GIMBAL_MOTOR_CAMERA:
@@ -1036,6 +1057,10 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             gimbal_yaw_pid_clear(gimbal_mode_change);
             gimbal_mode_change->gimbal_yaw_motor.absolute_angle_offset = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
             gimbal_mode_change->gimbal_yaw_motor.absolute_angle_set = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+            gimbal_mode_change->gimbal_second_yaw_motor.relative_angle_set = gimbal_mode_change->gimbal_second_yaw_motor.relative_angle;
+            gimbal_second_yaw_pid_clear(gimbal_mode_change);
+#endif
             break;
         }
         case GIMBAL_MOTOR_ENCODER:
@@ -1302,10 +1327,11 @@ static void gimbal_control_loop(gimbal_control_t *control_loop)
     }
     else if ((control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO) || (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_CAMERA))
     {
-        gimbal_motor_absolute_angle_control(&control_loop->gimbal_yaw_motor);
-#if (ROBOT_TYPE == HERO_2026_OMNI)
+    #if (ROBOT_TYPE == HERO_2026_OMNI)
         hero_2026_dual_yaw_allocate(control_loop);
-#endif
+    #else
+        gimbal_motor_absolute_angle_control(&control_loop->gimbal_yaw_motor);
+    #endif
     }
     else if (control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCODER)
     {
