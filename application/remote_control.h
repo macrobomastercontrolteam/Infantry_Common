@@ -24,6 +24,10 @@
 #include "global_inc.h"
 #include "bsp_rc.h"
 
+/* Pack the RC protocol structs explicitly (ARM Compiler __packed prefix keyword
+ * is ignored by GCC). */
+#pragma pack(push, 1)
+
 #define SBUS_RX_BUF_NUM 36u
 
 #define RC_FRAME_LENGTH 18u
@@ -126,4 +130,6 @@ extern void solve_data_error(void);
 extern bool_t key_rising_edge(uint8_t *last, uint8_t current);
 extern bool_t key_falling_edge(uint8_t *last, uint8_t current);
 extern RC_ctrl_t rc_ctrl;
+
+#pragma pack(pop)
 #endif

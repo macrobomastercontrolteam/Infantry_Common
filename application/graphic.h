@@ -2,6 +2,10 @@
 #define GRAPHIC_H
 #include <stdint.h>
 
+/* Pack the UI wire-protocol structs explicitly (the ARM Compiler __packed prefix
+ * keyword is ignored by GCC). */
+#pragma pack(push, 1)
+
 #define UI_SOF 0xA5
 
 // Screen resolution is 1920x1080
@@ -170,4 +174,6 @@ void float_draw(string_data *image, char figure_name[3], uint32_t graph_operate,
 void circle_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t graph_operate, uint32_t graph_layer, uint32_t graph_color, uint32_t graph_width, uint32_t start_x, uint32_t start_y, uint32_t graph_radius);
 int update_ui(graphic_data_struct_t *image_ptr);
 int update_char(string_data *string_ptr);
+
+#pragma pack(pop)
 #endif
