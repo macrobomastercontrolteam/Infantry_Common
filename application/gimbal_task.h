@@ -703,10 +703,12 @@ extern fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 
 extern bool_t gimbal_emergency_stop(void);
 
-extern fp32 get_gimbal_relative_yaw_angle(void);
-extern fp32 get_gimbal_relative_pitch_angle(void);
+extern fp32 get_gimbal_absolute_pitch_angle(void);
 extern fp32 get_gimbal_ecd_yaw_angle(void);
 extern fp32 get_gimbal_ecd_pitch_angle(void);
+extern fp32 get_gimbal_absolute_yaw_angle(void);
+extern fp32 get_gimbal_pitch_rate(void);
+extern fp32 get_gimbal_yaw_rate(void);
 
 void MIT_motor_set_torq(gimbal_control_t *control_loop);
 

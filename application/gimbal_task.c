@@ -1346,6 +1346,21 @@ fp32 get_gimbal_ecd_pitch_angle(void)
     return gimbal_control.gimbal_pitch_motor.relative_angle;
 }
 
+fp32 get_gimbal_absolute_yaw_angle(void)
+{
+    return gimbal_control.gimbal_yaw_motor.absolute_angle;
+}
+
+fp32 get_gimbal_pitch_rate(void)
+{
+    return gimbal_control.gimbal_pitch_motor.motor_gyro;
+}
+
+fp32 get_gimbal_yaw_rate(void)
+{
+    return gimbal_control.gimbal_yaw_motor.motor_gyro;
+}
+
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 
 void MIT_motor_set_torq(gimbal_control_t *control_loop)
