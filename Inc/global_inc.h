@@ -43,9 +43,9 @@
 #define VOFA_UART_USE 0 //1 for uart6(shown as uart1), 2 for uart1(shown as uart2), 0 to disable VOFA
 
 #define USE_SERVO_TO_STIR_AMMO 0
-#define ENABLE_HIGHER_BAUD_RATE_FOR_CV 0
+#define ENABLE_HIGHER_BAUD_RATE_FOR_CV 1
 
-#define REMOTE_TYPE REMOTE_USE_DR16
+#define REMOTE_TYPE REMOTE_USE_VT13
 /********************* Only Modify this area (end) *********************/
 
 #if ((REMOTE_TYPE != REMOTE_USE_DR16) && (REMOTE_TYPE != REMOTE_USE_VT13))
