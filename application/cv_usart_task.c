@@ -71,6 +71,40 @@ typedef enum
 	//CV_INFO_PITCH_ANGLE = 0x04,
 } eMsgTypeAckInfo;
 
+// The protocol is TV (Tag-Value): the Length byte was removed from the wire. Both sides must derive
+// each frame's value size from its Tag. On-wire frame is [Tag][Value...][CRC8]; total frame size =
+// 1 (Tag) + value length + 1 (CRC8). CRC8 covers [Tag][Value...] (DJI poly, init 0xFF).
+
+// Value-field byte lengths for CV -> Board request frames, indexed by Tag.
+typedef enum
+{
+	REQ_LEN_CHECK_STATE          = 1,                // InfoType
+	REQ_LEN_CV_CHASSIS_MOVE      = 2 * sizeof(fp32), // xSpeed + ySpeed
+	REQ_LEN_CONTROL_SPINNING     = 1,                // SpinCmd
+	REQ_LEN_AIM_ERROR            = 2 * sizeof(fp32), // xAimError + yAimError
+	REQ_LEN_SHOOT_CMD            = 1,                // ShootCmd
+	REQ_LEN_CV_IMU_ACCELE        = 0,                // request trigger (no value)
+	REQ_LEN_CV_IMU_VELOCITY      = 0,                // request trigger (no value)
+	REQ_LEN_CV_IMU_POSITION      = 0,                // request trigger (no value)
+	REQ_LEN_CV_INFO_GIMBAL_ANGLE = 0,                // request trigger (no value)
+} eCvReqValueLen;
+
+// Value-field byte lengths for Board -> CV response frames, indexed by Tag.
+typedef enum
+{
+	RSP_LEN_CHECK_STATE          = 2,                                   // InfoType + InfoValue
+	RSP_LEN_CV_CHASSIS_MOVE      = 1,                                   // Ack
+	RSP_LEN_CONTROL_SPINNING     = 1,                                   // Ack
+	RSP_LEN_AIM_ERROR            = 1,                                   // Ack
+	RSP_LEN_SHOOT_CMD            = 1,                                   // Ack
+	RSP_LEN_CV_IMU_ACCELE        = 6 * sizeof(fp32) + sizeof(uint32_t), // 3 accel + 3 gyro + send-delay
+	RSP_LEN_CV_IMU_VELOCITY      = 3 * sizeof(fp32) + sizeof(uint32_t), // x,y,z velocity + send-delay
+	RSP_LEN_CV_IMU_POSITION      = 3 * sizeof(fp32) + sizeof(uint32_t), // x,y,z position + send-delay
+	RSP_LEN_CV_INFO_GIMBAL_ANGLE = 4 * sizeof(fp32),                    // pitch+yaw angle + pitch+yaw rate
+} eCvRspValueLen;
+
+#define CV_REQ_LEN_UNKNOWN 0xFFU // returned for an unrecognised request Tag (frame size cannot be derived)
+
 typedef struct
 {
 	moving_average_type_t TranDeltaFilter;
@@ -95,6 +129,8 @@ void CvCmder_EchoTxMsgToUsb(void);
 //void CvCmder_SendInfoData(eMsgTypes CvCmdBit);
 //void CvCmder_UpdateTranDelta(void);
 static void CvCmder_SendAck(uint8_t msgType);
+static uint8_t CvCmder_GetReqValueLen(uint8_t msgType);
+static uint8_t CvCmder_GetRspValueLen(uint8_t msgType);
 #if DEBUG_CV_WITH_USB
 uint8_t CvCmder_MockModeChange(void);
 #endif
@@ -281,53 +317,87 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
 	}
 }
 
+// Returns the request value-field length (bytes) for a Tag, or CV_REQ_LEN_UNKNOWN if unrecognised.
+static uint8_t CvCmder_GetReqValueLen(uint8_t msgType)
+{
+	switch (msgType)
+	{
+		case MSG_CHECK_STATE:           return REQ_LEN_CHECK_STATE;
+		case MSG_CV_CHASSIS_MOVE_STATE: return REQ_LEN_CV_CHASSIS_MOVE;
+		case MSG_CONTROL_SPINNNG:       return REQ_LEN_CONTROL_SPINNING;
+		case MSG_AIM_ERROR:             return REQ_LEN_AIM_ERROR;
+		case MSG_SHOOT_CMD:             return REQ_LEN_SHOOT_CMD;
+		case MSG_CV_IMU_ACCELE:         return REQ_LEN_CV_IMU_ACCELE;
+		case MSG_CV_IMU_VELOCITY:       return REQ_LEN_CV_IMU_VELOCITY;
+		case MSG_CV_IMU_POSITION:       return REQ_LEN_CV_IMU_POSITION;
+		case MSG_CV_INFO_GIMBAL_ANGLE:  return REQ_LEN_CV_INFO_GIMBAL_ANGLE;
+		default:                        return CV_REQ_LEN_UNKNOWN;
+	}
+}
+
+// Returns the response value-field length (bytes) for a Tag, or 0 if unrecognised.
+static uint8_t CvCmder_GetRspValueLen(uint8_t msgType)
+{
+	switch (msgType)
+	{
+		case MSG_CHECK_STATE:           return RSP_LEN_CHECK_STATE;
+		case MSG_CV_CHASSIS_MOVE_STATE: return RSP_LEN_CV_CHASSIS_MOVE;
+		case MSG_CONTROL_SPINNNG:       return RSP_LEN_CONTROL_SPINNING;
+		case MSG_AIM_ERROR:             return RSP_LEN_AIM_ERROR;
+		case MSG_SHOOT_CMD:             return RSP_LEN_SHOOT_CMD;
+		case MSG_CV_IMU_ACCELE:         return RSP_LEN_CV_IMU_ACCELE;
+		case MSG_CV_IMU_VELOCITY:       return RSP_LEN_CV_IMU_VELOCITY;
+		case MSG_CV_IMU_POSITION:       return RSP_LEN_CV_IMU_POSITION;
+		case MSG_CV_INFO_GIMBAL_ANGLE:  return RSP_LEN_CV_INFO_GIMBAL_ANGLE;
+		default:                        return 0;
+	}
+}
+
 static void CvCmder_SendAck(uint8_t msgType)
 {
-    // For example, Tag = msgType, Length = 1, Value = 0xAA (ACK placeholder)
-    // Buffer sized for the largest payload (6 fp32 + delta) plus header and trailing CRC8
+    // TV response frame: [Tag][Value...][CRC8]. The value length is derived from the Tag (no Length
+    // byte on the wire). Buffer sized for the largest payload (6 fp32 + delta) plus Tag and CRC8.
     uint8_t ackBuf[40];
-    uint8_t fAppendSendDelay = 0; // data responses carry a trailing uint32_t send-delay (microseconds)
-    ackBuf[0] = msgType; // Tag
-          // Length
-    ackBuf[2] = 0xFF;    // Value (ACK)
+    uint8_t fAppendSendDelay = 0;            // data responses carry a trailing uint32_t send-delay (microseconds)
+    uint8_t valueLen = CvCmder_GetRspValueLen(msgType); // value byte count for this Tag
+    ackBuf[0] = msgType;                     // Tag
+    ackBuf[1] = 0xFF;                         // Value (ACK placeholder)
 	switch(msgType){
 		case MSG_CV_CHASSIS_MOVE_STATE:
 		{
-			ackBuf[1] = 1;  
-			ackBuf[2] = 0xFF;
+			ackBuf[1] = 0xFF;
 			break;
 		}
 
 		case MSG_CHECK_STATE:
 		{
-			ackBuf[1] = 2; 
 			switch(CvCmdHandler.CvCmdMsg.cv_info_type){
 				case CV_INFO_GAME_PROGRESS:{
-					ackBuf[2] = 0x00;
+					ackBuf[1] = 0x00;
 					if(is_game_started()){
-						ackBuf[3] = 0x00;
+						ackBuf[2] = 0x00;
 					}
 					else{
-						ackBuf[3] = 0xFF;
+						ackBuf[2] = 0xFF;
 					}
 					break;
 				}
 				case CV_INFO_TEAM_COLOR:{
-					ackBuf[2] = 0x01;
+					ackBuf[1] = 0x01;
 					if(get_team_color() == 1){
-						ackBuf[3] = 0x00;
+						ackBuf[2] = 0x00;
 					}
 					else{
-						ackBuf[3] = 0xFF;
+						ackBuf[2] = 0xFF;
 					}
 					break;
 				}
 				case CV_INFO_ROBOT_TYPE:{
-					ackBuf[2] = 0x02;
+					ackBuf[1] = 0x02;
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)	
-					ackBuf[3] = 0x00;
+					ackBuf[2] = 0x00;
 #else
-					ackBuf[3] = 0xFF;
+					ackBuf[2] = 0xFF;
 #endif
 					break;
 				}
@@ -335,8 +405,8 @@ static void CvCmder_SendAck(uint8_t msgType)
 				case CV_INFO_ROBOT_HP:
 				{
 					uint16_t currentHP = get_current_HP();
-					ackBuf[2] = 0x03;
-					memcpy(&ackBuf[3], &currentHP, 2);
+					ackBuf[1] = 0x03;
+					memcpy(&ackBuf[2], &currentHP, 2);
 					break;
 				}
 
@@ -347,57 +417,55 @@ static void CvCmder_SendAck(uint8_t msgType)
 		case MSG_CONTROL_SPINNNG:
 		{
 			if(CV_MODE_CHASSIS_SPINNING_BIT == 1){
-				ackBuf[1] = 1; 
-				ackBuf[2] = 0xFF;
+				ackBuf[1] = 0xFF;
 			}
 			else{
-				ackBuf[1] = 1; 
-				ackBuf[2] = 0x00;
+				ackBuf[1] = 0x00;
 			}
+			break;
 		}
 
 		case MSG_AIM_ERROR:
 		{
-			ackBuf[1] = 1; 
-			ackBuf[2] = 0xFF;
+			ackBuf[1] = 0xFF;
 			break;
 		}
 		
 		case MSG_SHOOT_CMD:
 		{
 #if !DEBUG_CV
-			ackBuf[1] = 1;
 	#if COMPETITION_TYPE == RMUC
 			if((projectile_allowance_17mm == 0 && gold_coins < 50)){
-				ackBuf[2] = 0x00; //running low on 17mm ammo
+				ackBuf[1] = 0x00; //running low on 17mm ammo
 			}
 			else if(shoot_heat_limit <= shoot_heat-30){
-				ackBuf[2] = 0xAA; // shoot heat is low enough to allow shooting
+				ackBuf[1] = 0xAA; // shoot heat is low enough to allow shooting
 			}
 			else if((gold_coins > 50)&& (projectile_allowance_17mm == 0)){
-				ackBuf[2] = 0xBB; // running low on 17mm ammo, but have enough gold coins to buy more
+				ackBuf[1] = 0xBB; // running low on 17mm ammo, but have enough gold coins to buy more
 			}
 			else{
-				ackBuf[2] = 0xFF; // shoot
+				ackBuf[1] = 0xFF; // shoot
 			}
 	#else //For RMUL there is no economy system and projectial limit
 			if(projectile_allowance_17mm == 0)
 			{
-				ackBuf[2] = 0x00; //running low on 17mm ammo
+				ackBuf[1] = 0x00; //running low on 17mm ammo
 			}
 			else if (shoot_heat_limit <= shoot_heat - 30)
 			{
-				ackBuf[2] = 0xAA; // shoot heat is low enough to allow shooting
+				ackBuf[1] = 0xAA; // shoot heat is low enough to allow shooting
 			}
 			else
 			{
-				ackBuf[2] = 0xFF; // shoot
+				ackBuf[1] = 0xFF; // shoot
 			}
 
 	#endif
 #else
-			ackBuf[2] = 0xFF;
+			ackBuf[1] = 0xFF;
 #endif
+			break;
 		}
 
         case MSG_CV_IMU_ACCELE: //We are sending CV raw data
@@ -406,10 +474,8 @@ static void CvCmder_SendAck(uint8_t msgType)
 			fp32 ang_vel_data[3];
             get_world_accel_raw(accel_data, ang_vel_data); // Get world frame linear acceleration
 
-            ackBuf[1] = 6 * sizeof(fp32) + sizeof(uint32_t); // Length: 3 linear + 3 angular + send-delay delta
-
-            memcpy(&ackBuf[2], accel_data, 3 * sizeof(fp32));
-            memcpy(&ackBuf[2 + 3 * sizeof(fp32)], ang_vel_data, 3 * sizeof(fp32));
+            memcpy(&ackBuf[1], accel_data, 3 * sizeof(fp32));
+            memcpy(&ackBuf[1 + 3 * sizeof(fp32)], ang_vel_data, 3 * sizeof(fp32));
             fAppendSendDelay = 1; // send-delay is written just before transmit
             break;
         }
@@ -419,9 +485,7 @@ static void CvCmder_SendAck(uint8_t msgType)
             fp32 velocity_data[3];
             get_world_velocity(velocity_data); // Get world frame velocity
 
-            ackBuf[1] = 3 * sizeof(fp32) + sizeof(uint32_t); // x, y, z velocity + send-delay delta
-
-            memcpy(&ackBuf[2], velocity_data, 3 * sizeof(fp32));
+            memcpy(&ackBuf[1], velocity_data, 3 * sizeof(fp32));
             fAppendSendDelay = 1; // send-delay is written just before transmit
             break;
         }
@@ -431,9 +495,7 @@ static void CvCmder_SendAck(uint8_t msgType)
             fp32 position_data[3];
             get_world_position(position_data); // Get world frame position
 
-            ackBuf[1] = 3 * sizeof(fp32) + sizeof(uint32_t); // x, y, z position + send-delay delta
-
-            memcpy(&ackBuf[2], position_data, 3 * sizeof(fp32));
+            memcpy(&ackBuf[1], position_data, 3 * sizeof(fp32));
             fAppendSendDelay = 1; // send-delay is written just before transmit
             break;
         }
@@ -445,43 +507,45 @@ static void CvCmder_SendAck(uint8_t msgType)
 			fp32 pitch_rate = get_gimbal_pitch_rate();
 			fp32 yaw_rate = get_gimbal_yaw_rate(); // gimbal angular rates (rad/s)
 
-			ackBuf[1] = 4 * sizeof(fp32); // pitch + yaw absolute angle + pitch + yaw rate
-
-			memcpy(&ackBuf[2], &pitch_angle, sizeof(fp32));
-			memcpy(&ackBuf[2 + sizeof(fp32)], &yaw_angle, sizeof(fp32));
-			memcpy(&ackBuf[2 + 2 * sizeof(fp32)], &pitch_rate, sizeof(fp32));
-			memcpy(&ackBuf[2 + 3 * sizeof(fp32)], &yaw_rate, sizeof(fp32));
+			memcpy(&ackBuf[1], &pitch_angle, sizeof(fp32));
+			memcpy(&ackBuf[1 + sizeof(fp32)], &yaw_angle, sizeof(fp32));
+			memcpy(&ackBuf[1 + 2 * sizeof(fp32)], &pitch_rate, sizeof(fp32));
+			memcpy(&ackBuf[1 + 3 * sizeof(fp32)], &yaw_rate, sizeof(fp32));
 			break;
 		}
 	}
 
 
-    // Write the send-delay (microseconds) as the trailing field of the same packet, measured as close
+    // Write the send-delay (microseconds) as the trailing field of the value region, measured as close
     // as possible to the actual UART transmit so it reflects the true request-to-send latency
     if (fAppendSendDelay)
     {
         uint32_t ulImuSendDelay = (DWT->CYCCNT - ulCvRxTimestamp) / (SystemCoreClock / 1000000U);
-        memcpy(&ackBuf[2 + ackBuf[1] - sizeof(uint32_t)], &ulImuSendDelay, sizeof(uint32_t));
+        memcpy(&ackBuf[1 + valueLen - sizeof(uint32_t)], &ulImuSendDelay, sizeof(uint32_t));
     }
 
-    // append CRC8 over the [tag][length][value] bytes; the CRC occupies one extra trailing byte
-    append_CRC8_check_sum(ackBuf, (uint16_t)ackBuf[1] + 2 + 1);
+    // append CRC8 over [Tag][Value...]; the CRC occupies one extra trailing byte
+    append_CRC8_check_sum(ackBuf, (uint16_t)valueLen + 1 + 1);
 
-    HAL_UART_Transmit(&huart1, ackBuf, (uint16_t)ackBuf[1] + 2 + 1, 100);
+    HAL_UART_Transmit(&huart1, ackBuf, (uint16_t)valueLen + 1 + 1, 100);
 }
 
-uint8_t  tag;
+
 static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 {
-    while (size >= 3)	
+    while (size >= 2)	// smallest TV frame is [Tag][CRC8] (zero-length value)
     {
-        tag    = pData[0];
-        uint8_t  length = pData[1];
-        if (size < 2 + length + 1)
+        uint8_t  tag = pData[0];
+        uint8_t  length = CvCmder_GetReqValueLen(tag); // value length is derived from the Tag, not sent on the wire
+        if (length == CV_REQ_LEN_UNKNOWN)
+            break; // unknown Tag: without a Length byte the frame size is unknown, so we cannot resync
+
+        uint16_t frameSize = (uint16_t)1 + length + 1; // [Tag] + [Value...] + [CRC8]
+        if (size < frameSize)
             break; // incomplete packet (need value bytes plus the trailing CRC8)
 
-        // verify CRC8 over [tag][length][value][crc]; drop the (suspect) frame on mismatch
-        if (!verify_CRC8_check_sum((unsigned char *)pData, 2 + length + 1))
+        // verify CRC8 over [Tag][Value][CRC8]; drop the (suspect) frame on mismatch
+        if (!verify_CRC8_check_sum((unsigned char *)pData, frameSize))
         {
             break;
         }
@@ -496,9 +560,9 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 			{
         	    if (length == 1)
         	    {
-        	        // pData[2] = state enum
+        	        // pData[1] = state enum
         	        // TODO: handle state
-					CvCmdHandler.CvCmdMsg.cv_info_type = pData[2];
+					CvCmdHandler.CvCmdMsg.cv_info_type = pData[1];
 					CvCmder_SendAck(MSG_CHECK_STATE);
 					detect_hook(CV_TOE);
         	    }
@@ -509,8 +573,8 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
         	    if (length == 8)
         	    {
 		        	fp32 xSpeed, ySpeed;
-		        	memcpy(&xSpeed, &pData[2], 4);
-		        	memcpy(&ySpeed, &pData[6], 4);
+		        	memcpy(&xSpeed, &pData[1], 4);
+		        	memcpy(&ySpeed, &pData[5], 4);
 
 		        	if (!CvSpeedFilter.fInitialized)
 		        	{
@@ -547,7 +611,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 			{
         	    if (length == 1)
         	    {
-        	        uint8_t spinCmd = pData[2]; // 0x00 or 0xFF
+        	        uint8_t spinCmd = pData[1]; // 0x00 or 0xFF
 					if(spinCmd == 0xFF)
 					{
 						CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 1);
@@ -568,8 +632,8 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
         	    if (length == 8)
         	    {
         	        fp32 xError, yError;
-        	        memcpy(&xError, &pData[2], 4);
-        	        memcpy(&yError, &pData[6], 4);
+        	        memcpy(&xError, &pData[1], 4);
+        	        memcpy(&yError, &pData[5], 4);
 #if DEBUG_CV
 					CvCmdHandler.CvCmdMsg.xAimError = xError;
 					CvCmdHandler.CvCmdMsg.yAimError = yError;
@@ -597,7 +661,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				if(length == 1){
 //setting shoot flag for automatic robots					
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
-					uint8_t shootCmd = pData[2];
+					uint8_t shootCmd = pData[1];
 	#if !DEBUG_CV
 					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-30)< shoot_heat_limit) && is_game_started()){
 	#else
@@ -634,7 +698,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 
         	default:
 			{
-        	    // unknown tag
+        	    // known tag without a dedicated handler
 				CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
 				CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
 				CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
@@ -646,8 +710,8 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 			}
 
         }
-        pData += (2 + length + 1);
-        size  -= (2 + length + 1);
+        pData += frameSize;
+        size  -= frameSize;
     }
 }
 
