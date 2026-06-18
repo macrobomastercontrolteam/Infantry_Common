@@ -20,6 +20,7 @@
 #include "referee.h"
 #include "gimbal_task.h"
 #include "INS_task.h"
+#include "CRC8_CRC16.h"
 #if DEBUG_CV_WITH_USB
 #include "usb_task.h"
 #include <stdio.h>
@@ -29,6 +30,7 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif /* MIN */
 #define DATA_PACKAGE_SIZE 10
+#define CV_RX_BUF_SIZE 64 // DMA-to-idle Rx buffer; large enough for a full burst of TLV records (each now carries a trailing CRC8)
 #define TVL_INFO_SIZE 2
 #define DATA_PACKAGE_HEADLESS_SIZE (DATA_PACKAGE_SIZE - TVL_INFO_SIZE)
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_HEADLESS_SIZE - sizeof(uint16_t) - sizeof(uint8_t)) // sizeof(uiTimestamp) and sizeof(bMsgType)
@@ -39,7 +41,7 @@
 #define CV_SPEED_FILTER_ALPHA 0.25f
 
 // Test result with pyserial: 0 to 2 millisecond of cv msg receiving interval; Message burst is at max 63 bytes per time, so any number bigger than 63 is fine for Rx buffer size
-uint8_t abUsartRxBuf[DATA_PACKAGE_SIZE];
+uint8_t abUsartRxBuf[CV_RX_BUF_SIZE];
 //eMsgTypes CV_CMD_TYPE;
 uint8_t CvCmdLength, fQpresses;
 uint8_t fIsKeyPressingEdge = 0;
@@ -57,7 +59,7 @@ typedef enum
 	MSG_CV_IMU_ACCELE = 0x05,
 	MSG_CV_IMU_VELOCITY = 0x06,
 	MSG_CV_IMU_POSITION = 0x07,
-	MSG_CV_INFO_PITCH_ANGLE = 0x08,
+	MSG_CV_INFO_GIMBAL_ANGLE = 0x08,
 } eMsgTypes;
 
 typedef enum
@@ -68,17 +70,6 @@ typedef enum
 	CV_INFO_ROBOT_HP = 0x03,
 	//CV_INFO_PITCH_ANGLE = 0x04,
 } eMsgTypeAckInfo;
-
-//
-// typedef enum
-// {
-// 	CV_INFO_TRANDELTA_BIT = 1 << 0,
-// 	CV_INFO_CVSYNCTIME_BIT = 1 << 1,
-// 	CV_INFO_REF_STATUS_BIT = 1 << 2,
-// 	CV_INFO_GIMBAL_ANGLE_BIT = 1 << 3,
-// 	CV_INFO_LAST_BIT = 1 << 4,
-// } eInfoBits;
-// STATIC_ASSERT(CV_INFO_LAST_BIT <= (1 << 8));
 
 typedef struct
 {
@@ -114,6 +105,7 @@ const uint16_t abExpectedAckPayload;
 uint8_t abExpectedUnusedPayload[DATA_PACKAGE_PAYLOAD_SIZE];
 tCvTimestamps CvTimestamps;
 tCvSpeedFilter CvSpeedFilter;
+volatile uint32_t ulCvRxTimestamp = 0; ///< DWT cycle count captured when a CV request frame is received, used to compute the IMU send delay (microseconds)
 
 #if DEBUG_CV_WITH_USB
 uint8_t fIsUserKeyPressingEdge = 0;
@@ -159,6 +151,11 @@ void cv_usart_task(void const *argument)
 
 void CvCmder_Init(void)
 {
+	// Enable the DWT cycle counter for microsecond-resolution timing of the IMU send delay
+	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+	DWT->CYCCNT = 0;
+	DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
 	CvTimestamps.TranDeltaFilter.size = CV_TRANDELTA_FILTER_SIZE;
 	CvTimestamps.TranDeltaFilter.cursor = 0;
 	CvTimestamps.TranDeltaFilter.ring = CvTimestamps.adTranDeltaFilterBuffer;
@@ -188,8 +185,11 @@ void CvCmder_Init(void)
 }
 void CvCmder_toe_solve_lost_fun(void)
 {
-	//memset(&(CvCmdHandler.CvCmdMsg), 0, sizeof(CvCmdHandler.CvCmdMsg));
-	//To do: set all RX parameter to 0 when CV is offline
+	// CV is offline: clear aim/speed commands so stale data cannot keep driving the gimbal
+	CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
+	CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
+	CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
+	CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
 }
 /**
  * @brief if a command is received from remote controller, we keep sending set-mode requests to CV until an ACK is received
@@ -284,7 +284,9 @@ void CvCmder_DetectAutoAimSwitchEdge(uint8_t fIsKeyPressed)
 static void CvCmder_SendAck(uint8_t msgType)
 {
     // For example, Tag = msgType, Length = 1, Value = 0xAA (ACK placeholder)
-    uint8_t ackBuf[26];
+    // Buffer sized for the largest payload (6 fp32 + delta) plus header and trailing CRC8
+    uint8_t ackBuf[40];
+    uint8_t fAppendSendDelay = 0; // data responses carry a trailing uint32_t send-delay (microseconds)
     ackBuf[0] = msgType; // Tag
           // Length
     ackBuf[2] = 0xFF;    // Value (ACK)
@@ -338,13 +340,6 @@ static void CvCmder_SendAck(uint8_t msgType)
 					break;
 				}
 
-				// case CV_INFO_PITCH_ANGLE:
-				// {
-				// 	ackBuf[2] = 0x04;
-				// 	fp32 pitch_angle = get_gimbal_ecd_pitch_angle();
-				// 	memcpy(&ackBuf[3], &pitch_angle, sizeof(fp32));
-				// 	break;
-				// }
 			}
 			break;
 		}
@@ -411,10 +406,11 @@ static void CvCmder_SendAck(uint8_t msgType)
 			fp32 ang_vel_data[3];
             get_world_accel_raw(accel_data, ang_vel_data); // Get world frame linear acceleration
 
-            ackBuf[1] = 6 * sizeof(fp32); // Length: 3 linear + 3 angular
+            ackBuf[1] = 6 * sizeof(fp32) + sizeof(uint32_t); // Length: 3 linear + 3 angular + send-delay delta
 
             memcpy(&ackBuf[2], accel_data, 3 * sizeof(fp32));
             memcpy(&ackBuf[2 + 3 * sizeof(fp32)], ang_vel_data, 3 * sizeof(fp32));
+            fAppendSendDelay = 1; // send-delay is written just before transmit
             break;
         }
 
@@ -423,9 +419,10 @@ static void CvCmder_SendAck(uint8_t msgType)
             fp32 velocity_data[3];
             get_world_velocity(velocity_data); // Get world frame velocity
 
-            ackBuf[1] = 3 * sizeof(fp32); // Length of the value part (x, y, z velocity)
+            ackBuf[1] = 3 * sizeof(fp32) + sizeof(uint32_t); // x, y, z velocity + send-delay delta
 
             memcpy(&ackBuf[2], velocity_data, 3 * sizeof(fp32));
+            fAppendSendDelay = 1; // send-delay is written just before transmit
             break;
         }
 
@@ -434,38 +431,64 @@ static void CvCmder_SendAck(uint8_t msgType)
             fp32 position_data[3];
             get_world_position(position_data); // Get world frame position
 
-            ackBuf[1] = 3 * sizeof(fp32); // Length of the value part (x, y, z position)
+            ackBuf[1] = 3 * sizeof(fp32) + sizeof(uint32_t); // x, y, z position + send-delay delta
 
             memcpy(&ackBuf[2], position_data, 3 * sizeof(fp32));
+            fAppendSendDelay = 1; // send-delay is written just before transmit
             break;
         }
 
-		case MSG_CV_INFO_PITCH_ANGLE:
+		case MSG_CV_INFO_GIMBAL_ANGLE:
 		{
-			fp32 pitch_angle = get_gimbal_ecd_pitch_angle();
+			fp32 pitch_angle = get_gimbal_absolute_pitch_angle();
+			fp32 yaw_angle = get_gimbal_absolute_yaw_angle(); // IMU-based absolute gimbal angles
+			fp32 pitch_rate = get_gimbal_pitch_rate();
+			fp32 yaw_rate = get_gimbal_yaw_rate(); // gimbal angular rates (rad/s)
 
-			ackBuf[1] = sizeof(fp32); // Length of pitch angle
+			ackBuf[1] = 4 * sizeof(fp32); // pitch + yaw absolute angle + pitch + yaw rate
 
 			memcpy(&ackBuf[2], &pitch_angle, sizeof(fp32));
+			memcpy(&ackBuf[2 + sizeof(fp32)], &yaw_angle, sizeof(fp32));
+			memcpy(&ackBuf[2 + 2 * sizeof(fp32)], &pitch_rate, sizeof(fp32));
+			memcpy(&ackBuf[2 + 3 * sizeof(fp32)], &yaw_rate, sizeof(fp32));
 			break;
 		}
 	}
 
 
-    // Byte 3 could remain unused or contain a CRC etc. Set to 0xFF or 0 if you like
-    //ackBuf[3] = 0xFF;
+    // Write the send-delay (microseconds) as the trailing field of the same packet, measured as close
+    // as possible to the actual UART transmit so it reflects the true request-to-send latency
+    if (fAppendSendDelay)
+    {
+        uint32_t ulImuSendDelay = (DWT->CYCCNT - ulCvRxTimestamp) / (SystemCoreClock / 1000000U);
+        memcpy(&ackBuf[2 + ackBuf[1] - sizeof(uint32_t)], &ulImuSendDelay, sizeof(uint32_t));
+    }
 
-    HAL_UART_Transmit(&huart1, ackBuf, (uint16_t)ackBuf[1] + 2, 100);
+    // append CRC8 over the [tag][length][value] bytes; the CRC occupies one extra trailing byte
+    append_CRC8_check_sum(ackBuf, (uint16_t)ackBuf[1] + 2 + 1);
+
+    HAL_UART_Transmit(&huart1, ackBuf, (uint16_t)ackBuf[1] + 2 + 1, 100);
 }
 
+uint8_t  tag;
 static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 {
-    while (size >= 2)	
+    while (size >= 3)	
     {
-        uint8_t  tag    = pData[0];
+        tag    = pData[0];
         uint8_t  length = pData[1];
-        if (size < 2 + length)
-            break; // incomplete packet
+        if (size < 2 + length + 1)
+            break; // incomplete packet (need value bytes plus the trailing CRC8)
+
+        // verify CRC8 over [tag][length][value][crc]; drop the (suspect) frame on mismatch
+        if (!verify_CRC8_check_sum((unsigned char *)pData, 2 + length + 1))
+        {
+            break;
+        }
+
+        // A CRC-valid frame proves the CV link is alive: refresh the CV_TOE timestamp here so the
+        // online status no longer depends on the tag matching a specific handler (or its length check)
+        detect_hook(CV_TOE);
 
         switch (tag)
         {
@@ -595,9 +618,9 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 				break;
 			}
 
-			case MSG_CV_INFO_PITCH_ANGLE:
+			case MSG_CV_INFO_GIMBAL_ANGLE:
 			{
-				CvCmder_SendAck(MSG_CV_INFO_PITCH_ANGLE);
+				CvCmder_SendAck(MSG_CV_INFO_GIMBAL_ANGLE);
 				detect_hook(CV_TOE);
 				break;
 			}
@@ -623,8 +646,8 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 			}
 
         }
-        pData += (2 + length);
-        size  -= (2 + length);
+        pData += (2 + length + 1);
+        size  -= (2 + length + 1);
     }
 }
 
@@ -738,6 +761,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     if (huart->Instance == USART1)
     {
 #if CV_INTERFACE
+        // timestamp the moment the CV request frame arrives, used to compute the IMU send delay (microseconds)
+        ulCvRxTimestamp = DWT->CYCCNT;
         // Directly parse all incoming data as TLV
         CvCmder_RxParserTlv(abUsartRxBuf, Size);
 #endif
