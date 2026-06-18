@@ -189,6 +189,12 @@ fp32 cv_coeff_x = 0.5, cv_coeff_y = 0.5;
 static pid_type_def cv_yaw_aim_pid;
 static pid_type_def cv_pitch_aim_pid;
 
+// The IMU yaw reference is lost (resets to ~0) on every power cycle. Once the yaw motor
+// comes online after power-up, the IMU-based yaw angle is seeded with the persistent
+// encoder angle so the gimbal knows its true heading. Captured once per MCU boot.
+static uint8_t fYawImuSeeded = 0;
+static fp32 yaw_imu_seed_offset = 0.0f;
+
 /**
   * @brief          gimbal task, osDelay GIMBAL_CONTROL_TIME_MS (1ms) 
   * @param[in]      pvParameters: null
@@ -805,8 +811,7 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
 
     feedback_update->gimbal_pitch_motor.motor_gyro = *(feedback_update->gimbal_INT_gyro_point + INS_GYRO_Y_ADDRESS_OFFSET);
 
-    feedback_update->gimbal_yaw_motor.absolute_angle = *(feedback_update->gimbal_INT_angle_point + INS_YAW_ADDRESS_OFFSET);
-
+    // compute the encoder (relative) yaw angle first so it can seed the IMU yaw on power-up
 #if YAW_REVERSED
     feedback_update->gimbal_yaw_motor.relative_angle = -motor_ecd_to_angle_change(feedback_update->gimbal_yaw_motor.gimbal_motor_measure->ecd,
                                                                                         feedback_update->gimbal_yaw_motor.offset_ecd);
@@ -815,6 +820,19 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     feedback_update->gimbal_yaw_motor.relative_angle = motor_ecd_to_angle_change(feedback_update->gimbal_yaw_motor.gimbal_motor_measure->ecd,
                                                                                         feedback_update->gimbal_yaw_motor.offset_ecd);
 #endif
+
+    {
+        // raw IMU yaw resets to ~0 on every power cycle, so it cannot give an absolute heading by itself
+        fp32 raw_yaw_angle = *(feedback_update->gimbal_INT_angle_point + INS_YAW_ADDRESS_OFFSET);
+        // seed the IMU yaw with the persistent encoder angle the first time the yaw motor is online after boot
+        if (!fYawImuSeeded && !toe_is_error(YAW_GIMBAL_MOTOR_TOE))
+        {
+            yaw_imu_seed_offset = rad_format(feedback_update->gimbal_yaw_motor.relative_angle - raw_yaw_angle);
+            fYawImuSeeded = 1;
+        }
+        feedback_update->gimbal_yaw_motor.absolute_angle = rad_format(raw_yaw_angle + yaw_imu_seed_offset);
+    }
+
     feedback_update->gimbal_yaw_motor.motor_gyro = AHRS_cosf(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_Z_ADDRESS_OFFSET))
                                                         - AHRS_sinf(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_X_ADDRESS_OFFSET));
 }
@@ -989,7 +1007,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 #if DEBUG_CV
         if(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
 #else
-        if(toe_is_error(REMOTE_TOE) && gimbal_behaviour == GIMBAL_AUTO_AIM)
+        if(toe_is_error(REMOTE_TOE) && gimbal_behaviour == GIMBAL_AUTO_AIM && !toe_is_error(CV_TOE))
 #endif
         {
             cvAidedX =  PID_calc(&cv_yaw_aim_pid,   CvCmdHandler.CvCmdMsg.xAimError, 0.0f, GIMBAL_CONTROL_TIME_S);
