@@ -62,6 +62,8 @@ typedef enum
 	MSG_CV_INFO_GIMBAL_ANGLE = 0x08,
 } eMsgTypes;
 
+#define CV_NUM_REQ_TYPES (MSG_CV_INFO_GIMBAL_ANGLE + 1) // number of request Tags (0x00..0x08), used to size the debug frequency arrays
+
 typedef enum
 {
 	CV_INFO_GAME_PROGRESS = 0x00,
@@ -143,6 +145,10 @@ tCvTimestamps CvTimestamps;
 tCvSpeedFilter CvSpeedFilter;
 volatile uint32_t ulCvRxTimestamp = 0; ///< DWT cycle count captured when a CV request frame is received, used to compute the IMU send delay (microseconds)
 
+// --- Debug: per-request update frequency, indexed by message Tag (0x00..0x08) ---
+volatile uint16_t cv_request_count[CV_NUM_REQ_TYPES]; ///< CRC-valid requests received since the last frequency calculation, indexed by Tag
+fp32 cv_request_freq_hz[CV_NUM_REQ_TYPES];            ///< debug watch: measured request rate in Hz, indexed by Tag
+
 #if DEBUG_CV_WITH_USB
 uint8_t fIsUserKeyPressingEdge = 0;
 char usbMsg[500];
@@ -181,6 +187,23 @@ void cv_usart_task(void const *argument)
 			CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
 		}
 #endif
+
+		// Debug: convert the per-Tag request counts accumulated since the last pass into an update rate (Hz)
+		{
+			static uint32_t ulLastFreqCalcTime = 0;
+			uint32_t ulNow = osKernelSysTick();
+			uint32_t ulElapsedMs = ulNow - ulLastFreqCalcTime;
+			if (ulElapsedMs > 0)
+			{
+				for (uint8_t i = 0; i < CV_NUM_REQ_TYPES; i++)
+				{
+					cv_request_freq_hz[i] = (fp32)cv_request_count[i] * 1000.0f / (fp32)ulElapsedMs;
+					cv_request_count[i] = 0;
+				}
+				ulLastFreqCalcTime = ulNow;
+			}
+		}
+
 		osDelayUntil(&ulSystemTime, CV_CONTROL_TIME_MS);
 	}
 }
@@ -416,7 +439,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 
 		case MSG_CONTROL_SPINNNG:
 		{
-			if(CV_MODE_CHASSIS_SPINNING_BIT == 1){
+			if(CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT)){
 				ackBuf[1] = 0xFF;
 			}
 			else{
@@ -530,12 +553,13 @@ static void CvCmder_SendAck(uint8_t msgType)
     HAL_UART_Transmit(&huart1, ackBuf, (uint16_t)valueLen + 1 + 1, 100);
 }
 
-
+uint8_t cv_tag_request;
 static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 {
     while (size >= 2)	// smallest TV frame is [Tag][CRC8] (zero-length value)
     {
         uint8_t  tag = pData[0];
+		cv_tag_request = tag;
         uint8_t  length = CvCmder_GetReqValueLen(tag); // value length is derived from the Tag, not sent on the wire
         if (length == CV_REQ_LEN_UNKNOWN)
             break; // unknown Tag: without a Length byte the frame size is unknown, so we cannot resync
@@ -553,6 +577,12 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
         // A CRC-valid frame proves the CV link is alive: refresh the CV_TOE timestamp here so the
         // online status no longer depends on the tag matching a specific handler (or its length check)
         detect_hook(CV_TOE);
+
+        // Debug: count each CRC-valid request per Tag so the task loop can derive its update rate (Hz)
+        if (tag < CV_NUM_REQ_TYPES)
+        {
+            cv_request_count[tag]++;
+        }
 
         switch (tag)
         {
@@ -692,6 +722,20 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 			case MSG_CV_IMU_ACCELE:
 			{
 				CvCmder_SendAck(MSG_CV_IMU_ACCELE);
+				detect_hook(CV_TOE);
+				break;
+			}
+
+			case MSG_CV_IMU_VELOCITY:
+			{
+				CvCmder_SendAck(MSG_CV_IMU_VELOCITY);
+				detect_hook(CV_TOE);
+				break;
+			}
+
+			case MSG_CV_IMU_POSITION:
+			{
+				CvCmder_SendAck(MSG_CV_IMU_POSITION);
 				detect_hook(CV_TOE);
 				break;
 			}
