@@ -36,8 +36,17 @@
 #define SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD SUPCAP_VOLTAGE_MIN
 
 // power control
+#define SPRINT_POWER_RATIO 1.2f
 #define WARNING_POWER_RATIO 0.7f
+
 #define POWER_BUFF_TOTAL 60.0f
+#define POWER_BUFF_RESERVE 20.0f
+#define POWER_BUFF_DANGER 10.0f // energy [J] below which output is zeroed
+#define ENERGY_POWER_RATIO 1.5f // slope of energy-to-power ramp [W/J]
+
+
+
+
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define WARNING_POWER_BUFF (POWER_BUFF_TOTAL / 2.0f)
@@ -66,31 +75,40 @@
 
 // per-motor polynomial model parameters (ported from power_manager)
 #define POWER_COMPENSATION_ALPHA 0.02f      // 2% safety margin applied to total power
-#define MOTOR_RESERVED_POWER_BORDER 54.0f   // total limit [W] below which no per-motor reserve is applied
 #define PER_MOTOR_RESERVED_POWER 8.0f       // guaranteed per-motor power floor [W]
-#define TOO_SMALL_ALL_ERRORS 500.0f         // if sum of all motor errors < this, share power equally
+#define TOO_SMALL_ALL_ERRORS 0.04f         // if sum of all motor errors < this, share power equally
 #define MOVING_AVG_FILTER_MAX_SIZE 32       // maximum buffer length for moving-average filter
 
 #if(ROBOT_TYPE == INFANTRY_2024_MECANUM)
-#define M3508_power_param_K0 1.296006f
-#define M3508_power_param_K1 0.003200f
-#define M3508_power_param_K2 0.000628f
-#define M3508_power_param_K3 0.000046f
-#define M3508_power_param_K4 0.000508f
+#define M3508_power_param_K0 1.548523f
+#define M3508_power_param_K1 0.008882f
+#define M3508_power_param_K2 0.000040f
+#define M3508_power_param_K3 0.000054f
+#define M3508_power_param_K4 0.000524f
 #define M3508_power_param_K5 0.000001f
 #define M3508_Current_Convertion 1638.4f
 
-
 #elif(ROBOT_TYPE == HERO_2025_MECANUM)
-#define M3508_power_param_K0 0.837573
-#define M3508_power_param_K1 0.175117f
-#define M3508_power_param_K2 -0.000651f
-#define M3508_power_param_K3 0.003180f
-#define M3508_power_param_K4 0.387271f
-#define M3508_power_param_K5 -0.000000f
-#define M3508_Current_Convertion 1000
+#define M3508_power_param_K0 1.7790400f
+#define M3508_power_param_K1 0.0027178f   
+#define M3508_power_param_K2 0.0004475f   // |v| term  [W/(m/s)]
+#define M3508_power_param_K3 0.0000410f   // I*v term  [W/(A*(m/s))]
+#define M3508_power_param_K4 0.0005230f   // I^2 term  [W/A^2]
+#define M3508_power_param_K5 0.0000010f
+#define M3508_Current_Convertion 1638.4f // 16384 CAN = 10 A  =>  1 A / 1638.4 CAN
+
+#elif(ROBOT_TYPE == SENTRY_2026_OMNI)
+#define MG4010_power_param_K0 2.659709
+#define MG4010_power_param_K1 -904.459254
+#define MG4010_power_param_K2 0.933765
+#define MG4010_power_param_K3 -355.626056
+#define MG4010_power_param_K4 346724.708151
+#define MG4010_power_param_K5 0.089585
+#define MG4010_Current_Convertion 1.0f
 
 #endif
+
+#define POWER_LIMIT_HYSTERESIS 0.05f  // 5% 
 
 typedef enum
 {
@@ -121,6 +139,7 @@ typedef struct
     fp32 predict_not_limit_power;
     fp32 predict_power;
     fp32 power_limit;
+    uint8_t is_limiting;
 } motor_power_t;
 
 // chassis-level power manager for NUM_DRIVE_MOTORS motors

@@ -41,17 +41,8 @@
 // motor model default coefficients
 // P_i = K0 + K1*I + K2*|v| + K3*I*v + K4*I^2 + K5*v^2
 // I [A] = CAN_cmd / current_conversion,  v [m/s]
-const static motor_power_init_t motor_init_default = {
-    .k0 = 1.325f,               
-    .k1 = 0.0f,
-    .k2 = 2.15f,                // |v| term  [W/(m/s)]
-    .k3 = 3.30f,                // I*v term  [W/(A*(m/s))]
-    .k4 = 0.106f,               // I^2 term  [W/A^2]
-    .k5 = 0.0f,
-    .real_current_conversion = 1638.4f, // 16384 CAN = 10 A  =>  1 A / 1638.4 CAN
-};
-
-const static motor_power_init_t M3508_power_init_data = {
+#if((ROBOT_TYPE == INFANTRY_2024_MECANUM)||(ROBOT_TYPE == HERO_2025_MECANUM))
+const static motor_power_init_t motor_power_init_data = {
     .k0 = M3508_power_param_K0,
     .k1 = M3508_power_param_K1,
     .k2 = M3508_power_param_K2,
@@ -60,27 +51,22 @@ const static motor_power_init_t M3508_power_init_data = {
     .k5 = M3508_power_param_K5,
     .real_current_conversion = M3508_Current_Convertion
 };
-
-// energy-based power planning parameters
-fp32 pwr_p_ref_max_ratio = 1.2f;  // P_ref_max = chassis_power_limit * this
-fp32 pwr_p_ref_min_ratio = 0.8f;  // P_ref_min = chassis_power_limit * this
-fp32 pwr_e_converge = 20.0f;      // energy [J] where P_ref = P_referee_max
-fp32 pwr_e_danger = 10.0f;         // energy [J] below which output is zeroed
-fp32 pwr_p_slope = 1.5f;          // slope of energy-to-power ramp [W/J]
+#elif(ROBOT_TYPE == SENTRY_2026_OMNI)
+const static motor_power_init_t motor_power_init_data = {
+    .k0 = MG4010_power_param_K0,
+    .k1 = MG4010_power_param_K1,
+    .k2 = MG4010_power_param_K2,
+    .k3 = MG4010_power_param_K3,
+    .k4 = MG4010_power_param_K4,
+    .k5 = MG4010_power_param_K5,
+    .real_current_conversion = MG4010_Current_Convertion
+};
+#endif     
 
 // telemetry
 fp32 chassis_power_limit;
 fp32 chassis_power;
 fp32 chassis_power_buffer;
-fp32 temp_p_ref;
-fp32 temp_k_limit;  // average per-motor scaling coefficient
-
-//temp debug variable
-fp32 temp_processed_out[4];
-fp32 temp_predicted_power;
-//motor 4
-fp32 temp_feedback_current;
-fp32 temp_feedback_speed;
 
 // module-private instances
 static motor_power_t chassis_motor_power[NUM_DRIVE_MOTORS];
@@ -91,28 +77,24 @@ static chassis_power_manager_t chassis_power_manager;
   *                 linear in energy, clamped to [P_ref_min, P_ref_max].
   *                 returns 0 when energy is critically low.
   * @param[in]      remaining_energy: buffer / supercap remaining energy [J]
-  * @param[in]      p_referee_max: referee power limit [W]
+  * @param[in]      refree_power_limit: referee power limit [W]
   * @retval         desired chassis power [W]
   */
-static fp32 compute_p_ref(fp32 remaining_energy, fp32 p_referee_max)
+static fp32 compute_p_ref(fp32 remaining_energy, fp32 refree_power_limit)
 {
     fp32 p_ref;
     fp32 p_max;
     fp32 p_min;
 
-    if (remaining_energy < pwr_e_danger)
-        return p_referee_max; //to handel case where buffer energy couldn't be successfy received TODO:validate if would disrupt power control  //0.0f;
+    p_max = refree_power_limit * SPRINT_POWER_RATIO;
+    p_min = refree_power_limit * WARNING_POWER_RATIO;
 
-    p_ref = p_referee_max + pwr_p_slope * (remaining_energy - pwr_e_converge);
-    p_max = p_referee_max * pwr_p_ref_max_ratio;
-    p_min = p_referee_max * pwr_p_ref_min_ratio;
+    if (remaining_energy < POWER_BUFF_DANGER)
+        return p_min; //to handle case where buffer energy couldn't be successfy received TODO:validate if would disrupt power control  //0.0f;
 
-    if (p_ref > p_max)
-        p_ref = p_max;
-    if (p_ref < p_min)
-        p_ref = p_min;
-
-    return p_ref;
+    p_ref = refree_power_limit + ENERGY_POWER_RATIO * (remaining_energy - POWER_BUFF_RESERVE);
+    
+    return fp32_constrain(p_ref, p_min, p_max);
 }
 
 void motor_power_init(motor_power_t *mp, const motor_power_init_t *init_data)
@@ -128,6 +110,7 @@ void motor_power_init(motor_power_t *mp, const motor_power_init_t *init_data)
     mp->predict_not_limit_power = 0.0f;
     mp->predict_power = 0.0f;
     mp->power_limit = 0.0f;
+    mp->is_limiting = 0;
 }
 
 fp32 motor_power_get_real_current(const motor_power_t *mp, fp32 current)
@@ -211,7 +194,6 @@ fp32 motor_power_limiter(motor_power_t *mp, fp32 *desired_current,
     // check whether full demand already fits within budget
     predicted_power = motor_power_update(mp, desired_current_val, current_speed,
         MOTOR_PWR_PREDICT_NOT_LIMIT, MOTOR_PWR_NEGATIVE_DISABLED);
-    temp_predicted_power = chassis_motor_power[3].predict_power;
 
     if (predicted_power <= motor_power_limit)
     {
@@ -226,12 +208,12 @@ fp32 motor_power_limiter(motor_power_t *mp, fp32 *desired_current,
     c = mp->K0 + mp->K2 * real_speed + mp->K5 * real_speed * real_speed - motor_power_limit;
 
     // degenerate: no quadratic term, solve linear b*k + c = 0
-    if (fabs(a) < 1e-9f)
+    if (fabs(a) < 1e-5f)
     {
-        if (fabs(b) < 1e-9f)
+        if (fabs(b) < 1e-5f)
         {
             // constant model: within limit or not
-            if (c <= 1e-9f)
+            if (c <= 1e-5f)
             {
                 motor_power_update(mp, *desired_current, current_speed,
                     MOTOR_PWR_PREDICT_ENABLED, MOTOR_PWR_NEGATIVE_DISABLED);
@@ -275,7 +257,7 @@ fp32 motor_power_limiter(motor_power_t *mp, fp32 *desired_current,
         return 0.0f;
     }
 
-    if (fabs(discriminant) < 1e-9f)
+    if (fabs(discriminant) < 1e-5f)
     {
         k = -b / (2.0f * a);
         if (k < 0.0f)
@@ -334,21 +316,20 @@ fp32 motor_power_limiter(motor_power_t *mp, fp32 *desired_current,
 }
 
 // distribute total_power_limit across NUM_DRIVE_MOTORS motors in proportion
-// to their error magnitudes. motor_errors[] values are replaced with their
-// absolute values as a side effect.
-void power_allocation_by_error(fp32 motor_errors[NUM_DRIVE_MOTORS],
-    fp32 total_power_limit, fp32 buffer_power_attenuation,
-    fp32 result[NUM_DRIVE_MOTORS])
+// to their error magnitudes.
+void power_allocation_by_error(fp32 motor_errors[NUM_DRIVE_MOTORS], fp32 total_power_limit, fp32 buffer_power_attenuation, fp32 result[NUM_DRIVE_MOTORS])
 {
     uint8_t i = 0;
     fp32 total_error;
-    fp32 equal_share;
     fp32 ratio;
+
+    fp32 total_reserved_power;
+    fp32 distributable_power;
 
     total_power_limit *= (1.0f - POWER_COMPENSATION_ALPHA);
     total_power_limit *= buffer_power_attenuation;
 
-    if (total_power_limit <= 1e-9f)
+    if (total_power_limit <= 1e-5f)
     {
         for (i = 0; i < NUM_DRIVE_MOTORS; i++)
         {
@@ -357,39 +338,25 @@ void power_allocation_by_error(fp32 motor_errors[NUM_DRIVE_MOTORS],
         return;
     }
 
-    for (i = 0; i < NUM_DRIVE_MOTORS; i++)
-    {
-        motor_errors[i] = fabs(motor_errors[i]);
-    }
-
     total_error = motor_errors[0] + motor_errors[1] + motor_errors[2] + motor_errors[3];
+    total_reserved_power = (fp32)NUM_DRIVE_MOTORS * PER_MOTOR_RESERVED_POWER;
 
     // if total demand is very small (robot near-stationary), share equally
-    if (total_error <= TOO_SMALL_ALL_ERRORS)
+    if ((total_error < TOO_SMALL_ALL_ERRORS)||(total_power_limit < total_reserved_power))
     {
-        equal_share = total_power_limit / (fp32)NUM_DRIVE_MOTORS;
         for (i = 0; i < NUM_DRIVE_MOTORS; i++)
         {
-            result[i] = equal_share;
+            result[i] = total_power_limit / (fp32)NUM_DRIVE_MOTORS;
         }
-        return;
     }
+    else 
+    {
+        distributable_power = total_power_limit - total_reserved_power;
 
-    if (total_power_limit < MOTOR_RESERVED_POWER_BORDER)
-    {
         for (i = 0; i < NUM_DRIVE_MOTORS; i++)
         {
             ratio = motor_errors[i] / total_error;
-            result[i] = ratio * total_power_limit;
-        }
-    }
-    else
-    {
-        for (i = 0; i < NUM_DRIVE_MOTORS; i++)
-        {
-            ratio = motor_errors[i] / total_error;
-            result[i] = ratio * (total_power_limit - (fp32)NUM_DRIVE_MOTORS * PER_MOTOR_RESERVED_POWER)
-                + PER_MOTOR_RESERVED_POWER;
+            result[i] = PER_MOTOR_RESERVED_POWER + ratio * distributable_power;
         }
     }
 }
@@ -475,7 +442,7 @@ fp32 rotate_speed_allocation(int16_t vx, int16_t vy, int16_t rotate, fp32 alpha)
     fp32 translation = sqrtf((fp32)vx * (fp32)vx + (fp32)vy * (fp32)vy);
     fp32 adjusted_rotate;
 
-    if (fabs(translation) <= 1e-9f)
+    if (fabs(translation) <= 1e-5f)
         return (fp32)rotate;
 
     adjusted_rotate = fabs((fp32)rotate) - alpha * translation;
@@ -522,18 +489,23 @@ fp32 maf_update(moving_avg_filter_t *f, fp32 new_value)
 void chassis_power_control(void)
 {
     static uint8_t fInitialized = 0;
+    static fp32 k_uniform_filtered = 1.0f;
     uint8_t i = 0;
     fp32 p_ref;
     fp32 pid_out;
     fp32 k;
-    fp32 k_sum = 0.0f;
+    fp32 k_uniform;
+    fp32 pid_out_raw[NUM_DRIVE_MOTORS];
+    fp32 k_arr[NUM_DRIVE_MOTORS];
+    fp32 feedback_speed[4];
+    fp32 normalized_error;
 
     // one-time initialisation of motor model instances
     if (!fInitialized)
     {
         for (i = 0; i < NUM_DRIVE_MOTORS; i++)
         {
-            motor_power_init(&chassis_motor_power[i], &M3508_power_init_data);
+            motor_power_init(&chassis_motor_power[i], &motor_power_init_data);
         }
 
         chassis_pm_init(&chassis_power_manager,
@@ -542,8 +514,6 @@ void chassis_power_control(void)
         fInitialized = 1;
     }
 
-    temp_feedback_current = first_order_filter(motor_chassis[3].feedback_current, temp_feedback_current, 0.1f);
-    temp_feedback_speed = motor_chassis[3].speed_rpm;
 
     chassis_power_buffer = (fp32)can_ref_info.chassis_power_buffer;
     chassis_power_limit = (fp32)can_ref_info.chassis_power_limit;
@@ -551,8 +521,8 @@ void chassis_power_control(void)
 
     // 1. energy-based desired power planning
     p_ref = compute_p_ref(chassis_power_buffer, chassis_power_limit);
-    temp_p_ref = p_ref;
-
+    
+    
     if (p_ref <= 0.0f)
     {
         // critically low energy: cut all output
@@ -560,29 +530,42 @@ void chassis_power_control(void)
         {
             chassis_move.motor_chassis[i].give_chassis_motor_cmd = 0;
         }
-        temp_k_limit = 0.0f;
+        k_uniform_filtered = 0.0f;
         return;
     }
 
     // 2. distribute budget across motors by PID demand magnitude
     for (i = 0; i < NUM_DRIVE_MOTORS; i++)
     {
-        chassis_pm_update_error(&chassis_power_manager, i, chassis_move.motor_speed_pid[i].out);
+        normalized_error =  chassis_move.motor_speed_pid[i].out / chassis_move.motor_speed_pid[i].max_out;
+        chassis_pm_update_error(&chassis_power_manager, i, normalized_error);
     }
     chassis_pm_allocate_power(&chassis_power_manager, p_ref, 1.0f);
 
     // 3. per-motor limiting: scale each PID output to stay within allocated budget
     for (i = 0; i < NUM_DRIVE_MOTORS; i++)
     {
-        pid_out = chassis_move.motor_speed_pid[i].out; //copy the pid out to local to isolate from pid control loop
+#if ((ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM))
+        feedback_speed[i] = motor_chassis[i].speed_rpm;
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+        feedback_speed[i] = motor_chassis[i].velocity;
+#else
+#error "undefined feedback speed data"
+#endif
+        pid_out_raw[i] = chassis_move.motor_speed_pid[i].out; // copy the pid out to local to isolate from pid control loop
+        pid_out = pid_out_raw[i];                             // throwaway copy, motor_power_limiter scales it in place
+
         k = motor_power_limiter(&chassis_motor_power[i], &pid_out,
-                                motor_chassis[i].speed_rpm, chassis_motor_power[i].power_limit);
-        
-        temp_processed_out[i] = (int16_t)pid_out;
-        chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)pid_out;//first_order_filter((int16_t)(chassis_move.motor_speed_pid[i].out), chassis_move.motor_chassis[i].give_chassis_motor_cmd, 0.5f);//not apply processed value first
-        k_sum += k;
+                                feedback_speed[i], chassis_motor_power[i].power_limit);
+
+        k_arr[i] = k;
     }
-    temp_k_limit = k_sum / (fp32)NUM_DRIVE_MOTORS;
+
+    for (i = 0; i < NUM_DRIVE_MOTORS; i++)
+    {
+        chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)(pid_out_raw[i] * k_arr[i] * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);//(int16_t)(pid_out_raw[i] * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);//
+    }
+
 }
 
 bool_t chassis_power_control_mode_change(uint8_t fIsKeyPressed)
