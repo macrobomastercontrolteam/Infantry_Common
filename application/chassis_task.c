@@ -218,6 +218,17 @@ void vtm_gimbal_control(void)
 				vtm_gimbal.pitch_target_ecd = M3508_loop_ecd_constrain(vtm_gimbal.pitch_target_ecd + VTM_PITCH_ECD_KEYBOARD_SEN_INC);
 			}
 		}
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+		// VT13 right joystick controls the VTM (secondary) gimbal:
+		//   right horizontal -> yaw, right vertical -> pitch
+		{
+			int16_t vtm_yaw_channel, vtm_pitch_channel;
+			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], vtm_yaw_channel, CHASSIS_RC_DEADLINE);
+			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], vtm_pitch_channel, CHASSIS_RC_DEADLINE);
+			vtm_gimbal.yaw_target_ecd = M3508_loop_ecd_constrain(vtm_gimbal.yaw_target_ecd + vtm_yaw_channel * VTM_YAW_ECD_RC_SEN_INC);
+			vtm_gimbal.pitch_target_ecd = M3508_loop_ecd_constrain(vtm_gimbal.pitch_target_ecd + vtm_pitch_channel * VTM_PITCH_ECD_RC_SEN_INC);
+		}
+#endif
 		vtm_gimbal.yaw_target_ecd = fp32_constrain(vtm_gimbal.yaw_target_ecd, -HALF_ECD_RANGE, HALF_ECD_RANGE);
 		vtm_gimbal.pitch_target_ecd = fp32_constrain(vtm_gimbal.pitch_target_ecd, -HALF_ECD_RANGE, HALF_ECD_RANGE);
 		vtm_gimbal.yaw_current_cmd = PID_calc_with_dot_filter(&vtm_gimbal.yaw_ecd_pid, motor_measure[MOTOR_INDEX_VTM_YAW].ecd, vtm_gimbal.yaw_target_ecd, vtm_yaw_error_dot_filter_coeff);
@@ -277,6 +288,15 @@ void robot_arm_control(void)
 		}
 		case ROBOT_ARM_CHANGEABLE:
 		{
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+			// VT13 has no joystick arm control, so leaving HOME (entering CHANGEABLE) must
+			// clear fHoming here; otherwise fHoming stays latched at 1 forever and every
+			// toggle back to HOME emits the same all-0xFF homing frame, so the arm controller
+			// never sees a fresh non-home -> home transition and homing never re-triggers.
+			chassis_move.fHoming = 0;
+#else
+			// DR16: joysticks drive the arm joints. On VT13 the joysticks are reserved
+			// for chassis (left) and the VTM gimbal (right), so arm joystick control is ignored.
 			fp32 right_horiz_channel, right_vert_channel, left_horiz_channel, left_vert_channel;
 			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_HORIZONTAL_CHANNEL], right_horiz_channel, CHASSIS_RC_DEADLINE);
 			deadband_limit(chassis_move.chassis_RC->rc.ch[JOYSTICK_RIGHT_VERTICAL_CHANNEL], right_vert_channel, CHASSIS_RC_DEADLINE);
@@ -288,7 +308,7 @@ void robot_arm_control(void)
 				chassis_move.fHoming = 0;
 			}
 
-			switch (chassis_move.chassis_RC->rc.s[RIGHT_LEVER_CHANNEL])
+			switch (chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL])
 			{
 				case RC_SW_UP:
 				{
@@ -313,6 +333,7 @@ void robot_arm_control(void)
 					break;
 				}
 			}
+#endif
 
 			for (uint8_t i = 0; i < 7; i++)
 			{
@@ -359,7 +380,7 @@ void wait_until_all_necessary_modules_online(void)
 	uint8_t fIsError = 1;
 	while (fIsError)
 	{
-		fIsError = is_error_exist_in_range(DBUS_TOE, CHASSIS_MOTOR4_TOE);
+		fIsError = is_error_exist_in_range(REMOTE_TOE, CHASSIS_MOTOR4_TOE);
 		osDelay(2 * CHASSIS_CONTROL_TIME_MS);
 	}
 }

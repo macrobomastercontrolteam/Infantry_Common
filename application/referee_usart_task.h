@@ -32,4 +32,15 @@
   * @retval         none
   */
 extern void referee_usart_task(void const * argument);
+
+/**
+  * @brief          push externally received bytes into the referee FIFO
+  * @note           Used when the referee/custom-controller stream is carried over
+  *                 a peripheral other than the dedicated referee USART (e.g. USART6
+  *                 shared with the VT13 remote). Safe to call from interrupt context.
+  * @param[in]      data: pointer to received bytes
+  * @param[in]      len: number of bytes
+  * @retval         none
+  */
+extern void referee_push_bytes(uint8_t *data, uint16_t len);
 #endif

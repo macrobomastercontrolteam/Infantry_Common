@@ -50,6 +50,11 @@ fifo_s_t referee_fifo;
 uint8_t referee_fifo_buf[REFEREE_FIFO_BUF_LENGTH];
 unpack_data_t referee_unpack_obj;
 
+// Set once the referee FIFO is initialized so external producers (e.g. the
+// VT13 USART6 IRQ, which carries the referee/custom-controller stream) can
+// safely push bytes only after the FIFO is ready.
+static volatile uint8_t referee_fifo_ready = 0;
+
 /**
   * @brief          referee task
   * @param[in]      pvParameters: NULL
@@ -64,7 +69,11 @@ void referee_usart_task(void const * argument)
 {
     init_referee_struct_data();
     fifo_s_init(&referee_fifo, referee_fifo_buf, REFEREE_FIFO_BUF_LENGTH);
+    referee_fifo_ready = 1;
+#if (REMOTE_TYPE != REMOTE_USE_VT13)
+    // When VT13 is selected it owns USART6, so the referee must not reconfigure it.
     usart6_init(usart6_buf[0], usart6_buf[1], USART_RX_BUF_LENGTH);
+#endif
 
     while(1)
     {
@@ -72,6 +81,26 @@ void referee_usart_task(void const * argument)
         referee_unpack_fifo_data();
         osDelay(10);
     }
+}
+
+/**
+  * @brief          push externally received bytes into the referee FIFO
+  * @note           Used when the referee/custom-controller stream is carried over
+  *                 another peripheral (e.g. USART6 shared with the VT13 remote).
+  *                 Safe to call from interrupt context; mirrors the FIFO feed the
+  *                 dedicated referee USART6 IRQ performs.
+  * @param[in]      data: pointer to received bytes
+  * @param[in]      len: number of bytes
+  * @retval         none
+  */
+void referee_push_bytes(uint8_t *data, uint16_t len)
+{
+    if (!referee_fifo_ready || data == NULL || len == 0)
+    {
+        return;
+    }
+    fifo_s_puts(&referee_fifo, (char *)data, len);
+    detect_hook(REFEREE_TOE);
 }
 
 
@@ -183,6 +212,10 @@ void referee_unpack_fifo_data(void)
 }
 
 
+/* When REMOTE_TYPE == REMOTE_USE_VT13 the VT13 remote owns USART6 (its
+ * USART6_IRQHandler lives in remote_control.c), so the referee must not define
+ * a second handler for the same interrupt vector. */
+#if (REMOTE_TYPE != REMOTE_USE_VT13)
 void USART6_IRQHandler(void)
 {
     static volatile uint8_t res;
@@ -218,5 +251,6 @@ void USART6_IRQHandler(void)
         }
     }
 }
+#endif
 
 

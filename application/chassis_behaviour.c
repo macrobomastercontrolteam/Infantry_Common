@@ -185,19 +185,19 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 		return;
 	}
 
-	if (is_error_exist_in_range(DBUS_TOE, CHASSIS_MOTOR4_TOE))
+	if (is_error_exist_in_range(REMOTE_TOE, CHASSIS_MOTOR4_TOE))
 	{
 		chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
     chassis_move_mode->chassis_mode = CHASSIS_VECTOR_RAW;
 	}
 	else
 	{
-		switch (chassis_move_mode->chassis_RC->rc.s[RIGHT_LEVER_CHANNEL])
+		switch (chassis_move_mode->chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL])
 		{
 			case RC_SW_UP:
 			case RC_SW_MID:
 			{
-				if (chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL] == RC_SW_UP)
+				if (chassis_move_mode->chassis_RC->rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP)
 				{
 					chassis_behaviour_mode = CHASSIS_NO_MOVE;
           chassis_move_mode->chassis_mode = CHASSIS_VECTOR_NO_FOLLOW_YAW;
@@ -225,7 +225,47 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 		case CHASSIS_NO_FOLLOW_YAW:
     case CHASSIS_NO_MOVE:
 		{
-			switch (chassis_move_mode->chassis_RC->rc.s[LEFT_LEVER_CHANNEL])
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+			// VT13 has no left lever, so the arm mode is driven by the trigger and pause buttons:
+			//   trigger             : toggle ROBOT_ARM_CHANGEABLE <-> ROBOT_ARM_HOME
+			//   pause               : latch ROBOT_ARM_FIXED (remembers the mode active before pausing)
+			//   trigger after pause : restore the mode that was active before the pause
+			static robot_arm_behaviour_e vt13_arm_mode = ROBOT_ARM_HOME;
+			static robot_arm_behaviour_e vt13_arm_mode_before_pause = ROBOT_ARM_HOME;
+			static uint8_t vt13_arm_paused = 0;
+			static uint8_t vt13_last_trigger = 0;
+			static uint8_t vt13_last_pause = 0;
+
+			if (key_rising_edge(&vt13_last_pause, chassis_move_mode->chassis_RC->vt13.pause_button))
+			{
+				if (!vt13_arm_paused)
+				{
+					vt13_arm_mode_before_pause = vt13_arm_mode;
+					vt13_arm_mode = ROBOT_ARM_FIXED;
+					vt13_arm_paused = 1;
+				}
+			}
+
+			if (key_rising_edge(&vt13_last_trigger, chassis_move_mode->chassis_RC->vt13.trigger))
+			{
+				if (vt13_arm_paused)
+				{
+					vt13_arm_mode = vt13_arm_mode_before_pause;
+					vt13_arm_paused = 0;
+				}
+				else if (vt13_arm_mode == ROBOT_ARM_CHANGEABLE)
+				{
+					vt13_arm_mode = ROBOT_ARM_HOME;
+				}
+				else
+				{
+					vt13_arm_mode = ROBOT_ARM_CHANGEABLE;
+				}
+			}
+
+			chassis_move_mode->robot_arm_mode = vt13_arm_mode;
+#else
+			switch (chassis_move_mode->chassis_RC->rc.s[RC_LEFT_LEVER_CHANNEL])
 			{
 				case RC_SW_UP:
 				{
@@ -244,6 +284,7 @@ void chassis_behaviour_mode_set(chassis_move_t *chassis_move_mode)
 					break;
 				}
 			}
+#endif
 			break;
 		}
 		case CHASSIS_ZERO_FORCE:
@@ -393,5 +434,5 @@ static void chassis_no_follow_yaw_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_s
     }
 
     chassis_rc_to_control_vector(vx_set, vy_set, chassis_move_rc_to_vector);
-    *wz_set = -CHASSIS_WZ_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[CHASSIS_WZ_CHANNEL];
+    *wz_set = -CHASSIS_WZ_RC_SEN * chassis_move_rc_to_vector->chassis_RC->rc.ch[RC_DIAL_CHANNEL];
 }

@@ -47,6 +47,14 @@ frame_header_struct_t referee_send_header;
 // ext_sentry_cmd_t sentry_cmd_t;
 // ext_radar_cmd_t radar_cmd_t;
 custom_robot_data_t diy_controller;
+
+// DIY (custom) controller debug variables for live monitoring (e.g. STM32CubeMonitor).
+// volatile + non-static so they are kept in the symbol table and not optimised away.
+volatile uint32_t diy_dbg_rx_count = 0;        // total DIY controller frames received
+volatile uint32_t diy_dbg_applied_count = 0;   // frames whose teaching data was applied to the arm
+volatile uint8_t  diy_dbg_is_teaching = 0;     // last received fIsTeaching flag
+volatile uint8_t  diy_dbg_gate_passed = 0;     // last frame passed the teaching gate (1) or not (0)
+volatile fp32     diy_dbg_arm_angle[7] = {0};  // last received demoArmAngle[]
 // ext_map_command_t map_command_t;
 // ext_map_robot_data_t map_robot_data_t;
 // ext_robot_keyboard_mouse_command_t robot_keyboard_mouse_command_t;
@@ -285,14 +293,34 @@ void referee_data_solve(uint8_t *frame)
 		// }
 		case DIY_controller_DATA_SEND_ID:
         {
+			uint8_t diy_teaching_gate;
 			memcpy(&diy_controller.data, frame + index, sizeof(diy_controller));
-			if ((diy_controller.tData.fIsTeaching == 1) && (rc_ctrl.rc.s[LEFT_LEVER_CHANNEL] == RC_SW_UP) && (rc_ctrl.rc.s[RIGHT_LEVER_CHANNEL] != RC_SW_DOWN))
+
+			// Mirror the received frame into the debug variables for live monitoring.
+			diy_dbg_rx_count++;
+			diy_dbg_is_teaching = diy_controller.tData.fIsTeaching;
+			for (uint8_t i = 0; i < 7; i++)
+			{
+				diy_dbg_arm_angle[i] = diy_controller.tData.demoArmAngle[i];
+			}
+
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+			// VT13 has no left lever: its single mode switch maps to rc.s[RC_RIGHT_LEVER_CHANNEL]
+			// (C -> RC_SW_UP). Accept teaching data only when that switch is at the up-equivalent
+			// state and the arm is actually in the CHANGEABLE mode driven by the trigger toggle.
+			diy_teaching_gate = ((diy_controller.tData.fIsTeaching == 1) && (rc_ctrl.rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP) && (chassis_move.robot_arm_mode == ROBOT_ARM_CHANGEABLE));
+#else
+			diy_teaching_gate = ((diy_controller.tData.fIsTeaching == 1) && (rc_ctrl.rc.s[RC_LEFT_LEVER_CHANNEL] == RC_SW_UP) && (rc_ctrl.rc.s[RC_RIGHT_LEVER_CHANNEL] != RC_SW_DOWN));
+#endif
+			diy_dbg_gate_passed = diy_teaching_gate;
+			if (diy_teaching_gate)
 			{
 				for (uint8_t i = 0; i < 7; i++)
 				{
 					chassis_move.robot_arm_motor_pos[i] = fp32_constrain(diy_controller.tData.demoArmAngle[i], joint_angle_min[i], joint_angle_max[i]);
 				}
 				chassis_move.fHoming = 0;
+				diy_dbg_applied_count++;
 			}
 			break;
         }

@@ -11,6 +11,8 @@
 #define CUSTOM_CONTROLLER_MODE 0
 #define INDIVIDUAL_MOTOR_TEST 1
 
+#define REMOTE_USE_DR16 0
+#define REMOTE_USE_VT13 1
 /********************* Only Modify this area (start) *********************/
 #define ROBOT_TYPE ENGINEER_2024_MECANUM
 #define SENTRY_HW_TEST 0
@@ -18,6 +20,7 @@
 #define DEBUG_CV_WITH_USB 0
 #define TEST_NO_REF 1
 #define ENGINEER_CONTROL_MODE INDIVIDUAL_MOTOR_TEST
+#define REMOTE_TYPE REMOTE_USE_VT13
 /********************* Only Modify this area (end) *********************/
 
 typedef signed char int8_t;

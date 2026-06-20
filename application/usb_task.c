@@ -62,9 +62,9 @@ accel sensor:%s\r\n\
 mag sensor:%s\r\n\
 referee usart:%s\r\n\
 cv usart:%s\r\n\
-******************************\r\n",
+******************************\r\n",	
 			get_battery_percentage(),
-			status[error_list_usb_local[DBUS_TOE].error_exist],
+			status[error_list_usb_local[REMOTE_TOE].error_exist],
 			status[error_list_usb_local[CHASSIS_MOTOR1_TOE].error_exist],
 			status[error_list_usb_local[CHASSIS_MOTOR2_TOE].error_exist],
 			status[error_list_usb_local[CHASSIS_MOTOR3_TOE].error_exist],

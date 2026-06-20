@@ -1,9 +1,11 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       remote_control.c/h
-  * @brief      遥控器处理，遥控器是通过类似SBUS的协议传输，利用DMA传输方式节约CPU
-  *             资源，利用串口空闲中断来拉起处理函数，同时提供一些掉线重启DMA，串口
-  *             的方式保证热插拔的稳定性。
+  * @brief      Remote control processing, the remote control is transmitted through a
+  *            protocol similar to SBUS, using DMA transmission method to save CPU
+  *           resources, using serial port idle interrupt to pull up the processing function,
+  *         and providing some offline restart DMA, serial port
+  *       to ensure the stability of hot swap.
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -22,9 +24,18 @@
 #include "global_inc.h"
 #include "bsp_rc.h"
 
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+// VT13 shares USART6 with the referee/custom-controller stream. The receive
+// buffer must be large enough to hold a full referee frame (the custom
+// controller 0x0302 frame is ~39 bytes, larger than a 36-byte SBUS buffer)
+// so referee frames are captured intact within a single IDLE burst.
+#define SBUS_RX_BUF_NUM 512u
+#else
 #define SBUS_RX_BUF_NUM 36u
+#endif
 
 #define RC_FRAME_LENGTH 18u
+#define VT13_FRAME_LENGTH 21u
 
 #define RC_CH_VALUE_MIN         ((uint16_t)364)
 #define RC_CH_VALUE_OFFSET      ((uint16_t)1024)
@@ -59,14 +70,27 @@
 #define JOYSTICK_RIGHT_VERTICAL_CHANNEL 1
 #define JOYSTICK_LEFT_HORIZONTAL_CHANNEL 2
 #define JOYSTICK_LEFT_VERTICAL_CHANNEL 3
-#define RIGHT_LEVER_CHANNEL 0
-#define LEFT_LEVER_CHANNEL 1
+#define RC_DIAL_CHANNEL 4
+#define RC_RIGHT_LEVER_CHANNEL 0
+#define RC_LEFT_LEVER_CHANNEL 1
 
 #define JOYSTICK_HALF_RANGE 660.0f
 #define JOYSTICK_FULL_RANGE (JOYSTICK_HALF_RANGE*2.0f)
 
+// Measured max value that my mouse can reach by my "average-human" hand (depends on mouse but not too much)
+#define MOUSE_X_MAX_SPEED 7700.0f // positive direction is to the right
+#define MOUSE_Y_MAX_SPEED 1400.0f // positive direction is downwards
+#define MOUSE_Z_MAX_SPEED 60.0f // positive direction is scrolling forward
+// Measured speed value corresponding to move across hand available workspace (abbrev. handspace) for one second
+#define MOUSE_X_HANDSPACE_PER_S 1000.0f
+#define MOUSE_Y_HANDSPACE_PER_S 700.0f
+#define MOUSE_Z_HANDSPACE_PER_S 40.0f
+// since mouse speed appears as an arch, calculate about the "effective" speed
+#define MOUSE_X_EFFECTIVE_SPEED (MOUSE_X_HANDSPACE_PER_S / 5.0f)
+#define MOUSE_Y_EFFECTIVE_SPEED (MOUSE_Y_HANDSPACE_PER_S / 5.0f)
+
 // toggle auto-aim mode
-#define AUTO_AIM_TOGGLE_KEYBOARD KEY_PRESSED_OFFSET_G
+#define AUTO_AIM_TOGGLE_KEYBOARD KEY_PRESSED_OFFSET_Z
 /* ----------------------- Data Struct ------------------------------------- */
 typedef __packed struct
 {
@@ -88,6 +112,15 @@ typedef __packed struct
                 uint16_t v;
         } key;
 
+        __packed struct
+        {
+                uint8_t trigger;
+                uint8_t customizable_button_left;
+                uint8_t customizable_button_right;
+                uint8_t pause_button;
+                int16_t dial;
+        } vt13;
+
 } RC_ctrl_t;
 
 /* ----------------------- Internal Data ----------------------------------- */
@@ -97,6 +130,8 @@ extern const RC_ctrl_t *get_remote_control_point(void);
 extern uint8_t RC_data_is_error(void);
 extern void solve_RC_lost(void);
 extern void solve_data_error(void);
-extern RC_ctrl_t rc_ctrl;
 // extern void sbus_to_usart1(uint8_t *sbus);
+extern bool_t key_rising_edge(uint8_t *last, uint8_t current);
+extern bool_t key_falling_edge(uint8_t *last, uint8_t current);
+extern RC_ctrl_t rc_ctrl;
 #endif

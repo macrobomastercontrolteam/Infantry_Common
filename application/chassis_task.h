@@ -31,10 +31,17 @@
 
 //the channel num of controlling vertial speed 
 //前后的遥控器通道号码
-#define CHASSIS_X_CHANNEL 1
 //the channel num of controlling horizontal speed
 //左右的遥控器通道号码
-#define CHASSIS_Y_CHANNEL 0
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+// VT13: left joystick drives the chassis translation (same mapping as poc/RMUL_2026)
+#define CHASSIS_X_CHANNEL JOYSTICK_LEFT_VERTICAL_CHANNEL
+#define CHASSIS_Y_CHANNEL JOYSTICK_LEFT_HORIZONTAL_CHANNEL
+#else
+// DR16: right joystick drives the chassis translation
+#define CHASSIS_X_CHANNEL JOYSTICK_RIGHT_VERTICAL_CHANNEL
+#define CHASSIS_Y_CHANNEL JOYSTICK_RIGHT_HORIZONTAL_CHANNEL
+#endif
 
 //in some mode, can use remote control to control rotation speed
 //在特殊模式下，可以通过遥控器控制旋转
@@ -288,6 +295,9 @@
 #define VTM_YAW_ECD_KEYBOARD_SEN_INC (PI / 2.0f * MOTOR_RAD_TO_ECD / VTM_YAW_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S)
 #define VTM_PITCH_KEYBOARD_CHANGE_TIME_S 1.0f
 #define VTM_PITCH_ECD_KEYBOARD_SEN_INC (PI / 2.0f * MOTOR_RAD_TO_ECD / VTM_PITCH_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S)
+// VT13 right joystick controls the VTM (secondary) gimbal; full joystick deflection matches the keyboard slew rate
+#define VTM_YAW_ECD_RC_SEN_INC (VTM_YAW_ECD_KEYBOARD_SEN_INC / JOYSTICK_HALF_RANGE)
+#define VTM_PITCH_ECD_RC_SEN_INC (VTM_PITCH_ECD_KEYBOARD_SEN_INC / JOYSTICK_HALF_RANGE)
 /************ VTM gimbal configs ************/
 
 typedef enum
