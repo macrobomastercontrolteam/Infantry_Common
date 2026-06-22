@@ -489,12 +489,10 @@ fp32 maf_update(moving_avg_filter_t *f, fp32 new_value)
 void chassis_power_control(void)
 {
     static uint8_t fInitialized = 0;
-    static fp32 k_uniform_filtered = 1.0f;
     uint8_t i = 0;
     fp32 p_ref;
     fp32 pid_out;
     fp32 k;
-    fp32 k_uniform;
     fp32 pid_out_raw[NUM_DRIVE_MOTORS];
     fp32 k_arr[NUM_DRIVE_MOTORS];
     fp32 feedback_speed[4];
@@ -530,7 +528,6 @@ void chassis_power_control(void)
         {
             chassis_move.motor_chassis[i].give_chassis_motor_cmd = 0;
         }
-        k_uniform_filtered = 0.0f;
         return;
     }
 

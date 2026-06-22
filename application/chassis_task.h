@@ -27,7 +27,7 @@
 // default values
 #define SPINNING_CHASSIS_MAX_OMEGA RPM_TO_RADS(120.0f)
 #define SPINNING_CHASSIS_HIGH_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.833f)
-#define SPINNING_CHASSIS_MED_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 1.1f)
+#define SPINNING_CHASSIS_MED_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.667f)
 #define SPINNING_CHASSIS_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.583f)
 #define SPINNING_CHASSIS_ULTRA_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.167f)
 
@@ -380,6 +380,8 @@ fp32 chassis_get_high_wz_limit(void);
 fp32 chassis_get_med_wz_limit(void);
 fp32 chassis_get_low_wz_limit(void);
 fp32 chassis_get_ultra_low_wz_limit(void);
+
+fp32 calc_wz_max_speed(fp32 vx_speed_limit, fp32 vy_speed_limit, fp32 wz_scaling_factor);
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_platform_rc_mapping(void);
