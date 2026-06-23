@@ -293,8 +293,45 @@
 #define YAW_ANGLE_PID_KD        0.0f
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
+#elif (ROBOT_TYPE == HERO_2025_MECANUM)
+//#warning "PID for this robot type HERO_2025_MECNUM is not defined yet all values are set to 0"
 
-#elif (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
+//pitch speed close-loop PID params, max out and max iout
+#if ROBOT_PITCH_IS_4340
+#define PITCH_SPEED_PID_KP        1.5f
+#define PITCH_SPEED_PID_KI        0.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   9.5f
+#define PITCH_SPEED_PID_MAX_IOUT  9.5f
+#else
+#error "Pitch PID is not setup for this robot type"
+#endif
+
+#if ROBOT_YAW_IS_4310
+//yaw speed close-loop PID params, max out and max iout
+#define YAW_SPEED_PID_KP        0.75f
+#define YAW_SPEED_PID_KI        0.5f
+#define YAW_SPEED_PID_KD        0.1f
+#define YAW_SPEED_PID_MAX_OUT   6.5f
+#define YAW_SPEED_PID_MAX_IOUT  2.33f
+#else
+#error "Yaw PID is not setup for this robot type"
+#endif
+
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_ANGLE_PID_KP 40.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.3f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 15.0f
+
+//yaw gyro angle close-loop PID params, max out and max iout
+#define YAW_ANGLE_PID_KP        35.0f
+#define YAW_ANGLE_PID_KI        2.0f
+#define YAW_ANGLE_PID_KD        0.9f
+#define YAW_ANGLE_PID_MAX_OUT   10.0f
+#define YAW_ANGLE_PID_MAX_IOUT  10.0f
+#elif (ROBOT_TYPE == HERO_2026_OMNI)
 //#warning "PID for this robot type HERO_2025_MECNUM is not defined yet all values are set to 0"
 
 //pitch speed close-loop PID params, max out and max iout
@@ -332,14 +369,14 @@
 #define YAW_ANGLE_PID_KD        0.2f
 #if (ROBOT_TYPE == HERO_2026_OMNI)
 //secondary yaw speed close-loop PID params, max out and max iout
-#define SECOND_YAW_SPEED_PID_KP        0.4f
+#define SECOND_YAW_SPEED_PID_KP        0.5f
 #define SECOND_YAW_SPEED_PID_KI        0.0f
 #define SECOND_YAW_SPEED_PID_KD        0.0f
 #define SECOND_YAW_SPEED_PID_MAX_OUT   10.0f
 #define SECOND_YAW_SPEED_PID_MAX_IOUT  2.33f
 
 //secondary yaw gyro angle close-loop PID params, max out and max iout
-#define SECOND_YAW_ANGLE_PID_KP        18.0f
+#define SECOND_YAW_ANGLE_PID_KP        8.0f
 #define SECOND_YAW_ANGLE_PID_KI        0.0f
 #define SECOND_YAW_ANGLE_PID_KD        0.0f
 #define SECOND_YAW_ANGLE_PID_MAX_OUT   10.0f

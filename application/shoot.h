@@ -51,11 +51,18 @@
 #define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO 1.0f
 #define TRIGGER_WHEEL_CAPACITY 6.0f
 #elif(ROBOT_TYPE == HERO_2026_OMNI)
-#define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO 1.0f
-#define TRIGGER_WHEEL_CAPACITY 6.0f
+// MG4010 trigger motor -> trigger wheel external gear ratio.
+// Set this to your mechanical design's reduction (e.g. (57.0f / 24.0f) like INFANTRY_2024_MECANUM); 1.0f means direct drive.
+#define TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO (85.0f / 56.0f)
+#define TRIGGER_WHEEL_CAPACITY 4.0f
 #endif
 
+// Internal gear ratio of the trigger motor itself (rotor -> motor output shaft).
+#if TRIGGER_MOTOR_IS_4010
+#define TRIGGER_MOTOR_GEAR_RATIO  MOTOR_MG4010_GEAR_RATIO
+#else
 #define TRIGGER_MOTOR_GEAR_RATIO  36.0f
+#endif
 #define TRIGGER_MOTOR_RPM_TO_SPEED  (2.0f * PI / 60.0f / TRIGGER_MOTOR_GEAR_RATIO)
 #define TRIGGER_MOTOR_ECD_TO_ANGLE  (2.0f * PI / (float)ECD_RANGE / TRIGGER_MOTOR_GEAR_RATIO / TRIGGER_MOTOR_TO_WHEEL_GEAR_RATIO)
 #define TRIGGER_MOTOR_ANGLE_THRESHOLD 0.05f
@@ -174,12 +181,12 @@
 #define BLOCK_TRIGGER_SPEED         0.2f //READY_TRIGGER_SPEED * 0.5f
 #define IDLE_TRIGGER_SPEED          2.0f
 #elif (ROBOT_TYPE == HERO_2026_OMNI)
-#define TRIGGER_ANGLE_PID_KP        2000.0f
-#define TRIGGER_ANGLE_PID_KI        0.75f
-#define TRIGGER_ANGLE_PID_KD        0.12f
+#define TRIGGER_ANGLE_PID_KP        1.0f
+#define TRIGGER_ANGLE_PID_KI        0.0f
+#define TRIGGER_ANGLE_PID_KD        0.0f
 
-#define TRIGGER_BULLET_PID_MAX_OUT  10000.0f
-#define TRIGGER_BULLET_PID_MAX_IOUT 5000.0f
+#define TRIGGER_BULLET_PID_MAX_OUT  10.0f
+#define TRIGGER_BULLET_PID_MAX_IOUT 5.0f
 
 #define BLOCK_TRIGGER_SPEED         0.2f //READY_TRIGGER_SPEED * 0.5f
 #define IDLE_TRIGGER_SPEED          2.0f

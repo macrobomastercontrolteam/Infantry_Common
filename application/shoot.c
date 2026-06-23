@@ -639,8 +639,15 @@ int16_t shoot_control_loop(void)
 
     // Calculate PID output for trigger motor.
     // Note: PID is calculated based on 'shoot_control.speed' (filtered actual speed) and 'shoot_control.speed_set' (target speed from stall handler).
+#if TRIGGER_MOTOR_IS_4010
+	// The MG4010 runs its own internal speed closed-loop, so we forward the speed setpoint directly
+	// instead of running the firmware PID. Convert the target output-shaft speed (rad/s) into the
+	// motor-rotor speed command in deg/s (1 dps/LSB), the same unit used for the chassis MG4010.
+	shoot_control.cmd_value = (int16_t)fp32_abs_constrain(shoot_control.speed_set / TRIGGER_MOTOR_RPM_TO_SPEED * 6.0f, MOTOR_MG4010_MAX_CMD);
+#else
 	PID_calc(&shoot_control.trigger_motor_pid, shoot_control.speed, shoot_control.speed_set, SHOOT_CONTROL_TIME_S);
 	shoot_control.cmd_value = (int16_t)(shoot_control.trigger_motor_pid.out); // This is the command value for the trigger motor.
+#endif
 
 	// Calculate PID outputs for friction motors.
 	PID_calc(&shoot_control.friction_motor1_pid, shoot_control.friction_motor1_rpm, shoot_control.friction_motor1_rpm_set, SHOOT_CONTROL_TIME_S);

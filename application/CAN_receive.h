@@ -97,6 +97,10 @@ typedef enum
   CAN_PISTON_MOTOR_ID = 0x207, // On gimbal
 #endif
 
+#if TRIGGER_MOTOR_IS_4010
+  CAN_TRIGGER_MG4010_ID = 0x147, // KTech MG4010 trigger motor (single-motor speed control), on GIMBAL_CAN
+#endif
+
 } can_msg_id_e;
 
 typedef enum
@@ -328,6 +332,15 @@ typedef struct
   */
 extern void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 secondary_yaw, fp32 pitch, int16_t trigger, int16_t fric1, int16_t fric2, int16_t piston_motor);
 extern void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down);
+
+#if TRIGGER_MOTOR_IS_4010
+/**
+  * @brief          send single-motor speed command to the KTech MG4010 trigger motor (0x217) on GIMBAL_CAN
+  * @param[in]      trigger_speed_cmd: motor-rotor speed command in deg/s (1 dps/LSB), range [-MOTOR_MG4010_MAX_CMD, MOTOR_MG4010_MAX_CMD]
+  * @retval         none
+  */
+extern void CAN_cmd_4010_trigger(int16_t trigger_speed_cmd);
+#endif
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 void CAN_cmd_upper_head(void);

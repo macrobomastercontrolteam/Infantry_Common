@@ -80,6 +80,10 @@
 #define REVERSE_MG4010_3 0
 #define REVERSE_MG4010_4 0
 
+// Set to 1 to reverse the MG4010 trigger motor spin direction (command + feedback are both flipped,
+// so the firmware "positive = loading" convention stays physically correct).
+#define REVERSE_TRIGGER_MG4010 0
+
 #if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 1
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
@@ -95,7 +99,7 @@ extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 power_meter_can_rx_t power_meter_can_rx_msg;
 
-#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR) || TRIGGER_MOTOR_IS_4010
 static uint8_t can_send_data[8];
 static CAN_TxHeaderTypeDef can_tx_message;
 uint32_t send_mail_box;
@@ -104,7 +108,9 @@ HAL_StatusTypeDef encode_ktech_broadcast_speed_control(const int16_t speedContro
 HAL_StatusTypeDef Send_CAN_Cmd(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data, uint8_t blocking_call);
 HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *tx_header, uint8_t *tx_data);
 void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId);
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
 void CAN_cmd_4010_chassis(void);
+#endif
 #endif
 
 void CAN_cmd_3508_chassis(void);
@@ -321,6 +327,15 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				break;
 			}
 #endif
+#if TRIGGER_MOTOR_IS_4010
+			case CAN_TRIGGER_MG4010_ID:
+			{
+				bMotorId = MOTOR_INDEX_TRIGGER;
+				decode_MG_4010_motor_feedback(rx_data, bMotorId);
+				detect_hook(TRIGGER_MOTOR_TOE);
+				break;
+			}
+#endif
 #if IS_TRIGGER_ON_GIMBAL
 			case CAN_TRIGGER_MOTOR_ID:
 			{
@@ -443,7 +458,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			}
 #endif
 
-#if (IS_TRIGGER_ON_GIMBAL == 0)
+#if (IS_TRIGGER_ON_GIMBAL == 0) && (TRIGGER_MOTOR_IS_4010 == 0)
 			case CAN_TRIGGER_MOTOR_ID:
 			{
         		bMotorId = MOTOR_INDEX_TRIGGER;
@@ -543,7 +558,7 @@ void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId)
 	motor_chassis[bMotorId].temperate = data[6];
 }
 
-#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR) || TRIGGER_MOTOR_IS_4010
 void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
 
@@ -556,6 +571,20 @@ void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId)
 	motor_chassis[bMotorId].velocity = ((fp32)v_int) / MOTOR_MG4010_GEAR_RATIO / 180.0f * PI;
 	motor_chassis[bMotorId].output_angle = ((fp32)p_int) / (1 << 14) * 2.0f * PI;
 	motor_chassis[bMotorId].temperature = data[1];
+
+	// Populate ecd/last_ecd (scaled from the 14-bit MG4010 encoder 0..16383 down to ECD_RANGE 0..8191)
+	// so the trigger ammo/position counting in shoot.c keeps working like the RM motor path.
+	uint16_t ecd_scaled = (uint16_t)(p_int >> 1);
+#if TRIGGER_MOTOR_IS_4010 && REVERSE_TRIGGER_MG4010
+	if (bMotorId == MOTOR_INDEX_TRIGGER)
+	{
+		ecd_scaled = (uint16_t)((ECD_RANGE - 1) - ecd_scaled);
+		motor_chassis[bMotorId].speed_rpm = -motor_chassis[bMotorId].speed_rpm;
+		motor_chassis[bMotorId].velocity = -motor_chassis[bMotorId].velocity;
+	}
+#endif
+	motor_chassis[bMotorId].last_ecd = motor_chassis[bMotorId].ecd;
+	motor_chassis[bMotorId].ecd = ecd_scaled;
 }
 
 HAL_StatusTypeDef encode_ktech_broadcast_speed_control(const int16_t speedControlCmd[4], uint8_t blocking_call, CAN_HandleTypeDef *hcan_ptr)
@@ -617,6 +646,44 @@ HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef
 	}
 	return CAN_status;
 }
+
+#if TRIGGER_MOTOR_IS_4010
+/**
+  * @brief          send a single-motor speed command to the KTech MG4010 trigger motor (0x217) on GIMBAL_CAN.
+  *                 Uses the same int16 deg/s (1 dps/LSB) speed encoding as the chassis MG4010 broadcast.
+  * @param[in]      trigger_speed_cmd: motor-rotor speed command in deg/s
+  * @retval         none
+  */
+void CAN_cmd_4010_trigger(int16_t trigger_speed_cmd)
+{
+#if (ENABLE_TRIGGER_MOTOR_POWER == 0)
+	trigger_speed_cmd = 0;
+#endif
+
+#if REVERSE_TRIGGER_MG4010
+	trigger_speed_cmd = -trigger_speed_cmd;
+#endif
+
+	int16_t cmd = (int16_t)fp32_abs_constrain((fp32)trigger_speed_cmd, MOTOR_MG4010_MAX_CMD);
+
+	can_tx_message.StdId = CAN_TRIGGER_MG4010_ID;
+	can_tx_message.ExtId = 0x00;
+	can_tx_message.IDE = CAN_ID_STD;
+	can_tx_message.RTR = CAN_RTR_DATA;
+	can_tx_message.DLC = 8;
+
+	can_send_data[0] = (uint8_t)cmd;
+	can_send_data[1] = (uint8_t)(cmd >> 8);
+	can_send_data[2] = 0;
+	can_send_data[3] = 0;
+	can_send_data[4] = 0;
+	can_send_data[5] = 0;
+	can_send_data[6] = 0;
+	can_send_data[7] = 0;
+
+	Send_CAN_Cmd(&GIMBAL_CAN, &can_tx_message, can_send_data, 1);
+}
+#endif
 
 #endif
 fp32 uint_to_fp32_motor(int x_int, fp32 x_min, fp32 x_max, int bits)
@@ -996,6 +1063,10 @@ void CAN_cmd_gimbal_upper_can_ID(fp32 yaw, fp32 secondary_yaw, fp32 pitch, int16
 #if (ENABLE_TRIGGER_MOTOR_POWER == 0)
 	trigger = 0;
 #endif
+#if TRIGGER_MOTOR_IS_4010
+	// The MG4010 trigger motor is commanded separately via CAN_cmd_4010_trigger(); keep this legacy RM frame slot empty.
+	trigger = 0;
+#endif
 #if (ENABLE_PITCH_MOTOR_POWER == 0)
 	pitch = 0;
 #endif
@@ -1313,7 +1384,7 @@ void CAN_cmd_3508_chassis(void)
 #endif
 }
 
-#if (ROBOT_TYPE == SENTRY_2026_OMNI)
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR) || (TRIGGER_MOTOR_IS_4010)
 void CAN_cmd_4010_chassis(void)
 {
 	uint8_t blocking_call = 1;

@@ -79,6 +79,13 @@
 #define ROBOT_YAW_IS_4310 0
 #endif
 
+// Trigger motor type selection: HERO_2026_OMNI uses a KTech MG4010 (speed-controlled) trigger motor
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+#define TRIGGER_MOTOR_IS_4010 0
+#else
+#define TRIGGER_MOTOR_IS_4010 0
+#endif
+
 #if (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 // Pitch use DaMiao 4310
 #define ROBOT_PITCH_IS_4310 0
@@ -101,7 +108,7 @@
 #define ROBOT_YAW_HAS_SLIP_RING 0
 #endif
 
-#if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM))
+#if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM))
 #define WHEEL_TYPE ROBOT_CHASSIS_USE_MECANUM 
 #define MOTOR_TYPE POWER_TRAIN_USE_3508_MOTOR 
 //#warning "INFANTRY_2023_MECANUM, INFANTRY_2024_MECANUM and HERO_2025_MECANUM are using mecanum wheels and 3508 motors, please make sure the chassis is built accordingly and the firmware is configured correctly"
@@ -117,6 +124,10 @@
 #define WHEEL_TYPE ROBOT_CHASSIS_USE_BIPED
 #define MOTOR_TYPE POWER_TRAIN_USE_SPECIAL_CTRL
 //#warning "INFANTRY_2024_BIPED is using biped wheels, please make sure the chassis is built accordingly and the firmware is configured correctly"
+#elif (ROBOT_TYPE == HERO_2026_OMNI)
+#define WHEEL_TYPE ROBOT_CHASSIS_USE_OMNI
+#define MOTOR_TYPE POWER_TRAIN_USE_4010_MOTOR
+//#warning "HERO_2026_OMNI is using omni wheels and 4010 motors, please make sure the chassis is built accordingly and the firmware is configured correctly"
 #else
 #error "No chassis type defined for the selected ROBOT_TYPE"
 #endif
