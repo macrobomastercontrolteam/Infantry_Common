@@ -535,19 +535,6 @@ static uint8_t vt13_verify_frame_crc(const uint8_t *frame)
 #endif
 
 
-bool_t key_rising_edge(uint8_t *last, uint8_t current)
-{
-    bool_t rising = (current && !(*last));
-    *last = current;
-    return rising;
-}
-
-bool_t key_falling_edge(uint8_t *last, uint8_t current)
-{
-    bool_t rising = (!current && *last);
-    *last = current;
-    return rising;
-}
 // // We don't use this feature. USART1 is used to communicate with CV instead.
 // /**
 //   * @brief          send sbus data by usart1, called in usart3_IRQHandle
