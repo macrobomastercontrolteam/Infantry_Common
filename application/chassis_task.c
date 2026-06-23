@@ -1026,7 +1026,7 @@ static void chassis_control_loop(void)
 #else
 		for (i = 0; i < 4; i++)
 		{
-			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)(chassis_move.motor_speed_pid[i].out; *MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
+			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)((chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
 		}
 #endif
 	}
