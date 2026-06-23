@@ -202,7 +202,7 @@ static void chassis_init(void)
 	//low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vy.out, 0.05f, 1);
 	chassis_move.vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
 	chassis_move.vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
-	chassis_move.wz_max_speed = SPINNING_CHASSIS_MAX_OMEGA;
+	chassis_move.wz_max_speed = SPINNING_CHASSIS_MED_OMEGA;
 
 	chassis_move.dial_channel_latched = 0;
 
@@ -353,109 +353,40 @@ void chassis_speed_max_adj(void)
 	get_chassis_power_data(&ref_chassis_power_buffer, &ref_chassis_power_limit);
 #endif
 	
-
-	// Tuning guide: normal mode only uses 10% power buffer; sprint mode only use 75%
 	fp32 vx_speed_limit = 0;
 	fp32 vy_speed_limit = 0;
-	uint16_t uiPowerLevel = fp32_constrain(ref_chassis_power_limit - 40, 0, 100) / 5;
-	switch (uiPowerLevel)
-	{
-		case 0:
-		case 1:
-		{
-			// 0-49
-			vx_speed_limit = 1.41;
-			vy_speed_limit = 1.41;
-			break;
-		}
-		case 2:
-		{
-			// 50-54
-			vx_speed_limit = 1.58;
-			vy_speed_limit = 1.58;
-			break;
-		}
-		case 3:
-		{
-			// 55-59
-			// low: 1.6
-			// high: 1.8
-			vx_speed_limit = 1.71;
-			vy_speed_limit = 1.71;
-			break;
-		}
-		case 4:
-		{
-			// 60-64
-			vx_speed_limit = 1.75;
-			vy_speed_limit = 1.75;
-			break;
-		}
-		case 5:
-		{
-			// 65-69
-			vx_speed_limit = 1.775;
-			vy_speed_limit = 1.775;
-			break;
-		}
-		case 6:
-		{
-			// 70-74
-			vx_speed_limit = 1.85;
-			vy_speed_limit = 1.85;
-			break;
-		}
-		case 7:
-		{
-			// 75-79
-			vx_speed_limit = 1.9;
-			vy_speed_limit = 1.9;
-			break;
-		}
-		case 8:
-		{
-			// 80-84
-			vx_speed_limit = 1.925;
-			vy_speed_limit = 1.925;
-			break;
-		}
-		case 9:
-		{
-			// 85-89
-			vx_speed_limit = 2.0;
-			vy_speed_limit = 2.0;
-			break;
-		}
-		case 10:
-		default:
-		{
-			// 90-94
-		    vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X;
-		    vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y;
-			break;
-		}
-	}
+	fp32 wz_speed_limit = 0;
+	fp32 wz_scaling_factor = 0;
+	fp32 buffer_ratio;
 	
-	if ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE) && (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE))
+	if(ref_chassis_power_buffer < 10.0f)
 	{
-		chassis_move.vx_max_speed = vy_speed_limit;
+		vx_speed_limit = 0.25f;
+		vy_speed_limit = 0.25f;
+		wz_scaling_factor = 0.1f;
+	}
+	else
+    {
+        buffer_ratio = fp32_constrain((ref_chassis_power_buffer - 10.0f) / 20.0f, 0.0f, 1.0f);
+
+        vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X * (0.7f + 0.3f * buffer_ratio);
+        vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y * (0.7f + 0.3f * buffer_ratio);
+        wz_scaling_factor = 0.25f + 0.75f * buffer_ratio;
+    }
+
+	if ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE) || (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE))
+	{
+		vx_speed_limit = vy_speed_limit;
+		wz_speed_limit = calc_wz_max_speed(vx_speed_limit, vy_speed_limit, wz_scaling_factor); //further limit the spinning speed in spinning mode to avoid high power consumption
 	}
 	else
 	{
-		chassis_move.vx_max_speed = vx_speed_limit;
+		wz_speed_limit = calc_wz_max_speed(vx_speed_limit, vy_speed_limit, 1.0f);
 	}
-	chassis_move.vy_max_speed = vy_speed_limit;
 
-	const fp32 vx_to_wz_limit_coeff = 1.5f / NORMAL_MAX_CHASSIS_SPEED_X * SPINNING_CHASSIS_MAX_OMEGA;
-	fp32 wz_decay_by_v_coeff = fp32_constrain(1 - sqrtf(chassis_move.vx_set * chassis_move.vx_set + chassis_move.vy_set * chassis_move.vy_set) / chassis_move.vx_max_speed, 0, 1);
-	chassis_move.wz_max_speed = vx_speed_limit * vx_to_wz_limit_coeff * wz_decay_by_v_coeff;
-
-	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
-	{
-		chassis_move.vx_max_speed = fp32_abs_constrain(chassis_move.vx_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPRINT_MAX_CHASSIS_SPEED_X);
-		chassis_move.vy_max_speed = fp32_abs_constrain(chassis_move.vy_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPRINT_MAX_CHASSIS_SPEED_Y);
-		chassis_move.wz_max_speed = fp32_abs_constrain(chassis_move.wz_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPINNING_CHASSIS_MAX_OMEGA);
-	}
+	chassis_move.vx_max_speed = fp32_abs_constrain(vx_speed_limit, NORMAL_MAX_CHASSIS_SPEED_X);
+	chassis_move.vy_max_speed = fp32_abs_constrain(vy_speed_limit, NORMAL_MAX_CHASSIS_SPEED_Y);
+	chassis_move.wz_max_speed = fp32_abs_constrain(wz_speed_limit, SPINNING_CHASSIS_MAX_OMEGA);
 }
 
 /**
@@ -472,7 +403,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set)
 		return;
 	}
 
-	chassis_speed_max_adj();
+	chassis_speed_max_adj();//
 
 	int16_t vx_channel, vy_channel;
 	fp32 vx_set_channel, vy_set_channel;
@@ -1236,14 +1167,15 @@ static void chassis_control_loop(void)
 		{
 			PID_calc(&chassis_move.motor_speed_pid[i], chassis_move.motor_chassis[i].speed, chassis_move.motor_chassis[i].speed_set, CHASSIS_CONTROL_TIME_S);
 		}
-		if (!toe_is_error(SUPCAP_TOE))
-		{
-			chassis_power_control((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C) != 0);
-		}
+
+#if CHASSIS_POWER_CONTROL
+		chassis_power_control(); // chassis_move.motor_chassis[i].give_chassis_motor_cmd assigned inside
+#else
 		for (i = 0; i < 4; i++)
 		{
 			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)((chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
 		}
+#endif
 	}
 #endif
 }
@@ -1266,6 +1198,25 @@ fp32 chassis_get_low_wz_limit(void)
 fp32 chassis_get_ultra_low_wz_limit(void)
 {
 	return (chassis_move.wz_max_speed * 0.167f);
+}
+
+fp32 calc_wz_max_speed(fp32 vx_speed_limit, fp32 vy_speed_limit, fp32 wz_scaling_factor)
+{
+	const fp32 WZ_MIN_RATIO = 0.25f; // keep 25% turning ability at high speed
+
+	fp32 wz_max_speed = 0.0f;
+ 
+	fp32 vx_norm = chassis_move.vx_set / fp32_constrain(vx_speed_limit, 0.01f, NORMAL_MAX_CHASSIS_SPEED_X);;
+	fp32 vy_norm = chassis_move.vy_set / fp32_constrain(vy_speed_limit, 0.01f, NORMAL_MAX_CHASSIS_SPEED_Y);;
+
+	fp32 v_norm = sqrtf(vx_norm * vx_norm + vy_norm * vy_norm);
+	v_norm = fp32_constrain(v_norm, 0.0f, 1.0f);
+
+	fp32 wz_decay_by_v_coeff =
+		WZ_MIN_RATIO + (1.0f - WZ_MIN_RATIO) * (1.0f - v_norm);
+
+	wz_max_speed = SPINNING_CHASSIS_MAX_OMEGA * wz_decay_by_v_coeff * wz_scaling_factor;
+	return wz_max_speed;
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)

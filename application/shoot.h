@@ -82,7 +82,7 @@
 #define FRICTION_MOTOR_SPEED  26.0f
 #else
 #define FRICTION_MOTOR_SPEED  1.0f
-#warning "turn-on redundant switch before competition, currently shoot in low speed "
+//#warning "turn-on redundant switch before competition, currently shoot in low speed "
 #endif
 
 //***************2025_Hero *******************/

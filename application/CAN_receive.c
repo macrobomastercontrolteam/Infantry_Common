@@ -31,6 +31,7 @@
 #include "string.h"
 #include "shoot.h"
 #include "custom_ui_task.h"
+#include "user_lib.h"
 
 // Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
@@ -1563,7 +1564,6 @@ void pull_ref_info(uint8_t info_code)
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, interboard_can_send_data, &send_mail_box);
 }
 
-uint8_t temp_pmm_gimbal = 0;
 
 void decode_ref_info(uint8_t *rx_data)
 {
@@ -1587,8 +1587,23 @@ void decode_ref_info(uint8_t *rx_data)
 		
 			robot_state.power_management_chassis_output = 1;//rx_data[7] & POWER_MANAGEMNT_CHASSIS_BIT;
 			robot_state.power_management_shooter_output = 1;//rx_data[7] & POWER_MANAGEMNT_SHOOTER_BIT;
-			robot_state.power_management_gimbal_output = 1;
-			temp_pmm_gimbal = rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT;
+			robot_state.power_management_gimbal_output = 1; //rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT;
+			break;
+		}
+
+		case CHASSIS_POWERMETER_DATA://TODO:remove after debug
+		{
+			uint16_t encoded_chassis_power;
+			uint16_t encoded_chassis_current;
+			uint16_t encoded_chassis_voltage;
+
+			memcpy(&encoded_chassis_current, rx_data + 1, 2);
+			memcpy(&encoded_chassis_voltage, rx_data + 3, 2);
+			memcpy(&encoded_chassis_power, rx_data + 5, 2);
+
+			can_ref_info.PowerMeter_reading = decode_int16_to_fp32(encoded_chassis_power);
+			can_ref_info.PowerMeter_current = decode_int16_to_fp32(encoded_chassis_current) * 1000.0f;
+			can_ref_info.PowerMeter_voltage = decode_int16_to_fp32(encoded_chassis_voltage);
 			break;
 		}
 	

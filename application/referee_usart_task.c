@@ -36,6 +36,7 @@
 #if ENABLE_REFREE_UART_PORT
 static void referee_unpack_fifo_data(void);
 
+
 extern UART_HandleTypeDef huart6;
 
 uint8_t usart6_buf[2][USART_RX_BUF_LENGTH];

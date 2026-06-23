@@ -27,7 +27,7 @@
 // default values
 #define SPINNING_CHASSIS_MAX_OMEGA RPM_TO_RADS(120.0f)
 #define SPINNING_CHASSIS_HIGH_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.833f)
-#define SPINNING_CHASSIS_MED_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 1.1f)
+#define SPINNING_CHASSIS_MED_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.667f)
 #define SPINNING_CHASSIS_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.583f)
 #define SPINNING_CHASSIS_ULTRA_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.167f)
 
@@ -168,11 +168,11 @@
 #define SPRINT_MAX_CHASSIS_SPEED_Y SPRINT_MAX_CHASSIS_SPEED_X
 #else
 // chassis forward or back max speed
-#define NORMAL_MAX_CHASSIS_SPEED_X 3.5f
-#define SPRINT_MAX_CHASSIS_SPEED_X 3.5f
+#define NORMAL_MAX_CHASSIS_SPEED_X 5.5f //Forward/Backward Direction
+#define SPRINT_MAX_CHASSIS_SPEED_X 6.5f
 // chassis left or right max speed
-#define NORMAL_MAX_CHASSIS_SPEED_Y 5.0f
-#define SPRINT_MAX_CHASSIS_SPEED_Y 5.0f
+#define NORMAL_MAX_CHASSIS_SPEED_Y 4.5f //Sideway
+#define SPRINT_MAX_CHASSIS_SPEED_Y 5.5f
 #endif
 #define NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO 1.5f
 
@@ -245,8 +245,8 @@
 #else
 // @TODO: tune pid for other robots
 // @TODO: fix drift in spinning mode when power is limited
-#define M3508_MOTOR_SPEED_PID_KP 25000.0f
-#define M3508_MOTOR_SPEED_PID_KI 1000.0f
+#define M3508_MOTOR_SPEED_PID_KP 21000.0f
+#define M3508_MOTOR_SPEED_PID_KI 0.0f
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
 #define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
@@ -272,7 +272,7 @@ typedef struct
 	fp32 accel;
 	fp32 speed;
 	fp32 speed_set;
-	int16_t give_chassis_motor_cmd; // control current command for chassis M3508 motor deg/s*(gear ratio) for MG4010
+	int16_t give_chassis_motor_cmd; // control current command for chassis M3508 motor deg/s*(gear ratio) for MG4010 //in DJI motor CAN current, 16384 => 10 A 
 } chassis_motor_t;
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
@@ -435,6 +435,8 @@ fp32 chassis_get_high_wz_limit(void);
 fp32 chassis_get_med_wz_limit(void);
 fp32 chassis_get_low_wz_limit(void);
 fp32 chassis_get_ultra_low_wz_limit(void);
+
+fp32 calc_wz_max_speed(fp32 vx_speed_limit, fp32 vy_speed_limit, fp32 wz_scaling_factor);
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_platform_rc_mapping(void);

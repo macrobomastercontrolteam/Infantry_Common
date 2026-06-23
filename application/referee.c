@@ -263,7 +263,7 @@ void referee_data_solve(uint8_t *frame)
 	}
 }
 
-void get_chassis_power_data(fp32 *buffer, fp32 *power_limit)
+void get_chassis_power_data(fp32 *buffer, fp32 *power_limit)//TODO: update with new proocol and default limit for different robot type
 {
 	*buffer = power_heat_data_t.buffer_energy;
 	if (robot_state.chassis_power_limit > 0)
