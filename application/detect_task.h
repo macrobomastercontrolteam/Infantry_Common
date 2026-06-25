@@ -37,6 +37,9 @@
 #define DETECT_TASK_H
 #include "global_inc.h"
 
+/* Pack the detect/error structs explicitly (ARM Compiler __packed prefix keyword
+ * is ignored by GCC). */
+#pragma pack(push, 1)
 
 #define DETECT_TASK_INIT_TIME 57
 #define DETECT_CONTROL_TIME_MS 10
@@ -137,4 +140,5 @@ extern const error_t *get_error_list_point(void);
 
 uint8_t ifToeStatusExist(uint8_t _start, uint8_t _end, toe_status_e _status_to_find, uint8_t* pbHitIndex);
 
+#pragma pack(pop)
 #endif

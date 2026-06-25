@@ -7,6 +7,11 @@
 
 #include "protocol.h"
 // #include "user_lib.h"
+
+/* GCC ignores the ARM Compiler __packed prefix keyword, so pack the wire-protocol
+ * structs in this header explicitly to keep byte-for-byte layout. */
+#pragma pack(push, 1)
+
 #define MAX_USER_DATA_LEN 112
 typedef enum
 {
@@ -381,4 +386,6 @@ armor_damage_info_t get_armor_hurt(void);
 extern void get_sentry_info(uint16_t *exchanged_projectile_allowance, uint8_t *remote_projectile_exchanges, uint8_t *remote_hp_exchanges);
 extern ext_game_robot_state_t robot_state;
 extern ext_robot_hurt_t robot_hurt_t;
+
+#pragma pack(pop)
 #endif

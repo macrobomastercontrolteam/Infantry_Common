@@ -136,16 +136,12 @@
 #error "Only INFANTRY_2023_SWERVE supports USE_SERVO_TO_STIR_AMMO"
 #endif
 
-typedef signed char int8_t;
-typedef signed short int int16_t;
-typedef signed int int32_t;
-typedef signed long long int64_t;
+/* Use the toolchain-provided fixed-width integer types. Defining them by hand
+ * conflicts with newlib's <stdint.h> under arm-none-eabi-gcc, where int32_t is
+ * "long int" rather than "int". <stdint.h> provides matching definitions for
+ * both the ARM Compiler and GCC. */
+#include <stdint.h>
 
-/* exact-width unsigned integer types */
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
 typedef unsigned char bool_t;
 typedef float fp32;
 typedef double fp64;

@@ -61,6 +61,10 @@
 
 #include "global_inc.h"
 
+/* Pack the flash-stored calibration structs explicitly (ARM Compiler __packed
+ * prefix keyword is ignored by GCC). */
+#pragma pack(push, 1)
+
 //when imu is calibrating, buzzer set frequency and strength.
 #define imu_start_buzzer()          buzzer_on(95, 10000)    
 //when gimbal is calibrating ,buzzer set frequency and strength.
@@ -196,6 +200,8 @@ extern void get_flash_latitude(float *latitude);
   * @retval         none
   */
 extern void calibrate_task(void const *pvParameters);
+
+#pragma pack(pop)
 
 
 #endif
