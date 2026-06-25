@@ -227,22 +227,24 @@ typedef enum{
 #elif(SUPERCAP_TYPE == MACRM_SUPERCAP)
 typedef struct 
 {
-    uint16_t power_target;
-    uint16_t referee_power;
-    uint16_t rsvd1; //Must be 0x2012
-    uint16_t rsvd2; //Must be 0x0712
-}capcan_rx_t;
+    uint16_t power_limit;     // W * 100
+    uint16_t power_buffer;    // J
+    uint8_t  fNoCharging;
+    uint8_t  rsvd0;
+    uint16_t rsvd1;
+} capcan_rx_t;
 
 
 /*Message come from capacitor module */
 /*Expected message frequency = 100Hz */
 typedef struct
 {
-    uint16_t current_chassis_power;
-    uint16_t current_battery_power;
-    int16_t cap_voltage;
-    uint16_t cap_state;
-}capcan_tx_t;
+    uint16_t current_chassis_power; // W
+    uint16_t current_battery_power; // W
+    uint16_t cap_voltage;           // V, or raw voltage depending on cap firmware
+    uint8_t  cap_state;
+    uint8_t  cap_energy_percent;    // 0-100 %
+} capcan_tx_t;
 
 typedef enum{
     CAP_OFF,
@@ -399,10 +401,12 @@ void decode_supercap(uint8_t *data);
 void decode_macrm_cap_tx_data(uint8_t *data);
 extern uint16_t get_current_chassis_power(void);
 extern uint16_t get_current_battery_power(void);
-extern int16_t get_cap_voltage(void);
-extern uint16_t get_cap_state(void);
+extern uint16_t get_cap_voltage(void);
+extern uint8_t get_cap_state(void);
+extern uint8_t get_cap_energy_percent(void);
 void CAN_cmd_supercap(void);
 void decode_supercap(uint8_t *data);
+
 #endif
 
 void decode_power_meter(uint8_t *data);

@@ -37,11 +37,11 @@
 #define ROBOT_TYPE HERO_2025_MECANUM
 #define COMPETITION_TYPE RMUL
 #define SUPERCAP_TYPE MACRM_SUPERCAP
-#define CV_INTERFACE 1
+#define CV_INTERFACE 0
 #define DEBUG_CV_WITH_USB 0
 #define DEBUG_CV 1 // set to 1 before the game starts for INFANTRY & HERO ONLY
 #define ENABLE_LASER 1
-#define VOFA_UART_USE 0 // 0 to disable VOFA, 1 for uart6(shown as uart1)(Refree_UART,3_pin), 2 for uart1(shown as uart2) (CV_UART,4_pin),
+#define VOFA_UART_USE 2 // 0 to disable VOFA, 1 for uart6(shown as uart1)(Refree_UART,3_pin), 2 for uart1(shown as uart2) (CV_UART,4_pin),
 
 #define USE_SERVO_TO_STIR_AMMO 0
 #define ENABLE_HIGHER_BAUD_RATE_FOR_CV 1

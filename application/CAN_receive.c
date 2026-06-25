@@ -1636,25 +1636,41 @@ void CAN_cmd_supercap(void)
 {
 	uint32_t send_mail_box;
 
-	chassis_tx_message.StdId = SUPCAP_TX_ID;
+	chassis_tx_message.StdId = SUPCAP_TX_ID; // 0x302
 	chassis_tx_message.IDE = CAN_ID_STD;
 	chassis_tx_message.RTR = CAN_RTR_DATA;
 	chassis_tx_message.DLC = 0x08;
 
-	fp32 chassis_power_buffer;
-    fp32 chassis_power_limit;
-    get_chassis_power_data(&chassis_power_buffer, &chassis_power_limit);
-	
-	capcan_rx_msg.power_target = chassis_power_limit*100;
+	fp32 chassis_power_buffer = 0.0f;
+	fp32 chassis_power_limit = 0.0f;
 
-	chassis_can_send_data[0] = capcan_rx_msg.power_target;
-	chassis_can_send_data[1] = capcan_rx_msg.power_target >> 8;
-	//chassis_can_send_data[2] = capcan_rx_msg.referee_power;
-	//chassis_can_send_data[3] = capcan_rx_msg.referee_power >> 8;
-	//chassis_can_send_data[4] = capcan_rx_msg.rsvd1 >> 8;
-	//chassis_can_send_data[5] = capcan_rx_msg.rsvd1;
-	//chassis_can_send_data[6] = capcan_rx_msg.rsvd2 >> 8;
-	//chassis_can_send_data[7] = capcan_rx_msg.rsvd2;
+#if CAN_PASS_REF_INFO
+	CAN_get_chassis_power_info(&chassis_power_buffer, &chassis_power_limit);
+#else
+	get_chassis_power_data(&chassis_power_buffer, &chassis_power_limit);
+#endif
+
+	capcan_rx_msg.power_limit = (uint16_t)(chassis_power_limit * 100.0f);
+	capcan_rx_msg.power_buffer = (uint16_t)(chassis_power_buffer);
+
+	// 0 = charging allowed, 1 = no charging
+	capcan_rx_msg.fNoCharging = 0;
+
+	// Reserved fields. Use 0 unless the supercap firmware requires magic values.
+	capcan_rx_msg.rsvd0 = 0x00;
+	capcan_rx_msg.rsvd1 = 0x0000;
+
+	chassis_can_send_data[0] = (uint8_t)(capcan_rx_msg.power_limit);
+	chassis_can_send_data[1] = (uint8_t)(capcan_rx_msg.power_limit >> 8);
+	chassis_can_send_data[2] = (uint8_t)(capcan_rx_msg.power_buffer);
+	chassis_can_send_data[3] = (uint8_t)(capcan_rx_msg.power_buffer >> 8);
+	chassis_can_send_data[4] = capcan_rx_msg.fNoCharging;
+	
+	//reserved
+	chassis_can_send_data[5] = capcan_rx_msg.rsvd0;
+	chassis_can_send_data[6] = (uint8_t)(capcan_rx_msg.rsvd1);
+	chassis_can_send_data[7] = (uint8_t)(capcan_rx_msg.rsvd1 >> 8);
+
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
 
@@ -1663,24 +1679,33 @@ void decode_macrm_cap_tx_data(uint8_t *data)
 	capcan_tx_msg.current_chassis_power = (data[1] << 8) | data[0];
 	capcan_tx_msg.current_battery_power = (data[3] << 8) | data[2];
 	capcan_tx_msg.cap_voltage = (data[5] << 8) | data[4];
-	capcan_tx_msg.cap_state = (data[7] << 8) | data[6];
+	capcan_tx_msg.cap_state = data[6];
+	capcan_tx_msg.cap_energy_percent = data[7];
 }
 
 uint16_t get_current_chassis_power(void)
 {
 	return capcan_tx_msg.current_chassis_power;
 }
+
 uint16_t get_current_battery_power(void)
 {
 	return capcan_tx_msg.current_battery_power;
 }
-int16_t get_cap_voltage(void)
+
+uint16_t get_cap_voltage(void)
 {
 	return capcan_tx_msg.cap_voltage;
 }
-uint16_t get_cap_state(void)
+
+uint8_t get_cap_state(void)
 {
 	return capcan_tx_msg.cap_state;
+}
+
+uint8_t get_cap_energy_percent(void)
+{
+	return capcan_tx_msg.cap_energy_percent;
 }
 #endif
 
