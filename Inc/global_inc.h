@@ -41,7 +41,7 @@
 #define DEBUG_CV_WITH_USB 0
 #define DEBUG_CV 1 // set to 1 before the game starts for INFANTRY & HERO ONLY
 #define ENABLE_LASER 1
-#define VOFA_UART_USE 0 //1 for uart6(shown as uart1), 2 for uart1(shown as uart2), 0 to disable VOFA
+#define VOFA_UART_USE 2 // 0 to disable VOFA, 1 for uart6(shown as uart1)(Refree_UART,3_pin), 2 for uart1(shown as uart2) (CV_UART,4_pin),
 
 #define USE_SERVO_TO_STIR_AMMO 0
 #define ENABLE_HIGHER_BAUD_RATE_FOR_CV 1
@@ -49,10 +49,10 @@
 #define REMOTE_TYPE REMOTE_USE_VT13
 /********************* Only Modify this area (end) *********************/
 
-#if VOFA_UART_USE
-#define ENABLE_REFREE_UART_PORT 1
-#else
+#if (VOFA_UART_USE == 1)
 #define ENABLE_REFREE_UART_PORT 0
+#else
+#define ENABLE_REFREE_UART_PORT 1
 #endif
 
 #if ((ROBOT_TYPE == INFANTRY_2024_MECANUM)||(ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI))
@@ -124,8 +124,8 @@
 #error "DEBUG_CV_WITH_USB is only for CV_INTERFACE"
 #endif
 
-#if CV_INTERFACE && VOFA_UART_USE
-//#error "VOFA_UART_USE=1 conflicts with CV_INTERFACE using USART1"
+#if CV_INTERFACE && (VOFA_UART_USE == 2)
+//#error "VOFA_UART_USE=2 conflicts with CV_INTERFACE using USART1"
 #endif
 
 #if ((ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)) && !CV_INTERFACE
