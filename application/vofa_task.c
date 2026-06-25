@@ -26,15 +26,23 @@ void vofa_send(void)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-    if(UartHandle->Instance==VOFA_UART.Instance)
+    if (UartHandle->Instance == VOFA_UART.Instance)
     {
         HAL_UART_Receive_IT(VOFA_UART_AD, (uint8_t *)RxBuffer, 1);
         RxLine++;
-        DataBuff[RxLine - 1] = RxBuffer[0];
+        if (RxLine < sizeof(DataBuff))
+        {
+            DataBuff[RxLine - 1] = RxBuffer[0];
+        }
+        else
+        {
+            RxLine = 0; // overflow / lost terminator: drop the frame and resync
+            memset(DataBuff, 0, sizeof(DataBuff));
+        }
+
         if (RxBuffer[0] == 0x21)
         {
-
-            vofa_update(get_place(),get_data());
+            vofa_update(get_place(), get_data());
             memset(DataBuff, 0, sizeof(DataBuff));
             RxLine = 0;
         }
@@ -97,9 +105,11 @@ fp32 vofa_return_data(uint8_t place)
 
 void vofa_update(uint8_t place, fp32 data)
 {
-    vofa_data_packet.data[place] = data;
+    if (place < 8)
+    {
+        vofa_data_packet.data[place] = data;
+    }
 }
-
 
 void vofa_task(void const * argument)
 {

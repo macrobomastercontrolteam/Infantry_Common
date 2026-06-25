@@ -361,17 +361,17 @@ void chassis_speed_max_adj(void)
 	
 	if(ref_chassis_power_buffer < 10.0f)
 	{
-		vx_speed_limit = 0.25f;
-		vy_speed_limit = 0.25f;
-		wz_scaling_factor = 0.1f;
+		vx_speed_limit = LOW_POWER_MAX_CHASSIS_SPEED_X;
+		vy_speed_limit = LOW_POWER_MAX_CHASSIS_SPEED_Y;
+		wz_scaling_factor = 0.05f;
 	}
 	else
     {
-        buffer_ratio = fp32_constrain((ref_chassis_power_buffer - 10.0f) / 20.0f, 0.0f, 1.0f);
+        buffer_ratio = fp32_constrain((ref_chassis_power_buffer - 10.0f) / 30.0f, 0.0f, 1.0f);
 
-        vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X * (0.7f + 0.3f * buffer_ratio);
-        vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y * (0.7f + 0.3f * buffer_ratio);
-        wz_scaling_factor = 0.25f + 0.75f * buffer_ratio;
+        vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X * (0.5f + 0.5f * buffer_ratio);
+        vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y * (0.5f + 0.5f * buffer_ratio);
+        wz_scaling_factor = 0.2f + 0.8f * buffer_ratio;
     }
 
 	if ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE) || (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE))
@@ -384,8 +384,8 @@ void chassis_speed_max_adj(void)
 		wz_speed_limit = calc_wz_max_speed(vx_speed_limit, vy_speed_limit, 1.0f);
 	}
 
-	chassis_move.vx_max_speed = fp32_abs_constrain(vx_speed_limit, NORMAL_MAX_CHASSIS_SPEED_X);
-	chassis_move.vy_max_speed = fp32_abs_constrain(vy_speed_limit, NORMAL_MAX_CHASSIS_SPEED_Y);
+	chassis_move.vx_max_speed = fp32_abs_constrain(vx_speed_limit, SPRINT_MAX_CHASSIS_SPEED_X);
+	chassis_move.vy_max_speed = fp32_abs_constrain(vy_speed_limit, SPRINT_MAX_CHASSIS_SPEED_Y);
 	chassis_move.wz_max_speed = fp32_abs_constrain(wz_speed_limit, SPINNING_CHASSIS_MAX_OMEGA);
 }
 
@@ -1169,7 +1169,18 @@ static void chassis_control_loop(void)
 		}
 
 #if CHASSIS_POWER_CONTROL
-		chassis_power_control(); // chassis_move.motor_chassis[i].give_chassis_motor_cmd assigned inside
+		if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT) && (can_ref_info.chassis_power_buffer > 30)) // when shift pressed and buffer is above safe value, bypass powercontrol (leave to supercap to control)
+		{
+			for (i = 0; i < 4; i++)
+			{
+				chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)((chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
+			}
+		}
+		else
+		{
+			chassis_power_control(); // give_chassis_motor_cmd assigned inside
+		}
+
 #else
 		for (i = 0; i < 4; i++)
 		{

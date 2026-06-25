@@ -166,13 +166,24 @@
 // chassis left or right max speed
 #define NORMAL_MAX_CHASSIS_SPEED_Y NORMAL_MAX_CHASSIS_SPEED_X
 #define SPRINT_MAX_CHASSIS_SPEED_Y SPRINT_MAX_CHASSIS_SPEED_X
+#elif(ROBOT_TYPE == HERO_2025_MECANUM)
+// chassis forward or back max speed
+#define NORMAL_MAX_CHASSIS_SPEED_X 5.5f 
+#define SPRINT_MAX_CHASSIS_SPEED_X 6.5f
+#define LOW_POWER_MAX_CHASSIS_SPEED_X 0.25f 
+// chassis left or right max speed
+#define NORMAL_MAX_CHASSIS_SPEED_Y 3.5f
+#define SPRINT_MAX_CHASSIS_SPEED_Y 4.5f
+#define LOW_POWER_MAX_CHASSIS_SPEED_Y 0.1f 
 #else
 // chassis forward or back max speed
 #define NORMAL_MAX_CHASSIS_SPEED_X 5.5f //Forward/Backward Direction
 #define SPRINT_MAX_CHASSIS_SPEED_X 6.5f
+#define LOW_POWER_MAX_CHASSIS_SPEED_X 0.25f 
 // chassis left or right max speed
 #define NORMAL_MAX_CHASSIS_SPEED_Y 4.5f //Sideway
 #define SPRINT_MAX_CHASSIS_SPEED_Y 5.5f
+#define LOW_POWER_MAX_CHASSIS_SPEED_Y 0.1f 
 #endif
 #define NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO 1.5f
 
