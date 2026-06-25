@@ -535,13 +535,13 @@
 // CV aim error PID: outer loop converting normalized error [-1,1] -> angle increment (rad/tick)
 // Kp is initialised to match the previous proportional gain.
 // Increase Kd to damp overshoot; add small Ki only if steady-state offset is observed.
-#define CV_AIM_YAW_PID_KP       (YAW_RC_CV_SEN_INC * 0.35f)
+#define CV_AIM_YAW_PID_KP       (YAW_RC_CV_SEN_INC)
 #define CV_AIM_YAW_PID_KI       0.0f
 #define CV_AIM_YAW_PID_KD       0.0f
 #define CV_AIM_YAW_PID_MAX_OUT  (YAW_RC_CV_SEN_INC * 3.0f)
 #define CV_AIM_YAW_PID_MAX_IOUT 0.0f
 
-#define CV_AIM_PITCH_PID_KP       (PITCH_RC_CV_SEN_INC * 0.35f)
+#define CV_AIM_PITCH_PID_KP       (PITCH_RC_CV_SEN_INC)
 #define CV_AIM_PITCH_PID_KI       0.0f
 #define CV_AIM_PITCH_PID_KD       0.0f
 #define CV_AIM_PITCH_PID_MAX_OUT  (PITCH_RC_CV_SEN_INC * 3.0f)
