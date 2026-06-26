@@ -99,7 +99,7 @@ typedef enum
 	RSP_LEN_CONTROL_SPINNING     = 1,                                   // Ack
 	RSP_LEN_AIM_ERROR            = 1,                                   // Ack
 	RSP_LEN_SHOOT_CMD            = 1,                                   // Ack
-	RSP_LEN_CV_IMU_ACCELE        = 6 * sizeof(fp32) + sizeof(uint32_t), // 3 accel + 3 gyro + send-delay
+	RSP_LEN_CV_IMU_ACCELE        = 3 * sizeof(fp32) + sizeof(uint32_t), // 3 accel + send-delay
 	RSP_LEN_CV_IMU_VELOCITY      = 3 * sizeof(fp32) + sizeof(uint32_t), // x,y,z velocity + send-delay
 	RSP_LEN_CV_IMU_POSITION      = 3 * sizeof(fp32) + sizeof(uint32_t), // x,y,z position + send-delay
 	RSP_LEN_CV_INFO_GIMBAL_ANGLE = 4 * sizeof(fp32),                    // pitch+yaw angle + pitch+yaw rate
@@ -494,11 +494,9 @@ static void CvCmder_SendAck(uint8_t msgType)
         case MSG_CV_IMU_ACCELE: //We are sending CV raw data
         {
             fp32 accel_data[3];
-			fp32 ang_vel_data[3];
-            get_world_accel_raw(accel_data, ang_vel_data); // Get world frame linear acceleration
+            get_world_accel_raw(accel_data, NULL); // Get world frame linear acceleration
 
             memcpy(&ackBuf[1], accel_data, 3 * sizeof(fp32));
-            memcpy(&ackBuf[1 + 3 * sizeof(fp32)], ang_vel_data, 3 * sizeof(fp32));
             fAppendSendDelay = 1; // send-delay is written just before transmit
             break;
         }
