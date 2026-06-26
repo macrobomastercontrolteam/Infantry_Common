@@ -51,7 +51,7 @@ const static motor_power_init_t motor_power_init_data = {
     .k5 = M3508_power_param_K5,
     .real_current_conversion = M3508_Current_Convertion
 };
-#elif(ROBOT_TYPE == SENTRY_2026_OMNI)
+#elif((ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_STANDARD))
 const static motor_power_init_t motor_power_init_data = {
     .k0 = MG4010_power_param_K0,
     .k1 = MG4010_power_param_K1,
@@ -513,9 +513,15 @@ void chassis_power_control(void)
     }
 
 
+#if CAN_PASS_REF_INFO
     chassis_power_buffer = (fp32)can_ref_info.chassis_power_buffer;
     chassis_power_limit = (fp32)can_ref_info.chassis_power_limit;
     chassis_power = can_ref_info.PowerMeter_reading;
+#else
+    chassis_power_buffer = 0.0f;
+    chassis_power_limit = 0.0f;
+    chassis_power = 0.0f;
+#endif
 
     // 1. energy-based desired power planning
     p_ref = compute_p_ref(chassis_power_buffer, chassis_power_limit);
@@ -544,7 +550,7 @@ void chassis_power_control(void)
     {
 #if ((ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM))
         feedback_speed[i] = motor_chassis[i].speed_rpm;
-#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+#elif ((ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_STANDARD))
         feedback_speed[i] = motor_chassis[i].velocity;
 #else
 #error "undefined feedback speed data"
@@ -580,6 +586,10 @@ bool_t chassis_power_control_mode_change(uint8_t fIsKeyPressed)
 
 bool_t get_chassis_overpower(void)
 {
+#if CAN_PASS_REF_INFO
     return (bool_t)((can_ref_info.PowerMeter_reading > can_ref_info.chassis_power_limit)
         && (can_ref_info.chassis_power_buffer <= WARNING_POWER_BUFF));
+#else
+    return 0;
+#endif
 }
