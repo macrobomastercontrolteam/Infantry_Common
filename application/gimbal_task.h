@@ -167,7 +167,7 @@
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
-#elif (ROBOT_TYPE == INFANTRY_2026_STANDARD)
+#elif (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
 
 //pitch speed close-loop PID params, max out and max iout
 #if ROBOT_PITCH_IS_3507

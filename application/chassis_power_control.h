@@ -106,7 +106,7 @@
 #define MG4010_power_param_K5 -0.052372f
 #define MG4010_Current_Convertion 1.0f
 
-#elif((ROBOT_TYPE == INFANTRY_2026_STANDARD))
+#elif((ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO))
 #define MG4010_power_param_K0 2.800243f
 #define MG4010_power_param_K1 13.025089f
 #define MG4010_power_param_K2 -1.086247f

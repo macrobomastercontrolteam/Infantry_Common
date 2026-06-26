@@ -176,7 +176,7 @@ static void chassis_init(void)
 		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
 	}
 
-#elif (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_STANDARD)
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
 	const static fp32 motor_speed_pid[3] = {MG4010_MOTOR_SPEED_PID_KP, MG4010_MOTOR_SPEED_PID_KI, MG4010_MOTOR_SPEED_PID_KD};
 	for (uint8_t i = 0; i < sizeof(chassis_move.wheel_rot_radii) / sizeof(chassis_move.wheel_rot_radii[0]); i++)
 	{
