@@ -447,6 +447,8 @@ fp32 chassis_get_med_wz_limit(void);
 fp32 chassis_get_low_wz_limit(void);
 fp32 chassis_get_ultra_low_wz_limit(void);
 
+void get_chassis_vel_in_gimbal_frame(fp32 *vx, fp32 *vy);
+
 fp32 calc_wz_max_speed(fp32 vx_speed_limit, fp32 vy_speed_limit, fp32 wz_scaling_factor);
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)

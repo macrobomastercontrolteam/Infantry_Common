@@ -19,6 +19,7 @@
 #include "usart.h"
 #include "referee.h"
 #include "gimbal_task.h"
+#include "chassis_task.h"
 #include "INS_task.h"
 #include "CRC8_CRC16.h"
 #if DEBUG_CV_WITH_USB
@@ -60,9 +61,10 @@ typedef enum
 	MSG_CV_IMU_VELOCITY = 0x06,
 	MSG_CV_IMU_POSITION = 0x07,
 	MSG_CV_INFO_GIMBAL_ANGLE = 0x08,
+	MSG_CV_INFO_CHASSIS_VEL = 0x09,
 } eMsgTypes;
 
-#define CV_NUM_REQ_TYPES (MSG_CV_INFO_GIMBAL_ANGLE + 1) // number of request Tags (0x00..0x08), used to size the debug frequency arrays
+#define CV_NUM_REQ_TYPES (MSG_CV_INFO_CHASSIS_VEL + 1) // number of request Tags (0x00..0x09), used to size the debug frequency arrays
 
 typedef enum
 {
@@ -89,6 +91,7 @@ typedef enum
 	REQ_LEN_CV_IMU_VELOCITY      = 0,                // request trigger (no value)
 	REQ_LEN_CV_IMU_POSITION      = 0,                // request trigger (no value)
 	REQ_LEN_CV_INFO_GIMBAL_ANGLE = 0,                // request trigger (no value)
+	REQ_LEN_CV_INFO_CHASSIS_VEL  = 0,                // request trigger (no value)
 } eCvReqValueLen;
 
 // Value-field byte lengths for Board -> CV response frames, indexed by Tag.
@@ -103,6 +106,7 @@ typedef enum
 	RSP_LEN_CV_IMU_VELOCITY      = 3 * sizeof(fp32) + sizeof(uint32_t), // x,y,z velocity + send-delay
 	RSP_LEN_CV_IMU_POSITION      = 3 * sizeof(fp32) + sizeof(uint32_t), // x,y,z position + send-delay
 	RSP_LEN_CV_INFO_GIMBAL_ANGLE = 4 * sizeof(fp32),                    // pitch+yaw angle + pitch+yaw rate
+	RSP_LEN_CV_INFO_CHASSIS_VEL  = 2 * sizeof(fp32),                    // vx + vy in gimbal-yaw frame (encoder-based)
 } eCvRspValueLen;
 
 #define CV_REQ_LEN_UNKNOWN 0xFFU // returned for an unrecognised request Tag (frame size cannot be derived)
@@ -354,6 +358,7 @@ static uint8_t CvCmder_GetReqValueLen(uint8_t msgType)
 		case MSG_CV_IMU_VELOCITY:       return REQ_LEN_CV_IMU_VELOCITY;
 		case MSG_CV_IMU_POSITION:       return REQ_LEN_CV_IMU_POSITION;
 		case MSG_CV_INFO_GIMBAL_ANGLE:  return REQ_LEN_CV_INFO_GIMBAL_ANGLE;
+		case MSG_CV_INFO_CHASSIS_VEL:   return REQ_LEN_CV_INFO_CHASSIS_VEL;
 		default:                        return CV_REQ_LEN_UNKNOWN;
 	}
 }
@@ -372,6 +377,7 @@ static uint8_t CvCmder_GetRspValueLen(uint8_t msgType)
 		case MSG_CV_IMU_VELOCITY:       return RSP_LEN_CV_IMU_VELOCITY;
 		case MSG_CV_IMU_POSITION:       return RSP_LEN_CV_IMU_POSITION;
 		case MSG_CV_INFO_GIMBAL_ANGLE:  return RSP_LEN_CV_INFO_GIMBAL_ANGLE;
+		case MSG_CV_INFO_CHASSIS_VEL:   return RSP_LEN_CV_INFO_CHASSIS_VEL;
 		default:                        return 0;
 	}
 }
@@ -532,6 +538,16 @@ static void CvCmder_SendAck(uint8_t msgType)
 			memcpy(&ackBuf[1 + sizeof(fp32)], &yaw_angle, sizeof(fp32));
 			memcpy(&ackBuf[1 + 2 * sizeof(fp32)], &pitch_rate, sizeof(fp32));
 			memcpy(&ackBuf[1 + 3 * sizeof(fp32)], &yaw_rate, sizeof(fp32));
+			break;
+		}
+
+		case MSG_CV_INFO_CHASSIS_VEL:
+		{
+			fp32 vx = 0.0f, vy = 0.0f;
+			get_chassis_vel_in_gimbal_frame(&vx, &vy); // encoder-based chassis velocity, rotated into the gimbal-yaw frame
+
+			memcpy(&ackBuf[1], &vx, sizeof(fp32));
+			memcpy(&ackBuf[1 + sizeof(fp32)], &vy, sizeof(fp32));
 			break;
 		}
 	}
@@ -713,6 +729,13 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 			case MSG_CV_INFO_GIMBAL_ANGLE:
 			{
 				CvCmder_SendAck(MSG_CV_INFO_GIMBAL_ANGLE);
+				detect_hook(CV_TOE);
+				break;
+			}
+
+			case MSG_CV_INFO_CHASSIS_VEL:
+			{
+				CvCmder_SendAck(MSG_CV_INFO_CHASSIS_VEL);
 				detect_hook(CV_TOE);
 				break;
 			}

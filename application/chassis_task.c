@@ -66,6 +66,10 @@ static void chassis_set_control(void);
  */
 static void chassis_control_loop(void);
 
+#if (ROBOT_TYPE != INFANTRY_2024_BIPED) && (ROBOT_TYPE != INFANTRY_2023_SWERVE)
+static void chassis_slip_robust_vel_update(void);
+#endif
+
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static uint16_t motor_angle_to_ecd_change(fp32 angle);
 void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle);
@@ -78,6 +82,12 @@ uint32_t chassis_high_water;
 supcap_t cap_message_rx;
 
 chassis_move_t chassis_move;
+
+#if (ROBOT_TYPE != INFANTRY_2024_BIPED) && (ROBOT_TYPE != INFANTRY_2023_SWERVE)
+// encoder-only, slip-mitigated chassis-frame translational velocity (m/s), updated every chassis cycle
+static fp32 chassis_vx_slip_robust = 0.0f;
+static fp32 chassis_vy_slip_robust = 0.0f;
+#endif
 
 #if CHASSIS_TEST_MODE
 fp32 rot_radius0;
@@ -320,6 +330,8 @@ static void chassis_feedback_update(void)
 	chassis_move.vy = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
 	chassis_move.wz = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
 #endif
+	// encoder-only slip-robust chassis velocity estimate (consumed by the CV chassis-velocity report)
+	chassis_slip_robust_vel_update();
 #endif
 #endif
 
@@ -1209,6 +1221,133 @@ fp32 chassis_get_low_wz_limit(void)
 fp32 chassis_get_ultra_low_wz_limit(void)
 {
 	return (chassis_move.wz_max_speed * 0.167f);
+}
+
+/**
+ * @brief          encoder-only, slip-mitigated chassis translational velocity estimate (chassis frame).
+ *                 Runs every chassis cycle from chassis_feedback_update(). No IMU is used.
+ *
+ * Best-effort slip handling with wheel encoders only:
+ *  1. Redundancy residual: a 4-wheel chassis provides 4 speed measurements but only 3 DOF
+ *     (vx, vy, wz). The one redundant wheel-speed combination must be ~0 under pure rolling, so a
+ *     nonzero value is a direct slip / inconsistency indicator (orthogonal to the vx/vy/wz mixing).
+ *  2. Single-wheel rejection: when slip is detected, the wheel with clearly anomalous acceleration
+ *     (the classic signature of a wheel losing traction) is corrected back to the value implied by
+ *     the other three wheels, which is equivalent to dropping it from the solve.
+ *  3. Acceleration clamp: the frame-to-frame velocity change is limited to a physically plausible
+ *     chassis acceleration, rejecting the non-physical jumps a brief slip spike produces.
+ *  4. Adaptive low-pass: filtering is light when the wheels agree (responsive) and heavy while slip
+ *     is present (coast on the previous estimate instead of trusting bad wheel data).
+ *
+ * Note: a symmetric 4-wheel chassis cannot identify WHICH wheel slips from a single instantaneous
+ * sample alone, so step 2 leans on wheel acceleration and only acts when one wheel clearly dominates;
+ * otherwise steps 3-4 simply de-weight the estimate. Sustained multi-wheel slip is not recoverable
+ * without an independent reference (e.g. IMU), which is intentionally not used here.
+ */
+static void chassis_slip_robust_vel_update(void)
+{
+	// slip-tuning constants (chassis frame; speeds in m/s, accelerations in m/s^2)
+	const fp32 SLIP_RESIDUAL_THRESHOLD = 0.30f;  // |redundant wheel combo| above this => slip suspected
+	const fp32 SLIP_ACCEL_THRESHOLD    = 8.0f;   // a wheel must exceed this |accel| to be treated as slipping
+	const fp32 SLIP_ACCEL_DOMINANCE    = 2.0f;   // and exceed the 2nd-most-dynamic wheel by this factor
+	const fp32 SLIP_MAX_CHASSIS_ACCEL  = 20.0f;  // plausible chassis accel ceiling for the velocity clamp
+	const fp32 SLIP_TAU_NORMAL         = 0.015f; // low-pass time constant when wheels agree
+	const fp32 SLIP_TAU_SLIP           = 0.080f; // heavier low-pass while slipping
+
+	fp32 s[4];
+	fp32 a[4];
+	for (uint8_t i = 0; i < 4; i++)
+	{
+		s[i] = chassis_move.motor_chassis[i].speed; // wheel surface speed, m/s (encoder)
+		a[i] = chassis_move.motor_chassis[i].accel; // wheel accel, m/s^2 (encoder-derived)
+	}
+
+	// residual sign pattern: orthogonal to the vx/vy/wz mixing used in chassis_feedback_update,
+	// so it captures only the slip/inconsistency component of the four wheel speeds
+#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM)
+	const fp32 r[4] = {1.0f, -1.0f, 1.0f, -1.0f};
+#elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
+	const fp32 r[4] = {1.0f, 1.0f, -1.0f, -1.0f};
+#else
+	const fp32 r[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+#endif
+
+	fp32 residual = r[0] * s[0] + r[1] * s[1] + r[2] * s[2] + r[3] * s[3];
+	uint8_t slip_detected = (fabs(residual) > SLIP_RESIDUAL_THRESHOLD);
+
+	if (slip_detected)
+	{
+		// find the most dynamic wheel and the runner-up; only act if one clearly dominates
+		uint8_t k = 0;
+		uint8_t second = 1;
+		for (uint8_t i = 1; i < 4; i++)
+		{
+			if (fabs(a[i]) > fabs(a[k]))
+			{
+				second = k;
+				k = i;
+			}
+		}
+		if ((fabs(a[k]) > SLIP_ACCEL_THRESHOLD) &&
+		    (fabs(a[k]) > SLIP_ACCEL_DOMINANCE * fabs(a[second])) &&
+		    (r[k] != 0.0f))
+		{
+			// correct the slipping wheel to the speed implied by the other three (drops it from the solve)
+			s[k] -= residual * r[k];
+		}
+	}
+
+	// chassis-frame velocity from the (possibly corrected) wheel speeds, same mixing as chassis_feedback_update
+	fp32 vx_raw = 0.0f;
+	fp32 vy_raw = 0.0f;
+#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM)
+	vx_raw = (-s[0] + s[1] + s[2] - s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
+	vy_raw = (-s[0] - s[1] + s[2] + s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
+#elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
+	vx_raw = (s[0] + s[1] + s[2] + s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
+	vy_raw = (-s[0] + s[1] + s[2] - s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
+#endif
+
+	// acceleration clamp: reject the non-physical velocity jumps a slip spike produces
+	const fp32 dt = CHASSIS_CONTROL_TIME_S;
+	fp32 max_dv = SLIP_MAX_CHASSIS_ACCEL * dt;
+	fp32 vx_clamped = chassis_vx_slip_robust + fp32_constrain(vx_raw - chassis_vx_slip_robust, -max_dv, max_dv);
+	fp32 vy_clamped = chassis_vy_slip_robust + fp32_constrain(vy_raw - chassis_vy_slip_robust, -max_dv, max_dv);
+
+	// adaptive low-pass: trust the encoders less while slip is present
+	fp32 tau = slip_detected ? SLIP_TAU_SLIP : SLIP_TAU_NORMAL;
+	fp32 alpha = dt / (tau + dt);
+	chassis_vx_slip_robust += alpha * (vx_clamped - chassis_vx_slip_robust);
+	chassis_vy_slip_robust += alpha * (vy_clamped - chassis_vy_slip_robust);
+}
+
+/**
+ * @brief          chassis translational velocity expressed in the gimbal-yaw frame, derived purely from
+ *                 chassis motor encoder feedback (no IMU). vx points where the yaw axis is aimed, vy is 90deg to its left.
+ * @param[out]     vx: forward speed in the gimbal-yaw frame, unit m/s
+ * @param[out]     vy: left speed in the gimbal-yaw frame, unit m/s
+ * @retval         none
+ */
+void get_chassis_vel_in_gimbal_frame(fp32 *vx, fp32 *vy)
+{
+	if (vx == NULL || vy == NULL)
+	{
+		return;
+	}
+#if (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+	// these builds do not reconstruct chassis vx/vy from 4-wheel encoder feedback
+	*vx = 0.0f;
+	*vy = 0.0f;
+#else
+	// rotate the encoder-only, slip-mitigated chassis-frame velocity into the gimbal-yaw frame using the
+	// yaw motor relative angle (gimbal yaw relative to chassis front); inverse of the gimbal->chassis
+	// rotation applied in chassis_set_control
+	fp32 angle = chassis_move.chassis_yaw_motor->relative_angle;
+	fp32 sin_yaw = AHRS_sinf(angle);
+	fp32 cos_yaw = AHRS_cosf(angle);
+	*vx = cos_yaw * chassis_vx_slip_robust + sin_yaw * chassis_vy_slip_robust;
+	*vy = -sin_yaw * chassis_vx_slip_robust + cos_yaw * chassis_vy_slip_robust;
+#endif
 }
 
 fp32 calc_wz_max_speed(fp32 vx_speed_limit, fp32 vy_speed_limit, fp32 wz_scaling_factor)
