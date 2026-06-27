@@ -97,7 +97,7 @@
 #define M3508_power_param_K5 0.0000010f
 #define M3508_Current_Convertion 1638.4f // 16384 CAN = 10 A  =>  1 A / 1638.4 CAN
 
-#elif((ROBOT_TYPE == SENTRY_2026_OMNI))
+#elif((ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_OMNI))
 #define MG4010_power_param_K0 2.800243f
 #define MG4010_power_param_K1 13.025089f
 #define MG4010_power_param_K2 -1.086247f

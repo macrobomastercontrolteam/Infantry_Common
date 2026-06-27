@@ -51,7 +51,7 @@ const static motor_power_init_t motor_power_init_data = {
     .k5 = M3508_power_param_K5,
     .real_current_conversion = M3508_Current_Convertion
 };
-#elif((ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO))
+#elif((ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO) || (ROBOT_TYPE == INFANTRY_2026_OMNI))
 const static motor_power_init_t motor_power_init_data = {
     .k0 = MG4010_power_param_K0,
     .k1 = MG4010_power_param_K1,
@@ -550,7 +550,7 @@ void chassis_power_control(void)
     {
 #if ((ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM))
         feedback_speed[i] = motor_chassis[i].speed_rpm;
-#elif ((ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO))
+#elif ((ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO) || (ROBOT_TYPE == INFANTRY_2026_OMNI))
         feedback_speed[i] = motor_chassis[i].velocity;
 #else
 #error "undefined feedback speed data"
