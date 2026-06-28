@@ -37,7 +37,7 @@
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_HEADLESS_SIZE - sizeof(uint16_t) - sizeof(uint8_t)) // sizeof(uiTimestamp) and sizeof(bMsgType)
 #define CHAR_UNUSED 0xFF
 #define SHOOT_TIMEOUT_MS 350
-#define CHASSIS_SPIN_TIMEOUT_MS 15000
+#define CHASSIS_SPIN_TIMEOUT_MS 500
 #define CV_TRANDELTA_FILTER_SIZE 4 // TranDelta means Transmission delay
 #define CV_SPEED_FILTER_ALPHA 0.25f
 
@@ -659,6 +659,8 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					if(spinCmd == 0xFF)
 					{
 						CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 1);
+						// keep spinning alive while CV keeps sending 0xFF; timeout is a failsafe if CV stops
+						CvCmdHandler.ulChassisSpinStartTime = osKernelSysTick();
 					}
 					else
 					{
@@ -712,9 +714,7 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					if((shootCmd == 0xFF)){
 	#endif
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 1);
-						CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 1);
 						CvCmdHandler.ulShootStartTime = osKernelSysTick();
-						CvCmdHandler.ulChassisSpinStartTime = CvCmdHandler.ulShootStartTime;
 					} else {
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 					}
