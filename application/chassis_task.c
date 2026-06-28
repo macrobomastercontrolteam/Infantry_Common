@@ -324,11 +324,14 @@ static void chassis_feedback_update(void)
 	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
 	chassis_move.wz = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
 #elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
-	// Omni wheel feedback calculation
-	// For omni wheels in square arrangement: sum and difference combinations give vx, vy, wz
-	chassis_move.vx = (chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
-	chassis_move.vy = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
-	chassis_move.wz = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
+	// Omni wheel feedback calculation (X layout, wheels 0..3 = FR, FL, RL, RR)
+	// Forward kinematics is the transpose of omni_chassis_vector_to_wheel_speed():
+	//   wheel0=-vx-vy, wheel1=+vx-vy, wheel2=+vx+vy, wheel3=-vx+vy, all share the wz term.
+	// vx/vy/wz must therefore use those (orthogonal) mixing patterns, NOT the all-ones
+	// rotation pattern; otherwise a pure spin leaks into vx and the velocity report is wrong.
+	chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
+	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
+	chassis_move.wz = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
 #endif
 	// encoder-only slip-robust chassis velocity estimate (consumed by the CV chassis-velocity report)
 	chassis_slip_robust_vel_update();
@@ -1267,7 +1270,9 @@ static void chassis_slip_robust_vel_update(void)
 #if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM)
 	const fp32 r[4] = {1.0f, -1.0f, 1.0f, -1.0f};
 #elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
-	const fp32 r[4] = {1.0f, 1.0f, -1.0f, -1.0f};
+	// null space of the X-omni vx/vy/wz mixing; {1,1,-1,-1} is NOT orthogonal to vy, so it
+	// would flag false slip during pure strafing. {-1,1,-1,1} is orthogonal to all three.
+	const fp32 r[4] = {-1.0f, 1.0f, -1.0f, 1.0f};
 #else
 	const fp32 r[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 #endif
@@ -1304,8 +1309,8 @@ static void chassis_slip_robust_vel_update(void)
 	vx_raw = (-s[0] + s[1] + s[2] - s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
 	vy_raw = (-s[0] - s[1] + s[2] + s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
 #elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
-	vx_raw = (s[0] + s[1] + s[2] + s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
-	vy_raw = (-s[0] + s[1] + s[2] - s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
+	vx_raw = (-s[0] + s[1] + s[2] - s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
+	vy_raw = (-s[0] - s[1] + s[2] + s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
 #endif
 
 	// acceleration clamp: reject the non-physical velocity jumps a slip spike produces
