@@ -62,9 +62,10 @@ typedef enum
 	MSG_CV_IMU_POSITION = 0x07,
 	MSG_CV_INFO_GIMBAL_ANGLE = 0x08,
 	MSG_CV_INFO_CHASSIS_VEL = 0x09,
+	MSG_CV_INFO_HEAT_LIMIT = 0x0A,
 } eMsgTypes;
 
-#define CV_NUM_REQ_TYPES (MSG_CV_INFO_CHASSIS_VEL + 1) // number of request Tags (0x00..0x09), used to size the debug frequency arrays
+#define CV_NUM_REQ_TYPES (MSG_CV_INFO_HEAT_LIMIT + 1) // number of request Tags (0x00..0x0A), used to size the debug frequency arrays
 
 typedef enum
 {
@@ -92,6 +93,7 @@ typedef enum
 	REQ_LEN_CV_IMU_POSITION      = 0,                // request trigger (no value)
 	REQ_LEN_CV_INFO_GIMBAL_ANGLE = 0,                // request trigger (no value)
 	REQ_LEN_CV_INFO_CHASSIS_VEL  = 0,                // request trigger (no value)
+	REQ_LEN_CV_INFO_HEAT_LIMIT   = 0,                // request trigger (no value)
 } eCvReqValueLen;
 
 // Value-field byte lengths for Board -> CV response frames, indexed by Tag.
@@ -107,6 +109,7 @@ typedef enum
 	RSP_LEN_CV_IMU_POSITION      = 3 * sizeof(fp32) + sizeof(uint32_t), // x,y,z position + send-delay
 	RSP_LEN_CV_INFO_GIMBAL_ANGLE = 4 * sizeof(fp32),                    // pitch+yaw angle + pitch+yaw rate
 	RSP_LEN_CV_INFO_CHASSIS_VEL  = 2 * sizeof(fp32),                    // vx + vy in gimbal-yaw frame (encoder-based)
+	RSP_LEN_CV_INFO_HEAT_LIMIT   = 2 * sizeof(uint16_t),                // shoot_heat_limit + shoot_heat (actual values)
 } eCvRspValueLen;
 
 #define CV_REQ_LEN_UNKNOWN 0xFFU // returned for an unrecognised request Tag (frame size cannot be derived)
@@ -359,6 +362,7 @@ static uint8_t CvCmder_GetReqValueLen(uint8_t msgType)
 		case MSG_CV_IMU_POSITION:       return REQ_LEN_CV_IMU_POSITION;
 		case MSG_CV_INFO_GIMBAL_ANGLE:  return REQ_LEN_CV_INFO_GIMBAL_ANGLE;
 		case MSG_CV_INFO_CHASSIS_VEL:   return REQ_LEN_CV_INFO_CHASSIS_VEL;
+		case MSG_CV_INFO_HEAT_LIMIT:    return REQ_LEN_CV_INFO_HEAT_LIMIT;
 		default:                        return CV_REQ_LEN_UNKNOWN;
 	}
 }
@@ -378,6 +382,7 @@ static uint8_t CvCmder_GetRspValueLen(uint8_t msgType)
 		case MSG_CV_IMU_POSITION:       return RSP_LEN_CV_IMU_POSITION;
 		case MSG_CV_INFO_GIMBAL_ANGLE:  return RSP_LEN_CV_INFO_GIMBAL_ANGLE;
 		case MSG_CV_INFO_CHASSIS_VEL:   return RSP_LEN_CV_INFO_CHASSIS_VEL;
+		case MSG_CV_INFO_HEAT_LIMIT:    return RSP_LEN_CV_INFO_HEAT_LIMIT;
 		default:                        return 0;
 	}
 }
@@ -548,6 +553,16 @@ static void CvCmder_SendAck(uint8_t msgType)
 
 			memcpy(&ackBuf[1], &vx, sizeof(fp32));
 			memcpy(&ackBuf[1 + sizeof(fp32)], &vy, sizeof(fp32));
+			break;
+		}
+
+		case MSG_CV_INFO_HEAT_LIMIT:
+		{
+			uint16_t heat_limit = 0, heat = 0;
+			get_shoot_heat0_limit_and_heat(&heat_limit, &heat); // send the actual heat limit and current heat (not the shoot flag)
+
+			memcpy(&ackBuf[1], &heat_limit, sizeof(uint16_t));
+			memcpy(&ackBuf[1 + sizeof(uint16_t)], &heat, sizeof(uint16_t));
 			break;
 		}
 	}
@@ -736,6 +751,13 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 			case MSG_CV_INFO_CHASSIS_VEL:
 			{
 				CvCmder_SendAck(MSG_CV_INFO_CHASSIS_VEL);
+				detect_hook(CV_TOE);
+				break;
+			}
+
+			case MSG_CV_INFO_HEAT_LIMIT:
+			{
+				CvCmder_SendAck(MSG_CV_INFO_HEAT_LIMIT);
 				detect_hook(CV_TOE);
 				break;
 			}
