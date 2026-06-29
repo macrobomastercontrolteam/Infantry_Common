@@ -84,9 +84,9 @@
 // so the firmware "positive = loading" convention stays physically correct).
 #define REVERSE_TRIGGER_MG4010 0
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 #define IS_TRIGGER_ON_GIMBAL 1
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 0
 #else
 #define IS_TRIGGER_ON_GIMBAL 0
@@ -327,16 +327,17 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				break;
 			}
 #endif
+
+#if IS_TRIGGER_ON_GIMBAL
 #if TRIGGER_MOTOR_IS_4010
-			case CAN_TRIGGER_MG4010_ID:
+			case CAN_TRIGGER_MOTOR_ID:
 			{
 				bMotorId = MOTOR_INDEX_TRIGGER;
 				decode_MG_4010_motor_feedback(rx_data, bMotorId);
 				detect_hook(TRIGGER_MOTOR_TOE);
 				break;
 			}
-#endif
-#if IS_TRIGGER_ON_GIMBAL
+#else
 			case CAN_TRIGGER_MOTOR_ID:
 			{
         		bMotorId = MOTOR_INDEX_TRIGGER;
@@ -344,6 +345,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(TRIGGER_MOTOR_TOE);
 				break;
 			}
+#endif
 #endif
 			default:
 			{
@@ -666,7 +668,7 @@ void CAN_cmd_4010_trigger(int16_t trigger_speed_cmd)
 
 	int16_t cmd = (int16_t)fp32_abs_constrain((fp32)trigger_speed_cmd, MOTOR_MG4010_MAX_CMD);
 
-	can_tx_message.StdId = CAN_TRIGGER_MG4010_ID;
+	can_tx_message.StdId = CAN_TRIGGER_MOTOR_ID;
 	can_tx_message.ExtId = 0x00;
 	can_tx_message.IDE = CAN_ID_STD;
 	can_tx_message.RTR = CAN_RTR_DATA;
@@ -1312,6 +1314,10 @@ void CAN_cmd_chassis(void)
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	CAN_cmd_biped_chassis();
 	CAN_cmd_biped_chassis_mode();
+
+#elif (ROBOT_TYPE == HERO_2026_OMNI)
+	CAN_cmd_4010_chassis();
+	osDelay(1);
 #else
 #if (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
 	CAN_cmd_3508_chassis();

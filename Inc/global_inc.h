@@ -81,7 +81,7 @@
 
 // Trigger motor type selection: HERO_2026_OMNI uses a KTech MG4010 (speed-controlled) trigger motor
 #if (ROBOT_TYPE == HERO_2026_OMNI)
-#define TRIGGER_MOTOR_IS_4010 0
+#define TRIGGER_MOTOR_IS_4010 1
 #else
 #define TRIGGER_MOTOR_IS_4010 0
 #endif

@@ -86,7 +86,11 @@ typedef enum
   // SENTRY_2023_MECANUM: On chassis
   // INFANTRY_2024_BIPED: On chassis
   // HERO_2025_MECANUM: On chassis
+#if (TRIGGER_MOTOR_IS_4010)
+    CAN_TRIGGER_MOTOR_ID = 0x147,
+#else
   CAN_TRIGGER_MOTOR_ID = 0x207,
+#endif
 
   CAN_FRICTION_MOTOR_LEFT_ID = 0x205,  // friction1
   CAN_FRICTION_MOTOR_RIGHT_ID = 0x208, // friction2
@@ -95,10 +99,6 @@ typedef enum
   CAN_FRICTION_MOTOR_DOWN_ID = 0x204, // friction4
 
   CAN_PISTON_MOTOR_ID = 0x207, // On gimbal
-#endif
-
-#if TRIGGER_MOTOR_IS_4010
-  CAN_TRIGGER_MG4010_ID = 0x147, // KTech MG4010 trigger motor (single-motor speed control), on GIMBAL_CAN
 #endif
 
 } can_msg_id_e;

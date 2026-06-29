@@ -207,11 +207,15 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
     }
 
     launcher_target   = control_loop->gimbal_yaw_motor.absolute_angle_set;
-    primary_abs       = control_loop->gimbal_yaw_motor.absolute_angle;
     second_rel        = control_loop->gimbal_second_yaw_motor.relative_angle;
     second_soft_limit = SECOND_YAW_MECH_LIMIT_RAD - SECOND_YAW_HOME_ENTER_ERR_RAD;
 
-    aim_err        = rad_format(launcher_target - primary_abs);
+    // IMU is mounted on the secondary stage, so absolute_angle/motor_gyro report the
+    // launcher (secondary) heading. The primary heading is the IMU minus the secondary
+    // relative offset; both stages share the same absolute pointing axis.
+    primary_abs = rad_format(control_loop->gimbal_yaw_motor.absolute_angle - second_rel);
+
+    aim_err        = rad_format(launcher_target - control_loop->gimbal_yaw_motor.absolute_angle);
     second_rel_set = fp32_constrain(aim_err, -second_soft_limit, second_soft_limit);
 
     control_loop->gimbal_second_yaw_motor.relative_angle_set = second_rel_set;
@@ -227,14 +231,16 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
                                                                control_loop->gimbal_second_yaw_motor.motor_gyro_set,
                                                                GIMBAL_CONTROL_TIME_S);
 
-    primary_target = rad_format(primary_abs + second_rel);
+    // Primary tracks the absolute target on its own decoupled heading/rate so it recenters
+    // the secondary instead of fighting it (IMU rate minus secondary rate).
+    primary_target = rad_format(launcher_target);
     control_loop->gimbal_yaw_motor.motor_gyro_set = PID_calc_with_dot(&control_loop->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid,
-                                                                      control_loop->gimbal_yaw_motor.absolute_angle,
+                                                                      primary_abs,
                                                                       primary_target,
                                                                       GIMBAL_CONTROL_TIME_S,
-                                                                      control_loop->gimbal_yaw_motor.motor_gyro);
+                                                                      control_loop->gimbal_yaw_motor.motor_gyro - control_loop->gimbal_second_yaw_motor.motor_gyro);
     control_loop->gimbal_yaw_motor.cmd_value = PID_calc(&control_loop->gimbal_yaw_motor.gimbal_motor_speed_pid,
-                                                        control_loop->gimbal_yaw_motor.motor_gyro,
+                                                        control_loop->gimbal_yaw_motor.motor_gyro - control_loop->gimbal_second_yaw_motor.motor_gyro,
                                                         control_loop->gimbal_yaw_motor.motor_gyro_set,
                                                         GIMBAL_CONTROL_TIME_S);
 }
@@ -370,7 +376,11 @@ void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *secondary_yaw_can_
 #else
         *secondary_yaw_can_set_value_ptr = gimbal_control.gimbal_second_yaw_motor.cmd_value;
 #endif
+#if PITCH_REVERSED
+        *pitch_can_set_value_ptr = -gimbal_control.gimbal_pitch_motor.cmd_value;
+#else
         *pitch_can_set_value_ptr = gimbal_control.gimbal_pitch_motor.cmd_value;
+#endif
 #endif
     }
 

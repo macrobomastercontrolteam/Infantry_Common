@@ -35,7 +35,7 @@
 
 #define GIMBAL_TEST_MODE 0
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 #define PITCH_REVERSED  1
 #else
 #define PITCH_REVERSED  0
@@ -349,7 +349,7 @@
 //yaw speed close-loop PID params, max out and max iout
 #define YAW_SPEED_PID_KP        0.4f
 #define YAW_SPEED_PID_KI        0.0f
-#define YAW_SPEED_PID_KD        0.1f
+#define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   6.5f
 #define YAW_SPEED_PID_MAX_IOUT  2.33f
 #else
@@ -364,9 +364,12 @@
 #define PITCH_ANGLE_PID_MAX_IOUT 15.0f
 
 //yaw gyro angle close-loop PID params, max out and max iout
-#define YAW_ANGLE_PID_KP        25.0f
-#define YAW_ANGLE_PID_KI        0.6f
-#define YAW_ANGLE_PID_KD        0.2f
+#define YAW_ANGLE_PID_KP        5.0f
+#define YAW_ANGLE_PID_KI        0.0f
+#define YAW_ANGLE_PID_KD        0.0f
+#define YAW_ANGLE_PID_MAX_OUT   10.0f
+#define YAW_ANGLE_PID_MAX_IOUT  10.0f
+
 #if (ROBOT_TYPE == HERO_2026_OMNI)
 //secondary yaw speed close-loop PID params, max out and max iout
 #define SECOND_YAW_SPEED_PID_KP        0.5f
@@ -376,15 +379,13 @@
 #define SECOND_YAW_SPEED_PID_MAX_IOUT  2.33f
 
 //secondary yaw gyro angle close-loop PID params, max out and max iout
-#define SECOND_YAW_ANGLE_PID_KP        8.0f
+#define SECOND_YAW_ANGLE_PID_KP        18.0f
 #define SECOND_YAW_ANGLE_PID_KI        0.0f
-#define SECOND_YAW_ANGLE_PID_KD        0.0f
+#define SECOND_YAW_ANGLE_PID_KD        0.1f
 #define SECOND_YAW_ANGLE_PID_MAX_OUT   10.0f
 #define SECOND_YAW_ANGLE_PID_MAX_IOUT  10.0f
 #endif
 
-#define YAW_ANGLE_PID_MAX_OUT   10.0f
-#define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
 #else
 
@@ -606,24 +607,7 @@
 
 #if (ROBOT_TYPE == HERO_2026_OMNI)
 #define SECOND_YAW_MECH_LIMIT_RAD DEG_TO_RAD(20.0f)
-#define SECOND_YAW_HOME_ENTER_ERR_RAD DEG_TO_RAD(1.0f)
-#define SECOND_YAW_DEADBAND_RAD DEG_TO_RAD(0.2f)
-#define SECOND_YAW_LARGE_MOVE_GAIN 1.6f
-#define SECOND_YAW_LARGE_MOVE_STEP_MAX_RAD DEG_TO_RAD(0.30f)
-#define SECOND_YAW_REMOTE_INPUT_GAIN 3.0f
-#define SECOND_YAW_STEP_BOOST_NEAR 1.2f
-#define SECOND_YAW_STEP_BOOST_FAR 1.8f
-#define SECOND_YAW_MIN_TRACK_STEP_RAD DEG_TO_RAD(0.0f)
-#define SECOND_YAW_REACQUIRE_ERR_RAD DEG_TO_RAD(2.0f)
-#define SECOND_YAW_PRIMARY_SLOW_SCALE 0.30f
-#define SECOND_YAW_PRIMARY_FAST_RECOVER_ERR_RAD DEG_TO_RAD(0.6f)
-#define SECOND_YAW_SMALL_MOVE_ERR_RAD DEG_TO_RAD(12.0f)
-#define SECOND_YAW_SMALL_CAPTURE_DONE_RAD DEG_TO_RAD(1.0f)
-#define SECOND_YAW_SMALL_CAPTURE_GAIN 4.0f
-#define SECOND_YAW_SMALL_CAPTURE_STEP_MAX_RAD DEG_TO_RAD(1.20f)
-#define SECOND_YAW_PRIMARY_SMALLMOVE_SCALE 0.08f
-#define SECOND_YAW_UNWIND_GAIN 0.9f
-#define SECOND_YAW_UNWIND_STEP_MAX_RAD DEG_TO_RAD(0.20f)
+#define SECOND_YAW_HOME_ENTER_ERR_RAD DEG_TO_RAD(0.5f)
 #endif
 
 

@@ -184,7 +184,17 @@ static void chassis_init(void)
 		PID_init(&chassis_move.motor_speed_pid[i], PID_POSITION, motor_speed_pid, MG4010_MOTOR_SPEED_PID_MAX_OUT, MG4010_MOTOR_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
 	}
+#elif (ROBOT_TYPE == HERO_2026_OMNI)
+	const static fp32 motor_speed_pid[3] = {MG4010_MOTOR_SPEED_PID_KP, MG4010_MOTOR_SPEED_PID_KI, MG4010_MOTOR_SPEED_PID_KD};
+	for (uint8_t i = 0; i < sizeof(chassis_move.wheel_rot_radii) / sizeof(chassis_move.wheel_rot_radii[0]); i++)
+	{
+		chassis_move.motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i);
+		PID_init(&chassis_move.motor_speed_pid[i], PID_POSITION, motor_speed_pid, MG4010_MOTOR_SPEED_PID_MAX_OUT, MG4010_MOTOR_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
+		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
+	}
+
 #else
+#if POWER_TRAIN_USE_3508_MOTOR
 	const static fp32 motor_speed_pid[3] = {M3508_MOTOR_SPEED_PID_KP, M3508_MOTOR_SPEED_PID_KI, M3508_MOTOR_SPEED_PID_KD};
 	for (uint8_t i = 0; i < sizeof(chassis_move.wheel_rot_radii) / sizeof(chassis_move.wheel_rot_radii[0]); i++)
 	{
@@ -192,6 +202,15 @@ static void chassis_init(void)
 		PID_init(&chassis_move.motor_speed_pid[i], PID_POSITION, motor_speed_pid, M3508_MOTOR_SPEED_PID_MAX_OUT, M3508_MOTOR_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
 		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
 	}
+#elif POWER_TRAIN_USE_4010_MOTOR
+	const static fp32 motor_speed_pid[3] = {MG4010_MOTOR_SPEED_PID_KP, MG4010_MOTOR_SPEED_PID_KI, MG4010_MOTOR_SPEED_PID_KD};
+	for (uint8_t i = 0; i < sizeof(chassis_move.wheel_rot_radii) / sizeof(chassis_move.wheel_rot_radii[0]); i++)
+	{
+		chassis_move.motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i);
+		PID_init(&chassis_move.motor_speed_pid[i], PID_POSITION, motor_speed_pid, MG4010_MOTOR_SPEED_PID_MAX_OUT, MG4010_MOTOR_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
+		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
+	}
+#endif
 #endif
 	PID_init(&chassis_move.chassis_angle_pid, PID_POSITION, chassis_yaw_pid, CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT, CHASSIS_FOLLOW_GIMBAL_PID_MAX_IOUT, 0, &rad_err_handler);
 

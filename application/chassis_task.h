@@ -236,6 +236,12 @@
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
 #define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
+#elif (ROBOT_TYPE == HERO_2026_OMNI)
+#define MG4010_MOTOR_SPEED_PID_KP 0.8f
+#define MG4010_MOTOR_SPEED_PID_KI 0.0f
+#define MG4010_MOTOR_SPEED_PID_KD 0.0f
+#define MG4010_MOTOR_SPEED_PID_MAX_OUT 2.0f
+#define MG4010_MOTOR_SPEED_PID_MAX_IOUT 0.2f
 #else
 // @TODO: tune pid for other robots
 // @TODO: fix drift in spinning mode when power is limited
