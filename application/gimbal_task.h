@@ -371,19 +371,46 @@
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
 #if (ROBOT_TYPE == HERO_2026_OMNI)
-//secondary yaw speed close-loop PID params, max out and max iout
+// ============================================================================
+//  Dual-yaw (coarse/fine) control gains.
+//
+//  Mechanically this is a small, fast, limited-travel "fine" yaw (the secondary,
+//  carrying the launcher + IMU) mounted on a big, slow, unlimited-travel "coarse"
+//  yaw (the primary). We run it as a textbook dual-stage actuator:
+//
+//    FINE  (secondary): closes on the IMU and inertially aims the launcher.
+//                       High bandwidth -> it does the aiming AND rejects chassis
+//                       motion / the offset-CoG lever-arm disturbance.
+//    COARSE (primary):  low-bandwidth follower whose ONLY job is to drive the
+//                       secondary back to the middle of its travel (q2 -> 0) so
+//                       the fine stage never runs out of stroke. This is the
+//                       "you aim the small yaw, the big yaw follows" behaviour.
+//
+//  The two loops are separated in frequency so they never fight.
+// ============================================================================
+
+//--- Fine stage INNER loop: launcher inertial yaw rate -> secondary torque ---
 #define SECOND_YAW_SPEED_PID_KP        0.5f
 #define SECOND_YAW_SPEED_PID_KI        0.0f
 #define SECOND_YAW_SPEED_PID_KD        0.0f
 #define SECOND_YAW_SPEED_PID_MAX_OUT   10.0f
 #define SECOND_YAW_SPEED_PID_MAX_IOUT  2.33f
 
-//secondary yaw gyro angle close-loop PID params, max out and max iout
-#define SECOND_YAW_ANGLE_PID_KP        18.0f
-#define SECOND_YAW_ANGLE_PID_KI        0.0f
-#define SECOND_YAW_ANGLE_PID_KD        0.1f
-#define SECOND_YAW_ANGLE_PID_MAX_OUT   10.0f
-#define SECOND_YAW_ANGLE_PID_MAX_IOUT  10.0f
+//--- Fine stage OUTER loop: launcher inertial angle (IMU) -> desired launcher rate ---
+#define SECOND_YAW_FINE_ANGLE_PID_KP        18.0f
+#define SECOND_YAW_FINE_ANGLE_PID_KI        0.0f
+#define SECOND_YAW_FINE_ANGLE_PID_KD        0.0f
+#define SECOND_YAW_FINE_ANGLE_PID_MAX_OUT   10.0f   // rad/s
+#define SECOND_YAW_FINE_ANGLE_PID_MAX_IOUT  0.0f
+
+//--- Coarse stage OUTER loop: PD recenter of the secondary (q2 -> 0) -> desired primary rate ---
+// Keep this GENTLE and well-damped. The +KD*q2_dot term damps the primary slew so
+// it does not overshoot q2 = 0. Overshoot here is exactly what made the previous
+// "big yaw on a low-pass filter" design kick the small yaw backwards when the stick
+// returned to centre. If you ever see that reversal, lower KP / raise KD.
+#define PRIMARY_RECENTER_KP        6.0f     // rad/s of primary slew per rad of secondary off-centre
+#define PRIMARY_RECENTER_KD        0.8f     // damping on the secondary relative rate
+#define PRIMARY_RECENTER_RATE_MAX  4.0f     // rad/s cap on primary slew (keep below the fine-loop bandwidth)
 #endif
 
 
@@ -606,8 +633,17 @@
 #define GIMBAL_FOLD_ZERO_FORCE_DEADBAND DEG_TO_RAD(10.0f)
 
 #if (ROBOT_TYPE == HERO_2026_OMNI)
-#define SECOND_YAW_MECH_LIMIT_RAD DEG_TO_RAD(20.0f)
-#define SECOND_YAW_HOME_ENTER_ERR_RAD DEG_TO_RAD(0.5f)
+// --- Secondary (small/offset) yaw mechanical calibration --- NEEDS ON-ROBOT CALIBRATION ---
+// SECOND_YAW_CENTER_OFFSET_RAD: the raw motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle
+//   reading when the launcher is mechanically aligned with the carrier. This becomes the
+//   q2 = 0 point that the coarse stage recenters to, and the midpoint of the stroke guard.
+//   Calibrate: power off the second yaw, hold it at true centre, read output_angle, paste here.
+// SECOND_YAW_MECH_LIMIT_RAD: usable travel each side of centre (the +/- hard stop), measured
+//   relative to the calibrated centre. Set it slightly INSIDE the real stop.
+// SECOND_YAW_SOFT_LIMIT_MARGIN_RAD: extra keep-out the fine loop holds back from the hard stop.
+#define SECOND_YAW_CENTER_OFFSET_RAD      DEG_TO_RAD(0.0f)
+#define SECOND_YAW_MECH_LIMIT_RAD         DEG_TO_RAD(20.0f)
+#define SECOND_YAW_SOFT_LIMIT_MARGIN_RAD  DEG_TO_RAD(2.0f)
 #endif
 
 

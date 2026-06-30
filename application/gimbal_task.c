@@ -61,7 +61,7 @@
 #if (ROBOT_TYPE == HERO_2026_OMNI)
 #define gimbal_second_yaw_pid_clear(gimbal_clear)                                               \
     {                                                                                           \
-        PID_clear(&(gimbal_clear)->gimbal_second_yaw_motor.gimbal_motor_relative_angle_pid);   \
+        PID_clear(&(gimbal_clear)->gimbal_second_yaw_motor.gimbal_motor_absolute_angle_pid);   \
         PID_clear(&(gimbal_clear)->gimbal_second_yaw_motor.gimbal_motor_speed_pid);            \
     }
 #endif
@@ -191,58 +191,72 @@ static fp32 pitch_can_set_value = 0;
 static int16_t trigger_set_current = 0;
 
 #if (ROBOT_TYPE == HERO_2026_OMNI)
+/**
+  * @brief  Dual-yaw (coarse/fine) allocator for the 2026 hero.
+  *
+  *  Geometry / sensing:
+  *    theta  = q1 + q2     launcher inertial heading (q1 = primary/carrier heading,
+  *                         q2 = secondary angle relative to the carrier)
+  *    The IMU sits on the secondary stage, so gimbal_yaw_motor.absolute_angle == theta
+  *    and gimbal_yaw_motor.motor_gyro == theta_dot directly (no offset subtraction here).
+  *    q2 / q2_dot come from the secondary 4310 encoder (already centred in feedback_update).
+  *
+  *  FINE stage (secondary): cascade angle->rate closed on the IMU drives the launcher to
+  *    the aim target. Because it closes on the IMU it rejects chassis motion and the
+  *    offset-CoG lever-arm kick within its bandwidth/stroke.
+  *  COARSE stage (primary): a gentle, damped PD slews the big yaw so the secondary returns
+  *    to the centre of its travel (q2 -> 0). This is the "big yaw follows the small yaw".
+  */
 static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
 {
-    fp32 launcher_target;    // desired absolute launcher pointing direction (aim setpoint)
-    fp32 primary_abs;        // primary stage absolute orientation (IMU_yaw - second_rel)
-    fp32 second_rel;         // secondary relative angle (primary <-> secondary), encoder feedback
-    fp32 second_soft_limit;  // usable secondary travel, kept inside the mechanical hard stop
-    fp32 aim_err;            // residual aim error the secondary must absorb
-    fp32 second_rel_set;     // secondary relative-angle setpoint
-    fp32 primary_target;     // primary absolute-angle setpoint
-
     if (control_loop == NULL)
     {
         return;
     }
 
-    launcher_target   = control_loop->gimbal_yaw_motor.absolute_angle_set;
-    second_rel        = control_loop->gimbal_second_yaw_motor.relative_angle;
-    second_soft_limit = SECOND_YAW_MECH_LIMIT_RAD - SECOND_YAW_HOME_ENTER_ERR_RAD;
+    gimbal_motor_t *primary = &control_loop->gimbal_yaw_motor;
+    gimbal_motor_t *second  = &control_loop->gimbal_second_yaw_motor;
 
-    // IMU is mounted on the secondary stage, so absolute_angle/motor_gyro report the
-    // launcher (secondary) heading. The primary heading is the IMU minus the secondary
-    // relative offset; both stages share the same absolute pointing axis.
-    primary_abs = rad_format(control_loop->gimbal_yaw_motor.absolute_angle - second_rel);
+    // Inertial launcher states (IMU is on the secondary/launcher stage).
+    const fp32 theta        = primary->absolute_angle;      // launcher inertial heading
+    const fp32 theta_target = primary->absolute_angle_set;  // aim setpoint
+    const fp32 theta_dot    = primary->motor_gyro;          // launcher inertial yaw rate (IMU)
+    const fp32 q2           = second->relative_angle;       // secondary angle rel. to carrier (centred)
+    const fp32 q2_dot       = second->motor_gyro;           // secondary relative rate
+    const fp32 q1_dot       = theta_dot - q2_dot;           // carrier (primary) inertial rate
 
-    aim_err        = rad_format(launcher_target - control_loop->gimbal_yaw_motor.absolute_angle);
-    second_rel_set = fp32_constrain(aim_err, -second_soft_limit, second_soft_limit);
+    const fp32 soft_limit   = SECOND_YAW_MECH_LIMIT_RAD - SECOND_YAW_SOFT_LIMIT_MARGIN_RAD;
 
-    control_loop->gimbal_second_yaw_motor.relative_angle_set = second_rel_set;
+    // ---------- FINE STAGE (secondary): inertially aim the launcher ----------
+    second->absolute_angle     = theta;        // mirrored for telemetry / J-scope
+    second->absolute_angle_set = theta_target;
+    second->motor_gyro_set = PID_calc_with_dot(&second->gimbal_motor_absolute_angle_pid,
+                                               theta, theta_target,
+                                               GIMBAL_CONTROL_TIME_S, theta_dot);
+    fp32 sec_cmd = PID_calc(&second->gimbal_motor_speed_pid,
+                            theta_dot, second->motor_gyro_set,
+                            GIMBAL_CONTROL_TIME_S);
 
-    // Cascaded control (relative-angle loop -> speed loop) damps the 4310 torque mode.
-    control_loop->gimbal_second_yaw_motor.motor_gyro_set = PID_calc_with_dot(&control_loop->gimbal_second_yaw_motor.gimbal_motor_relative_angle_pid,
-                                                                              control_loop->gimbal_second_yaw_motor.relative_angle,
-                                                                              control_loop->gimbal_second_yaw_motor.relative_angle_set,
-                                                                              GIMBAL_CONTROL_TIME_S,
-                                                                              control_loop->gimbal_second_yaw_motor.motor_gyro);
-    control_loop->gimbal_second_yaw_motor.cmd_value = PID_calc(&control_loop->gimbal_second_yaw_motor.gimbal_motor_speed_pid,
-                                                               control_loop->gimbal_second_yaw_motor.motor_gyro,
-                                                               control_loop->gimbal_second_yaw_motor.motor_gyro_set,
-                                                               GIMBAL_CONTROL_TIME_S);
+    // Stroke protection: never command the secondary further into a hard stop. The coarse
+    // stage recenters it, so any saturation here is only transient.
+    if ((q2 >=  soft_limit && sec_cmd > 0.0f) ||
+        (q2 <= -soft_limit && sec_cmd < 0.0f))
+    {
+        sec_cmd = 0.0f;
+    }
+    second->cmd_value = sec_cmd;
 
-    // Primary tracks the absolute target on its own decoupled heading/rate so it recenters
-    // the secondary instead of fighting it (IMU rate minus secondary rate).
-    primary_target = rad_format(launcher_target);
-    control_loop->gimbal_yaw_motor.motor_gyro_set = PID_calc_with_dot(&control_loop->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid,
-                                                                      primary_abs,
-                                                                      primary_target,
-                                                                      GIMBAL_CONTROL_TIME_S,
-                                                                      control_loop->gimbal_yaw_motor.motor_gyro - control_loop->gimbal_second_yaw_motor.motor_gyro);
-    control_loop->gimbal_yaw_motor.cmd_value = PID_calc(&control_loop->gimbal_yaw_motor.gimbal_motor_speed_pid,
-                                                        control_loop->gimbal_yaw_motor.motor_gyro - control_loop->gimbal_second_yaw_motor.motor_gyro,
-                                                        control_loop->gimbal_yaw_motor.motor_gyro_set,
-                                                        GIMBAL_CONTROL_TIME_S);
+    // ---------- COARSE STAGE (primary): recenter the secondary (q2 -> 0) ----------
+    // q2 = theta - q1, so a positive q2 needs a positive primary rate to null it. The
+    // +KD*q2_dot term damps the slew (closed loop q2_dot = -KP/(1+KD)*q2): a clean,
+    // monotonic decay with NO overshoot, so the small yaw never reverses on stick release.
+    second->relative_angle_set = 0.0f;         // recenter target (telemetry/intent)
+    fp32 primary_rate_set = PRIMARY_RECENTER_KP * q2 + PRIMARY_RECENTER_KD * q2_dot;
+    primary_rate_set = fp32_constrain(primary_rate_set, -PRIMARY_RECENTER_RATE_MAX, PRIMARY_RECENTER_RATE_MAX);
+    primary->motor_gyro_set = primary_rate_set;
+    primary->cmd_value = PID_calc(&primary->gimbal_motor_speed_pid,
+                                  q1_dot, primary_rate_set,
+                                  GIMBAL_CONTROL_TIME_S);
 }
 #endif
 
@@ -724,14 +738,16 @@ static void gimbal_init(gimbal_control_t *init)
 
     static const fp32 yaw_encode_relative_angle_pid[3] = {YAW_ENCODE_RELATIVE_PID_KP, YAW_ENCODE_RELATIVE_PID_KI, YAW_ENCODE_RELATIVE_PID_KD};
 #if (ROBOT_TYPE == HERO_2026_OMNI)
-    static const fp32 second_yaw_encode_relative_angle_pid[3] = {SECOND_YAW_ANGLE_PID_KP, SECOND_YAW_ANGLE_PID_KI, SECOND_YAW_ANGLE_PID_KD};
+    static const fp32 second_yaw_fine_angle_pid[3] = {SECOND_YAW_FINE_ANGLE_PID_KP, SECOND_YAW_FINE_ANGLE_PID_KI, SECOND_YAW_FINE_ANGLE_PID_KD};
     static const fp32 second_yaw_speed_pid[3] = {SECOND_YAW_SPEED_PID_KP, SECOND_YAW_SPEED_PID_KI, SECOND_YAW_SPEED_PID_KD};
 #endif
     static const fp32 pitch_encode_relative_angle_pid[3] = {PITCH_ENCODE_RELATIVE_PID_KP, PITCH_ENCODE_RELATIVE_PID_KI, PITCH_ENCODE_RELATIVE_PID_KD};
     PID_init(&init->gimbal_yaw_motor.gimbal_motor_relative_angle_pid, PID_POSITION, yaw_encode_relative_angle_pid, YAW_ENCODE_RELATIVE_PID_MAX_OUT, YAW_ENCODE_RELATIVE_PID_MAX_IOUT, 0, &rad_err_handler);
 #if (ROBOT_TYPE == HERO_2026_OMNI)
-    PID_init(&init->gimbal_second_yaw_motor.gimbal_motor_relative_angle_pid, PID_POSITION, second_yaw_encode_relative_angle_pid, SECOND_YAW_ANGLE_PID_MAX_OUT, SECOND_YAW_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
+    // Fine stage: launcher inertial angle (IMU) -> launcher rate (outer), then -> secondary torque (inner).
+    PID_init(&init->gimbal_second_yaw_motor.gimbal_motor_absolute_angle_pid, PID_POSITION, second_yaw_fine_angle_pid, SECOND_YAW_FINE_ANGLE_PID_MAX_OUT, SECOND_YAW_FINE_ANGLE_PID_MAX_IOUT, 0, &rad_err_handler);
     PID_init(&init->gimbal_second_yaw_motor.gimbal_motor_speed_pid, PID_POSITION, second_yaw_speed_pid, SECOND_YAW_SPEED_PID_MAX_OUT, SECOND_YAW_SPEED_PID_MAX_IOUT, 0.85f, &filter_err_handler);
+    // Coarse/recenter stage uses a manual PD in hero_2026_dual_yaw_allocate() feeding the primary speed PID.
 #endif
     gimbal_yaw_abs_angle_PID_init(init);
     PID_init(&init->gimbal_pitch_motor.gimbal_motor_relative_angle_pid, PID_POSITION, pitch_encode_relative_angle_pid, PITCH_ENCODE_RELATIVE_PID_MAX_OUT, PITCH_ENCODE_RELATIVE_PID_MAX_IOUT, 0, &rad_err_handler);
@@ -763,12 +779,11 @@ static void gimbal_init(gimbal_control_t *init)
     init->gimbal_second_yaw_motor.offset_ecd = 0;
     init->gimbal_second_yaw_motor.max_relative_angle = SECOND_YAW_MECH_LIMIT_RAD;
     init->gimbal_second_yaw_motor.min_relative_angle = -SECOND_YAW_MECH_LIMIT_RAD;
-#if SECOND_YAW_REVERSED
-    init->gimbal_second_yaw_motor.relative_angle = -motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle;
-#else
-    init->gimbal_second_yaw_motor.relative_angle = motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle;
-#endif
-    init->gimbal_second_yaw_motor.relative_angle_set = init->gimbal_second_yaw_motor.relative_angle;
+    // relative_angle / motor_gyro were already populated (and centred) by gimbal_feedback_update() above.
+    init->gimbal_second_yaw_motor.relative_angle_set = 0.0f;                               // recenter target
+    init->gimbal_second_yaw_motor.absolute_angle = init->gimbal_yaw_motor.absolute_angle;  // launcher heading (theta)
+    init->gimbal_second_yaw_motor.absolute_angle_set = init->gimbal_yaw_motor.absolute_angle;
+    init->gimbal_second_yaw_motor.motor_gyro_set = 0.0f;
     init->gimbal_second_yaw_motor.cmd_value = 0.0f;
 #endif
 
@@ -922,14 +937,19 @@ static void gimbal_feedback_update(gimbal_control_t *feedback_update)
     feedback_update->gimbal_yaw_motor.motor_gyro = AHRS_cosf(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_Z_ADDRESS_OFFSET))
                                                         - AHRS_sinf(feedback_update->gimbal_pitch_motor.relative_angle) * (*(feedback_update->gimbal_INT_gyro_point + INS_GYRO_X_ADDRESS_OFFSET));
 #if (ROBOT_TYPE == HERO_2026_OMNI)
+    // Secondary (offset) yaw feedback, expressed relative to the calibrated mechanical centre
+    // so q2 == 0 means the launcher is aligned with the carrier.
 #if SECOND_YAW_REVERSED
-    feedback_update->gimbal_second_yaw_motor.relative_angle = -motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle;
+    feedback_update->gimbal_second_yaw_motor.relative_angle = -motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle - SECOND_YAW_CENTER_OFFSET_RAD;
     feedback_update->gimbal_second_yaw_motor.motor_gyro = -motor_chassis[MOTOR_INDEX_SECOND_YAW].velocity;
 #else
-    feedback_update->gimbal_second_yaw_motor.relative_angle = motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle;
+    feedback_update->gimbal_second_yaw_motor.relative_angle = motor_chassis[MOTOR_INDEX_SECOND_YAW].output_angle - SECOND_YAW_CENTER_OFFSET_RAD;
     feedback_update->gimbal_second_yaw_motor.motor_gyro = motor_chassis[MOTOR_INDEX_SECOND_YAW].velocity;
 #endif
-    feedback_update->gimbal_yaw_motor.absolute_angle = rad_format(feedback_update->gimbal_yaw_motor.absolute_angle - feedback_update->gimbal_second_yaw_motor.relative_angle);
+    // NOTE: the IMU is mounted on the secondary (launcher) stage, so gimbal_yaw_motor.absolute_angle
+    // is ALREADY the launcher's inertial heading (theta). Do NOT subtract the secondary offset here:
+    // the coarse/fine split lives in hero_2026_dual_yaw_allocate(). (The previous code subtracted it
+    // here AND again in the allocator -- a double-count that corrupted both yaw loops.)
 #endif
 }
 
@@ -984,7 +1004,8 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             gimbal_yaw_pid_clear(gimbal_mode_change);
             gimbal_mode_change->gimbal_yaw_motor.absolute_angle_set = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
 #if (ROBOT_TYPE == HERO_2026_OMNI)
-            gimbal_mode_change->gimbal_second_yaw_motor.relative_angle_set = gimbal_mode_change->gimbal_second_yaw_motor.relative_angle;
+            gimbal_mode_change->gimbal_second_yaw_motor.relative_angle_set = 0.0f; // coarse stage recenters q2 -> 0
+            gimbal_mode_change->gimbal_second_yaw_motor.absolute_angle_set = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
             gimbal_second_yaw_pid_clear(gimbal_mode_change);
 #endif
             break;
@@ -997,7 +1018,8 @@ static void gimbal_mode_change_control_transit(gimbal_control_t *gimbal_mode_cha
             gimbal_mode_change->gimbal_yaw_motor.absolute_angle_offset = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
             gimbal_mode_change->gimbal_yaw_motor.absolute_angle_set = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
 #if (ROBOT_TYPE == HERO_2026_OMNI)
-            gimbal_mode_change->gimbal_second_yaw_motor.relative_angle_set = gimbal_mode_change->gimbal_second_yaw_motor.relative_angle;
+            gimbal_mode_change->gimbal_second_yaw_motor.relative_angle_set = 0.0f; // coarse stage recenters q2 -> 0
+            gimbal_mode_change->gimbal_second_yaw_motor.absolute_angle_set = gimbal_mode_change->gimbal_yaw_motor.absolute_angle;
             gimbal_second_yaw_pid_clear(gimbal_mode_change);
 #endif
             break;
