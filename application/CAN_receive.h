@@ -86,6 +86,7 @@ typedef enum
   // SENTRY_2023_MECANUM: On chassis
   // INFANTRY_2024_BIPED: On chassis
   // HERO_2025_MECANUM: On chassis
+  // HERO_2026_OMNI: On chassis
 #if (TRIGGER_MOTOR_IS_4010)
     CAN_TRIGGER_MOTOR_ID = 0x147,
 #else

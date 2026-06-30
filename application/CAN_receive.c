@@ -43,13 +43,13 @@
 #define ENABLE_PITCH_BASE_MOTOR_POWER 0
 ////////////////enable fo 2026 standard only end////////////////////
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
-#define ENABLE_TRIGGER_MOTOR_POWER 0
-#define ENABLE_FRICTION_1_MOTOR_POWER 0
-#define ENABLE_FRICTION_2_MOTOR_POWER 0
+#define ENABLE_TRIGGER_MOTOR_POWER 1
+#define ENABLE_FRICTION_1_MOTOR_POWER 1
+#define ENABLE_FRICTION_2_MOTOR_POWER 1
 ///////////////enable fo 2025 Hero only begin///////////////////
-#define ENABLE_FRICTION_3_MOTOR_POWER 0
-#define ENABLE_FRICTION_4_MOTOR_POWER 0
-#define ENABLE_PISTON_MOTOR_POWER 0
+#define ENABLE_FRICTION_3_MOTOR_POWER 1
+#define ENABLE_FRICTION_4_MOTOR_POWER 1
+#define ENABLE_PISTON_MOTOR_POWER 1
 ////////////////enable fo 2025 Hero only end////////////////////
 ///////////////enable fo 2026 Hero only begin///////////////////
 #define ENABLE_SECOND_YAW_MOTOR_POWER 1
@@ -84,9 +84,9 @@
 // so the firmware "positive = loading" convention stays physically correct).
 #define REVERSE_TRIGGER_MG4010 0
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define IS_TRIGGER_ON_GIMBAL 1
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) || (ROBOT_TYPE == HERO_2026_OMNI)
 #define IS_TRIGGER_ON_GIMBAL 0
 #else
 #define IS_TRIGGER_ON_GIMBAL 0
@@ -460,7 +460,16 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 			}
 #endif
 
-#if (IS_TRIGGER_ON_GIMBAL == 0) && (TRIGGER_MOTOR_IS_4010 == 0)
+#if (IS_TRIGGER_ON_GIMBAL == 0)
+#if TRIGGER_MOTOR_IS_4010
+			case CAN_TRIGGER_MOTOR_ID:
+			{
+				bMotorId = MOTOR_INDEX_TRIGGER;
+				decode_MG_4010_motor_feedback(rx_data, bMotorId);
+				detect_hook(TRIGGER_MOTOR_TOE);
+				break;
+			}
+#else
 			case CAN_TRIGGER_MOTOR_ID:
 			{
         		bMotorId = MOTOR_INDEX_TRIGGER;
@@ -468,6 +477,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 				detect_hook(TRIGGER_MOTOR_TOE);
 				break;
 			}
+#endif
 #endif
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 			case CAN_SHRINKED_CONTROLLER_RX_ID:
@@ -651,7 +661,7 @@ HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef
 
 #if TRIGGER_MOTOR_IS_4010
 /**
-  * @brief          send a single-motor speed closed-loop command to the KTech MG4010 trigger motor (0x147) on GIMBAL_CAN.
+  * @brief          send a single-motor speed closed-loop command to the KTech MG4010 trigger motor (0x147) on CHASSIS_CAN.
   *                 The trigger is motor ID 7, so it must use the MG4010 single-motor frame (0x140 + ID) with the
   *                 0xA2 command-byte protocol; it cannot be addressed by the 4-in-1 broadcast frame (0x281) used
   *                 for the chassis powertrain motors.
@@ -677,8 +687,8 @@ void CAN_cmd_4010_trigger(int16_t trigger_speed_cmd)
 
 	// Use stack-local buffers (NOT the shared static can_tx_message/can_send_data): the chassis 4010
 	// broadcast (encode_ktech_broadcast_speed_control, 0x281) writes those same statics from the
-	// chassis task. Sharing them races this gimbal-task send and would corrupt the 0x147 frame's ID
-	// before HAL_CAN_AddTxMessage copies it into the CAN2 mailbox.
+	// chassis task on this same CHASSIS_CAN bus. Sharing them races this trigger send and would corrupt
+	// the 0x147 frame's ID before HAL_CAN_AddTxMessage copies it into the CAN1 mailbox.
 	CAN_TxHeaderTypeDef trigger_tx_message;
 	uint8_t trigger_send_data[8];
 
@@ -697,7 +707,7 @@ void CAN_cmd_4010_trigger(int16_t trigger_speed_cmd)
 	trigger_send_data[6] = (uint8_t)(speed_control >> 16);
 	trigger_send_data[7] = (uint8_t)(speed_control >> 24);
 
-	Send_CAN_Cmd(&GIMBAL_CAN, &trigger_tx_message, trigger_send_data, 1);
+	Send_CAN_Cmd(&CHASSIS_CAN, &trigger_tx_message, trigger_send_data, 1);
 }
 #endif
 
