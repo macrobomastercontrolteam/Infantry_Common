@@ -1,4 +1,4 @@
-// @TODO: This file follows the serial protocol released in 2019, update it to latest protocol
+// Updated to RoboMaster 2026 referee serial protocol V1.3.0 (2026.03.27)
 
 #ifndef _REFEREE_H
 #define _REFEREE_H
@@ -56,24 +56,16 @@ typedef __packed struct // 0002
 {
 	uint8_t winner;
 } ext_game_result_t;
-typedef __packed struct // 0003
+typedef __packed struct // 0x0003 (V1.3.0: ally-only, 16 bytes)
 {
-	uint16_t red_1_robot_HP;
-	uint16_t red_2_robot_HP;
-	uint16_t red_3_robot_HP;
-	uint16_t red_4_robot_HP;
-	uint16_t red_5_robot_HP; //reserved
-	uint16_t red_7_robot_HP;
-	uint16_t red_outpost_HP;
-	uint16_t red_base_HP;
-	uint16_t blue_1_robot_HP;
-	uint16_t blue_2_robot_HP;
-	uint16_t blue_3_robot_HP;
-	uint16_t blue_4_robot_HP;
-	uint16_t blue_5_robot_HP; //reserved
-	uint16_t blue_7_robot_HP;
-	uint16_t blue_outpost_HP;
-	uint16_t blue_base_HP;
+	uint16_t ally_1_robot_HP; // hero
+	uint16_t ally_2_robot_HP; // engineer
+	uint16_t ally_3_robot_HP; // infantry 3
+	uint16_t ally_4_robot_HP; // infantry 4
+	uint16_t reserved;        // offset 8
+	uint16_t ally_7_robot_HP; // sentry
+	uint16_t ally_outpost_HP;
+	uint16_t ally_base_HP;
 } ext_game_robot_HP_t;
 
 typedef __packed struct // 0x0101
@@ -109,14 +101,13 @@ typedef __packed struct // 0x0201
 	uint8_t power_management_shooter_output : 1;
 } ext_game_robot_state_t;
 
-typedef __packed struct // 0x0202
+typedef __packed struct // 0x0202 (V1.3.0: 14 bytes, single 17mm heat)
 {
-	uint16_t chassis_voltage;
-	uint16_t chassis_current;
-	float chassis_power; 			//reserved
+	uint16_t reserved_1;
+	uint16_t reserved_2;
+	float reserved_3;
 	uint16_t buffer_energy;
-	uint16_t shooter_17mm_1_barrel_heat;
-	uint16_t shooter_17mm_2_barrel_heat;
+	uint16_t shooter_17mm_barrel_heat;
 	uint16_t shooter_42mm_barrel_heat;
 } ext_power_heat_data_t;
 
@@ -127,14 +118,14 @@ typedef __packed struct // 0x0203
 	float angle;
 } ext_game_robot_pos_t;
 
-typedef __packed struct // 0x0204
+typedef __packed struct // 0x0204 (V1.3.0: 8 bytes, cooling_buff is uint16_t)
 {
 	uint8_t recovery_buff;
-	uint8_t cooling_buff;
+	uint16_t cooling_buff;
 	uint8_t defence_buff;
-	uint8_t vulnerability_buff; 
+	uint8_t vulnerability_buff;
 	uint16_t attack_buff;
-	uint8_t remaining_energy; 
+	uint8_t remaining_energy;
 } ext_buff_musk_t;
 
 // typedef __packed struct // 0x0205
@@ -159,16 +150,18 @@ typedef __packed struct // 0x0207
 	float initial_speed;
 } ext_shoot_data_t;
 
-typedef __packed struct // 0x0208
+typedef __packed struct // 0x0208 (V1.3.0: 8 bytes)
 {
 	uint16_t projectile_allowance_17mm;
 	uint16_t projectile_allowance_42mm;
 	uint16_t remaining_gold_coin;
+	uint16_t projectile_allowance_fortress;
 } ext_projectile_allowance_t;
 
-typedef __packed struct // 0x0209
+typedef __packed struct // 0x0209 (V1.3.0: 5 bytes)
 {
 	uint32_t rfid_status;
+	uint8_t rfid_status_2;
 } ext_rfid_status_t;
 
 typedef __packed struct // 0x020A
@@ -197,15 +190,9 @@ typedef __packed struct // 0x020B
 	float standard_5_y;//reserved
 } ext_ground_robot_position_t;
 
-typedef __packed struct // 0x020C
+typedef __packed struct // 0x020C (V1.3.0: 2 bytes, per-robot vulnerability/mark bitfield)
 {
-	uint8_t mark_progress;
-	// uint8_t mark_hero_progress;
-	// uint8_t mark_engineer_progress;
-	// uint8_t mark_standard_3_progress;
-	// uint8_t mark_standard_4_progress;
-	// uint8_t mark_standard_5_progress;
-	// uint8_t mark_sentry_progress;
+	uint16_t mark_progress;
 } ext_radar_mark_data_t;
 
 typedef __packed struct // 0x020D
@@ -262,18 +249,30 @@ typedef __packed struct //0x102
 }interaction_figure_2_t; 
 
 typedef __packed struct //0x103
-{ 
-interaction_figure_t interaction_figure[5]; 
-}interaction_figure_3_t; 
+{
+interaction_figure_t interaction_figure[5];
+}interaction_figure_3_t;
+
+typedef __packed struct //0x104 (draw 7 figures)
+{
+interaction_figure_t interaction_figure[7];
+}interaction_figure_4_t;
 
 typedef __packed struct // 0x0120
 {
 	uint32_t sentry_cmd;
 } ext_sentry_cmd_t;
 
-typedef __packed struct // 0x0121
+typedef __packed struct // 0x0121 (V1.3.0: 8 bytes)
 {
 	uint8_t radar_cmd;
+	uint8_t password_cmd;
+	uint8_t password_1;
+	uint8_t password_2;
+	uint8_t password_3;
+	uint8_t password_4;
+	uint8_t password_5;
+	uint8_t password_6;
 } ext_radar_cmd_t;
 
 typedef __packed struct // 0x0306
@@ -323,20 +322,32 @@ typedef __packed struct // 0x0304
 	uint16_t reserved;
 } ext_robot_keyboard_mouse_command_t;
 
-typedef __packed struct // 0x0305
+typedef __packed struct // 0x0305 (V1.3.0: 48 bytes, both teams, units: cm)
 {
-	uint16_t hero_position_x;
-	uint16_t hero_position_y;
-	uint16_t engineer_position_x;
-	uint16_t engineer_position_y;
-	uint16_t infantry_3_position_x;
-	uint16_t infantry_3_position_y;
-	uint16_t infantry_4_position_x;
-	uint16_t infantry_4_position_y;
-	uint16_t infantry_5_position_x;
-	uint16_t infantry_5_position_y;
-	uint16_t sentry_position_x;
-	uint16_t sentry_position_y;
+	uint16_t opponent_hero_position_x;
+	uint16_t opponent_hero_position_y;
+	uint16_t opponent_engineer_position_x;
+	uint16_t opponent_engineer_position_y;
+	uint16_t opponent_infantry_3_position_x;
+	uint16_t opponent_infantry_3_position_y;
+	uint16_t opponent_infantry_4_position_x;
+	uint16_t opponent_infantry_4_position_y;
+	uint16_t opponent_aerial_position_x;
+	uint16_t opponent_aerial_position_y;
+	uint16_t opponent_sentry_position_x;
+	uint16_t opponent_sentry_position_y;
+	uint16_t ally_hero_position_x;
+	uint16_t ally_hero_position_y;
+	uint16_t ally_engineer_position_x;
+	uint16_t ally_engineer_position_y;
+	uint16_t ally_infantry_3_position_x;
+	uint16_t ally_infantry_3_position_y;
+	uint16_t ally_infantry_4_position_x;
+	uint16_t ally_infantry_4_position_y;
+	uint16_t ally_aerial_position_x;
+	uint16_t ally_aerial_position_y;
+	uint16_t ally_sentry_position_x;
+	uint16_t ally_sentry_position_y;
 } ext_map_robot_data_t;
 
 typedef __packed struct

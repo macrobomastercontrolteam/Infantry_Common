@@ -77,24 +77,19 @@ typedef enum
 } can_motor_id_e;
 
 typedef enum { //also update receiving end after change
-  ALL = 1,
+   ALL = 1,
   
   ROBOT_ID,
-  ROBOT_LEVEL,
 
-  CURRENT_HP,
-  MAXIMUM_HP,
+  GAME_INFO,
 
   BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT,
-  BARREL_HEAT_LIMIT,
-  BARREL_1_HEAT,
 
   PROJECTILE_ALLOWANCE_17MM,
   
   CHASSIS_POWER_INFO,
-  CHASSIS_POWER_BUFFER,
-  CHASSIS_POWER_LIMIT,
-
+  
+  CHASSIS_POWERMETER_DATA,
 } request_ref_info_code_t;
 
 

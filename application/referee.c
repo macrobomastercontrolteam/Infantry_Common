@@ -1,4 +1,4 @@
-// Last updated to Ref Serial Protocol V1.6.3 (2024/05/27)
+// Updated to RoboMaster 2026 referee serial protocol V1.3.0 (2026.06.30)
 
 #include "referee.h"
 #include "CRC8_CRC16.h"
@@ -29,8 +29,8 @@ ext_buff_musk_t buff_musk_t;                       // 0x0204
 //ext_aerial_robot_energy_t robot_energy_t;          // 0x0205
 ext_robot_hurt_t robot_hurt_t;                     // 0x0206
 ext_shoot_data_t shoot_data_t;                     // 0x0207
-ext_rfid_status_t rfid_status_t;                   // 0x0208
-ext_projectile_allowance_t projectile_allowance_t; // 0x0209
+ext_rfid_status_t rfid_status_t;                   // 0x0209
+ext_projectile_allowance_t projectile_allowance_t; // 0x0208
 ext_ground_robot_position_t ground_robot_position_t; // 0x020B
 ext_radar_mark_data_t radar_mark_data_t;             // 0x020C
 ext_sentry_info_t sentry_info_t;                     // 0x020D
@@ -222,7 +222,7 @@ void referee_data_solve(uint8_t *frame)
 		}
 		case RADAR_DECISION_CMD_ID:
 		{
-			memcpy(&sentry_cmd_t, frame + index, sizeof(sentry_cmd_t));
+			memcpy(&radar_cmd_t, frame + index, sizeof(radar_cmd_t));
 			break;
 		}
 		case CUSTOM_INFO_CMD_ID:
@@ -335,14 +335,15 @@ void get_shoot_heat0_limit_and_heat(uint16_t *heat_limit, uint16_t *heat0)
 #if (LAUNCHER_TYPE == LAUNCHER_42MM)
 	*heat0 = power_heat_data_t.shooter_42mm_barrel_heat;
 #else
-	*heat0 = power_heat_data_t.shooter_17mm_1_barrel_heat;
+	*heat0 = power_heat_data_t.shooter_17mm_barrel_heat;
 #endif
 }
 
 void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1)
 {
 	*heat_limit = robot_state.shooter_barrel_heat_limit;
-	*heat1 = power_heat_data_t.shooter_17mm_2_barrel_heat;
+	// V1.3.0 0x0202 reports a single aggregated 17mm heat (no per-barrel value).
+	*heat1 = power_heat_data_t.shooter_17mm_barrel_heat;
 }
 
 uint16_t get_heat_limit(void)
@@ -351,11 +352,12 @@ uint16_t get_heat_limit(void)
 }
 uint16_t get_barrel_1_heat(void)
 {
-	return power_heat_data_t.shooter_17mm_1_barrel_heat;
+	return power_heat_data_t.shooter_17mm_barrel_heat;
 }
 uint16_t get_barrel_2_heat(void)
 {
-	return power_heat_data_t.shooter_17mm_2_barrel_heat;;
+	// V1.3.0 0x0202 has no second 17mm barrel; return the single 17mm heat.
+	return power_heat_data_t.shooter_17mm_barrel_heat;
 }
 uint16_t get_chassis_power_buffer(void)
 {
@@ -394,12 +396,15 @@ armor_damage_info_t get_armor_hurt(void)
 	}
 }
 
+// V1.3.0 0x0003 only reports the ally outpost HP (the enemy outpost HP is no
+// longer transmitted). Map it into the slot matching our own team color; the
+// enemy outpost HP is unavailable and returned as 0.
 uint16_t get_red_outpost_HP(void)
 {
-	return game_robot_HP_t.red_outpost_HP;
+	return (get_team_color() == 1) ? game_robot_HP_t.ally_outpost_HP : 0;
 }
 
 uint16_t get_blue_outpost_HP(void)
 {
-	return game_robot_HP_t.blue_outpost_HP;
+	return (get_team_color() == 0) ? game_robot_HP_t.ally_outpost_HP : 0;
 }

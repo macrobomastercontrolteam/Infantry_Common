@@ -1016,10 +1016,19 @@ void return_ref_info(uint8_t info_code)
 		{
 			uint16_t heat_limit = 0;
 			uint16_t barrel_1_heat = 0;
+
+			uint8_t game_started;
+			uint8_t team_color;
+
+			game_started = is_game_started();
+			team_color = get_team_color();
+
 			get_shoot_heat0_limit_and_heat(&heat_limit, &barrel_1_heat);
 
 			memcpy(&chassis_can_send_data[1], &heat_limit, 2); //sizeof(heat_limit) = 2
 			memcpy(&chassis_can_send_data[3], &barrel_1_heat, 2);
+			memcpy(&chassis_can_send_data[5], &game_started, 1);
+			memcpy(&chassis_can_send_data[6], &team_color, 1);
 			break;
 		}
 		

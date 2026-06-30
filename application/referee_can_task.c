@@ -30,6 +30,7 @@ void referee_can_task(void const *pvParameters)
 
   while (1)
   {
+    //return_ref_info(GAME_INFO);
     return_ref_info(CHASSIS_POWER_INFO);
     return_ref_info(BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT);
 
