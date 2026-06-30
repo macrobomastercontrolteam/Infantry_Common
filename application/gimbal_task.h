@@ -419,6 +419,23 @@
 #define PRIMARY_RECENTER_KP        2.7f     // rad/s of primary slew per rad of secondary off-centre
 #define PRIMARY_RECENTER_KD        0.3f     // damping on the secondary relative rate
 #define PRIMARY_SLEW_RATE_MAX      8.0f     // rad/s overall cap on the primary slew command
+
+//--- Lever-arm (offset-CoG) disturbance feedforward ---
+// The launcher CoG is offset along the barrel, so chassis acceleration PERPENDICULAR to the
+// aim makes a yaw-axis disturbance torque (~ m*r*a_perp). The IMU rides on the launcher and
+// its Y accel axis (the pitch axis) stays horizontal, so it reads that perpendicular
+// acceleration directly -- no frame transform, no gravity term. We add a counter-torque,
+// mainly to the fast secondary stage. While the fine loop is holding aim (the case that
+// matters) the launcher is not rotating, so this accel is almost pure chassis disturbance.
+//
+// TUNE: hold the gimbal still and strafe left/right (perpendicular to the aim). Raise
+// LEVER_ARM_FF_GAIN from 0 until the launcher stops drifting. If it gets WORSE, flip the
+// sign. If it buzzes/oscillates, lower the gain or LEVER_ARM_FF_FILTER_COEFF.
+#define LEVER_ARM_FF_GAIN          0.0f    // body-Y accel (m/s^2) -> secondary counter-torque. START HERE.
+#define LEVER_ARM_FF_PRIMARY_GAIN  0.0f    // optional share into the big yaw (helps long sustained strafes)
+#define LEVER_ARM_FF_ACCEL_AXIS    INS_ACCEL_Y_ADDRESS_OFFSET  // lateral (pitch) axis = perpendicular to barrel
+#define LEVER_ARM_FF_FILTER_COEFF  0.3f    // first-order LP on the accel (0..1; lower = smoother, more lag)
+#define LEVER_ARM_FF_MAX           3.0f    // clamp on the FF torque (safety bound)
 #endif
 
 

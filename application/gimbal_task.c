@@ -227,6 +227,19 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
 
     const fp32 soft_limit   = SECOND_YAW_MECH_LIMIT_RAD - SECOND_YAW_SOFT_LIMIT_MARGIN_RAD;
 
+    // Lever-arm (offset-CoG) disturbance feedforward: the body-Y accelerometer (pitch axis,
+    // stays horizontal) reads the chassis acceleration perpendicular to the aim, which is what
+    // produces the disturbing yaw torque. Counter it -- mostly on the fast secondary stage.
+    // While the fine loop is holding aim the launcher is not rotating, so this is almost pure
+    // chassis disturbance rather than the gimbal's own motion.
+    static fp32 lever_accel_filt = 0.0f;
+    lever_accel_filt = first_order_filter(get_accel_data_point()[LEVER_ARM_FF_ACCEL_AXIS],
+                                          lever_accel_filt, LEVER_ARM_FF_FILTER_COEFF);
+    const fp32 lever_ff_sec = fp32_constrain(LEVER_ARM_FF_GAIN * lever_accel_filt,
+                                             -LEVER_ARM_FF_MAX, LEVER_ARM_FF_MAX);
+    const fp32 lever_ff_pri = fp32_constrain(LEVER_ARM_FF_PRIMARY_GAIN * lever_accel_filt,
+                                             -LEVER_ARM_FF_MAX, LEVER_ARM_FF_MAX);
+
     // ---------- FINE STAGE (secondary): inertially aim the launcher ----------
     second->absolute_angle     = theta;        // mirrored for telemetry / J-scope
     second->absolute_angle_set = theta_target;
@@ -236,6 +249,7 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
     fp32 sec_cmd = PID_calc(&second->gimbal_motor_speed_pid,
                             theta_dot, second->motor_gyro_set,
                             GIMBAL_CONTROL_TIME_S);
+    sec_cmd += lever_ff_sec;                    // lever-arm disturbance feedforward
 
     // Stroke protection: never command the secondary further into a hard stop. The coarse
     // stage recenters it, so any saturation here is only transient.
@@ -273,7 +287,8 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
     primary->motor_gyro_set = primary_rate_set;
     primary->cmd_value = PID_calc(&primary->gimbal_motor_speed_pid,
                                   q1_dot, primary_rate_set,
-                                  GIMBAL_CONTROL_TIME_S);
+                                  GIMBAL_CONTROL_TIME_S)
+                       + lever_ff_pri;          // optional lever-arm feedforward share
 }
 #endif
 
