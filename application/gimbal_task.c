@@ -246,13 +246,30 @@ static void hero_2026_dual_yaw_allocate(gimbal_control_t *control_loop)
     }
     second->cmd_value = sec_cmd;
 
-    // ---------- COARSE STAGE (primary): recenter the secondary (q2 -> 0) ----------
-    // q2 = theta - q1, so a positive q2 needs a positive primary rate to null it. The
-    // +KD*q2_dot term damps the slew (closed loop q2_dot = -KP/(1+KD)*q2): a clean,
-    // monotonic decay with NO overshoot, so the small yaw never reverses on stick release.
+    // ---------- COARSE STAGE (primary): lead via feedforward, then recenter ----------
+    // Velocity feedforward: drive the big yaw at the commanded aim rate so it carries the
+    // gross motion instead of waiting for the secondary to deflect first. This is the pure
+    // command rate (d/dt of the target), independent of the fine loop; clamped against the
+    // one-tick spike on a target snap (mode change / CV step).
+    static fp32 theta_target_prev = 0.0f;
+    static uint8_t ff_init = 0;
+    fp32 aim_rate_ff = 0.0f;
+    if (ff_init)
+    {
+        aim_rate_ff = rad_format(theta_target - theta_target_prev) / GIMBAL_CONTROL_TIME_S;
+    }
+    theta_target_prev = theta_target;
+    ff_init = 1;
+    aim_rate_ff = fp32_constrain(aim_rate_ff, -PRIMARY_FF_RATE_MAX, PRIMARY_FF_RATE_MAX);
+
+    // Recenter PD: q2 = theta - q1, so a positive q2 needs a positive primary rate to null
+    // it. +KD*q2_dot damps the slew (closed loop q2_dot = -KP/(1+KD)*q2): monotonic decay
+    // with NO overshoot, so the small yaw never reverses on stick release.
     second->relative_angle_set = 0.0f;         // recenter target (telemetry/intent)
-    fp32 primary_rate_set = PRIMARY_RECENTER_KP * q2 + PRIMARY_RECENTER_KD * q2_dot;
-    primary_rate_set = fp32_constrain(primary_rate_set, -PRIMARY_RECENTER_RATE_MAX, PRIMARY_RECENTER_RATE_MAX);
+    fp32 primary_rate_set = PRIMARY_FF_GAIN * aim_rate_ff
+                          + PRIMARY_RECENTER_KP * q2
+                          + PRIMARY_RECENTER_KD * q2_dot;
+    primary_rate_set = fp32_constrain(primary_rate_set, -PRIMARY_SLEW_RATE_MAX, PRIMARY_SLEW_RATE_MAX);
     primary->motor_gyro_set = primary_rate_set;
     primary->cmd_value = PID_calc(&primary->gimbal_motor_speed_pid,
                                   q1_dot, primary_rate_set,

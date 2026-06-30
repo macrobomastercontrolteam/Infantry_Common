@@ -403,14 +403,22 @@
 #define SECOND_YAW_FINE_ANGLE_PID_MAX_OUT   10.0f   // rad/s
 #define SECOND_YAW_FINE_ANGLE_PID_MAX_IOUT  0.0f
 
-//--- Coarse stage OUTER loop: PD recenter of the secondary (q2 -> 0) -> desired primary rate ---
-// Keep this GENTLE and well-damped. The +KD*q2_dot term damps the primary slew so
-// it does not overshoot q2 = 0. Overshoot here is exactly what made the previous
-// "big yaw on a low-pass filter" design kick the small yaw backwards when the stick
-// returned to centre. If you ever see that reversal, lower KP / raise KD.
+//--- Coarse stage: big yaw LEADS via velocity feedforward, then a damped PD recenter ---
+// FF: the big yaw moves WITH the aim command (d/dt of the target) so it does the gross
+//     motion and the small yaw only has to cover the lag. Without this the big yaw is
+//     purely reactive to q2 and feels like it "barely moves". GAIN 1.0 = attempt the full
+//     commanded aim rate; lower it if the big yaw is too eager / oscillates. RATE_MAX
+//     clamps the differentiated command (anti-spike on target snaps and CV steps).
+#define PRIMARY_FF_GAIN            1.0f
+#define PRIMARY_FF_RATE_MAX        8.0f     // rad/s
+// PD recenter: nulls the residual secondary off-centre (q2 -> 0). +KD*q2_dot damps the
+// slew so the big yaw never overshoots q2 = 0 -> the small yaw can't reverse on stick
+// release (the failure mode of the old "big yaw on a low-pass filter" design). The
+// closed loop is q2_dot = -KP/(1+KD)*q2, i.e. a clean exponential with tau = (1+KD)/KP.
+// If you ever see the small yaw reverse, lower KP / raise KD.
 #define PRIMARY_RECENTER_KP        6.0f     // rad/s of primary slew per rad of secondary off-centre
 #define PRIMARY_RECENTER_KD        0.8f     // damping on the secondary relative rate
-#define PRIMARY_RECENTER_RATE_MAX  4.0f     // rad/s cap on primary slew (keep below the fine-loop bandwidth)
+#define PRIMARY_SLEW_RATE_MAX      8.0f     // rad/s overall cap on the primary slew command
 #endif
 
 
