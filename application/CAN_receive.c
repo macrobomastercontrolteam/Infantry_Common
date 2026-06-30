@@ -651,9 +651,11 @@ HAL_StatusTypeDef blocking_can_send(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef
 
 #if TRIGGER_MOTOR_IS_4010
 /**
-  * @brief          send a single-motor speed command to the KTech MG4010 trigger motor (0x217) on GIMBAL_CAN.
-  *                 Uses the same int16 deg/s (1 dps/LSB) speed encoding as the chassis MG4010 broadcast.
-  * @param[in]      trigger_speed_cmd: motor-rotor speed command in deg/s
+  * @brief          send a single-motor speed closed-loop command to the KTech MG4010 trigger motor (0x147) on GIMBAL_CAN.
+  *                 The trigger is motor ID 7, so it must use the MG4010 single-motor frame (0x140 + ID) with the
+  *                 0xA2 command-byte protocol; it cannot be addressed by the 4-in-1 broadcast frame (0x281) used
+  *                 for the chassis powertrain motors.
+  * @param[in]      trigger_speed_cmd: motor-rotor speed command in deg/s (1 dps/LSB)
   * @retval         none
   */
 void CAN_cmd_4010_trigger(int16_t trigger_speed_cmd)
@@ -666,24 +668,36 @@ void CAN_cmd_4010_trigger(int16_t trigger_speed_cmd)
 	trigger_speed_cmd = -trigger_speed_cmd;
 #endif
 
-	int16_t cmd = (int16_t)fp32_abs_constrain((fp32)trigger_speed_cmd, MOTOR_MG4010_MAX_CMD);
+	int16_t cmd_dps = (int16_t)fp32_abs_constrain((fp32)trigger_speed_cmd, MOTOR_MG4010_MAX_CMD);
 
-	can_tx_message.StdId = CAN_TRIGGER_MOTOR_ID;
-	can_tx_message.ExtId = 0x00;
-	can_tx_message.IDE = CAN_ID_STD;
-	can_tx_message.RTR = CAN_RTR_DATA;
-	can_tx_message.DLC = 8;
+	// MG4010 single-motor "speed closed-loop control" command (0xA2): the speedControl field is an
+	// int32 in units of 0.01 dps/LSB, so scale the 1 dps/LSB command by 100 to match the physical
+	// speed scale used by the chassis broadcast.
+	int32_t speed_control = (int32_t)cmd_dps * 100;
 
-	can_send_data[0] = (uint8_t)cmd;
-	can_send_data[1] = (uint8_t)(cmd >> 8);
-	can_send_data[2] = 0;
-	can_send_data[3] = 0;
-	can_send_data[4] = 0;
-	can_send_data[5] = 0;
-	can_send_data[6] = 0;
-	can_send_data[7] = 0;
+	// Use stack-local buffers (NOT the shared static can_tx_message/can_send_data): the chassis 4010
+	// broadcast (encode_ktech_broadcast_speed_control, 0x281) writes those same statics from the
+	// chassis task. Sharing them races this gimbal-task send and would corrupt the 0x147 frame's ID
+	// before HAL_CAN_AddTxMessage copies it into the CAN2 mailbox.
+	CAN_TxHeaderTypeDef trigger_tx_message;
+	uint8_t trigger_send_data[8];
 
-	Send_CAN_Cmd(&GIMBAL_CAN, &can_tx_message, can_send_data, 1);
+	trigger_tx_message.StdId = CAN_TRIGGER_MOTOR_ID;
+	trigger_tx_message.ExtId = 0x00;
+	trigger_tx_message.IDE = CAN_ID_STD;
+	trigger_tx_message.RTR = CAN_RTR_DATA;
+	trigger_tx_message.DLC = 8;
+
+	trigger_send_data[0] = 0xA2; // speed closed-loop control command byte
+	trigger_send_data[1] = 0;
+	trigger_send_data[2] = 0;
+	trigger_send_data[3] = 0;
+	trigger_send_data[4] = (uint8_t)(speed_control);
+	trigger_send_data[5] = (uint8_t)(speed_control >> 8);
+	trigger_send_data[6] = (uint8_t)(speed_control >> 16);
+	trigger_send_data[7] = (uint8_t)(speed_control >> 24);
+
+	Send_CAN_Cmd(&GIMBAL_CAN, &trigger_tx_message, trigger_send_data, 1);
 }
 #endif
 

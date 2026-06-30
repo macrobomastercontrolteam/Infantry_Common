@@ -335,7 +335,7 @@ extern void CAN_cmd_gimbal_lower_can_id(int16_t fric_up, int16_t fric_down);
 
 #if TRIGGER_MOTOR_IS_4010
 /**
-  * @brief          send single-motor speed command to the KTech MG4010 trigger motor (0x217) on GIMBAL_CAN
+  * @brief          send single-motor speed command to the KTech MG4010 trigger motor (0x147) on GIMBAL_CAN
   * @param[in]      trigger_speed_cmd: motor-rotor speed command in deg/s (1 dps/LSB), range [-MOTOR_MG4010_MAX_CMD, MOTOR_MG4010_MAX_CMD]
   * @retval         none
   */

@@ -431,8 +431,8 @@
 // TUNE: hold the gimbal still and strafe left/right (perpendicular to the aim). Raise
 // LEVER_ARM_FF_GAIN from 0 until the launcher stops drifting. If it gets WORSE, flip the
 // sign. If it buzzes/oscillates, lower the gain or LEVER_ARM_FF_FILTER_COEFF.
-#define LEVER_ARM_FF_GAIN          0.0f    // body-Y accel (m/s^2) -> secondary counter-torque. START HERE.
-#define LEVER_ARM_FF_PRIMARY_GAIN  0.0f    // optional share into the big yaw (helps long sustained strafes)
+#define LEVER_ARM_FF_GAIN          0.5f    // body-Y accel (m/s^2) -> secondary counter-torque. START HERE.
+#define LEVER_ARM_FF_PRIMARY_GAIN  0.3f    // optional share into the big yaw (helps long sustained strafes)
 #define LEVER_ARM_FF_ACCEL_AXIS    INS_ACCEL_Y_ADDRESS_OFFSET  // lateral (pitch) axis = perpendicular to barrel
 #define LEVER_ARM_FF_FILTER_COEFF  0.3f    // first-order LP on the accel (0..1; lower = smoother, more lag)
 #define LEVER_ARM_FF_MAX           3.0f    // clamp on the FF torque (safety bound)
