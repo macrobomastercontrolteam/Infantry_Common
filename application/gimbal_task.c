@@ -1514,6 +1514,22 @@ fp32 get_gimbal_ecd_yaw_angle(void)
     return gimbal_control.gimbal_yaw_motor.relative_angle;
 }
 
+/**
+  * @brief  Yaw angle of the gimbal's POINTING direction relative to the chassis front.
+  *         For the dual-yaw hero the launcher points at the primary yaw angle PLUS the
+  *         secondary offset q2, so the chassis must use this sum (not just the primary
+  *         encoder) to drive where the gimbal is actually aimed. Identical to the primary
+  *         relative angle on single-yaw robots.
+  */
+fp32 get_gimbal_yaw_to_chassis_angle(void)
+{
+#if (ROBOT_TYPE == HERO_2026_OMNI)
+    return gimbal_control.gimbal_yaw_motor.relative_angle + gimbal_control.gimbal_second_yaw_motor.relative_angle;
+#else
+    return gimbal_control.gimbal_yaw_motor.relative_angle;
+#endif
+}
+
 fp32 get_gimbal_ecd_pitch_angle(void)
 {
     return gimbal_control.gimbal_pitch_motor.relative_angle;

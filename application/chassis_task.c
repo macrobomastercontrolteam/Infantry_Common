@@ -343,7 +343,9 @@ static void chassis_feedback_update(void)
 #endif
 
 	// calculate chassis euler angle, if chassis have a new gyro sensor,please change this code
-	chassis_move.chassis_yaw = rad_format(*(chassis_move.chassis_INS_angle + INS_YAW_ADDRESS_OFFSET) - chassis_move.chassis_yaw_motor->relative_angle);
+	// The yaw IMU sits on the launcher, so subtract the FULL launcher-to-chassis angle (primary
+	// + secondary q2) to recover the true chassis heading; otherwise chassis_yaw is biased by q2.
+	chassis_move.chassis_yaw = rad_format(*(chassis_move.chassis_INS_angle + INS_YAW_ADDRESS_OFFSET) - get_gimbal_yaw_to_chassis_angle());
 	chassis_move.chassis_pitch = rad_format(*(chassis_move.chassis_INS_angle + INS_PITCH_ADDRESS_OFFSET) - chassis_move.chassis_pitch_motor->relative_angle);
 	chassis_move.chassis_roll = *(chassis_move.chassis_INS_angle + INS_ROLL_ADDRESS_OFFSET);
 
@@ -879,8 +881,13 @@ static void chassis_set_control(void)
 		}
 		case CHASSIS_COORDINATE_FOLLOW_GIMBAL:
 		{
-			fp32 sin_yaw = AHRS_sinf(chassis_move.chassis_yaw_motor->relative_angle);
-			fp32 cos_yaw = AHRS_cosf(chassis_move.chassis_yaw_motor->relative_angle);
+			// Rotate the drive command into the chassis frame by the gimbal's POINTING
+			// direction. For the dual-yaw hero that is the primary yaw PLUS the secondary
+			// offset q2, so the robot moves where the launcher is aimed (not just where the
+			// primary stage points, which lags q2 during/after a slew).
+			fp32 gimbal_to_chassis = get_gimbal_yaw_to_chassis_angle();
+			fp32 sin_yaw = AHRS_sinf(gimbal_to_chassis);
+			fp32 cos_yaw = AHRS_cosf(gimbal_to_chassis);
 			chassis_move.vx_set = cos_yaw * vx_set + (-sin_yaw) * vy_set;
 			chassis_move.vy_set = sin_yaw * vx_set + cos_yaw * vy_set;
 
