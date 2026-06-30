@@ -129,21 +129,16 @@ typedef enum { //also update transmitting end after change
   ALL = 1,
   
   ROBOT_ID,
-  ROBOT_LEVEL,
 
-  CURRENT_HP,
-  MAXIMUM_HP,
+  GAME_INFO,
 
   BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT,
-  BARREL_HEAT_LIMIT,
-  BARREL_1_HEAT,
 
   PROJECTILE_ALLOWANCE_17MM,
   
   CHASSIS_POWER_INFO,
+  
   CHASSIS_POWERMETER_DATA,
-  CHASSIS_POWER_LIMIT,
-
 } request_ref_info_code_t;
 
 
@@ -305,6 +300,12 @@ typedef struct
     fp32 PowerMeter_reading;
     fp32 PowerMeter_current;
     fp32 PowerMeter_voltage;
+
+    uint8_t game_started;
+    uint8_t robot_id;
+    uint8_t team_color;
+    uint16_t robot_hp;
+
 } can_ref_info_t;
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)

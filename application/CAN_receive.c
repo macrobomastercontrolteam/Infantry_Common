@@ -1572,10 +1572,21 @@ void decode_ref_info(uint8_t *rx_data)
 
 	switch (info_code)
 	{
+		case GAME_INFO:
+		{
+			// memcpy(&can_ref_info.game_started, rx_data + 1, 1);
+			// memcpy(&can_ref_info.team_color, rx_data + 2, 1);
+			//memcpy(&can_ref_info.robot_hp, rx_data + 3, 2);
+			break;
+		}
+		
 		case BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT:
 		{
 			memcpy(&can_ref_info.barrel_heat_limit, rx_data + 1, 2);
 			memcpy(&can_ref_info.barrel_1_heat, rx_data + 3, 2); //stored saperately from uart-refree data, 42mm or 17mm heat determined in lower board
+			
+			memcpy(&can_ref_info.game_started, rx_data + 5, 1);
+			memcpy(&can_ref_info.team_color, rx_data + 6, 1);
 			break;
 		}
 		
