@@ -347,7 +347,7 @@
 
 #if ROBOT_YAW_IS_4310
 //yaw speed close-loop PID params, max out and max iout
-#define YAW_SPEED_PID_KP        0.4f
+#define YAW_SPEED_PID_KP        1.5f
 #define YAW_SPEED_PID_KI        0.0f
 #define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   6.5f
@@ -364,7 +364,7 @@
 #define PITCH_ANGLE_PID_MAX_IOUT 15.0f
 
 //yaw gyro angle close-loop PID params, max out and max iout
-#define YAW_ANGLE_PID_KP        5.0f
+#define YAW_ANGLE_PID_KP        15.0f
 #define YAW_ANGLE_PID_KI        0.0f
 #define YAW_ANGLE_PID_KD        0.0f
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
@@ -390,7 +390,7 @@
 // ============================================================================
 
 //--- Fine stage INNER loop: launcher inertial yaw rate -> secondary torque ---
-#define SECOND_YAW_SPEED_PID_KP        0.5f
+#define SECOND_YAW_SPEED_PID_KP        0.2f
 #define SECOND_YAW_SPEED_PID_KI        0.0f
 #define SECOND_YAW_SPEED_PID_KD        0.0f
 #define SECOND_YAW_SPEED_PID_MAX_OUT   10.0f
@@ -409,15 +409,15 @@
 //     purely reactive to q2 and feels like it "barely moves". GAIN 1.0 = attempt the full
 //     commanded aim rate; lower it if the big yaw is too eager / oscillates. RATE_MAX
 //     clamps the differentiated command (anti-spike on target snaps and CV steps).
-#define PRIMARY_FF_GAIN            1.0f
+#define PRIMARY_FF_GAIN            0.75f
 #define PRIMARY_FF_RATE_MAX        8.0f     // rad/s
 // PD recenter: nulls the residual secondary off-centre (q2 -> 0). +KD*q2_dot damps the
 // slew so the big yaw never overshoots q2 = 0 -> the small yaw can't reverse on stick
 // release (the failure mode of the old "big yaw on a low-pass filter" design). The
 // closed loop is q2_dot = -KP/(1+KD)*q2, i.e. a clean exponential with tau = (1+KD)/KP.
 // If you ever see the small yaw reverse, lower KP / raise KD.
-#define PRIMARY_RECENTER_KP        6.0f     // rad/s of primary slew per rad of secondary off-centre
-#define PRIMARY_RECENTER_KD        0.8f     // damping on the secondary relative rate
+#define PRIMARY_RECENTER_KP        2.7f     // rad/s of primary slew per rad of secondary off-centre
+#define PRIMARY_RECENTER_KD        0.3f     // damping on the secondary relative rate
 #define PRIMARY_SLEW_RATE_MAX      8.0f     // rad/s overall cap on the primary slew command
 #endif
 

@@ -36,9 +36,9 @@
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 
 //////////////enable for all robot types//////////////////////
-#define ENABLE_DRIVE_MOTOR_POWER 0
-#define ENABLE_YAW_MOTOR_POWER 0
-#define ENABLE_PITCH_MOTOR_POWER 0
+#define ENABLE_DRIVE_MOTOR_POWER 1
+#define ENABLE_YAW_MOTOR_POWER 1
+#define ENABLE_PITCH_MOTOR_POWER 1
 ///////////////enable fo 2026 standard only begin///////////////////
 #define ENABLE_PITCH_BASE_MOTOR_POWER 0
 ////////////////enable fo 2026 standard only end////////////////////
@@ -52,7 +52,7 @@
 #define ENABLE_PISTON_MOTOR_POWER 0
 ////////////////enable fo 2025 Hero only end////////////////////
 ///////////////enable fo 2026 Hero only begin///////////////////
-#define ENABLE_SECOND_YAW_MOTOR_POWER 0
+#define ENABLE_SECOND_YAW_MOTOR_POWER 1
 ////////////////enable fo 2026 Hero only end////////////////////
 
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
