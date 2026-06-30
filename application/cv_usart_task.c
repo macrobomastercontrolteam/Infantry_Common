@@ -37,7 +37,8 @@
 #define DATA_PACKAGE_PAYLOAD_SIZE (DATA_PACKAGE_HEADLESS_SIZE - sizeof(uint16_t) - sizeof(uint8_t)) // sizeof(uiTimestamp) and sizeof(bMsgType)
 #define CHAR_UNUSED 0xFF
 #define SHOOT_TIMEOUT_MS 350
-#define CHASSIS_SPIN_TIMEOUT_MS 500
+#define CHASSIS_SPIN_TIMEOUT_MS 1500
+#define CHASSIS_ALIGN_TIMEOUT_MS 1500 // align stays active only while CV keeps sending; must be several poll periods (CV_CONTROL_TIME_MS) to avoid spurious drop-out
 #define CV_TRANDELTA_FILTER_SIZE 4 // TranDelta means Transmission delay
 #define CV_SPEED_FILTER_ALPHA 0.25f
 
@@ -63,9 +64,10 @@ typedef enum
 	MSG_CV_INFO_GIMBAL_ANGLE = 0x08,
 	MSG_CV_INFO_CHASSIS_VEL = 0x09,
 	MSG_CV_INFO_HEAT_LIMIT = 0x0A,
+	MSG_CV_CHASSIS_ALIGN = 0x0B,
 } eMsgTypes;
 
-#define CV_NUM_REQ_TYPES (MSG_CV_INFO_HEAT_LIMIT + 1) // number of request Tags (0x00..0x0A), used to size the debug frequency arrays
+#define CV_NUM_REQ_TYPES (MSG_CV_CHASSIS_ALIGN + 1) // number of request Tags (0x00..0x0B), used to size the debug frequency arrays
 
 typedef enum
 {
@@ -94,6 +96,7 @@ typedef enum
 	REQ_LEN_CV_INFO_GIMBAL_ANGLE = 0,                // request trigger (no value)
 	REQ_LEN_CV_INFO_CHASSIS_VEL  = 0,                // request trigger (no value)
 	REQ_LEN_CV_INFO_HEAT_LIMIT   = 0,                // request trigger (no value)
+	REQ_LEN_CV_CHASSIS_ALIGN     = 1,                // AlignCmd (0xFF keep-aligning, 0x00 stop)
 } eCvReqValueLen;
 
 // Value-field byte lengths for Board -> CV response frames, indexed by Tag.
@@ -110,6 +113,7 @@ typedef enum
 	RSP_LEN_CV_INFO_GIMBAL_ANGLE = 4 * sizeof(fp32),                    // pitch+yaw angle + pitch+yaw rate
 	RSP_LEN_CV_INFO_CHASSIS_VEL  = 2 * sizeof(fp32),                    // vx + vy in gimbal-yaw frame (encoder-based)
 	RSP_LEN_CV_INFO_HEAT_LIMIT   = 2 * sizeof(uint16_t),                // shoot_heat_limit + shoot_heat (actual values)
+	RSP_LEN_CV_CHASSIS_ALIGN     = 1,                                   // Ack
 } eCvRspValueLen;
 
 #define CV_REQ_LEN_UNKNOWN 0xFFU // returned for an unrecognised request Tag (frame size cannot be derived)
@@ -177,6 +181,7 @@ void cv_usart_task(void const *argument)
 	CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
 	CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
 	CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
+	CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_GIMBAL_BIT, 0);
 	CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 0);
 	CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 0);
 
@@ -192,6 +197,10 @@ void cv_usart_task(void const *argument)
 		if (CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT) && (osKernelSysTick() - CvCmdHandler.ulChassisSpinStartTime > CHASSIS_SPIN_TIMEOUT_MS))
 		{
 			CvCmder_ChangeMode(CV_MODE_CHASSIS_SPINNING_BIT, 0);
+		}
+		if (CvCmder_GetMode(CV_MODE_CHASSIS_ALIGN_TO_GIMBAL_BIT) && (osKernelSysTick() - CvCmdHandler.ulChassisAlignStartTime > CHASSIS_ALIGN_TIMEOUT_MS))
+		{
+			CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_GIMBAL_BIT, 0);
 		}
 #endif
 
@@ -237,6 +246,7 @@ void CvCmder_Init(void)
 
 	CvCmdHandler.fCvMode = 0;
 	CvCmdHandler.ulChassisSpinStartTime = 0;
+	CvCmdHandler.ulChassisAlignStartTime = 0;
 	CvSpeedFilter.fInitialized = 0;
 	CvSpeedFilter.xSpeed = 0.0f;
 	CvSpeedFilter.ySpeed = 0.0f;
@@ -363,6 +373,7 @@ static uint8_t CvCmder_GetReqValueLen(uint8_t msgType)
 		case MSG_CV_INFO_GIMBAL_ANGLE:  return REQ_LEN_CV_INFO_GIMBAL_ANGLE;
 		case MSG_CV_INFO_CHASSIS_VEL:   return REQ_LEN_CV_INFO_CHASSIS_VEL;
 		case MSG_CV_INFO_HEAT_LIMIT:    return REQ_LEN_CV_INFO_HEAT_LIMIT;
+		case MSG_CV_CHASSIS_ALIGN:      return REQ_LEN_CV_CHASSIS_ALIGN;
 		default:                        return CV_REQ_LEN_UNKNOWN;
 	}
 }
@@ -383,6 +394,7 @@ static uint8_t CvCmder_GetRspValueLen(uint8_t msgType)
 		case MSG_CV_INFO_GIMBAL_ANGLE:  return RSP_LEN_CV_INFO_GIMBAL_ANGLE;
 		case MSG_CV_INFO_CHASSIS_VEL:   return RSP_LEN_CV_INFO_CHASSIS_VEL;
 		case MSG_CV_INFO_HEAT_LIMIT:    return RSP_LEN_CV_INFO_HEAT_LIMIT;
+		case MSG_CV_CHASSIS_ALIGN:      return RSP_LEN_CV_CHASSIS_ALIGN;
 		default:                        return 0;
 	}
 }
@@ -451,6 +463,17 @@ static void CvCmder_SendAck(uint8_t msgType)
 		case MSG_CONTROL_SPINNNG:
 		{
 			if(CvCmder_GetMode(CV_MODE_CHASSIS_SPINNING_BIT)){
+				ackBuf[1] = 0xFF;
+			}
+			else{
+				ackBuf[1] = 0x00;
+			}
+			break;
+		}
+
+		case MSG_CV_CHASSIS_ALIGN:
+		{
+			if(CvCmder_GetMode(CV_MODE_CHASSIS_ALIGN_TO_GIMBAL_BIT)){
 				ackBuf[1] = 0xFF;
 			}
 			else{
@@ -683,6 +706,28 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 					}
 
 					CvCmder_SendAck(MSG_CONTROL_SPINNNG);
+					detect_hook(CV_TOE);
+        	    }
+
+        	    break;
+			}
+        	case MSG_CV_CHASSIS_ALIGN:
+			{
+        	    if (length == 1)
+        	    {
+        	        uint8_t alignCmd = pData[1]; // 0x00 or 0xFF
+					if(alignCmd == 0xFF)
+					{
+						CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_GIMBAL_BIT, 1);
+						// keep aligning alive while CV keeps sending 0xFF; timeout is a failsafe if CV stops
+						CvCmdHandler.ulChassisAlignStartTime = osKernelSysTick();
+					}
+					else
+					{
+						CvCmder_ChangeMode(CV_MODE_CHASSIS_ALIGN_TO_GIMBAL_BIT, 0);
+					}
+
+					CvCmder_SendAck(MSG_CV_CHASSIS_ALIGN);
 					detect_hook(CV_TOE);
         	    }
 

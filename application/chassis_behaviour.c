@@ -80,6 +80,7 @@ static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set);
  */
 static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint8_t fSpinningOn);
 void chassis_align_to_gimbal(fp32* wz_set);
+void chassis_cv_align_to_gimbal(fp32* wz_set);
 void chassis_align_to_imu_front(fp32* wz_set);
 
 void chassis_spinning_speed_manager(fp32 *wz_set);
@@ -569,9 +570,9 @@ static void chassis_cv_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set)
 		{
 			chassis_spinning_speed_manager(wz_set);
 		}
-		else if (CvCmder_GetMode(CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT))
+		else if (CvCmder_GetMode(CV_MODE_CHASSIS_ALIGN_TO_GIMBAL_BIT))
 		{
-			chassis_align_to_imu_front(wz_set);
+			chassis_cv_align_to_gimbal(wz_set);
 		}
 	}
 #endif
@@ -612,6 +613,8 @@ static void chassis_basic_control(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set, uint
 	}
 }
 
+#define CHASSIS_ALIGN_WZ_SCALE 0.5f
+
 void chassis_align_to_gimbal(fp32* wz_set)
 {
 #if (ROBOT_TYPE != INFANTRY_2024_BIPED)
@@ -630,13 +633,20 @@ void chassis_align_to_gimbal(fp32* wz_set)
 #else
 		const fp32 gimbal_align_angle_deadzone = DEG_TO_RAD(3.5f);
 #endif
+
 		fp32 target_wz = 0.0f;
-		if (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) > gimbal_align_angle_deadzone)
+		fp32 abs_align_angle = fabs(gimbal_control.gimbal_yaw_motor.relative_angle);
+		if (abs_align_angle > gimbal_align_angle_deadzone)
 		{
-			target_wz = (chassis_move.wz_max_speed - chassis_get_low_wz_limit()) * (fabs(gimbal_control.gimbal_yaw_motor.relative_angle) / (PI / 2.0f)) + chassis_get_low_wz_limit();
+			fp32 angle_ratio = abs_align_angle / (PI / 2.0f); // 0 at aligned -> 1 at a 90deg error
+			if (angle_ratio > 1.0f)
+			{
+				angle_ratio = 1.0f;
+			}
+			target_wz = chassis_move.wz_max_speed * CHASSIS_ALIGN_WZ_SCALE * angle_ratio;
 			if (gimbal_control.gimbal_yaw_motor.relative_angle < 0)
 			{
-				target_wz *= -1;
+				target_wz = -target_wz;
 			}
 		}
 		wz_align_filtered = first_order_filter(target_wz, wz_align_filtered, 0.08f);
@@ -648,6 +658,29 @@ void chassis_align_to_gimbal(fp32* wz_set)
 		*wz_set = (chassis_move.wz_max_speed / JOYSTICK_HALF_RANGE) * chassis_move.dial_channel_out;
 	}
 #endif
+}
+
+void chassis_cv_align_to_gimbal(fp32 *wz_set)
+{
+	static fp32 wz_cv_align_filtered = 0.0f;
+	const fp32 cv_align_angle_deadzone = DEG_TO_RAD(3.5f);
+	fp32 target_wz = 0.0f;
+	fp32 abs_align_angle = fabs(gimbal_control.gimbal_yaw_motor.relative_angle);
+	if (abs_align_angle > cv_align_angle_deadzone)
+	{
+		fp32 angle_ratio = abs_align_angle / (PI / 2.0f); // 0 at aligned -> 1 at a 90deg error
+		if (angle_ratio > 1.0f)
+		{
+			angle_ratio = 1.0f;
+		}
+		target_wz = chassis_move.wz_max_speed * CHASSIS_ALIGN_WZ_SCALE * angle_ratio;
+		if (gimbal_control.gimbal_yaw_motor.relative_angle < 0)
+		{
+			target_wz = -target_wz;
+		}
+	}
+	wz_cv_align_filtered = first_order_filter(target_wz, wz_cv_align_filtered, 0.08f);
+	*wz_set = wz_cv_align_filtered;
 }
 
 void chassis_align_to_imu_front(fp32 *wz_set)

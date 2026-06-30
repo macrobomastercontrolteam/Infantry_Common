@@ -29,7 +29,7 @@ typedef enum
     CV_MODE_ENEMY_DETECTED_BIT = 1 << 2,
     CV_MODE_SHOOT_BIT = 1 << 3,
     CV_MODE_CHASSIS_SPINNING_BIT = 1 << 4,
-    CV_MODE_CHASSIS_ALIGN_TO_IMU_FRONT_BIT = 1 << 5,
+    CV_MODE_CHASSIS_ALIGN_TO_GIMBAL_BIT = 1 << 5, ///< CV-commanded: rotate chassis to align its front under the gimbal
     CV_MODE_ASSIST_BIT = 1 << 6,
     CV_MODE_LAST_BIT = 1 << 7,
 } eModeControlBits;
@@ -47,6 +47,7 @@ typedef struct
     uint8_t fIsModeChanged;
     uint32_t ulShootStartTime;
     uint32_t ulChassisSpinStartTime;
+    uint32_t ulChassisAlignStartTime; ///< last time a MSG_CV_CHASSIS_ALIGN keep-alive frame was received
     const RC_ctrl_t *cv_rc_ctrl; ///< remote control pointer
 } tCvCmdHandler;
 
