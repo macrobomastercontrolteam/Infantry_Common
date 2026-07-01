@@ -486,7 +486,6 @@ static void CvCmder_SendAck(uint8_t msgType)
 		
 		case MSG_SHOOT_CMD:
 		{
-#if !DEBUG_CV
 	#if COMPETITION_TYPE == RMUC
 			if((projectile_allowance_17mm == 0 && gold_coins < 50)){
 				ackBuf[1] = 0x00; //running low on 17mm ammo
@@ -513,11 +512,7 @@ static void CvCmder_SendAck(uint8_t msgType)
 			{
 				ackBuf[1] = 0xFF; // shoot
 			}
-
 	#endif
-#else
-			ackBuf[1] = 0xFF;
-#endif
 			break;
 		}
 
@@ -670,20 +665,11 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 
 		        	CvSpeedFilter.xSpeed = xSpeed = first_order_filter(xSpeed, CvSpeedFilter.xSpeed, CV_SPEED_FILTER_ALPHA);
 		        	CvSpeedFilter.ySpeed = ySpeed = first_order_filter(ySpeed, CvSpeedFilter.ySpeed, CV_SPEED_FILTER_ALPHA);
-#if DEBUG_CV
-						CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
-						CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
 
-#else
-					if (is_game_started()){
-							CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
-							CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
-					}
-					else{
-						CvCmdHandler.CvCmdMsg.xSpeed = 0.0f;
-						CvCmdHandler.CvCmdMsg.ySpeed = 0.0f;
-					}
-#endif
+					CvCmdHandler.CvCmdMsg.xSpeed = xSpeed;
+					CvCmdHandler.CvCmdMsg.ySpeed = ySpeed;
+
+
 					CvCmder_ChangeMode(CV_MODE_AUTO_MOVE_BIT, 1);
 					CvCmder_SendAck(MSG_CV_CHASSIS_MOVE_STATE);
 					detect_hook(CV_TOE);
@@ -743,19 +729,9 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
         	        fp32 xError, yError;
         	        memcpy(&xError, &pData[1], 4);
         	        memcpy(&yError, &pData[5], 4);
-#if DEBUG_CV
+
 					CvCmdHandler.CvCmdMsg.xAimError = xError;
 					CvCmdHandler.CvCmdMsg.yAimError = yError;
-#else
-					if(is_game_started()){
-						CvCmdHandler.CvCmdMsg.xAimError = xError;
-						CvCmdHandler.CvCmdMsg.yAimError = yError;
-					}
-					else{
-						CvCmdHandler.CvCmdMsg.xAimError = 0.0f;
-						CvCmdHandler.CvCmdMsg.yAimError = 0.0f;
-					}
-#endif
 					CvCmder_SendAck(MSG_AIM_ERROR);
 					detect_hook(CV_TOE);
         	        // TODO: handle aim error
@@ -771,11 +747,8 @@ static void CvCmder_RxParserTlv(const uint8_t *pData, uint16_t size)
 //setting shoot flag for automatic robots					
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
 					uint8_t shootCmd = pData[1];
-	#if !DEBUG_CV
-					if((shootCmd == 0xFF) && (projectile_allowance_17mm > 0) &&  ((shoot_heat-30)< shoot_heat_limit) && is_game_started()){
-	#else
+
 					if((shootCmd == 0xFF)){
-	#endif
 						CvCmder_ChangeMode(CV_MODE_SHOOT_BIT, 1);
 						CvCmdHandler.ulShootStartTime = osKernelSysTick();
 					} else {

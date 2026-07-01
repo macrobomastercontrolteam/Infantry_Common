@@ -691,15 +691,8 @@ static void shoot_set_mode(void)
 	}
 	else if (CvCmder_GetMode(CV_MODE_AUTO_AIM_BIT)) // Auto aim mode is active.
 	{
-#if !DEBUG_CV
-		if (is_game_started() == 0) // If game has not started.
-		{
-			shoot_control.shoot_mode = SHOOT_STOP; // Stop shooting before game starts.
-		}
-		else if (CvCmder_GetMode(CV_MODE_SHOOT_BIT)) // CV requests shooting.
-#else
+
 		if (CvCmder_GetMode(CV_MODE_SHOOT_BIT))
-#endif
 		{
 			if (shoot_control.shoot_mode != SHOOT_AUTO_FIRE)
 			{

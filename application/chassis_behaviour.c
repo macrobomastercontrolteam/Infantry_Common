@@ -96,11 +96,8 @@ chassis_behaviour_e chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
 void chassis_behaviour_set_mode(void)
 {
 
-#if !DEBUG_CV
-	if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE) && toe_is_error(REMOTE_TOE))
-#else
+
 	if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE) && chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
-#endif
 	{
 		; // CV fully automatic mode without RC: do not switch out of cv state
 	}

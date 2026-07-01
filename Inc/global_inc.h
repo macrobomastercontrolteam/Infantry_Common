@@ -40,7 +40,7 @@
 #define SUPERCAP_TYPE MACRM_SUPERCAP
 #define CV_INTERFACE 1
 #define DEBUG_CV_WITH_USB 0
-#define DEBUG_CV 0 // set to 1 before the game starts for INFANTRY & HERO ONLY
+#define DEBUG_CV 1 // set to 1 before the game starts for INFANTRY & HERO ONLY
 #define ENABLE_LASER 1
 #define VOFA_UART_USE 0 // 0 to disable VOFA, 1 for uart6(shown as uart1)(Refree_UART,3_pin), 2 for uart1(shown as uart2) (CV_UART,4_pin),
 
