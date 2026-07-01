@@ -1016,19 +1016,27 @@ void return_ref_info(uint8_t info_code)
 		{
 			uint16_t heat_limit = 0;
 			uint16_t barrel_1_heat = 0;
+			uint16_t robot_hp = 0;
 
-			uint8_t game_started;
-			uint8_t team_color;
+			uint8_t game_started = 0;
+			uint8_t team_color = 0;
+			uint8_t flag_byte = 0;
 
 			game_started = is_game_started();
 			team_color = get_team_color();
+			robot_hp = get_current_HP();
 
 			get_shoot_heat0_limit_and_heat(&heat_limit, &barrel_1_heat);
 
-			memcpy(&chassis_can_send_data[1], &heat_limit, 2); //sizeof(heat_limit) = 2
+			// Pack two flags into one byte
+			Set_Bit(&flag_byte, 0, game_started);
+			Set_Bit(&flag_byte, 1, team_color);
+
+			memcpy(&chassis_can_send_data[1], &heat_limit, 2);
 			memcpy(&chassis_can_send_data[3], &barrel_1_heat, 2);
-			memcpy(&chassis_can_send_data[5], &game_started, 1);
-			memcpy(&chassis_can_send_data[6], &team_color, 1);
+			memcpy(&chassis_can_send_data[5], &flag_byte, 1);
+			memcpy(&chassis_can_send_data[6], &robot_hp, 2);
+
 			break;
 		}
 		
