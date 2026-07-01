@@ -1007,7 +1007,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
 #if DEBUG_CV
         if(chassis_move.chassis_RC->rc.s[RC_RIGHT_LEVER_CHANNEL] == RC_SW_UP)
 #else
-        if(toe_is_error(REMOTE_TOE) && gimbal_behaviour == GIMBAL_AUTO_AIM && !toe_is_error(CV_TOE))
+        if(gimbal_behaviour == GIMBAL_AUTO_AIM && !toe_is_error(CV_TOE))
 #endif
         {
             cvAidedX =  PID_calc(&cv_yaw_aim_pid,   CvCmdHandler.CvCmdMsg.xAimError, 0.0f, GIMBAL_CONTROL_TIME_S);
