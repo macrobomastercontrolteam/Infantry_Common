@@ -79,7 +79,7 @@
 
 // max speed of M3508 is 26.99m/s for one motor, 26.2m/s for one motor during test
 #if ENABLE_SHOOT_REDUNDANT_SWITCH
-#define FRICTION_MOTOR_SPEED  26.0f
+#define FRICTION_MOTOR_SPEED  22.0f
 #else
 #define FRICTION_MOTOR_SPEED  1.0f
 //#warning "turn-on redundant switch before competition, currently shoot in low speed "
