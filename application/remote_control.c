@@ -516,11 +516,11 @@ static uint8_t vt13_mode_to_switch(uint8_t mode_raw)
     switch (mode_raw)
     {
         case 0u:
-            return RC_SW_UP;
+            return RC_SW_DOWN;
         case 1u:
             return RC_SW_MID;
         case 2u:
-            return RC_SW_DOWN;
+            return RC_SW_UP;
         default:
             return RC_SW_DOWN;
     }
