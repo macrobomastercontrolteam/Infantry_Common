@@ -1301,29 +1301,7 @@ static void J_scope_gimbal_test(void)
  */
 bool_t gimbal_emergency_stop(void)
 {
-    uint8_t fEStop = 1;
-    static uint8_t fFatalError = 0;
-    if (fFatalError)
-    {
-        // do nothing
-    }
-#if ROBOT_YAW_IS_4310
-    #if (ROBOT_PITCH_IS_4340 || ROBOT_PITCH_IS_3507 || ROBOT_PITCH_IS_4310)
-        else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_4310_MOTOR_TORQUE_LIMIT))
-    #else
-        else if ((fabs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->torque) >= YAW_4310_MOTOR_TORQUE_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
-    #endif
-#else
-    else if ((int_abs(gimbal_control.gimbal_yaw_motor.gimbal_motor_measure->feedback_current) >= YAW_6020_MOTOR_CURRENT_LIMIT) || (int_abs(gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->feedback_current) >= PITCH_MOTOR_CURRENT_LIMIT))
-#endif
-    {
-        fFatalError = 1;
-    }
-	else
-	{
-		fEStop = ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL) && toe_is_error(REMOTE_TOE));
-	}
-	return fEStop;
+    return ((gimbal_behaviour != GIMBAL_AUTO_AIM) && (gimbal_behaviour != GIMBAL_AUTO_AIM_PATROL) && toe_is_error(REMOTE_TOE));
 }
 
 
