@@ -217,9 +217,18 @@ uint8_t checkAndResetFlag(uint8_t *pbFlag)
     return temp;
 }
 
-void Set_Bit(uint8_t* Target_Byte, uint8_t Target_Bit, uint8_t bitValue)
+void Set_Bit(uint8_t *Target_Byte, uint8_t Target_Bit, uint8_t bitValue)
 {
-    *Target_Byte = (*Target_Byte & ~Target_Bit) | (bitValue ? Target_Bit : 0);
+    uint8_t mask = 1U << Target_Bit;
+
+    if (bitValue)
+    {
+        *Target_Byte |= mask;
+    }
+    else
+    {
+        *Target_Byte &= ~mask;
+    }
 }
 
 int16_t encode_float_as_int16(fp32 input)
