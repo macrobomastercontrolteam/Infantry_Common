@@ -37,16 +37,16 @@
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 
 //////////////enable for all robot types//////////////////////
-#define ENABLE_DRIVE_MOTOR_POWER 0
-#define ENABLE_YAW_MOTOR_POWER 0
-#define ENABLE_PITCH_MOTOR_POWER 0
+#define ENABLE_DRIVE_MOTOR_POWER 1
+#define ENABLE_YAW_MOTOR_POWER 1
+#define ENABLE_PITCH_MOTOR_POWER 1
 ///////////////enable fo 2026 standard only begin///////////////////
 #define ENABLE_PITCH_BASE_MOTOR_POWER 0
 ////////////////enable fo 2026 standard only end////////////////////
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
-#define ENABLE_TRIGGER_MOTOR_POWER 0
-#define ENABLE_FRICTION_1_MOTOR_POWER 0
-#define ENABLE_FRICTION_2_MOTOR_POWER 0
+#define ENABLE_TRIGGER_MOTOR_POWER 1
+#define ENABLE_FRICTION_1_MOTOR_POWER 1
+#define ENABLE_FRICTION_2_MOTOR_POWER 1
 ///////////////enable fo 2025 Hero only begin///////////////////
 #define ENABLE_FRICTION_3_MOTOR_POWER 0
 #define ENABLE_FRICTION_4_MOTOR_POWER 0
@@ -1749,10 +1749,10 @@ void CAN_cmd_supercap(void)
 	chassis_can_send_data[1] = capcan_rx_msg.power_target >> 8;
 	chassis_can_send_data[2] = capcan_rx_msg.referee_power;
 	chassis_can_send_data[3] = capcan_rx_msg.referee_power >> 8;
-	chassis_can_send_data[4] = capcan_rx_msg.rsvd1 >> 8;
-	chassis_can_send_data[5] = capcan_rx_msg.rsvd1;
-	chassis_can_send_data[6] = capcan_rx_msg.rsvd2 >> 8;
-	chassis_can_send_data[7] = capcan_rx_msg.rsvd2;
+	chassis_can_send_data[4] = capcan_rx_msg.rsvd1;
+	chassis_can_send_data[5] = capcan_rx_msg.rsvd1 >> 8;
+	chassis_can_send_data[6] = capcan_rx_msg.rsvd2;
+	chassis_can_send_data[7] = capcan_rx_msg.rsvd2 >> 8;
 	HAL_CAN_AddTxMessage(&CHASSIS_CAN, &chassis_tx_message, chassis_can_send_data, &send_mail_box);
 }
 

@@ -35,7 +35,7 @@
 #define CHASSIS_TASK_INIT_TIME 357
 
 #define CHASSIS_ACCEL_WZ_NUM 0.06f
-#define CHASSIS_ACCEL_X_NUM 1.0f
+#define CHASSIS_ACCEL_X_NUM 3.0f
 #define CHASSIS_ACCEL_Y_NUM 1.0f
 #define CHASSIS_DECEL_X_NUM (CHASSIS_ACCEL_X_NUM * 20.0f) // stop in 1/4 of acceleration time
 #define CHASSIS_DECEL_Y_NUM (CHASSIS_ACCEL_Y_NUM * 20.0f)
