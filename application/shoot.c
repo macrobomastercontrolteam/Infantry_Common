@@ -769,17 +769,22 @@ static void shoot_set_mode(void)
 #endif
 
 #if (REMOTE_TYPE == REMOTE_USE_VT13) && (ROBOT_TYPE == HERO_2025_MECANUM)
-		// VT13 Hero: ignore mode switch position, use trigger-based logic only
 		{
 			static bool_t vt13_last_trigger = 0;
 
-			// Handle trigger state
-			if (shoot_control.vt13_trigger_hold_time >= VT13_TRIGGER_LONG_PRESS_TIME)
+			if (switch_is_down(shoot_control.shoot_rc->rc.s[RC_RIGHT_LEVER_CHANNEL]))
 			{
-				// Long press (>1s): force auto-fire
+				fCvAutoAimReady = 0;
+				launcher_status.Launcher_Initialized = 0;
+				shoot_control.shoot_mode = SHOOT_STOP;
+			}
+
+			else if (shoot_control.vt13_trigger_hold_time >= VT13_TRIGGER_LONG_PRESS_TIME)
+			{
 				shoot_control.shoot_mode = SHOOT_READY_FRIC;
 			}
-			else if (trigger_now && !vt13_last_trigger) // short press: rising edge
+
+			else if (trigger_now && !vt13_last_trigger)
 			{
 				if (launcher_status.Launcher_Initialized == 0)
 				{
@@ -791,12 +796,30 @@ static void shoot_set_mode(void)
 					shoot_control.shoot_mode = SHOOT_READY_FRIC;
 				}
 			}
+
 			else if (!trigger_now)
 			{
-				fCvAutoAimReady = 0;
-				if (shoot_control.shoot_mode != HERO_INIT_LAUNCHER)
+				if (launcher_status.Launcher_Initialized == 0)
 				{
-					shoot_control.shoot_mode = SHOOT_STOP;
+
+					shoot_control.shoot_mode = HERO_INIT_LAUNCHER;
+				}
+				else if (shoot_control.press_r)
+				{
+
+					if (shoot_control.last_press_r == 0)
+					{
+						fCvAutoAimReady = 1;
+						shoot_control.shoot_mode = SHOOT_READY_FRIC;
+					}
+				}
+				else
+				{
+					fCvAutoAimReady = 0;
+					if (shoot_control.shoot_mode != HERO_INIT_LAUNCHER)
+					{
+						shoot_control.shoot_mode = SHOOT_STOP;
+					}
 				}
 			}
 
