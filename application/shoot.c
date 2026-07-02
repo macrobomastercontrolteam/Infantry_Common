@@ -422,13 +422,18 @@ int16_t shoot_control_loop(void)
 		{
             // Wait for friction wheels to reach target speed.
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-			if (launcher_status.Chain_Loaded == 0)
+			if(launcher_status.Launcher_Opened == 0)
 			{
-				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED;
+				piston_motor_control(PISTON_BACKWARD);
+			}
+			else if (launcher_status.Launcher_Loaded == 0) // If launcher is not loaded
+			{
+				shoot_control.trigger_speed_set = READY_TRIGGER_SPEED; // Set trigger motor to load the launcher.
+
 			}
 			else
 			{
-				shoot_control.trigger_speed_set = 0.0f;
+				shoot_control.trigger_speed_set = 0.0f; // Stop trigger motor if launcher is loaded.
 			}
 			// HERO_2025_MECANUM has four friction motors.
 			if ((fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD) && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD))
@@ -550,6 +555,7 @@ int16_t shoot_control_loop(void)
 					}
 					else
 					{
+						piston_motor_control(PISTON_BACKWARD);
 						launcher_status.Launcher_Loaded = 0;
 						shoot_control.shoot_mode = SHOOT_READY_FRIC; // Return to ready state.
 					}
