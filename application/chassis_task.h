@@ -25,7 +25,7 @@
 #include "user_lib.h"
 
 // default values
-#define SPINNING_CHASSIS_MAX_OMEGA RPM_TO_RADS(120.0f)
+#define SPINNING_CHASSIS_MAX_OMEGA RPM_TO_RADS (240.0f)
 #define SPINNING_CHASSIS_HIGH_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.833f)
 #define SPINNING_CHASSIS_MED_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.667f)
 #define SPINNING_CHASSIS_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.583f)
@@ -35,8 +35,8 @@
 #define CHASSIS_TASK_INIT_TIME 357
 
 #define CHASSIS_ACCEL_WZ_NUM 0.06f
-#define CHASSIS_ACCEL_X_NUM 1.0f
-#define CHASSIS_ACCEL_Y_NUM 1.0f
+#define CHASSIS_ACCEL_X_NUM 3.0f
+#define CHASSIS_ACCEL_Y_NUM 3.0f
 #define CHASSIS_DECEL_X_NUM (CHASSIS_ACCEL_X_NUM * 20.0f) // stop in 1/4 of acceleration time
 #define CHASSIS_DECEL_Y_NUM (CHASSIS_ACCEL_Y_NUM * 20.0f)
 
@@ -159,7 +159,12 @@
 #endif
 
 // single chassis motor max speed
+#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+
+#define MAX_WHEEL_SPEED 5.5f
+#else
 #define MAX_WHEEL_SPEED 3.0f
+#endif
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)
 // chassis forward or back max speed
 #define NORMAL_MAX_CHASSIS_SPEED_X 2.475f

@@ -36,7 +36,7 @@
 #define MID_SPIN_SPEED_CHANGE_PERIOD 1000.0f
 #define DELTA_SPIN_SPEED_CHANGE_PERIOD (MID_SPIN_SPEED_CHANGE_PERIOD / 2.0f)
 
-#define SPIN_RAMP_UP_TIME_MS 2500u
+#define SPIN_RAMP_UP_TIME_MS 1000u
 
 static uint32_t spin_ramp_start_tick = 0;
 
@@ -488,16 +488,21 @@ void chassis_spinning_speed_manager(fp32* wz_set)
 	}
 	else
 	{
-		fp32 spin_rc_offset = chassis_get_low_wz_limit();
+		// Spin at the (velocity/power-aware) max by default: wz_max_speed equals SPINNING_CHASSIS_MAX_OMEGA
+		// at rest/full power and decays as the chassis translates, so it frees wheel-speed headroom for
+		// movement (keeping >=25% spin) instead of the MAX_WHEEL_SPEED clamp shrinking translation too.
+		// Dialing negative slows/reverses.
+		const fp32 spin_rc_offset = chassis_move.wz_max_speed;
+		const fp32 spin_rc_full_scale = chassis_move.wz_max_speed;
 		// piecewise linear mapping
 		if (chassis_move.dial_channel_out > 0)
 		{
-			fp32 spin_rc_sen_positive = ((chassis_move.wz_max_speed - spin_rc_offset) / JOYSTICK_HALF_RANGE);
+			fp32 spin_rc_sen_positive = ((spin_rc_full_scale - spin_rc_offset) / JOYSTICK_HALF_RANGE);
 			spinning_speed = chassis_move.dial_channel_out * spin_rc_sen_positive + spin_rc_offset;
 		}
 		else
 		{
-			fp32 spin_rc_sen_negative = ((chassis_move.wz_max_speed + spin_rc_offset) / JOYSTICK_HALF_RANGE);
+			fp32 spin_rc_sen_negative = ((spin_rc_full_scale + spin_rc_offset) / JOYSTICK_HALF_RANGE);
 			spinning_speed = chassis_move.dial_channel_out * spin_rc_sen_negative + spin_rc_offset;
 		}
 	}

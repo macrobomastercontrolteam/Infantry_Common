@@ -540,7 +540,12 @@ void chassis_power_control(void)
     // 2. distribute budget across motors by PID demand magnitude
     for (i = 0; i < NUM_DRIVE_MOTORS; i++)
     {
+#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+        // feed-forward command (target wheel speed + closed-loop trim), normalized to the wheel speed cap
+        normalized_error = (chassis_move.motor_chassis[i].speed_set + chassis_move.motor_speed_pid[i].out) / MAX_WHEEL_SPEED;
+#else
         normalized_error =  chassis_move.motor_speed_pid[i].out / chassis_move.motor_speed_pid[i].max_out;
+#endif
         chassis_pm_update_error(&chassis_power_manager, i, normalized_error);
     }
     chassis_pm_allocate_power(&chassis_power_manager, p_ref, 1.0f);
@@ -555,8 +560,16 @@ void chassis_power_control(void)
 #else
 #error "undefined feedback speed data"
 #endif
-        pid_out_raw[i] = chassis_move.motor_speed_pid[i].out; // copy the pid out to local to isolate from pid control loop
-        pid_out = pid_out_raw[i];                             // throwaway copy, motor_power_limiter scales it in place
+        pid_out_raw[i] = chassis_move.motor_speed_pid[i].out; // isolate from pid control loop
+#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+
+        pid_out_raw[i] = chassis_move.motor_chassis[i].speed_set + chassis_move.motor_speed_pid[i].out;
+
+        pid_out_raw[i] = fp32_constrain(pid_out_raw[i],
+                                        -(fp32)MOTOR_MG4010_MAX_CMD / MOTOR_ROTOR_TO_OUTPUT_CONSTANT,
+                                        (fp32)MOTOR_MG4010_MAX_CMD / MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
+#endif
+        pid_out = pid_out_raw[i]; // throwaway copy, motor_power_limiter scales it in place
 
         k = motor_power_limiter(&chassis_motor_power[i], &pid_out,
                                 feedback_speed[i], chassis_motor_power[i].power_limit);

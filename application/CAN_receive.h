@@ -31,7 +31,15 @@
 #define GIMBAL_CAN hcan2
 
 #define MOTOR_MG4010_GEAR_RATIO 10.0f
+#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+// Command is in rotor deg/s (1 LSB = 1 deg/s). The NEO spins on a 0.25 m radius (vs 0.15 m on the
+// omni robots), so a 120 RPM spin needs ~3.14 m/s per wheel = 3.14 * MOTOR_ROTOR_TO_OUTPUT_CONSTANT
+// ~= 22900 rotor deg/s. The old 13500 clamp (tuned for the omni radius) capped the NEO wheels at
+// ~1.85 m/s, which is why it could not reach the target spin speed.
+#define MOTOR_MG4010_MAX_CMD 26000
+#else
 #define MOTOR_MG4010_MAX_CMD 13500
+#endif
 /* CAN send and receive ID */
 typedef enum
 {

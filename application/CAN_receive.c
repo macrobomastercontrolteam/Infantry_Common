@@ -1,4 +1,4 @@
-/**
+	/**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       can_receive.c/h
   * @brief      there is CAN interrupt function  to receive motor data,
@@ -37,9 +37,9 @@
 // Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
 
 //////////////enable for all robot types//////////////////////
-#define ENABLE_DRIVE_MOTOR_POWER 0
-#define ENABLE_YAW_MOTOR_POWER 0
-#define ENABLE_PITCH_MOTOR_POWER 0
+#define ENABLE_DRIVE_MOTOR_POWER 1
+#define ENABLE_YAW_MOTOR_POWER 1
+#define ENABLE_PITCH_MOTOR_POWER 1
 ///////////////enable fo 2026 standard only begin///////////////////
 #define ENABLE_PITCH_BASE_MOTOR_POWER 0
 ////////////////enable fo 2026 standard only end////////////////////
