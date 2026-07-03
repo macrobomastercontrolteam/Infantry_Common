@@ -44,9 +44,9 @@
 #define ENABLE_PITCH_BASE_MOTOR_POWER 0
 ////////////////enable fo 2026 standard only end////////////////////
 // Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
-#define ENABLE_TRIGGER_MOTOR_POWER 0
-#define ENABLE_FRICTION_1_MOTOR_POWER 0
-#define ENABLE_FRICTION_2_MOTOR_POWER 0
+#define ENABLE_TRIGGER_MOTOR_POWER 1
+#define ENABLE_FRICTION_1_MOTOR_POWER 1
+#define ENABLE_FRICTION_2_MOTOR_POWER 1
 ///////////////enable fo 2025 Hero only begin///////////////////
 #define ENABLE_FRICTION_3_MOTOR_POWER 0
 #define ENABLE_FRICTION_4_MOTOR_POWER 0
@@ -1603,7 +1603,7 @@ void decode_ref_info(uint8_t *rx_data)
 		
 			robot_state.power_management_chassis_output = 1;//rx_data[7] & POWER_MANAGEMNT_CHASSIS_BIT;
 			robot_state.power_management_shooter_output = 1;//rx_data[7] & POWER_MANAGEMNT_SHOOTER_BIT;
-			robot_state.power_management_gimbal_output = 1; //rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT;
+			robot_state.power_management_gimbal_output = 1; //rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT;vx_max_speed
 			break;
 		}
 

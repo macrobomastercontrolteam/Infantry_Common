@@ -25,7 +25,7 @@
 #include "gimbal_interface_types.h"
 
 // Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
-#define ENABLE_SHOOT_REDUNDANT_SWITCH 0
+#define ENABLE_SHOOT_REDUNDANT_SWITCH 1
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2

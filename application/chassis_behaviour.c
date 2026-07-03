@@ -42,6 +42,7 @@ static uint32_t spin_ramp_start_tick = 0;
 
 #define MOUSE_SCROLL_TO_DIAL_SEN_INC -(JOYSTICK_HALF_RANGE / MOUSE_X_EFFECTIVE_SPEED * 30)
 #define MOUSE_SCROLL_FILTER_COEFF 0.6f
+#define MOUSE_SCROLL_SPIN_ENABLE_THRESHOLD 1  // MOUSE_Z magnitude to toggle spin while lever is middle
 #define CHASSIS_WZ_CMD_DEADZONE 0.15f
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 #define HIP_MIT_PROFILE_KP_SCROLL_SEN_INC 0.01f
@@ -95,6 +96,9 @@ chassis_behaviour_e chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
  */
 void chassis_behaviour_set_mode(void)
 {
+#if (ROBOT_TYPE == INFANTRY_2026_OMNI)
+	static uint8_t fMouseScrollSpinEnabled = 0;
+#endif
 
 #if !DEBUG_CV
 	if ((chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE) && toe_is_error(REMOTE_TOE))
@@ -123,18 +127,40 @@ void chassis_behaviour_set_mode(void)
 #else
 				chassis_behaviour_mode = CHASSIS_SPINNING_MODE;
 #endif
+#if (ROBOT_TYPE == INFANTRY_2026_OMNI)
+				// leaving the middle position clears the scroll-enabled spin, so returning
+				// to middle starts from FPV again (and down enters zero force)
+				fMouseScrollSpinEnabled = 0;
+#endif
 				break;
 			}
 			case RC_SW_MID:
 			{
+#if (ROBOT_TYPE == INFANTRY_2026_OMNI)
+				// while the lever is in the middle, scroll MOUSE_Z up to enable chassis spin,
+				// scroll down to disable it
+				if (chassis_move.chassis_RC->mouse.z > MOUSE_SCROLL_SPIN_ENABLE_THRESHOLD)
+				{
+					fMouseScrollSpinEnabled = 1;
+				}
+				else if (chassis_move.chassis_RC->mouse.z < -MOUSE_SCROLL_SPIN_ENABLE_THRESHOLD)
+				{
+					fMouseScrollSpinEnabled = 0;
+				}
+				chassis_behaviour_mode = fMouseScrollSpinEnabled ? CHASSIS_SPINNING_MODE : CHASSIS_BASIC_FPV_MODE;
+#else
 				// Remember to change gimbal_behaviour logic correspondingly
 				chassis_behaviour_mode = CHASSIS_BASIC_FPV_MODE;
+#endif
 				break;
 			}
 			case RC_SW_DOWN:
 			default:
 			{
 				chassis_behaviour_mode = CHASSIS_ZERO_FORCE;
+#if (ROBOT_TYPE == INFANTRY_2026_OMNI)
+				fMouseScrollSpinEnabled = 0;
+#endif
 				break;
 			}
 		}
@@ -334,6 +360,9 @@ void dial_channel_manager(void)
 		chassis_move.dial_channel_out = 0;
 	}
 	// Add mouse scroll input
+	// INFANTRY_2026_OMNI uses MOUSE_Z only to enable/disable chassis spin (see
+	// chassis_behaviour_set_mode), so its other MOUSE_Z chassis allocation is disabled here
+#if (ROBOT_TYPE != INFANTRY_2026_OMNI)
 	static fp32 last_mouse_z_ch = 0;
 	fp32 mouse_z_ch = first_order_filter(chassis_move.chassis_RC->mouse.z, last_mouse_z_ch, MOUSE_SCROLL_FILTER_COEFF);
 #if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
@@ -341,6 +370,7 @@ void dial_channel_manager(void)
 	chassis_move.chassis_platform.chassis_hip_kp = fp32_constrain(chassis_move.chassis_platform.chassis_hip_kp, HIP_MIT_PROFILE_KP_MIN, HIP_MIT_PROFILE_KP_MAX);
 #else
 	chassis_move.dial_channel_out += mouse_z_ch * MOUSE_SCROLL_TO_DIAL_SEN_INC;
+#endif
 #endif
 #endif
 }

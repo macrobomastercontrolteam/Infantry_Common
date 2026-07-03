@@ -370,7 +370,7 @@ void chassis_speed_max_adj(void)
 	fp32 wz_scaling_factor = 0;
 	fp32 buffer_ratio;
 	
-	if(ref_chassis_power_buffer < 10.0f)
+	if(ref_chassis_power_buffer < 20.0f)
 	{
 		vx_speed_limit = LOW_POWER_MAX_CHASSIS_SPEED_X;
 		vy_speed_limit = LOW_POWER_MAX_CHASSIS_SPEED_Y;
@@ -378,10 +378,10 @@ void chassis_speed_max_adj(void)
 	}
 	else
     {
-        buffer_ratio = fp32_constrain((ref_chassis_power_buffer - 10.0f) / 30.0f, 0.0f, 1.0f);
+        buffer_ratio = fp32_constrain((ref_chassis_power_buffer - 10.0f) / 40.0f, 0.0f, 1.0f);
 
-        vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X * (0.5f + 0.5f * buffer_ratio);
-        vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y * (0.5f + 0.5f * buffer_ratio);
+        vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X * (0.4f + 0.6f * buffer_ratio);
+        vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y * (0.4f + 0.6f * buffer_ratio);
         wz_scaling_factor = 0.2f + 0.8f * buffer_ratio;
     }
 
@@ -454,13 +454,29 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set)
 	chassis_move.chassis_cmd_slow_set_vy.min_value = -chassis_move.vy_max_speed;
 
 	// decelerate faster only when command magnitude is reduced (stop/down-ramp)
-	fp32 vx_limit = (fabs(vx_set_channel) < fabs(chassis_move.chassis_cmd_slow_set_vx.out)) ? CHASSIS_DECEL_X_NUM : CHASSIS_ACCEL_X_NUM;
+	// use a higher acceleration in spinning mode so translation ramps up quickly
+	uint8_t fSpinning = (chassis_behaviour_mode == CHASSIS_SPINNING_MODE);
+	fp32 accel_x = fSpinning ? CHASSIS_SPIN_ACCEL_X_NUM : CHASSIS_ACCEL_X_NUM;
+	fp32 accel_y = fSpinning ? CHASSIS_SPIN_ACCEL_Y_NUM : CHASSIS_ACCEL_Y_NUM;
+
+	// on a direction reversal (command opposes current motion) ramp gently through zero so the
+	// wheels brake and re-accelerate gradually, keeping the power within limit
+	if ((vx_set_channel * chassis_move.chassis_cmd_slow_set_vx.out) < 0.0f)
+	{
+		accel_x = CHASSIS_REVERSAL_ACCEL_X_NUM;
+	}
+	if ((vy_set_channel * chassis_move.chassis_cmd_slow_set_vy.out) < 0.0f)
+	{
+		accel_y = CHASSIS_REVERSAL_ACCEL_Y_NUM;
+	}
+
+	fp32 vx_limit = (fabs(vx_set_channel) < fabs(chassis_move.chassis_cmd_slow_set_vx.out)) ? CHASSIS_DECEL_X_NUM : accel_x;
 	fp32 vx_ramp_input = fp32_constrain(
 		(vx_set_channel - chassis_move.chassis_cmd_slow_set_vx.out) / CHASSIS_CONTROL_TIME_S,
 		-vx_limit, vx_limit);
 	ramp_calc(&chassis_move.chassis_cmd_slow_set_vx, vx_ramp_input);
 
-	fp32 vy_limit = (fabs(vy_set_channel) < fabs(chassis_move.chassis_cmd_slow_set_vy.out)) ? CHASSIS_DECEL_Y_NUM : CHASSIS_ACCEL_Y_NUM;
+	fp32 vy_limit = (fabs(vy_set_channel) < fabs(chassis_move.chassis_cmd_slow_set_vy.out)) ? CHASSIS_DECEL_Y_NUM : accel_y;
 	fp32 vy_ramp_input = fp32_constrain(
 		(vy_set_channel - chassis_move.chassis_cmd_slow_set_vy.out) / CHASSIS_CONTROL_TIME_S,
 		-vy_limit, vy_limit);
@@ -829,6 +845,10 @@ static void chassis_set_control(void)
 	// speed limit
 	chassis_move.vx_set = fp32_abs_constrain(chassis_move.vx_set, chassis_move.vx_max_speed);
 	chassis_move.vy_set = fp32_abs_constrain(chassis_move.vy_set, chassis_move.vy_max_speed);
+
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+	chassis_power_priority_clip(&chassis_move.vx_set, &chassis_move.vy_set, &chassis_move.wz_set);
+#endif
 }
 
 #if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM)
@@ -1184,7 +1204,7 @@ static void chassis_control_loop(void)
 		{
 			for (i = 0; i < 4; i++)
 			{
-#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
 
 				chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)fp32_constrain(
 					(chassis_move.motor_chassis[i].speed_set + chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT,

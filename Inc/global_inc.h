@@ -35,7 +35,7 @@
 #define REMOTE_USE_DR16 0
 #define REMOTE_USE_VT13 1
 /********************* Only Modify this area (start) *********************/
-#define ROBOT_TYPE HERO_2025_MECANUM
+#define ROBOT_TYPE INFANTRY_2026_OMNI
 #define COMPETITION_TYPE RMUL
 #define SUPERCAP_TYPE MACRM_SUPERCAP
 #define CV_INTERFACE 1

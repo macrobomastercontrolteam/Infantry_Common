@@ -119,6 +119,45 @@
 
 #define POWER_LIMIT_HYSTERESIS 0.05f  // 5% 
 
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+// measured chassis power = CHASSIS_BATTERY_VOLTAGE * sum(|MG4010 current|)
+#define CHASSIS_BATTERY_VOLTAGE 24.0f
+#define MG4010_FEEDBACK_MAX_AMPS 33.0f
+#define MG4010_FEEDBACK_MAX_LSB 2048.0f
+#define MG4010_FEEDBACK_AMPS_PER_LSB (MG4010_FEEDBACK_MAX_AMPS / MG4010_FEEDBACK_MAX_LSB)
+
+// power priority clip: reduce wz first, then vx/vy, to stay within the referee budget
+#define POWER_CLIP_START_RATIO 0.45f
+#define POWER_CLIP_WZ_MIN_SCALE 0.5f
+#define POWER_CLIP_VXY_MIN_SCALE 0.40f
+#define POWER_CLIP_VXY_STAGE_RANGE 0.50f
+#define POWER_CLIP_TRANS_REF 1.0f
+#define POWER_SPIKE_ALLOWANCE_W 100.0f
+#define CHASSIS_POWER_MEAS_FILTER_COEFF 0.9f
+#define POWER_CLIP_RELEASE_COEFF 0.7f         // engage is instant; recover at this rate for smoothness
+
+// buffer-based reduction: clip speeds to almost 0 at/below the hard floor
+#define POWER_BUFFER_SOFT_START_J 40.0f
+#define POWER_BUFFER_HARD_FLOOR_J 20.0f
+#define POWER_BUFFER_MIN_SCALE 0.02f
+#define POWER_BUFFER_SCALE_SMOOTH_COEFF 0.05f
+
+extern fp32 chassis_measured_power;
+
+/**
+  * @brief          estimate chassis power from the 4 MG4010 current feedbacks
+  * @retval         measured chassis power [W]
+  */
+fp32 chassis_get_measured_power_from_current(void);
+
+/**
+  * @brief          clip vx/vy/wz (wz first) to keep chassis power within budget
+  * @param[in/out]  vx_set, vy_set, wz_set: chassis speed set-points, clipped in place
+  * @retval         none
+  */
+void chassis_power_priority_clip(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set);
+#endif
+
 typedef enum
 {
     MOTOR_PWR_NEGATIVE_DISABLED = 0,

@@ -68,6 +68,7 @@ fp32 chassis_power_limit;
 fp32 chassis_power;
 fp32 chassis_power_buffer;
 
+
 // module-private instances
 static motor_power_t chassis_motor_power[NUM_DRIVE_MOTORS];
 static chassis_power_manager_t chassis_power_manager;
@@ -482,6 +483,133 @@ fp32 maf_update(moving_avg_filter_t *f, fp32 new_value)
     return f->sum / (fp32)f->count;
 }
 
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+// telemetry
+fp32 chassis_measured_power = 0.0f;
+
+fp32 chassis_get_measured_power_from_current(void)
+{
+    uint8_t i = 0;
+    fp32 total_current = 0.0f;
+
+    for (i = 0; i < NUM_DRIVE_MOTORS; i++)
+    {
+        total_current += fabs((fp32)motor_chassis[i].feedback_current) * MG4010_FEEDBACK_AMPS_PER_LSB;
+    }
+
+    chassis_measured_power = CHASSIS_BATTERY_VOLTAGE * total_current;
+    return chassis_measured_power;
+}
+
+void chassis_power_priority_clip(fp32 *vx_set, fp32 *vy_set, fp32 *wz_set)
+{
+    static fp32 wz_scale = 1.0f;
+    static fp32 vxy_scale = 1.0f;
+    static fp32 buffer_scale = 1.0f;
+    static fp32 filtered_power = 0.0f;
+    fp32 power_limit;
+    fp32 measured_power;
+    fp32 ratio;
+    fp32 over;
+    fp32 wz_target;
+    fp32 vxy_target;
+    fp32 buffer_j;
+    fp32 buffer_target;
+
+    if (vx_set == NULL || vy_set == NULL || wz_set == NULL)
+        return;
+
+#if CAN_PASS_REF_INFO
+    power_limit = (fp32)can_ref_info.chassis_power_limit;
+#else
+    power_limit = 0.0f;
+#endif
+
+    // low-pass the noisy instantaneous power to avoid a spin/stop limit cycle
+    filtered_power += CHASSIS_POWER_MEAS_FILTER_COEFF * (chassis_get_measured_power_from_current() - filtered_power);
+    measured_power = filtered_power;
+
+    if (power_limit <= 1e-3f)
+    {
+        wz_target = 1.0f;
+        vxy_target = 1.0f;
+    }
+    else
+    {
+        fp32 trans;
+        fp32 trans_frac;
+        fp32 over_avg;
+        fp32 over_spike;
+
+        ratio = measured_power / power_limit;
+
+        // only trade rotation for translation when translation is actually commanded
+        trans = sqrtf((*vx_set) * (*vx_set) + (*vy_set) * (*vy_set));
+        trans_frac = fp32_constrain(trans / POWER_CLIP_TRANS_REF, 0.0f, 1.0f);
+
+        // strict control on the filtered (average) power, plus a hard clamp once the raw
+        // instantaneous power spikes past power_limit + POWER_SPIKE_ALLOWANCE_W
+        over_avg = (ratio - POWER_CLIP_START_RATIO) / (1.0f - POWER_CLIP_START_RATIO);
+        over_spike = (chassis_measured_power - (power_limit + POWER_SPIKE_ALLOWANCE_W)) / POWER_SPIKE_ALLOWANCE_W;
+        over = (over_avg > over_spike) ? over_avg : over_spike;
+
+        if (over <= 0.0f)
+        {
+            wz_target = 1.0f;
+            vxy_target = 1.0f;
+        }
+        else if (over <= 1.0f)
+        {
+            wz_target = 1.0f - over * (1.0f - POWER_CLIP_WZ_MIN_SCALE) * trans_frac;
+            vxy_target = 1.0f;
+        }
+        else
+        {
+            fp32 over2 = fp32_constrain((over - 1.0f) / POWER_CLIP_VXY_STAGE_RANGE, 0.0f, 1.0f);
+            wz_target = 1.0f - (1.0f - POWER_CLIP_WZ_MIN_SCALE) * trans_frac;
+            vxy_target = 1.0f - over2 * (1.0f - POWER_CLIP_VXY_MIN_SCALE);
+        }
+    }
+
+    // engage instantly (snap the scale down), recover slowly to keep the motor smooth
+    wz_scale = (wz_target < wz_scale) ? wz_target : (wz_scale + POWER_CLIP_RELEASE_COEFF * (wz_target - wz_scale));
+    vxy_scale = (vxy_target < vxy_scale) ? vxy_target : (vxy_scale + POWER_CLIP_RELEASE_COEFF * (vxy_target - vxy_scale));
+
+    wz_scale = fp32_constrain(wz_scale, POWER_CLIP_WZ_MIN_SCALE, 1.0f);
+    vxy_scale = fp32_constrain(vxy_scale, POWER_CLIP_VXY_MIN_SCALE, 1.0f);
+
+    // above the floor: reduce gradually; at/below the floor: clip to almost 0
+#if CAN_PASS_REF_INFO
+    buffer_j = (fp32)can_ref_info.chassis_power_buffer;
+#else
+    buffer_j = POWER_BUFFER_SOFT_START_J;
+#endif
+    if (buffer_j <= POWER_BUFFER_HARD_FLOOR_J)
+    {
+        buffer_scale = POWER_BUFFER_MIN_SCALE;
+    }
+    else
+    {
+        if (buffer_j >= POWER_BUFFER_SOFT_START_J)
+        {
+            buffer_target = 1.0f;
+        }
+        else
+        {
+            fp32 bt = (buffer_j - POWER_BUFFER_HARD_FLOOR_J) / (POWER_BUFFER_SOFT_START_J - POWER_BUFFER_HARD_FLOOR_J);
+            buffer_target = POWER_BUFFER_MIN_SCALE + bt * (1.0f - POWER_BUFFER_MIN_SCALE);
+        }
+        // engage instantly, recover slowly
+        buffer_scale = (buffer_target < buffer_scale) ? buffer_target : (buffer_scale + POWER_BUFFER_SCALE_SMOOTH_COEFF * (buffer_target - buffer_scale));
+    }
+    buffer_scale = fp32_constrain(buffer_scale, POWER_BUFFER_MIN_SCALE, 1.0f);
+
+    *vx_set *= vxy_scale * buffer_scale;
+    *vy_set *= vxy_scale * buffer_scale;
+    *wz_set *= wz_scale * buffer_scale;
+}
+#endif
+
 /**
   * @brief          limit the power, mainly limit driver motor current
   * @retval         none
@@ -540,7 +668,7 @@ void chassis_power_control(void)
     // 2. distribute budget across motors by PID demand magnitude
     for (i = 0; i < NUM_DRIVE_MOTORS; i++)
     {
-#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
         // feed-forward command (target wheel speed + closed-loop trim), normalized to the wheel speed cap
         normalized_error = (chassis_move.motor_chassis[i].speed_set + chassis_move.motor_speed_pid[i].out) / MAX_WHEEL_SPEED;
 #else
@@ -561,7 +689,7 @@ void chassis_power_control(void)
 #error "undefined feedback speed data"
 #endif
         pid_out_raw[i] = chassis_move.motor_speed_pid[i].out; // isolate from pid control loop
-#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
 
         pid_out_raw[i] = chassis_move.motor_chassis[i].speed_set + chassis_move.motor_speed_pid[i].out;
 
@@ -581,7 +709,6 @@ void chassis_power_control(void)
     {
         chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)(pid_out_raw[i] * k_arr[i] * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);//(int16_t)(pid_out_raw[i] * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);//
     }
-
 }
 
 bool_t chassis_power_control_mode_change(uint8_t fIsKeyPressed)

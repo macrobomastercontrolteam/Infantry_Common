@@ -220,7 +220,7 @@
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
-#elif (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_OMNI)
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
 
 #if ROBOT_PITCH_IS_3507
 #define PITCH_SPEED_PID_KP        1.0f
@@ -275,6 +275,61 @@
 #define YAW_ANGLE_PID_KD        0.05f
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
+
+#elif (ROBOT_TYPE == INFANTRY_2026_OMNI)
+
+
+//pitch speed close-loop PID params, max out and max iout
+#if ROBOT_PITCH_IS_3507
+#define PITCH_SPEED_PID_KP        1.0f
+#define PITCH_SPEED_PID_KI        0.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   9.5f
+#define PITCH_SPEED_PID_MAX_IOUT  9.5f
+
+#define PITCH_ANGLE_PID_KP 25.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.05f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
+#else
+#define PITCH_SPEED_PID_KP        15000.0f
+#define PITCH_SPEED_PID_KI        15000.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   30000.0f
+#define PITCH_SPEED_PID_MAX_IOUT  10000.0f
+
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_ANGLE_PID_KP 30.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.0f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#endif
+
+#if (ROBOT_YAW_IS_4310 == 0)
+//yaw speed close-loop PID params, max out and max iout
+#define YAW_SPEED_PID_KP        20000.0f
+#define YAW_SPEED_PID_KI        20000.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   30000.0f
+#define YAW_SPEED_PID_MAX_IOUT  10000.0f
+#else
+#define YAW_SPEED_PID_KP        1.5f
+#define YAW_SPEED_PID_KI        0.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   6.5f
+#define YAW_SPEED_PID_MAX_IOUT  2.33f
+#endif
+
+
+
+//yaw gyro angle close-loop PID params, max out and max iout
+#define YAW_ANGLE_PID_KP        15.0f
+#define YAW_ANGLE_PID_KI        0.0f
+#define YAW_ANGLE_PID_KD        0.0f
+#define YAW_ANGLE_PID_MAX_OUT   10.0f
+#define YAW_ANGLE_PID_MAX_IOUT  10.0f
+
 
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 
