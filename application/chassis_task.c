@@ -258,6 +258,20 @@ void relay_signal_manager(void)
 			storage_pump_control(0);
 		}
 	}
+
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+	// VT13 shoulder keys control the head pump:
+	//   left shoulder  -> head pump ON
+	//   right shoulder -> head pump OFF
+	if (chassis_move.chassis_RC->vt13.customizable_button_left)
+	{
+		head_pump_control(1);
+	}
+	else if (chassis_move.chassis_RC->vt13.customizable_button_right)
+	{
+		head_pump_control(0);
+	}
+#endif
 }
 
 void robot_arm_set_home(void)
