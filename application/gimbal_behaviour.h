@@ -56,7 +56,8 @@ typedef enum
 {
   GIMBAL_ZERO_FORCE = 0, 
   GIMBAL_INIT,           
-  GIMBAL_CALI,           
+  GIMBAL_CALI,   
+  GIMBAL_FOLD,        
   GIMBAL_ABSOLUTE_ANGLE, 
   GIMBAL_RELATIVE_ANGLE, 
   GIMBAL_MOTIONLESS,
@@ -90,6 +91,13 @@ extern void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, gimbal_
   * @retval         1: no move 0:normal
   */
 extern bool_t gimbal_cmd_to_chassis_stop(void);
+
+/**
+  * @brief          returns 1 when fold is commanded but chassis must align with gimbal first
+  * @param[in]      none
+  * @retval         1: needs alignment 0:normal
+  */
+extern bool_t gimbal_cmd_to_chassis_align(void);
 
 /**
   * @brief          in some gimbal mode, need shoot keep no move

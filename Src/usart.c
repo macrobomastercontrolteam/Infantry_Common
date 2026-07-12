@@ -47,7 +47,7 @@ void MX_USART1_UART_Init(void)
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
 #if ENABLE_HIGHER_BAUD_RATE_FOR_CV
-  huart1.Init.BaudRate = 1000000;
+  huart1.Init.BaudRate = 921600;
 #else
   huart1.Init.BaudRate = 115200;
 #endif
@@ -108,10 +108,17 @@ void MX_USART6_UART_Init(void)
 
   /* USER CODE END USART6_Init 1 */
   huart6.Instance = USART6;
-  huart6.Init.BaudRate = 115200;
+#if (REMOTE_TYPE == REMOTE_USE_DR16)
+  huart6.Init.BaudRate = 100000;
+  huart6.Init.WordLength = UART_WORDLENGTH_8B;
+  huart6.Init.StopBits = UART_STOPBITS_1;
+  huart6.Init.Parity = UART_PARITY_EVEN;
+#else
+  huart6.Init.BaudRate = 921600;
   huart6.Init.WordLength = UART_WORDLENGTH_8B;
   huart6.Init.StopBits = UART_STOPBITS_1;
   huart6.Init.Parity = UART_PARITY_NONE;
+#endif
   huart6.Init.Mode = UART_MODE_TX_RX;
   huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart6.Init.OverSampling = UART_OVERSAMPLING_16;

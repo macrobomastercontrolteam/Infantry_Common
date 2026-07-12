@@ -37,6 +37,9 @@
 #define DETECT_TASK_H
 #include "global_inc.h"
 
+/* Pack the detect/error structs explicitly (ARM Compiler __packed prefix keyword
+ * is ignored by GCC). */
+#pragma pack(push, 1)
 
 #define DETECT_TASK_INIT_TIME 57
 #define DETECT_CONTROL_TIME_MS 10
@@ -44,36 +47,40 @@
 // TOE: table of equipment
 enum errorList
 {
-    // chassis related TOEs (make sure this group is continuous)
-    DBUS_TOE = 0,
-    // M3508 control speed
-    CHASSIS_MOTOR1_TOE,
-    CHASSIS_MOTOR2_TOE,
-    CHASSIS_MOTOR3_TOE,
-    CHASSIS_MOTOR4_TOE,
-    // "gimbal" motors
-    YAW_GIMBAL_MOTOR_TOE,
-    PITCH_GIMBAL_MOTOR_TOE,
-    // shoot motors
-    TRIGGER_MOTOR_TOE,
-    FRICTIONAL_MOTOR_LEFT_TOE,
-    FRICTIONAL_MOTOR_RIGHT_TOE,
-    FRICTIONAL_MOTOR_UP_TOE,
-    FRICTIONAL_MOTOR_DOWN_TOE,
-    PISTON_MOTOR_TOE,
-    // on-board IMU
-    BOARD_GYRO_TOE,
-    BOARD_ACCEL_TOE,
-    BOARD_MAG_TOE,
-    // others
-    REFEREE_TOE,
-    CV_TOE,
-    SUPCAP_TOE,
-    POWER_METER_TOE,
-    SWERVE_CTRL_TOE,
-    BIPED_CTRL_TOE,
-    // OLED_TOE,
-    ERROR_LIST_LENGTH,
+  // chassis related TOEs (make sure this group is continuous)
+  REMOTE_TOE = 0,
+  // M3508 control speed
+  CHASSIS_MOTOR1_TOE,
+  CHASSIS_MOTOR2_TOE,
+  CHASSIS_MOTOR3_TOE,
+  CHASSIS_MOTOR4_TOE,
+  // "gimbal" motors
+  YAW_GIMBAL_MOTOR_TOE,
+  PITCH_GIMBAL_MOTOR_TOE,
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+  PITCH_BASE_GIMBAL_MOTOR_TOE,
+#endif
+
+  // shoot motors
+  TRIGGER_MOTOR_TOE,
+  FRICTIONAL_MOTOR_LEFT_TOE,
+  FRICTIONAL_MOTOR_RIGHT_TOE,
+  FRICTIONAL_MOTOR_UP_TOE,
+  FRICTIONAL_MOTOR_DOWN_TOE,
+  PISTON_MOTOR_TOE,
+  // on-board IMU
+  BOARD_GYRO_TOE,
+  BOARD_ACCEL_TOE,
+  BOARD_MAG_TOE,
+  // others
+  REFEREE_TOE,
+  CV_TOE,
+  SUPCAP_TOE,
+  POWER_METER_TOE,
+  SWERVE_CTRL_TOE,
+  BIPED_CTRL_TOE,
+  // OLED_TOE,
+  ERROR_LIST_LENGTH,
 };
 
 typedef enum
@@ -133,4 +140,5 @@ extern const error_t *get_error_list_point(void);
 
 uint8_t ifToeStatusExist(uint8_t _start, uint8_t _end, toe_status_e _status_to_find, uint8_t* pbHitIndex);
 
+#pragma pack(pop)
 #endif

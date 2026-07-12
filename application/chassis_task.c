@@ -17,6 +17,7 @@
   */
 #include "chassis_task.h"
 #include "chassis_behaviour.h"
+#include "gimbal_task.h"
 
 #include "cmsis_os.h"
 
@@ -31,7 +32,7 @@
 #include "user_lib.h"
 #include <assert.h>
 #include "referee.h"
-
+#include "vofa_task.h"
 #define STEER_MOTOR_UPSIDE_DOWN_MOUNTING 0
 #define SWERVE_INVALID_HIP_DATA_RESET_TIMEOUT 1000
 
@@ -65,6 +66,10 @@ static void chassis_set_control(void);
  */
 static void chassis_control_loop(void);
 
+#if (ROBOT_TYPE != INFANTRY_2024_BIPED) && (ROBOT_TYPE != INFANTRY_2023_SWERVE)
+static void chassis_slip_robust_vel_update(void);
+#endif
+
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 static uint16_t motor_angle_to_ecd_change(fp32 angle);
 void swerve_convert_from_rpy_to_alpha(fp32 roll, fp32 pitch, fp32 *alpha1, fp32 *alpha2, fp32 gimbal_chassis_relative_yaw_angle);
@@ -77,6 +82,12 @@ uint32_t chassis_high_water;
 supcap_t cap_message_rx;
 
 chassis_move_t chassis_move;
+
+#if (ROBOT_TYPE != INFANTRY_2024_BIPED) && (ROBOT_TYPE != INFANTRY_2023_SWERVE)
+// encoder-only, slip-mitigated chassis-frame translational velocity (m/s), updated every chassis cycle
+static fp32 chassis_vx_slip_robust = 0.0f;
+static fp32 chassis_vy_slip_robust = 0.0f;
+#endif
 
 #if CHASSIS_TEST_MODE
 fp32 rot_radius0;
@@ -112,7 +123,7 @@ void chassis_task(void const *pvParameters)
 	// wait a time
 	osDelay(CHASSIS_TASK_INIT_TIME);
 
-	// while (ifToeStatusExist(DBUS_TOE, CHASSIS_MOTOR4_TOE, TOE_STATUS_OFFLINE, NULL))
+	// while (ifToeStatusExist(REMOTE_TOE, CHASSIS_MOTOR4_TOE, TOE_STATUS_OFFLINE, NULL))
 	// {
 	//     osDelay(CHASSIS_CONTROL_TIME_MS * 2);
 	// }
@@ -175,7 +186,7 @@ static void chassis_init(void)
 		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
 	}
 
-#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO) || (ROBOT_TYPE == INFANTRY_2026_OMNI)
 	const static fp32 motor_speed_pid[3] = {MG4010_MOTOR_SPEED_PID_KP, MG4010_MOTOR_SPEED_PID_KI, MG4010_MOTOR_SPEED_PID_KD};
 	for (uint8_t i = 0; i < sizeof(chassis_move.wheel_rot_radii) / sizeof(chassis_move.wheel_rot_radii[0]); i++)
 	{
@@ -188,7 +199,7 @@ static void chassis_init(void)
 	for (uint8_t i = 0; i < sizeof(chassis_move.wheel_rot_radii) / sizeof(chassis_move.wheel_rot_radii[0]); i++)
 	{
 		chassis_move.motor_chassis[i].chassis_motor_measure = get_chassis_motor_measure_point(i);
-		PID_init(&chassis_move.motor_speed_pid[i], PID_POSITION, motor_speed_pid, M3508_MOTOR_SPEED_PID_MAX_OUT, M3508_MOTOR_SPEED_PID_MAX_IOUT, 0, &raw_err_handler);
+		PID_init(&chassis_move.motor_speed_pid[i], PID_POSITION, motor_speed_pid, M3508_MOTOR_SPEED_PID_MAX_OUT, M3508_MOTOR_SPEED_PID_MAX_IOUT, 0.35f, &filter_err_handler);
 		chassis_move.wheel_rot_radii[i] = MOTOR_DISTANCE_TO_CENTER_DEFAULT;
 	}
 #endif
@@ -201,7 +212,7 @@ static void chassis_init(void)
 	//low_pass_filter_ema(chassis_move.chassis_cmd_slow_set_vy.out, 0.05f, 1);
 	chassis_move.vx_max_speed = NORMAL_MAX_CHASSIS_SPEED_X;
 	chassis_move.vy_max_speed = NORMAL_MAX_CHASSIS_SPEED_Y;
-	chassis_move.wz_max_speed = SPINNING_CHASSIS_MAX_OMEGA;
+	chassis_move.wz_max_speed = SPINNING_CHASSIS_MED_OMEGA;
 
 	chassis_move.dial_channel_latched = 0;
 
@@ -218,6 +229,8 @@ static void chassis_init(void)
 	// special assignment to ensure fHipDisabledEdge not being miscalculated by the garbage data
 	chassis_move.fHipEnabled = 0;
 	swerve_chassis_params_reset();
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	chassis_move.chassis_platform.chassis_hip_kp = HIP_MIT_PROFILE_KP;
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	biped_chassis_params_reset();
 #endif
@@ -311,12 +324,13 @@ static void chassis_feedback_update(void)
 	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
 	chassis_move.wz = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
 #elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
-	// Omni wheel feedback calculation
-	// For omni wheels in square arrangement: sum and difference combinations give vx, vy, wz
-	chassis_move.vx = (chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
-	chassis_move.vy = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
-	chassis_move.wz = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
+
+	chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
+	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
+	chassis_move.wz = (chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
 #endif
+	// encoder-only slip-robust chassis velocity estimate (consumed by the CV chassis-velocity report)
+	chassis_slip_robust_vel_update();
 #endif
 #endif
 
@@ -350,109 +364,40 @@ void chassis_speed_max_adj(void)
 	get_chassis_power_data(&ref_chassis_power_buffer, &ref_chassis_power_limit);
 #endif
 	
-
-	// Tuning guide: normal mode only uses 10% power buffer; sprint mode only use 75%
 	fp32 vx_speed_limit = 0;
 	fp32 vy_speed_limit = 0;
-	uint16_t uiPowerLevel = fp32_constrain(ref_chassis_power_limit - 40, 0, 100) / 5;
-	switch (uiPowerLevel)
-	{
-		case 0:
-		case 1:
-		{
-			// 0-49
-			vx_speed_limit = 1.41;
-			vy_speed_limit = 1.41;
-			break;
-		}
-		case 2:
-		{
-			// 50-54
-			vx_speed_limit = 1.58;
-			vy_speed_limit = 1.58;
-			break;
-		}
-		case 3:
-		{
-			// 55-59
-			// low: 1.6
-			// high: 1.8
-			vx_speed_limit = 1.71;
-			vy_speed_limit = 1.71;
-			break;
-		}
-		case 4:
-		{
-			// 60-64
-			vx_speed_limit = 1.75;
-			vy_speed_limit = 1.75;
-			break;
-		}
-		case 5:
-		{
-			// 65-69
-			vx_speed_limit = 1.775;
-			vy_speed_limit = 1.775;
-			break;
-		}
-		case 6:
-		{
-			// 70-74
-			vx_speed_limit = 1.85;
-			vy_speed_limit = 1.85;
-			break;
-		}
-		case 7:
-		{
-			// 75-79
-			vx_speed_limit = 1.9;
-			vy_speed_limit = 1.9;
-			break;
-		}
-		case 8:
-		{
-			// 80-84
-			vx_speed_limit = 1.925;
-			vy_speed_limit = 1.925;
-			break;
-		}
-		case 9:
-		{
-			// 85-89
-			vx_speed_limit = 2.0;
-			vy_speed_limit = 2.0;
-			break;
-		}
-		case 10:
-		default:
-		{
-			// 90-94
-		    vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X;
-		    vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y;
-			break;
-		}
-	}
+	fp32 wz_speed_limit = 0;
+	fp32 wz_scaling_factor = 0;
+	fp32 buffer_ratio;
 	
-	if ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE) && (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE))
+	if(ref_chassis_power_buffer < 10.0f)
 	{
-		chassis_move.vx_max_speed = vy_speed_limit;
+		vx_speed_limit = LOW_POWER_MAX_CHASSIS_SPEED_X;
+		vy_speed_limit = LOW_POWER_MAX_CHASSIS_SPEED_Y;
+		wz_scaling_factor = 0.05f;
+	}
+	else
+    {
+        buffer_ratio = fp32_constrain((ref_chassis_power_buffer - 10.0f) / 30.0f, 0.0f, 1.0f);
+
+        vx_speed_limit = NORMAL_MAX_CHASSIS_SPEED_X * (0.5f + 0.5f * buffer_ratio);
+        vy_speed_limit = NORMAL_MAX_CHASSIS_SPEED_Y * (0.5f + 0.5f * buffer_ratio);
+        wz_scaling_factor = 0.2f + 0.8f * buffer_ratio;
+    }
+
+	if ((chassis_behaviour_mode == CHASSIS_SPINNING_MODE) || (chassis_behaviour_mode == CHASSIS_CV_CONTROL_MODE))
+	{
+		vx_speed_limit = vy_speed_limit;
+		wz_speed_limit = calc_wz_max_speed(vx_speed_limit, vy_speed_limit, wz_scaling_factor); //further limit the spinning speed in spinning mode to avoid high power consumption
 	}
 	else
 	{
-		chassis_move.vx_max_speed = vx_speed_limit;
+		wz_speed_limit = calc_wz_max_speed(vx_speed_limit, vy_speed_limit, 1.0f);
 	}
-	chassis_move.vy_max_speed = vy_speed_limit;
 
-	const fp32 vx_to_wz_limit_coeff = 1.5f / NORMAL_MAX_CHASSIS_SPEED_X * SPINNING_CHASSIS_MAX_OMEGA;
-	fp32 wz_decay_by_v_coeff = fp32_constrain(1 - sqrtf(chassis_move.vx_set * chassis_move.vx_set + chassis_move.vy_set * chassis_move.vy_set) / chassis_move.vx_max_speed, 0, 1);
-	chassis_move.wz_max_speed = vx_speed_limit * vx_to_wz_limit_coeff * wz_decay_by_v_coeff;
-
-	if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT)
-	{
-		chassis_move.vx_max_speed = fp32_abs_constrain(chassis_move.vx_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPRINT_MAX_CHASSIS_SPEED_X);
-		chassis_move.vy_max_speed = fp32_abs_constrain(chassis_move.vy_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPRINT_MAX_CHASSIS_SPEED_Y);
-		chassis_move.wz_max_speed = fp32_abs_constrain(chassis_move.wz_max_speed * NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO, SPINNING_CHASSIS_MAX_OMEGA);
-	}
+	chassis_move.vx_max_speed = fp32_abs_constrain(vx_speed_limit, SPRINT_MAX_CHASSIS_SPEED_X);
+	chassis_move.vy_max_speed = fp32_abs_constrain(vy_speed_limit, SPRINT_MAX_CHASSIS_SPEED_Y);
+	chassis_move.wz_max_speed = fp32_abs_constrain(wz_speed_limit, SPINNING_CHASSIS_MAX_OMEGA);
 }
 
 /**
@@ -469,7 +414,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set)
 		return;
 	}
 
-	chassis_speed_max_adj();
+	chassis_speed_max_adj();//
 
 	int16_t vx_channel, vy_channel;
 	fp32 vx_set_channel, vy_set_channel;
@@ -683,6 +628,150 @@ void swerve_convert_from_alpha_to_rpy(fp32 *roll, fp32 *pitch, fp32 alpha1, fp32
 	fp32 sin_total = AHRS_sinf(PI / 4.0f + gimbal_chassis_relative_yaw_angle);
 	*roll = cos_total * alpha2 + sin_total * alpha1;
 	*pitch = -sin_total * alpha2 + cos_total * alpha1;
+}
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+
+void chassis_back_home(void)
+{
+	// back to middle height, which has the largest workspace for alpha angle
+	chassis_move.chassis_platform.target_roll = 0;
+	chassis_move.chassis_platform.target_pitch = 0;
+	chassis_move.chassis_platform.target_alpha = 0;
+	chassis_move.chassis_platform.target_height = CHASSIS_H_WORKSPACE_PEAK;
+}
+
+/**
+ * @brief  Ramp chassis height toward CHASSIS_H_LOWER_LIMIT when gimbal is
+ *         folded (or folding), and back to CHASSIS_H_WORKSPACE_PEAK when
+ *         unfolded. Must be called every chassis control cycle.
+ */
+static void chassis_platform_fold_height_update(void)
+{
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	fp32 height_target;
+	if (gimbal_control.gimbal_folding_status.target == FOLDED ||
+	    gimbal_control.gimbal_folding_status.current == FOLDED)
+	{
+		height_target = CHASSIS_H_LOWER_LIMIT;
+	}
+	else
+	{
+		return; // No automatic height change when unfolded
+	}
+
+	if (chassis_move.chassis_platform.target_height > height_target)
+	{
+		chassis_move.chassis_platform.target_height -= CHASSIS_FOLD_HEIGHT_RAMP_RATE;
+		if (chassis_move.chassis_platform.target_height < height_target)
+		{
+			chassis_move.chassis_platform.target_height = height_target;
+		}
+	}
+	else if (chassis_move.chassis_platform.target_height < height_target)
+	{
+		chassis_move.chassis_platform.target_height += CHASSIS_FOLD_HEIGHT_RAMP_RATE;
+		if (chassis_move.chassis_platform.target_height > height_target)
+		{
+			chassis_move.chassis_platform.target_height = height_target;
+		}
+	}
+
+#endif
+}
+
+void chassis_platform_rc_mapping(void)
+{
+	chassis_platform_fold_height_update();
+
+	// configuration for pseudo RPY-to-tilt conversion
+	const fp32 CHASSIS_PLATFORM_ROLL_KEYBOARD_CHANGE_TIME_S = 0.4f;
+	const fp32 CHASSIS_PLATFORM_ROLL_KEYBOARD_SEN_INC = 2.0f * CHASSIS_ALPHA_WORKSPACE_PEAK / CHASSIS_PLATFORM_ROLL_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S;
+	const fp32 CHASSIS_PLATFORM_PITCH_KEYBOARD_CHANGE_TIME_S = 0.4f;
+	const fp32 CHASSIS_PLATFORM_PITCH_KEYBOARD_SEN_INC = 2.5f * CHASSIS_ALPHA_WORKSPACE_PEAK / CHASSIS_PLATFORM_PITCH_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S;
+	const fp32 CHASSIS_PLATFORM_ALPHA_KEYBOARD_SEN_INC = CHASSIS_PLATFORM_PITCH_KEYBOARD_SEN_INC;
+	const fp32 CHASSIS_PLATFORM_HEIGHT_KEYBOARD_CHANGE_TIME_S = 0.4f;
+	const fp32 CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC = (CHASSIS_H_UPPER_LIMIT - CHASSIS_H_LOWER_LIMIT) * 0.2f / CHASSIS_PLATFORM_HEIGHT_KEYBOARD_CHANGE_TIME_S * CHASSIS_CONTROL_TIME_S;
+
+	if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL) && (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C))
+	{
+		chassis_back_home();
+	}
+	else
+	{
+		// roll
+		//if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_B)
+		//{
+		//	chassis_move.chassis_platform.target_roll += CHASSIS_PLATFORM_ROLL_KEYBOARD_SEN_INC;
+		//}
+		//else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C)
+		//{
+		//	chassis_move.chassis_platform.target_roll -= CHASSIS_PLATFORM_ROLL_KEYBOARD_SEN_INC;
+		//}
+
+#if (REMOTE_TYPE == REMOTE_USE_VT13)
+		if (chassis_move.chassis_RC->vt13.customizable_button_left)
+		{
+			chassis_move.chassis_platform.target_height -= CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+		}
+		else if (chassis_move.chassis_RC->vt13.customizable_button_right)
+		{
+			chassis_move.chassis_platform.target_height += CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+		}
+		else
+#endif
+		{
+			if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
+			{
+				// height (Ctrl+F/V: increment/decrement)
+				if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+				{
+					chassis_move.chassis_platform.target_height += CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+				}
+				else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+				{
+					chassis_move.chassis_platform.target_height -= CHASSIS_PLATFORM_HEIGHT_KEYBOARD_SEN_INC;
+				}
+			}
+			else
+			{
+				// F/V: adjust platform alpha
+				if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_F)
+				{
+					chassis_move.chassis_platform.target_alpha += CHASSIS_PLATFORM_ALPHA_KEYBOARD_SEN_INC;
+				}
+				else if (chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_V)
+				{
+					chassis_move.chassis_platform.target_alpha -= CHASSIS_PLATFORM_ALPHA_KEYBOARD_SEN_INC;
+				}
+			}
+		}
+		// constrain target roll, pitch, and height values
+		//chassis_move.chassis_platform.target_roll = fp32_constrain(chassis_move.chassis_platform.target_roll, -CHASSIS_ROLL_UPPER_LIMIT, CHASSIS_ROLL_UPPER_LIMIT);
+		//chassis_move.chassis_platform.target_pitch = fp32_constrain(chassis_move.chassis_platform.target_pitch, -CHASSIS_PITCH_UPPER_LIMIT, CHASSIS_PITCH_UPPER_LIMIT);
+		chassis_move.chassis_platform.target_height = fp32_constrain(chassis_move.chassis_platform.target_height, CHASSIS_H_LOWER_LIMIT, CHASSIS_H_UPPER_LIMIT);
+		chassis_move.chassis_platform.target_alpha = fp32_constrain(chassis_move.chassis_platform.target_alpha, -CHASSIS_ALPHA_WORKSPACE_PEAK, CHASSIS_ALPHA_WORKSPACE_PEAK);
+
+		// chassis platform posture conversion
+		//swerve_convert_from_rpy_to_alpha(chassis_move.chassis_platform.target_roll, chassis_move.chassis_platform.target_pitch, &(chassis_move.chassis_platform.target_alpha1), &(chassis_move.chassis_platform.target_alpha2), chassis_move.chassis_yaw_motor->relative_angle);
+
+		// constrain target alpha1 and alpha2 values
+		// calculation for alpha limit: According to the matlab calculation, the available workspace in height-alpha space is triangular, so we assume height target has more priority than alpha target, and calculate alpha limit based on height
+		//if (chassis_move.chassis_platform.target_height >= CHASSIS_H_WORKSPACE_PEAK)
+		//{
+		//	chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_UPPER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE2;
+		//}
+		//else
+		//{
+		//	chassis_move.chassis_platform.alpha_upper_limit = (chassis_move.chassis_platform.target_height - CHASSIS_H_LOWER_LIMIT) / CHASSIS_H_WORKSPACE_SLOPE1;
+		//}
+		//chassis_move.chassis_platform.alpha_lower_limit = -chassis_move.chassis_platform.alpha_upper_limit;
+//
+		//chassis_move.chassis_platform.target_alpha1 = fp32_constrain(chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
+		//chassis_move.chassis_platform.target_alpha2 = fp32_constrain(chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_platform.alpha_lower_limit, chassis_move.chassis_platform.alpha_upper_limit);
+
+		// chassis platform posture inverse conversion to reflect limited alpha values onto the set roll and pitch values
+		//swerve_convert_from_alpha_to_rpy(&(chassis_move.chassis_platform.target_roll), &(chassis_move.chassis_platform.target_pitch), chassis_move.chassis_platform.target_alpha1, chassis_move.chassis_platform.target_alpha2, chassis_move.chassis_yaw_motor->relative_angle);
+	}
 }
 #endif
 
@@ -1089,14 +1178,33 @@ static void chassis_control_loop(void)
 		{
 			PID_calc(&chassis_move.motor_speed_pid[i], chassis_move.motor_chassis[i].speed, chassis_move.motor_chassis[i].speed_set, CHASSIS_CONTROL_TIME_S);
 		}
-		if (!toe_is_error(SUPCAP_TOE))
+
+#if CHASSIS_POWER_CONTROL
+		if ((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT) && (can_ref_info.chassis_power_buffer > 30)) // when shift pressed and buffer is above safe value, bypass powercontrol (leave to supercap to control)
 		{
-			chassis_power_control((chassis_move.chassis_RC->key.v & KEY_PRESSED_OFFSET_C) != 0);
+			for (i = 0; i < 4; i++)
+			{
+#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+
+				chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)fp32_constrain(
+					(chassis_move.motor_chassis[i].speed_set + chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT,
+					-(fp32)MOTOR_MG4010_MAX_CMD, (fp32)MOTOR_MG4010_MAX_CMD);
+#else
+				chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)((chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
+#endif
+			}
 		}
+		else
+		{
+			chassis_power_control(); // give_chassis_motor_cmd assigned inside
+		}
+
+#else
 		for (i = 0; i < 4; i++)
 		{
 			chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)((chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
 		}
+#endif
 	}
 #endif
 }
@@ -1119,6 +1227,154 @@ fp32 chassis_get_low_wz_limit(void)
 fp32 chassis_get_ultra_low_wz_limit(void)
 {
 	return (chassis_move.wz_max_speed * 0.167f);
+}
+
+/**
+ * @brief          encoder-only, slip-mitigated chassis translational velocity estimate (chassis frame).
+ *                 Runs every chassis cycle from chassis_feedback_update(). No IMU is used.
+ *
+ * Best-effort slip handling with wheel encoders only:
+ *  1. Redundancy residual: a 4-wheel chassis provides 4 speed measurements but only 3 DOF
+ *     (vx, vy, wz). The one redundant wheel-speed combination must be ~0 under pure rolling, so a
+ *     nonzero value is a direct slip / inconsistency indicator (orthogonal to the vx/vy/wz mixing).
+ *  2. Single-wheel rejection: when slip is detected, the wheel with clearly anomalous acceleration
+ *     (the classic signature of a wheel losing traction) is corrected back to the value implied by
+ *     the other three wheels, which is equivalent to dropping it from the solve.
+ *  3. Acceleration clamp: the frame-to-frame velocity change is limited to a physically plausible
+ *     chassis acceleration, rejecting the non-physical jumps a brief slip spike produces.
+ *  4. Adaptive low-pass: filtering is light when the wheels agree (responsive) and heavy while slip
+ *     is present (coast on the previous estimate instead of trusting bad wheel data).
+ *
+ * Note: a symmetric 4-wheel chassis cannot identify WHICH wheel slips from a single instantaneous
+ * sample alone, so step 2 leans on wheel acceleration and only acts when one wheel clearly dominates;
+ * otherwise steps 3-4 simply de-weight the estimate. Sustained multi-wheel slip is not recoverable
+ * without an independent reference (e.g. IMU), which is intentionally not used here.
+ */
+static void chassis_slip_robust_vel_update(void)
+{
+	// slip-tuning constants (chassis frame; speeds in m/s, accelerations in m/s^2)
+	const fp32 SLIP_RESIDUAL_THRESHOLD = 0.30f;  // |redundant wheel combo| above this => slip suspected
+	const fp32 SLIP_ACCEL_THRESHOLD    = 8.0f;   // a wheel must exceed this |accel| to be treated as slipping
+	const fp32 SLIP_ACCEL_DOMINANCE    = 2.0f;   // and exceed the 2nd-most-dynamic wheel by this factor
+	const fp32 SLIP_MAX_CHASSIS_ACCEL  = 20.0f;  // plausible chassis accel ceiling for the velocity clamp
+	const fp32 SLIP_TAU_NORMAL         = 0.015f; // low-pass time constant when wheels agree
+	const fp32 SLIP_TAU_SLIP           = 0.080f; // heavier low-pass while slipping
+
+	fp32 s[4];
+	fp32 a[4];
+	for (uint8_t i = 0; i < 4; i++)
+	{
+		s[i] = chassis_move.motor_chassis[i].speed; // wheel surface speed, m/s (encoder)
+		a[i] = chassis_move.motor_chassis[i].accel; // wheel accel, m/s^2 (encoder-derived)
+	}
+
+	// residual sign pattern: orthogonal to the vx/vy/wz mixing used in chassis_feedback_update,
+	// so it captures only the slip/inconsistency component of the four wheel speeds
+#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM)
+	const fp32 r[4] = {1.0f, -1.0f, 1.0f, -1.0f};
+#elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
+	// redundant (null-space) wheel combination for this omni layout: orthogonal to vx, vy and rot,
+	// so it isolates slip only. {1,1,-1,-1} would instead equal -4*vy (a real motion axis) and mis-fire.
+	const fp32 r[4] = {1.0f, -1.0f, 1.0f, -1.0f};
+#else
+	const fp32 r[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+#endif
+
+	fp32 residual = r[0] * s[0] + r[1] * s[1] + r[2] * s[2] + r[3] * s[3];
+	uint8_t slip_detected = (fabs(residual) > SLIP_RESIDUAL_THRESHOLD);
+
+	if (slip_detected)
+	{
+		// find the most dynamic wheel and the runner-up; only act if one clearly dominates
+		uint8_t k = 0;
+		uint8_t second = 1;
+		for (uint8_t i = 1; i < 4; i++)
+		{
+			if (fabs(a[i]) > fabs(a[k]))
+			{
+				second = k;
+				k = i;
+			}
+		}
+		if ((fabs(a[k]) > SLIP_ACCEL_THRESHOLD) &&
+		    (fabs(a[k]) > SLIP_ACCEL_DOMINANCE * fabs(a[second])) &&
+		    (r[k] != 0.0f))
+		{
+			// correct the slipping wheel to the speed implied by the other three (drops it from the solve)
+			s[k] -= residual * r[k];
+		}
+	}
+
+	// chassis-frame velocity from the (possibly corrected) wheel speeds, same mixing as chassis_feedback_update
+	fp32 vx_raw = 0.0f;
+	fp32 vy_raw = 0.0f;
+#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM)
+	vx_raw = (-s[0] + s[1] + s[2] - s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
+	vy_raw = (-s[0] - s[1] + s[2] + s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
+#elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
+	vx_raw = (-s[0] + s[1] + s[2] - s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
+	vy_raw = (-s[0] - s[1] + s[2] + s[3]) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
+#endif
+
+	// acceleration clamp: reject the non-physical velocity jumps a slip spike produces
+	const fp32 dt = CHASSIS_CONTROL_TIME_S;
+	fp32 max_dv = SLIP_MAX_CHASSIS_ACCEL * dt;
+	fp32 vx_clamped = chassis_vx_slip_robust + fp32_constrain(vx_raw - chassis_vx_slip_robust, -max_dv, max_dv);
+	fp32 vy_clamped = chassis_vy_slip_robust + fp32_constrain(vy_raw - chassis_vy_slip_robust, -max_dv, max_dv);
+
+	// adaptive low-pass: trust the encoders less while slip is present
+	fp32 tau = slip_detected ? SLIP_TAU_SLIP : SLIP_TAU_NORMAL;
+	fp32 alpha = dt / (tau + dt);
+	chassis_vx_slip_robust += alpha * (vx_clamped - chassis_vx_slip_robust);
+	chassis_vy_slip_robust += alpha * (vy_clamped - chassis_vy_slip_robust);
+}
+
+/**
+ * @brief          chassis translational velocity expressed in the gimbal-yaw frame, derived purely from
+ *                 chassis motor encoder feedback (no IMU). vx points where the yaw axis is aimed, vy is 90deg to its left.
+ * @param[out]     vx: forward speed in the gimbal-yaw frame, unit m/s
+ * @param[out]     vy: left speed in the gimbal-yaw frame, unit m/s
+ * @retval         none
+ */
+void get_chassis_vel_in_gimbal_frame(fp32 *vx, fp32 *vy)
+{
+	if (vx == NULL || vy == NULL)
+	{
+		return;
+	}
+#if (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+	// these builds do not reconstruct chassis vx/vy from 4-wheel encoder feedback
+	*vx = 0.0f;
+	*vy = 0.0f;
+#else
+	// rotate the encoder-only, slip-mitigated chassis-frame velocity into the gimbal-yaw frame using the
+	// yaw motor relative angle (gimbal yaw relative to chassis front); inverse of the gimbal->chassis
+	// rotation applied in chassis_set_control
+	fp32 angle = chassis_move.chassis_yaw_motor->relative_angle;
+	fp32 sin_yaw = AHRS_sinf(angle);
+	fp32 cos_yaw = AHRS_cosf(angle);
+	*vx = cos_yaw * chassis_vx_slip_robust + sin_yaw * chassis_vy_slip_robust;
+	*vy = -sin_yaw * chassis_vx_slip_robust + cos_yaw * chassis_vy_slip_robust;
+#endif
+}
+
+fp32 calc_wz_max_speed(fp32 vx_speed_limit, fp32 vy_speed_limit, fp32 wz_scaling_factor)
+{
+	const fp32 WZ_MIN_RATIO = 0.25f; // keep 25% turning ability at high speed
+
+	fp32 wz_max_speed = 0.0f;
+ 
+	fp32 vx_norm = chassis_move.vx_set / fp32_constrain(vx_speed_limit, 0.01f, NORMAL_MAX_CHASSIS_SPEED_X);;
+	fp32 vy_norm = chassis_move.vy_set / fp32_constrain(vy_speed_limit, 0.01f, NORMAL_MAX_CHASSIS_SPEED_Y);;
+
+	fp32 v_norm = sqrtf(vx_norm * vx_norm + vy_norm * vy_norm);
+	v_norm = fp32_constrain(v_norm, 0.0f, 1.0f);
+
+	fp32 wz_decay_by_v_coeff =
+		WZ_MIN_RATIO + (1.0f - WZ_MIN_RATIO) * (1.0f - v_norm);
+
+	wz_max_speed = SPINNING_CHASSIS_MAX_OMEGA * wz_decay_by_v_coeff * wz_scaling_factor;
+	return wz_max_speed;
 }
 
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)

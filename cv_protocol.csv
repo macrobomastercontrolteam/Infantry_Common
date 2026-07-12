@@ -1,0 +1,84 @@
+Direction,Message,Tag (hex),Byte Offset,Field,Size (bytes),Type,Description,Total Frame Size (bytes)
+# All frames are TV: [Tag][Value...][CRC8]. The Length byte was removed; each side derives the value size from the Tag (see eCvReqValueLen / eCvRspValueLen in cv_usart_task.c). CRC8 covers Tag+Value (DJI poly G(x)=x^8+x^5+x^4+1, init 0xFF). Floats are 32-bit little-endian fp32. Send-delay is uint32 little-endian microseconds (request-received to just-before-UART-transmit).
+,,,,,,,,
+# ================= TX: CV -> Board (requests) =================,,,,,,,,
+CV->Board,MSG_CHECK_STATE,0x00,0,Tag,1,uint8,Message type = 0x00,3
+CV->Board,MSG_CHECK_STATE,0x00,1,InfoType,1,uint8,Requested info: 0x00=game progress 0x01=team color 0x02=robot type 0x03=robot HP,3
+CV->Board,MSG_CHECK_STATE,0x00,2,CRC8,1,uint8,CRC8 over bytes 0-1,3
+,,,,,,,,
+CV->Board,MSG_CV_CHASSIS_MOVE_STATE,0x01,0,Tag,1,uint8,Message type = 0x01,10
+CV->Board,MSG_CV_CHASSIS_MOVE_STATE,0x01,1,xSpeed,4,fp32,Chassis x speed command,10
+CV->Board,MSG_CV_CHASSIS_MOVE_STATE,0x01,5,ySpeed,4,fp32,Chassis y speed command,10
+CV->Board,MSG_CV_CHASSIS_MOVE_STATE,0x01,9,CRC8,1,uint8,CRC8 over bytes 0-8,10
+,,,,,,,,
+CV->Board,MSG_CONTROL_SPINNNG,0x02,0,Tag,1,uint8,Message type = 0x02,3
+CV->Board,MSG_CONTROL_SPINNNG,0x02,1,SpinCmd,1,uint8,0xFF=enable chassis spin 0x00=disable,3
+CV->Board,MSG_CONTROL_SPINNNG,0x02,2,CRC8,1,uint8,CRC8 over bytes 0-1,3
+,,,,,,,,
+CV->Board,MSG_AIM_ERROR,0x03,0,Tag,1,uint8,Message type = 0x03,10
+CV->Board,MSG_AIM_ERROR,0x03,1,xAimError,4,fp32,Yaw aim error (normalized),10
+CV->Board,MSG_AIM_ERROR,0x03,5,yAimError,4,fp32,Pitch aim error (normalized),10
+CV->Board,MSG_AIM_ERROR,0x03,9,CRC8,1,uint8,CRC8 over bytes 0-8,10
+,,,,,,,,
+CV->Board,MSG_SHOOT_CMD,0x04,0,Tag,1,uint8,Message type = 0x04,3
+CV->Board,MSG_SHOOT_CMD,0x04,1,ShootCmd,1,uint8,0xFF=request shoot,3
+CV->Board,MSG_SHOOT_CMD,0x04,2,CRC8,1,uint8,CRC8 over bytes 0-1,3
+,,,,,,,,
+CV->Board,MSG_CV_IMU_ACCELE,0x05,0,Tag,1,uint8,Message type = 0x05 (data request trigger),2
+CV->Board,MSG_CV_IMU_ACCELE,0x05,1,CRC8,1,uint8,CRC8 over byte 0,2
+,,,,,,,,
+CV->Board,MSG_CV_INFO_GIMBAL_ANGLE,0x08,0,Tag,1,uint8,Message type = 0x08 (data request trigger),2
+CV->Board,MSG_CV_INFO_GIMBAL_ANGLE,0x08,1,CRC8,1,uint8,CRC8 over byte 0,2
+,,,,,,,,
+# ================= RX: Board -> CV (responses) =================,,,,,,,,
+Board->CV,MSG_CHECK_STATE,0x00,0,Tag,1,uint8,Echoed message type = 0x00,4
+Board->CV,MSG_CHECK_STATE,0x00,1,InfoType,1,uint8,Echoed info subtype (0x00/0x01/0x02/0x03),4
+Board->CV,MSG_CHECK_STATE,0x00,2,InfoValue,1,uint8,Status value: progress/color/type 0x00 or 0xFF; HP low byte,4
+Board->CV,MSG_CHECK_STATE,0x00,3,CRC8,1,uint8,CRC8 over bytes 0-2,4
+,,,,,,,,
+Board->CV,MSG_CV_CHASSIS_MOVE_STATE,0x01,0,Tag,1,uint8,Echoed message type = 0x01,3
+Board->CV,MSG_CV_CHASSIS_MOVE_STATE,0x01,1,Ack,1,uint8,0xFF = received,3
+Board->CV,MSG_CV_CHASSIS_MOVE_STATE,0x01,2,CRC8,1,uint8,CRC8 over bytes 0-1,3
+,,,,,,,,
+Board->CV,MSG_CONTROL_SPINNNG,0x02,0,Tag,1,uint8,Echoed message type = 0x02,3
+Board->CV,MSG_CONTROL_SPINNNG,0x02,1,Ack,1,uint8,Spin state ack (0xFF/0x00),3
+Board->CV,MSG_CONTROL_SPINNNG,0x02,2,CRC8,1,uint8,CRC8 over bytes 0-1,3
+,,,,,,,,
+Board->CV,MSG_AIM_ERROR,0x03,0,Tag,1,uint8,Echoed message type = 0x03,3
+Board->CV,MSG_AIM_ERROR,0x03,1,Ack,1,uint8,0xFF = received,3
+Board->CV,MSG_AIM_ERROR,0x03,2,CRC8,1,uint8,CRC8 over bytes 0-1,3
+,,,,,,,,
+Board->CV,MSG_SHOOT_CMD,0x04,0,Tag,1,uint8,Echoed message type = 0x04,3
+Board->CV,MSG_SHOOT_CMD,0x04,1,ShootStatus,1,uint8,0xFF=shoot 0xAA=heat-ok 0xBB=buy-ammo 0x00=low ammo,3
+Board->CV,MSG_SHOOT_CMD,0x04,2,CRC8,1,uint8,CRC8 over bytes 0-1,3
+,,,,,,,,
+Board->CV,MSG_CV_IMU_ACCELE,0x05,0,Tag,1,uint8,Echoed message type = 0x05,30
+Board->CV,MSG_CV_IMU_ACCELE,0x05,1,AccelX,4,fp32,World-frame linear acceleration X,30
+Board->CV,MSG_CV_IMU_ACCELE,0x05,5,AccelY,4,fp32,World-frame linear acceleration Y,30
+Board->CV,MSG_CV_IMU_ACCELE,0x05,9,AccelZ,4,fp32,World-frame linear acceleration Z,30
+Board->CV,MSG_CV_IMU_ACCELE,0x05,13,AngVelX,4,fp32,World-frame angular velocity X,30
+Board->CV,MSG_CV_IMU_ACCELE,0x05,17,AngVelY,4,fp32,World-frame angular velocity Y,30
+Board->CV,MSG_CV_IMU_ACCELE,0x05,21,AngVelZ,4,fp32,World-frame angular velocity Z,30
+Board->CV,MSG_CV_IMU_ACCELE,0x05,25,SendDelay,4,uint32,Request-to-send delay in microseconds,30
+Board->CV,MSG_CV_IMU_ACCELE,0x05,29,CRC8,1,uint8,CRC8 over bytes 0-28,30
+,,,,,,,,
+Board->CV,MSG_CV_IMU_VELOCITY,0x06,0,Tag,1,uint8,Echoed message type = 0x06,18
+Board->CV,MSG_CV_IMU_VELOCITY,0x06,1,VelX,4,fp32,World-frame velocity X,18
+Board->CV,MSG_CV_IMU_VELOCITY,0x06,5,VelY,4,fp32,World-frame velocity Y,18
+Board->CV,MSG_CV_IMU_VELOCITY,0x06,9,VelZ,4,fp32,World-frame velocity Z,18
+Board->CV,MSG_CV_IMU_VELOCITY,0x06,13,SendDelay,4,uint32,Request-to-send delay in microseconds,18
+Board->CV,MSG_CV_IMU_VELOCITY,0x06,17,CRC8,1,uint8,CRC8 over bytes 0-16,18
+,,,,,,,,
+Board->CV,MSG_CV_IMU_POSITION,0x07,0,Tag,1,uint8,Echoed message type = 0x07,18
+Board->CV,MSG_CV_IMU_POSITION,0x07,1,PosX,4,fp32,World-frame position X,18
+Board->CV,MSG_CV_IMU_POSITION,0x07,5,PosY,4,fp32,World-frame position Y,18
+Board->CV,MSG_CV_IMU_POSITION,0x07,9,PosZ,4,fp32,World-frame position Z,18
+Board->CV,MSG_CV_IMU_POSITION,0x07,13,SendDelay,4,uint32,Request-to-send delay in microseconds,18
+Board->CV,MSG_CV_IMU_POSITION,0x07,17,CRC8,1,uint8,CRC8 over bytes 0-16,18
+,,,,,,,,
+Board->CV,MSG_CV_INFO_GIMBAL_ANGLE,0x08,0,Tag,1,uint8,Echoed message type = 0x08,18
+Board->CV,MSG_CV_INFO_GIMBAL_ANGLE,0x08,1,PitchAngle,4,fp32,Absolute pitch angle (rad IMU-based),18
+Board->CV,MSG_CV_INFO_GIMBAL_ANGLE,0x08,5,YawAngle,4,fp32,Absolute yaw angle (rad IMU-based),18
+Board->CV,MSG_CV_INFO_GIMBAL_ANGLE,0x08,9,PitchRate,4,fp32,Pitch angular rate (rad/s),18
+Board->CV,MSG_CV_INFO_GIMBAL_ANGLE,0x08,13,YawRate,4,fp32,Yaw angular rate (rad/s),18
+Board->CV,MSG_CV_INFO_GIMBAL_ANGLE,0x08,17,CRC8,1,uint8,CRC8 over bytes 0-16,18

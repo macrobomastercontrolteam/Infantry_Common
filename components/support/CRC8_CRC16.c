@@ -2,7 +2,7 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       crc8_crc16.c/h
   * @brief      crc8 and crc16 calculate function, verify function, append function.
-  *             crc8ºÍcrc16¼ÆËãº¯Êý,Ð£Ñéº¯Êý,Ìí¼Óº¯Êý
+  *             crc8ï¿½ï¿½crc16ï¿½ï¿½ï¿½ãº¯ï¿½ï¿½,Ð£ï¿½éº¯ï¿½ï¿½,ï¿½ï¿½ï¿½Óºï¿½ï¿½ï¿½
   * @note       
   * @history
   *  Version    Date            Author          Modification
@@ -83,11 +83,11 @@ const uint16_t wCRC_table[256] =
   * @retval         calculated crc8
   */
 /**
-  * @brief          ¼ÆËãCRC8
-  * @param[in]      pch_message: Êý¾Ý
-  * @param[in]      dw_length: Êý¾ÝºÍÐ£ÑéµÄ³¤¶È
-  * @param[in]      ucCRC8:³õÊ¼CRC8
-  * @retval         ¼ÆËãÍêµÄCRC8
+  * @brief          ï¿½ï¿½ï¿½ï¿½CRC8
+  * @param[in]      pch_message: ï¿½ï¿½ï¿½ï¿½
+  * @param[in]      dw_length: ï¿½ï¿½ï¿½Ýºï¿½Ð£ï¿½ï¿½Ä³ï¿½ï¿½ï¿½
+  * @param[in]      ucCRC8:ï¿½ï¿½Ê¼CRC8
+  * @retval         ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½CRC8
   */
 uint8_t get_CRC8_check_sum(unsigned char *pch_message,unsigned int dw_length,unsigned char ucCRC8)
 {
@@ -108,15 +108,15 @@ uint8_t get_CRC8_check_sum(unsigned char *pch_message,unsigned int dw_length,uns
   * @retval         true of false
   */
 /**
-  * @brief          CRC8Ð£Ñéº¯Êý
-  * @param[in]      pch_message: Êý¾Ý
-  * @param[in]      dw_length: Êý¾ÝºÍÐ£ÑéµÄ³¤¶È
-  * @retval         Õæ»òÕß¼Ù
+  * @brief          CRC8Ð£ï¿½éº¯ï¿½ï¿½
+  * @param[in]      pch_message: ï¿½ï¿½ï¿½ï¿½
+  * @param[in]      dw_length: ï¿½ï¿½ï¿½Ýºï¿½Ð£ï¿½ï¿½Ä³ï¿½ï¿½ï¿½
+  * @retval         ï¿½ï¿½ï¿½ï¿½ß¼ï¿½
   */
 uint32_t verify_CRC8_check_sum(unsigned char *pch_message, unsigned int dw_length)
 {
     unsigned char ucExpected = 0;
-    if ((pch_message == 0) || (dw_length <= 2))
+    if ((pch_message == 0) || (dw_length < 2))
     {
         return 0;
     }
@@ -132,9 +132,9 @@ uint32_t verify_CRC8_check_sum(unsigned char *pch_message, unsigned int dw_lengt
   * @retval         none
   */
 /**
-  * @brief          Ìí¼ÓCRC8µ½Êý¾ÝµÄ½áÎ²
-  * @param[in]      pch_message: Êý¾Ý
-  * @param[in]      dw_length: Êý¾ÝºÍÐ£ÑéµÄ³¤¶È
+  * @brief          ï¿½ï¿½ï¿½ï¿½CRC8ï¿½ï¿½ï¿½ï¿½ï¿½ÝµÄ½ï¿½Î²
+  * @param[in]      pch_message: ï¿½ï¿½ï¿½ï¿½
+  * @param[in]      dw_length: ï¿½ï¿½ï¿½Ýºï¿½Ð£ï¿½ï¿½Ä³ï¿½ï¿½ï¿½
   * @retval         none
   */
 void append_CRC8_check_sum(unsigned char *pch_message, unsigned int dw_length)
@@ -157,11 +157,11 @@ void append_CRC8_check_sum(unsigned char *pch_message, unsigned int dw_length)
   * @retval         calculated crc16
   */
 /**
-  * @brief          ¼ÆËãCRC16
-  * @param[in]      pch_message: Êý¾Ý
-  * @param[in]      dw_length: Êý¾ÝºÍÐ£ÑéµÄ³¤¶È
-  * @param[in]      wCRC:³õÊ¼CRC16
-  * @retval         ¼ÆËãÍêµÄCRC16
+  * @brief          ï¿½ï¿½ï¿½ï¿½CRC16
+  * @param[in]      pch_message: ï¿½ï¿½ï¿½ï¿½
+  * @param[in]      dw_length: ï¿½ï¿½ï¿½Ýºï¿½Ð£ï¿½ï¿½Ä³ï¿½ï¿½ï¿½
+  * @param[in]      wCRC:ï¿½ï¿½Ê¼CRC16
+  * @retval         ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½CRC16
   */
 uint16_t get_CRC16_check_sum(uint8_t *pch_message,uint32_t dw_length,uint16_t wCRC)
 {
@@ -186,10 +186,10 @@ uint16_t get_CRC16_check_sum(uint8_t *pch_message,uint32_t dw_length,uint16_t wC
   * @retval         true of false
   */
 /**
-  * @brief          CRC16Ð£Ñéº¯Êý
-  * @param[in]      pch_message: Êý¾Ý
-  * @param[in]      dw_length: Êý¾ÝºÍÐ£ÑéµÄ³¤¶È
-  * @retval         Õæ»òÕß¼Ù
+  * @brief          CRC16Ð£ï¿½éº¯ï¿½ï¿½
+  * @param[in]      pch_message: ï¿½ï¿½ï¿½ï¿½
+  * @param[in]      dw_length: ï¿½ï¿½ï¿½Ýºï¿½Ð£ï¿½ï¿½Ä³ï¿½ï¿½ï¿½
+  * @retval         ï¿½ï¿½ï¿½ï¿½ß¼ï¿½
   */
 uint32_t verify_CRC16_check_sum(uint8_t *pchMessage, uint32_t dwLength)
 {
@@ -210,9 +210,9 @@ uint32_t verify_CRC16_check_sum(uint8_t *pchMessage, uint32_t dwLength)
   * @retval         none
   */
 /**
-  * @brief          Ìí¼ÓCRC16µ½Êý¾ÝµÄ½áÎ²
-  * @param[in]      pch_message: Êý¾Ý
-  * @param[in]      dw_length: Êý¾ÝºÍÐ£ÑéµÄ³¤¶È
+  * @brief          ï¿½ï¿½ï¿½ï¿½CRC16ï¿½ï¿½ï¿½ï¿½ï¿½ÝµÄ½ï¿½Î²
+  * @param[in]      pch_message: ï¿½ï¿½ï¿½ï¿½
+  * @param[in]      dw_length: ï¿½ï¿½ï¿½Ýºï¿½Ð£ï¿½ï¿½Ä³ï¿½ï¿½ï¿½
   * @retval         none
   */
 void append_CRC16_check_sum(uint8_t * pchMessage,uint32_t dwLength)

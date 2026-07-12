@@ -18,7 +18,6 @@
 #include "main.h"
 #include "cmsis_os.h"
 
-#include "bsp_usart.h"
 #include "detect_task.h"
 
 #include "CRC8_CRC16.h"
@@ -34,9 +33,10 @@
   * @param[in]      void
   * @retval         none
   */
+#if ENABLE_REFREE_UART_PORT
 static void referee_unpack_fifo_data(void);
 
- 
+
 extern UART_HandleTypeDef huart6;
 
 uint8_t usart6_buf[2][USART_RX_BUF_LENGTH];
@@ -44,6 +44,7 @@ uint8_t usart6_buf[2][USART_RX_BUF_LENGTH];
 fifo_s_t referee_fifo;
 uint8_t referee_fifo_buf[REFEREE_FIFO_BUF_LENGTH];
 unpack_data_t referee_unpack_obj;
+#endif
 
 /**
   * @brief          referee task
@@ -52,16 +53,31 @@ unpack_data_t referee_unpack_obj;
   */
 void referee_usart_task(void const * argument)
 {
+#if ENABLE_REFREE_UART_PORT
     init_referee_struct_data();
     fifo_s_init(&referee_fifo, referee_fifo_buf, REFEREE_FIFO_BUF_LENGTH);
+#if (REMOTE_TYPE != REMOTE_USE_VT13)
+    // VT13 owns USART6 (RC_Init configures hdma_usart6_rx for sbus_rx_buf).
+    // Calling usart6_init() here would overwrite M0AR/M1AR and silently break
+    // the VT13 receive path (DMA writes to usart6_buf, RC IRQ reads sbus_rx_buf).
     usart6_init(usart6_buf[0], usart6_buf[1], USART_RX_BUF_LENGTH);
+#endif
 
     while(1)
     {
 
+#if (REMOTE_TYPE != REMOTE_USE_VT13)
         referee_unpack_fifo_data();
+#endif
         osDelay(10);
     }
+#else
+  UNUSED(argument);
+  while(1)
+  {
+    osDelay(1000);
+  }
+#endif
 }
 
 
@@ -70,7 +86,8 @@ void referee_usart_task(void const * argument)
   * @param[in]      void
   * @retval         none
   */
-void referee_unpack_fifo_data(void)
+#if ENABLE_REFREE_UART_PORT && (REMOTE_TYPE != REMOTE_USE_VT13)
+static void referee_unpack_fifo_data(void)
 {
   uint8_t byte = 0;
   uint8_t sof = HEADER_SOF;
@@ -166,10 +183,12 @@ void referee_unpack_fifo_data(void)
     }
   }
 }
+#endif
 
-
+#if (REMOTE_TYPE != REMOTE_USE_VT13)
 void USART6_IRQHandler(void)
 {
+#if ENABLE_REFREE_UART_PORT
     static volatile uint8_t res;
     if(USART6->SR & UART_FLAG_IDLE)
     {
@@ -198,6 +217,10 @@ void USART6_IRQHandler(void)
             detect_hook(REFEREE_TOE);
         }
     }
+#else
+    HAL_UART_IRQHandler(&huart6);
+#endif
 }
+#endif
 
 

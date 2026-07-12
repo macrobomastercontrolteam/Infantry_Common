@@ -22,15 +22,24 @@
 
 #include "stm32f4xx_hal.h"
 #include "global_inc.h"
+#include "gimbal_interface_types.h"
 
 // Warning: redundant safety switch for shoot feature. Turn it on only if you know what you are doing.
-#define ENABLE_SHOOT_REDUNDANT_SWITCH 1
+#define ENABLE_SHOOT_REDUNDANT_SWITCH 0
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
 
 #define MOTOR_MG4010_GEAR_RATIO 10.0f
+#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+// Command is in rotor deg/s (1 LSB = 1 deg/s). The NEO spins on a 0.25 m radius (vs 0.15 m on the
+// omni robots), so a 120 RPM spin needs ~3.14 m/s per wheel = 3.14 * MOTOR_ROTOR_TO_OUTPUT_CONSTANT
+// ~= 22900 rotor deg/s. The old 13500 clamp (tuned for the omni radius) capped the NEO wheels at
+// ~1.85 m/s, which is why it could not reach the target spin speed.
+#define MOTOR_MG4010_MAX_CMD 26000
+#else
 #define MOTOR_MG4010_MAX_CMD 13500
+#endif
 /* CAN send and receive ID */
 typedef enum
 {
@@ -60,6 +69,15 @@ typedef enum
 #if ROBOT_PITCH_IS_4340
   CAN_PITCH_MOTOR_4340_TX_ID = 0x006,
   CAN_PITCH_MOTOR_4340_RX_ID = 0x0FD,
+#elif ROBOT_PITCH_IS_3507
+  CAN_PITCH_MOTOR_3507_TX_ID = 0x006,
+  CAN_PITCH_MOTOR_3507_RX_ID = 0x0FD,
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+  CAN_PITCH_MOTOR_4310_TX_ID = 0x006,
+  CAN_PITCH_MOTOR_4310_RX_ID = 0x0FD,
+
+  CAN_PITCH_BASE_MOTOR_4310_TX_ID = 0x007,
+  CAN_PITCH_BASE_MOTOR_4310_RX_ID = 0x0FC,
 #else
   CAN_PIT_MOTOR_ID = 0x206,
 #endif
@@ -99,7 +117,11 @@ typedef enum
 	MOTOR_INDEX_4010_M4,
 #endif
 	MOTOR_INDEX_YAW,
-	MOTOR_INDEX_PITCH,
+  MOTOR_INDEX_PITCH,
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+  MOTOR_INDEX_PITCH_BASE,
+#endif
+	
 	MOTOR_INDEX_TRIGGER,
   MOTOR_INDEX_FRICTION_LEFT,
   MOTOR_INDEX_FRICTION_RIGHT,
@@ -115,21 +137,16 @@ typedef enum { //also update transmitting end after change
   ALL = 1,
   
   ROBOT_ID,
-  ROBOT_LEVEL,
 
-  CURRENT_HP,
-  MAXIMUM_HP,
+  GAME_INFO,
 
   BARREL_HEAT_LIMIT_AND_BARREL_1_HEAT,
-  BARREL_HEAT_LIMIT,
-  BARREL_1_HEAT,
 
   PROJECTILE_ALLOWANCE_17MM,
   
   CHASSIS_POWER_INFO,
-  CHASSIS_POWER_BUFFER,
-  CHASSIS_POWER_LIMIT,
-
+  
+  CHASSIS_POWERMETER_DATA,
 } request_ref_info_code_t;
 
 
@@ -158,13 +175,13 @@ typedef enum
 #endif
 #if (ROBOT_TYPE == SENTRY_2023_MECANUM)
 	CAN_UPPER_HEAD_TX_ID = 0x110,
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#elif ((ROBOT_TYPE == INFANTRY_2023_SWERVE)||(ROBOT_TYPE == INFANTRY_2026_MECANUM))
 	CAN_STEER_CONTROLLER_TX_ID = 0x112,
 	CAN_CHASSIS_LOAD_SERVO_TX_ID = 0x113,
   // sends target chassis platform params: alpha1, alpha2, center height
-	CAN_SWERVE_CONTROLLERE_TX_ID = 0x114,
+	CAN_CHASSIS_CONTROLLERE_TX_ID = 0x114,
   // receives target derivative of rotational radius of each wheel
-	CAN_SWERVE_RADII_DOT_RX_ID = 0x115,
+	CAN_CHASSIS_RADII_DOT_RX_ID = 0x115,
   // receives current chassis platform params: alpha1, alpha2, center height, rotational radius of each wheels
 	CAN_SHRINKED_CONTROLLER_RX_ID = 0x116,
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
@@ -213,22 +230,24 @@ typedef enum{
 #elif(SUPERCAP_TYPE == MACRM_SUPERCAP)
 typedef struct 
 {
-    uint16_t power_target;
-    uint16_t referee_power;
-    uint16_t rsvd1; //Must be 0x2012
-    uint16_t rsvd2; //Must be 0x0712
-}capcan_rx_t;
+    uint16_t power_limit;     // W * 100
+    uint16_t power_buffer;    // J
+    uint8_t  fNoCharging;
+    uint8_t  rsvd0;
+    uint16_t rsvd1;
+} capcan_rx_t;
 
 
 /*Message come from capacitor module */
 /*Expected message frequency = 100Hz */
 typedef struct
 {
-    uint16_t current_chassis_power;
-    uint16_t current_battery_power;
-    int16_t cap_voltage;
-    uint16_t cap_state;
-}capcan_tx_t;
+    uint16_t current_chassis_power; // W
+    uint16_t current_battery_power; // W
+    uint16_t cap_voltage;           // V, or raw voltage depending on cap firmware
+    uint8_t  cap_state;
+    uint8_t  cap_energy_percent;    // 0-100 %
+} capcan_tx_t;
 
 typedef enum{
     CAP_OFF,
@@ -261,6 +280,7 @@ typedef enum
     MA_9015 = 1,
     DM_4310 = 2,
     DM_4340 = 3,
+    DM_3507 = 4,
     LAST_MIT_CONTROLLED_MOTOR_TYPE,
 } MIT_controlled_motor_type_e;
 
@@ -285,18 +305,16 @@ typedef struct
     uint16_t chassis_power_buffer; 
     uint16_t chassis_power_limit;
     int16_t encoded_chassis_power;
+    fp32 PowerMeter_reading;
+    fp32 PowerMeter_current;
+    fp32 PowerMeter_voltage;
+
+    uint8_t game_started;
+    uint8_t robot_id;
+    uint8_t team_color;
+    uint16_t robot_hp;
+
 } can_ref_info_t;
-
-//typedef struct 
-//{
-//  int8_t temperature;
-//  uint16_t ecd;
-//  fp32 output_angle;
-//  fp32 velocity;
-//  fp32 torque;
-//  fp32 feedback_current;
-//} motor_measure_t;
-
 /**
   * @brief          send control current of motor (0x205, 0x206, 0x207, 0x208)
   * @param[in]      yaw: (0x205) 6020 motor control current, range [-30000,30000] 
@@ -342,6 +360,10 @@ void CAN_cmd_swerve_steer(void);
 void CAN_cmd_swerve_hip(void);
 #endif
 
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+void CAN_cmd_chassis_hip(void);
+#endif
+
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)
 void CAN_cmd_biped_chassis(void);
 void CAN_cmd_biped_chassis_mode(void);
@@ -373,7 +395,6 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
 
 extern motor_measure_t motor_chassis[MOTOR_LIST_LENGTH];
 
-
 #if (SUPERCAP_TYPE == UBC_SUPERCAP)
 void decode_ubc_cap_tx_data(uint8_t *data);
 void decode_macrm_cap_tx_data(uint8_t *data);
@@ -389,10 +410,12 @@ void decode_supercap(uint8_t *data);
 void decode_macrm_cap_tx_data(uint8_t *data);
 extern uint16_t get_current_chassis_power(void);
 extern uint16_t get_current_battery_power(void);
-extern int16_t get_cap_voltage(void);
-extern uint16_t get_cap_state(void);
+extern uint16_t get_cap_voltage(void);
+extern uint8_t get_cap_state(void);
+extern uint8_t get_cap_energy_percent(void);
 void CAN_cmd_supercap(void);
 void decode_supercap(uint8_t *data);
+
 #endif
 
 void decode_power_meter(uint8_t *data);
@@ -412,6 +435,9 @@ extern void send_ui_info(void);
 void decode_ref_info(uint8_t *rx_data);
 extern void CAN_get_heat_limit_and_barrel_1_heat(uint16_t *heat_limit, uint16_t *heat);
 extern void CAN_get_chassis_power_info( fp32 *buffer, fp32 *power_limit);
+#if (ROBOT_PITCH_IS_4310 && (ROBOT_TYPE == INFANTRY_2026_MECANUM))
+extern void CAN_cmd_gimbal_Damiao_motor(MIT_control_motor_t *MIT_control_motor);
+#endif
 #endif
 
 #endif

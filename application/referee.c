@@ -8,6 +8,7 @@
 #include "usart.h"
 #include "detect_task.h"
 #include "shoot.h"
+#include "CAN_receive.h"
 // #include "chassis_task.h"
 
 #define REF_TEST_MODE 1
@@ -263,7 +264,7 @@ void referee_data_solve(uint8_t *frame)
 	}
 }
 
-void get_chassis_power_data(fp32 *buffer, fp32 *power_limit)
+void get_chassis_power_data(fp32 *buffer, fp32 *power_limit)//TODO: update with new proocol and default limit for different robot type
 {
 	*buffer = power_heat_data_t.buffer_energy;
 	if (robot_state.chassis_power_limit > 0)
@@ -285,6 +286,9 @@ uint8_t get_team_color(void)
 {
 	// blue: 0, red: 1
 	uint8_t team_color = 0;
+#if CAN_PASS_REF_INFO
+	return can_ref_info.team_color;
+#else
 	switch (robot_state.robot_id)
 	{
 		case RED_HERO:
@@ -312,6 +316,7 @@ uint8_t get_team_color(void)
 		}
 	}
 	return team_color;
+#endif
 }
 
 void get_remaining_gold_coins(uint16_t *gold_coins)
@@ -343,7 +348,11 @@ void get_shoot_heat1_limit_and_heat(uint16_t *heat_limit, uint16_t *heat1)
 
 uint8_t is_game_started(void)
 {
+#if CAN_PASS_REF_INFO
+	return ((can_ref_info.game_started == 1) && (toe_is_error(REFEREE_TOE) == 0));
+#else
 	return ((game_state.game_progress == 4) && (toe_is_error(REFEREE_TOE) == 0));
+#endif
 }
 
 uint8_t get_time_remain(void)
@@ -353,7 +362,11 @@ uint8_t get_time_remain(void)
 
 uint16_t get_current_HP(void)
 {
+#if CAN_PASS_REF_INFO
+	return can_ref_info.robot_hp;
+#else
 	return robot_state.current_HP;
+#endif
 }
 
 armor_damage_info_t get_armor_hurt(void)

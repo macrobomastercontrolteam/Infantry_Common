@@ -25,9 +25,9 @@
 #include "user_lib.h"
 
 // default values
-#define SPINNING_CHASSIS_MAX_OMEGA RPM_TO_RADS(120.0f)
+#define SPINNING_CHASSIS_MAX_OMEGA RPM_TO_RADS (240.0f)
 #define SPINNING_CHASSIS_HIGH_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.833f)
-#define SPINNING_CHASSIS_MED_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 1.1f)
+#define SPINNING_CHASSIS_MED_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.667f)
 #define SPINNING_CHASSIS_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.583f)
 #define SPINNING_CHASSIS_ULTRA_LOW_OMEGA (SPINNING_CHASSIS_MAX_OMEGA * 0.167f)
 
@@ -35,8 +35,8 @@
 #define CHASSIS_TASK_INIT_TIME 357
 
 #define CHASSIS_ACCEL_WZ_NUM 0.06f
-#define CHASSIS_ACCEL_X_NUM 1.0f
-#define CHASSIS_ACCEL_Y_NUM 1.0f
+#define CHASSIS_ACCEL_X_NUM 3.0f
+#define CHASSIS_ACCEL_Y_NUM 3.0f
 #define CHASSIS_DECEL_X_NUM (CHASSIS_ACCEL_X_NUM * 20.0f) // stop in 1/4 of acceleration time
 #define CHASSIS_DECEL_Y_NUM (CHASSIS_ACCEL_Y_NUM * 20.0f)
 
@@ -66,6 +66,30 @@
 // @TODO: calculate for roll and pitch limits
 #define CHASSIS_ROLL_UPPER_LIMIT (PI / 4.0f)
 #define CHASSIS_PITCH_UPPER_LIMIT (PI / 4.0f)
+
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define CHASSIS_A_LENGTH 0.25f
+#define CHASSIS_HALF_A_LENGTH (CHASSIS_A_LENGTH / 2.0f)
+#define CHASSIS_L1_LENGTH 0.16f
+#define CHASSIS_THETA_LOWER_LIMIT 0.0f
+#define CHASSIS_THETA_UPPER_LIMIT DEG_TO_RAD(68.28f)
+#define CHASSIS_THETA_LOWER_LIMIT_ECD (CHASSIS_THETA_LOWER_LIMIT * MOTOR_RAD_TO_ECD)
+#define CHASSIS_THETA_UPPER_LIMIT_ECD (CHASSIS_THETA_UPPER_LIMIT * MOTOR_RAD_TO_ECD)
+
+// calculated by Matlab offline
+#define CHASSIS_H_LOWER_LIMIT 0.0785f
+#define CHASSIS_H_SPINNING_LOWER_LIMIT 0.0965f // this is used for spinning mode with random chassis height, 0.018m offset is added so the ammo won't stuck under the chassis
+#define CHASSIS_H_UPPER_LIMIT 0.21f
+#define CHASSIS_H_WORKSPACE_PEAK 0.16797f
+#define CHASSIS_ALPHA_WORKSPACE_PEAK (DEG_TO_RAD(16.0f)) //17.5 is obtained from the formula joint_motor_angle = alpha + sin-1((chassis_length+Leg_length)/leg_length*sin(alpha)), so we use 17.5 degree as the alpha value when joint_motor_angle reaches the upper limit 68.28 degree
+#define CHASSIS_H_WORKSPACE_SLOPE1 0.302051f
+#define CHASSIS_H_WORKSPACE_SLOPE2 (-0.231672f)
+// @TODO: calculate for roll and pitch limits
+#define CHASSIS_ROLL_UPPER_LIMIT (PI / 4.0f)
+#define CHASSIS_PITCH_UPPER_LIMIT (PI / 4.0f)
+// Height change rate when folding/unfolding (m/s). Full range in ~1.5s.
+#define CHASSIS_FOLD_HEIGHT_RAMP_RATE ((CHASSIS_H_WORKSPACE_PEAK - CHASSIS_H_LOWER_LIMIT) / 1.5f * CHASSIS_CONTROL_TIME_S)
+
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 #define BIPED_LEG_L0_MIN 0.15f
 #define BIPED_LEG_L0_MAX 0.34f
@@ -76,13 +100,17 @@
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.2788f
 #elif (ROBOT_TYPE == INFANTRY_2024_MECANUM)
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.25010678f
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define MOTOR_DISTANCE_TO_CENTER_DEFAULT (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(CHASSIS_THETA_LOWER_LIMIT))
+#elif (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+#define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.25010678f
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 // angle going from the right direction to front-right leg
 #define CHASSIS_LEG_TO_HORIZONTAL_ANGLE (PI / 4.0f)
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT (CHASSIS_HALF_A_LENGTH + CHASSIS_L1_LENGTH * AHRS_cosf(CHASSIS_THETA_LOWER_LIMIT))
 #elif (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.15f
-#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_OMNI)
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.15f
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 #define MOTOR_DISTANCE_TO_CENTER_DEFAULT 0.235f
@@ -108,7 +136,7 @@
 
 // drive wheel parameters
 #define M3508_MOTOR_GEAR_RATIO (3591.0f / 187.0f)
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO) || (ROBOT_TYPE == INFANTRY_2026_OMNI)
 #define DRIVE_WHEEL_RADIUS 0.0785f
 #elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 #define DRIVE_WHEEL_RADIUS 0.055f
@@ -117,7 +145,8 @@
 #endif
 // Ratio of M3508 speed in rpm to chassis speed in m/s
 #if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
-#define MG4010_MOTOR_RPM_TO_VECTOR ((2.0f * PI / 60.0f) * DRIVE_WHEEL_RADIUS / MOTOR_MG4010_GEAR_RATIO)
+
+#define MG4010_MOTOR_RPM_TO_VECTOR ((2.0f * PI / 60.0f) * DRIVE_WHEEL_RADIUS)
 #define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN MG4010_MOTOR_RPM_TO_VECTOR
 #define MOTOR_ROTOR_TO_OUTPUT_CONSTANT  (1.0f / (2.0f * PI * DRIVE_WHEEL_RADIUS) * 360 * MOTOR_MG4010_GEAR_RATIO)
 #elif (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
@@ -130,7 +159,12 @@
 #endif
 
 // single chassis motor max speed
+#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+
+#define MAX_WHEEL_SPEED 5.5f
+#else
 #define MAX_WHEEL_SPEED 3.0f
+#endif
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)
 // chassis forward or back max speed
 #define NORMAL_MAX_CHASSIS_SPEED_X 2.475f
@@ -138,21 +172,32 @@
 // chassis left or right max speed
 #define NORMAL_MAX_CHASSIS_SPEED_Y NORMAL_MAX_CHASSIS_SPEED_X
 #define SPRINT_MAX_CHASSIS_SPEED_Y SPRINT_MAX_CHASSIS_SPEED_X
+#elif(ROBOT_TYPE == HERO_2025_MECANUM)
+// chassis forward or back max speed
+#define NORMAL_MAX_CHASSIS_SPEED_X 5.5f 
+#define SPRINT_MAX_CHASSIS_SPEED_X 6.5f
+#define LOW_POWER_MAX_CHASSIS_SPEED_X 0.25f 
+// chassis left or right max speed
+#define NORMAL_MAX_CHASSIS_SPEED_Y 3.5f
+#define SPRINT_MAX_CHASSIS_SPEED_Y 4.5f
+#define LOW_POWER_MAX_CHASSIS_SPEED_Y 0.1f 
 #else
 // chassis forward or back max speed
-#define NORMAL_MAX_CHASSIS_SPEED_X 3.5f
-#define SPRINT_MAX_CHASSIS_SPEED_X 3.5f
+#define NORMAL_MAX_CHASSIS_SPEED_X 5.5f //Forward/Backward Direction
+#define SPRINT_MAX_CHASSIS_SPEED_X 6.5f
+#define LOW_POWER_MAX_CHASSIS_SPEED_X 0.25f 
 // chassis left or right max speed
-#define NORMAL_MAX_CHASSIS_SPEED_Y 5.0f
-#define SPRINT_MAX_CHASSIS_SPEED_Y 5.0f
+#define NORMAL_MAX_CHASSIS_SPEED_Y 4.5f //Sideway
+#define SPRINT_MAX_CHASSIS_SPEED_Y 5.5f
+#define LOW_POWER_MAX_CHASSIS_SPEED_Y 0.1f 
 #endif
 #define NORMAL_TO_SPRINT_MAX_CHASSIS_SPEED_RATIO 1.5f
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
+#if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)) //TODO:check ratio for Inf_2026
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
-#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_OMNI)
 // Omni wheel kinematics conversion factors
 // Adjust these values based on your specific omni wheel configuration and chassis dimensions
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
@@ -196,11 +241,11 @@
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
 #define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
-#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
-#define MG4010_MOTOR_SPEED_PID_KP 0.8f
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_OMNI)
+#define MG4010_MOTOR_SPEED_PID_KP 1.0f
 #define MG4010_MOTOR_SPEED_PID_KI 0.0f
 #define MG4010_MOTOR_SPEED_PID_KD 0.0f
-#define MG4010_MOTOR_SPEED_PID_MAX_OUT 2.0f
+#define MG4010_MOTOR_SPEED_PID_MAX_OUT 3.0f
 #define MG4010_MOTOR_SPEED_PID_MAX_IOUT 0.2f
 #elif (ROBOT_TYPE == INFANTRY_2023_MECANUM)
 #define M3508_MOTOR_SPEED_PID_KP 30000.0f
@@ -208,11 +253,17 @@
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
 #define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
+#elif (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+#define MG4010_MOTOR_SPEED_PID_KP 1.0f
+#define MG4010_MOTOR_SPEED_PID_KI 0.0f
+#define MG4010_MOTOR_SPEED_PID_KD 0.0f
+#define MG4010_MOTOR_SPEED_PID_MAX_OUT 3.0f
+#define MG4010_MOTOR_SPEED_PID_MAX_IOUT 0.2f
 #else
 // @TODO: tune pid for other robots
 // @TODO: fix drift in spinning mode when power is limited
-#define M3508_MOTOR_SPEED_PID_KP 25000.0f
-#define M3508_MOTOR_SPEED_PID_KI 1000.0f
+#define M3508_MOTOR_SPEED_PID_KP 21000.0f
+#define M3508_MOTOR_SPEED_PID_KI 0.0f
 #define M3508_MOTOR_SPEED_PID_KD 0.0f
 #define M3508_MOTOR_SPEED_PID_MAX_OUT MAX_3508_MOTOR_CAN_CURRENT
 #define M3508_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
@@ -238,18 +289,26 @@ typedef struct
 	fp32 accel;
 	fp32 speed;
 	fp32 speed_set;
-	int16_t give_chassis_motor_cmd; // control current command for chassis M3508 motor deg/s*(gear ratio) for MG4010
+	int16_t give_chassis_motor_cmd; // control current command for chassis M3508 motor deg/s*(gear ratio) for MG4010 //in DJI motor CAN current, 16384 => 10 A 
 } chassis_motor_t;
 
-#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)
 typedef struct
 {
 	fp32 target_roll;
 	fp32 target_pitch;
 	fp32 target_height;
 
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	fp32 target_alpha;
+	fp32 chassis_hip_kp;
+#define HIP_MIT_PROFILE_KP 35.0f
+#define HIP_MIT_PROFILE_KP_MIN 10.0f
+#define HIP_MIT_PROFILE_KP_MAX 75.0f
+#else
 	fp32 target_alpha1;
 	fp32 target_alpha2;
+#endif
 
 	fp32 alpha_lower_limit;
 	fp32 alpha_upper_limit;
@@ -318,6 +377,16 @@ typedef struct
 	chassis_platform_t chassis_platform;
 	uint8_t fHipEnabled;
 	uint8_t fHipDisabledEdge;
+
+#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	fp32 wheel_rot_radii[4];
+	chassis_motor_t motor_chassis[4];          // chassis motor data
+	pid_type_def motor_speed_pid[4];           // motor speed PID
+
+	fp32 target_wheel_rot_radii_dot[4];
+	chassis_platform_t chassis_platform;
+	uint8_t fHipEnabled;
+	uint8_t fHipDisabledEdge;
 #elif (ROBOT_TYPE == INFANTRY_2024_BIPED)
 	fp32 wheel_rot_radii[2];
 	chassis_platform_t chassis_platform;
@@ -352,6 +421,9 @@ typedef struct
 	fp32 chassis_roll;  // the roll angle calculated by gyro sensor and gimbal motor
 
 	uint8_t fRandomSpinOn;
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+	uint8_t fRandomHeightOn;
+#endif
 	int16_t dial_channel_latched;
 	int16_t dial_channel_out;
 
@@ -381,10 +453,20 @@ fp32 chassis_get_med_wz_limit(void);
 fp32 chassis_get_low_wz_limit(void);
 fp32 chassis_get_ultra_low_wz_limit(void);
 
+void get_chassis_vel_in_gimbal_frame(fp32 *vx, fp32 *vy);
+
+fp32 calc_wz_max_speed(fp32 vx_speed_limit, fp32 vy_speed_limit, fp32 wz_scaling_factor);
+
 #if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
 void swerve_platform_rc_mapping(void);
 void swerve_chassis_back_home(void);
 void swerve_chassis_params_reset(void);
+#endif
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+void chassis_platform_rc_mapping(void);
+void chassis_chassis_back_home(void);
+void chassis_chassis_params_reset(void);
 #endif
 
 #if (ROBOT_TYPE == INFANTRY_2024_BIPED)

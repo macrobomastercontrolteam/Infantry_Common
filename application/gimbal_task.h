@@ -28,13 +28,14 @@
 #include "pid.h"
 #include "remote_control.h"
 #include "user_lib.h"
+#include "gimbal_interface_types.h"
 
 #define GIMBAL_CONTROL_TIME_MS 4.0f
 #define GIMBAL_CONTROL_TIME_S (GIMBAL_CONTROL_TIME_MS / 1000.0f)
 
 #define GIMBAL_TEST_MODE 0
 
-#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == SENTRY_2026_OMNI)
+#if (ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM)
 #define PITCH_REVERSED  1
 #else
 #define PITCH_REVERSED  0
@@ -80,14 +81,8 @@
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  0.0f
 
-#elif (ROBOT_TYPE == INFANTRY_2024_MECANUM)
+#elif (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2026_MECANUM)  //TODO: check PID for Inf_2026
 
-//pitch speed close-loop PID params, max out and max iout
-#define PITCH_SPEED_PID_KP        12500.0f
-#define PITCH_SPEED_PID_KI        10000.0f
-#define PITCH_SPEED_PID_KD        0.0f
-#define PITCH_SPEED_PID_MAX_OUT   30000.0f
-#define PITCH_SPEED_PID_MAX_IOUT  10000.0f
 
 #if ROBOT_YAW_IS_4310
 #define YAW_SPEED_PID_KP        0.7f
@@ -98,6 +93,27 @@
 #else
 #error "6020 yaw pid not defined for this robot type"
 #endif
+//TODO check 4310 PID
+#if ROBOT_PITCH_IS_4310
+#define PITCH_SPEED_PID_KP        0.7f
+#define PITCH_SPEED_PID_KI        0.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   6.5f
+#define PITCH_SPEED_PID_MAX_IOUT  0.0f
+
+#define PITCH_ANGLE_PID_KP 30.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.0f
+#define PITCH_ANGLE_PID_MAX_OUT 35.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 2.33f
+
+#else
+//pitch speed close-loop PID params, max out and max iout
+#define PITCH_SPEED_PID_KP        12500.0f
+#define PITCH_SPEED_PID_KI        10000.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   30000.0f
+#define PITCH_SPEED_PID_MAX_IOUT  10000.0f
 
 //pitch gyro angle close-loop PID params, max out and max iout
 #define PITCH_ANGLE_PID_KP 30.0f
@@ -105,7 +121,7 @@
 #define PITCH_ANGLE_PID_KD 0.0f
 #define PITCH_ANGLE_PID_MAX_OUT 10.0f
 #define PITCH_ANGLE_PID_MAX_IOUT 10.0f
-
+#endif
 //yaw gyro angle close-loop PID params, max out and max iout
 #define YAW_ANGLE_PID_KP        25.0f
 #define YAW_ANGLE_PID_KI        0.0f
@@ -151,14 +167,34 @@
 #define YAW_ANGLE_PID_MAX_OUT   10.0f
 #define YAW_ANGLE_PID_MAX_IOUT  10.0f
 
-#elif (ROBOT_TYPE == SENTRY_2026_OMNI)
+#elif (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
 
 //pitch speed close-loop PID params, max out and max iout
+#if ROBOT_PITCH_IS_3507
+#define PITCH_SPEED_PID_KP        1.0f
+#define PITCH_SPEED_PID_KI        0.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   9.5f
+#define PITCH_SPEED_PID_MAX_IOUT  9.5f
+
+#define PITCH_ANGLE_PID_KP 25.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.05f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
+#else
 #define PITCH_SPEED_PID_KP        15000.0f
 #define PITCH_SPEED_PID_KI        15000.0f
 #define PITCH_SPEED_PID_KD        0.0f
 #define PITCH_SPEED_PID_MAX_OUT   30000.0f
 #define PITCH_SPEED_PID_MAX_IOUT  10000.0f
+
+//pitch gyro angle close-loop PID params, max out and max iout
+#define PITCH_ANGLE_PID_KP 30.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.0f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#endif
 
 #if (ROBOT_YAW_IS_4310 == 0)
 //yaw speed close-loop PID params, max out and max iout
@@ -170,12 +206,41 @@
 #else
 #define YAW_SPEED_PID_KP        0.8f
 #define YAW_SPEED_PID_KI        1.0f
-#define YAW_SPEED_PID_KD        0.05f
+#define YAW_SPEED_PID_KD        0.0f
 #define YAW_SPEED_PID_MAX_OUT   6.5f
 #define YAW_SPEED_PID_MAX_IOUT  2.33f
-
-
 #endif
+
+
+
+//yaw gyro angle close-loop PID params, max out and max iout
+#define YAW_ANGLE_PID_KP        25.0f
+#define YAW_ANGLE_PID_KI        0.0f
+#define YAW_ANGLE_PID_KD        0.0f
+#define YAW_ANGLE_PID_MAX_OUT   10.0f
+#define YAW_ANGLE_PID_MAX_IOUT  10.0f
+
+#elif (ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_OMNI)
+
+#if ROBOT_PITCH_IS_3507
+#define PITCH_SPEED_PID_KP        1.0f
+#define PITCH_SPEED_PID_KI        0.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   9.5f
+#define PITCH_SPEED_PID_MAX_IOUT  9.5f
+
+#define PITCH_ANGLE_PID_KP 20.0f
+#define PITCH_ANGLE_PID_KI 0.0f
+#define PITCH_ANGLE_PID_KD 0.05f
+#define PITCH_ANGLE_PID_MAX_OUT 10.0f
+#define PITCH_ANGLE_PID_MAX_IOUT 10.0f
+#else
+//pitch speed close-loop PID params, max out and max iout
+#define PITCH_SPEED_PID_KP        15000.0f
+#define PITCH_SPEED_PID_KI        15000.0f
+#define PITCH_SPEED_PID_KD        0.0f
+#define PITCH_SPEED_PID_MAX_OUT   30000.0f
+#define PITCH_SPEED_PID_MAX_IOUT  10000.0f
 
 //pitch gyro angle close-loop PID params, max out and max iout
 #define PITCH_ANGLE_PID_KP 25.0f
@@ -183,6 +248,26 @@
 #define PITCH_ANGLE_PID_KD 0.5f
 #define PITCH_ANGLE_PID_MAX_OUT 10.0f
 #define PITCH_ANGLE_PID_MAX_IOUT 10.0f
+#endif
+
+#if (ROBOT_YAW_IS_4310 == 0)
+//yaw speed close-loop PID params, max out and max iout
+#define YAW_SPEED_PID_KP        20000.0f
+#define YAW_SPEED_PID_KI        20000.0f
+#define YAW_SPEED_PID_KD        0.0f
+#define YAW_SPEED_PID_MAX_OUT   30000.0f
+#define YAW_SPEED_PID_MAX_IOUT  10000.0f
+#else
+#define YAW_SPEED_PID_KP        0.8f
+#define YAW_SPEED_PID_KI        0.0f
+#define YAW_SPEED_PID_KD        0.05f
+#define YAW_SPEED_PID_MAX_OUT   6.5f
+#define YAW_SPEED_PID_MAX_IOUT  2.33f
+
+
+#endif
+
+
 
 //yaw gyro angle close-loop PID params, max out and max iout
 #define YAW_ANGLE_PID_KP        25.0f
@@ -346,6 +431,12 @@
 #define PITCH_CAMERA_SPEED_PID_KD 0.0f
 #define PITCH_CAMERA_SPEED_PID_MAX_OUT 9.5f
 #define PITCH_CAMERA_SPEED_PID_MAX_IOUT 9.5f
+#elif ROBOT_PITCH_IS_3507
+#define PITCH_CAMERA_SPEED_PID_KP 1.0f
+#define PITCH_CAMERA_SPEED_PID_KI 0.0f
+#define PITCH_CAMERA_SPEED_PID_KD 0.0f
+#define PITCH_CAMERA_SPEED_PID_MAX_OUT 9.5f
+#define PITCH_CAMERA_SPEED_PID_MAX_IOUT 9.5f
 #else
 #define PITCH_CAMERA_SPEED_PID_KP 15000.0f
 #define PITCH_CAMERA_SPEED_PID_KI 15000.0f
@@ -356,7 +447,7 @@
 
 #if ROBOT_YAW_IS_4310
 #define YAW_CAMERA_SPEED_PID_KP        0.7f
-#define YAW_CAMERA_SPEED_PID_KI        1.0f
+#define YAW_CAMERA_SPEED_PID_KI        0.0f
 #define YAW_CAMERA_SPEED_PID_KD        0.0f
 #define YAW_CAMERA_SPEED_PID_MAX_OUT   7.0f
 #define YAW_CAMERA_SPEED_PID_MAX_IOUT  2.33f
@@ -367,7 +458,7 @@
 #define YAW_CAMERA_SPEED_PID_MAX_OUT 30000.0f
 #define YAW_CAMERA_SPEED_PID_MAX_IOUT 10000.0f
 #endif
-
+//TODO: finish modifing pitch relative angle control PID!!!!!!
 #define PITCH_CAMERA_ANGLE_PID_KP 25.0f
 #define PITCH_CAMERA_ANGLE_PID_KI 0.0f
 #define PITCH_CAMERA_ANGLE_PID_KD 0.0f
@@ -397,7 +488,7 @@
 
 #define PITCH_MOTOR_CURRENT_LIMIT  30000
 // @TODO: tune PITCH_4310_MOTOR_LIMIT
-#define PITCH_4310_MOTOR_TORQUE_LIMIT 7.0f
+#define PITCH_4310_MOTOR_TORQUE_LIMIT 5.0f
 // @TODO: tune YAW_4310_MOTOR_TORQUE_LIMIT
 #define YAW_4310_MOTOR_TORQUE_LIMIT  7.0f
 #define YAW_6020_MOTOR_CURRENT_LIMIT  30000
@@ -457,6 +548,21 @@
 #define YAW_RC_CV_SEN_INC (PI / 100.0f)
 #define PITCH_RC_CV_SEN_INC (3.0f * PI / 500.0f)
 
+// CV aim error PID: outer loop converting normalized error [-1,1] -> angle increment (rad/tick)
+// Kp is initialised to match the previous proportional gain.
+// Increase Kd to damp overshoot; add small Ki only if steady-state offset is observed.
+#define CV_AIM_YAW_PID_KP       (YAW_RC_CV_SEN_INC)
+#define CV_AIM_YAW_PID_KI       0.0f
+#define CV_AIM_YAW_PID_KD       0.0f
+#define CV_AIM_YAW_PID_MAX_OUT  (YAW_RC_CV_SEN_INC * 3.0f)
+#define CV_AIM_YAW_PID_MAX_IOUT 0.0f
+
+#define CV_AIM_PITCH_PID_KP       (PITCH_RC_CV_SEN_INC)
+#define CV_AIM_PITCH_PID_KI       0.0f
+#define CV_AIM_PITCH_PID_KD       0.0f
+#define CV_AIM_PITCH_PID_MAX_OUT  (PITCH_RC_CV_SEN_INC * 3.0f)
+#define CV_AIM_PITCH_PID_MAX_IOUT 0.0f
+
 #define PITCH_RC_CHANGE_TIME_S 0.35f
 #define PITCH_RC_SEN_INC -(PI / 4.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / JOYSTICK_HALF_RANGE)
 #define PITCH_RC_MOUSE_SEN_INC (PI / 4.0f / PITCH_RC_CHANGE_TIME_S * GIMBAL_CONTROL_TIME_S / MOUSE_Y_EFFECTIVE_SPEED)
@@ -471,7 +577,12 @@
 #define INIT_YAW_SET    0.0f
 #define INIT_PITCH_SET  0.0f
 
+#if (ROBOT_PITCH_IS_4310 && (ROBOT_TYPE == INFANTRY_2026_MECANUM))
+//torque control mode cali output TODO: check if also work for hero bot
+#define GIMBAL_CALI_MOTOR_SET   0.25f 
+#else
 #define GIMBAL_CALI_MOTOR_SET   6000
+#endif
 #define GIMBAL_CALI_STEP_TIME   2000
 #define GIMBAL_CALI_GYRO_LIMIT  0.1f
 
@@ -490,11 +601,37 @@
 #define GIMBAL_MOTIONLESS_RC_DEADLINE 10
 #define GIMBAL_MOTIONLESS_TIME_MAX    3000
 
+//MIT angle mode control param //TODO:reconfigure the fold and unfold angle to set 0 pos at zero force state
+#define PITCH_KP       9.5f
+#define PITCH_KD       0.5f //must be larger than 0 when using MIT angle control
+#define PITCH_UNFOLD_POS   0.0f
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+#define PITCH_BASE_HALF_FOLD_POS   -0.5f
+#define PITCH_BASE_FOLD_POS   -1.0f
+#define PITCH_BASE_FULLY_FOLD_POS   -1.2f
+#define PITCH_BASE_UNFOLD_POS   0.25f
+#define PITCH_FOLD_UP_BIAS -0.05f
+#define PITCH_BASE_KP  20.5f
+#define PITCH_BASE_KD  1.0f //must be larger than 0 when using MIT angle control
+
+#endif
+
+#define FOLD_STEP_HOLD_MS 300
+#define FOLD_POS_TOL      0.05f //position bias tolerance, 0.05rad
+#define FOLD_POS_FILTER_COEFF 0.08f
+#define FOLD_BASE_POS_MAX_STEP 0.00446f
+#define FOLD_PITCH_POS_MAX_STEP 0.00380f
+#define GIMBAL_FOLD_ZERO_FORCE_DEADBAND DEG_TO_RAD(10.0f)
+
+
 typedef enum
 {
-    GIMBAL_MOTOR_RAW = 0,
+    GIMBAL_MOTOR_ZERO_FORCE = 0,
+    GIMBAL_MOTOR_RAW,
     GIMBAL_MOTOR_GYRO,
     GIMBAL_MOTOR_ENCODER,
+    GIMBAL_MOTOR_MIT_ANGLE,
     GIMBAL_MOTOR_CAMERA,  //GIMBAL_MOTOR_GYRO but with target angle adjusted by computer vision input (enemy angle within camera frame)
 } gimbal_motor_mode_e;
 
@@ -542,12 +679,36 @@ typedef struct
 
 typedef struct
 {
+    uint8_t gimbal_fold_in_progress;
+    
+    //=1 for folded/centered
+    uint8_t current;
+    uint8_t target;
+    uint8_t gimbal_centered;
+
+    uint8_t gimbal_fold_control_cmd; //1 for unfold, 2 for fold
+    uint8_t gimbal_folding_step; //0:pre-rotate pitch, 1:fold to half, 2:fold to mid, 3:fold to end
+    
+}gimbal_folding_status_t; //control flags for foldable gimbal 
+
+typedef enum {
+  FOLDED = 1,
+  UNFOLDED = 0,
+} folding_status;
+
+typedef struct
+{
     const RC_ctrl_t *gimbal_rc_ctrl;
     const fp32 *gimbal_INT_angle_point;
     const fp32 *gimbal_INT_gyro_point;
     gimbal_motor_t gimbal_yaw_motor;
     gimbal_motor_t gimbal_pitch_motor;
+    gimbal_motor_t gimbal_pitch_base_motor;
     gimbal_step_cali_t gimbal_cali;
+    MIT_control_motor_t MIT_control_motor;
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    gimbal_folding_status_t gimbal_folding_status;
+#endif
 } gimbal_control_t;
 
 /**
@@ -601,8 +762,21 @@ extern fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 
 extern bool_t gimbal_emergency_stop(void);
 
-extern fp32 get_gimbal_relative_yaw_angle(void);
-extern fp32 get_gimbal_relative_pitch_angle(void);
+extern fp32 get_gimbal_absolute_pitch_angle(void);
 extern fp32 get_gimbal_ecd_yaw_angle(void);
 extern fp32 get_gimbal_ecd_pitch_angle(void);
+extern fp32 get_gimbal_absolute_yaw_angle(void);
+extern fp32 get_gimbal_pitch_rate(void);
+extern fp32 get_gimbal_yaw_rate(void);
+
+void MIT_motor_set_torq(gimbal_control_t *control_loop);
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+void foldable_pitch_control(gimbal_control_t *gimbal_control_set);
+#endif
+
+void MIT_control_motor_init(MIT_control_motor_t *motor);
+void MIT_motor_angle_control_config(MIT_control_motor_t *motor);
+void MIT_motor_torque_control_config(MIT_control_motor_t *motor);
+
 #endif
