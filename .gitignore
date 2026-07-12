@@ -58,3 +58,6 @@ dkms.conf
 MDK-ARM/standard_tpye_c/**
 MDK-ARM/JLinkLog.txt
 MDK-ARM/EventRecorderStub.scvd
+
+# Ignore GCC Makefile build output
+build/
