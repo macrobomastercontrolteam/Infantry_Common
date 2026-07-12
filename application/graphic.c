@@ -403,7 +403,7 @@ void char_draw(string_data *image, char figure_name[3], uint32_t graph_operate, 
 {
 	int i;
 
-	for (i = 0; i < 3 && figure_name[i] != NULL; i++)
+	for (i = 0; i < 3 && figure_name[i] != '\0'; i++)
 		image->graph_control.figure_name[2 - i] = figure_name[i];
 
 	// memset(image->show_data, 0, 30);
@@ -429,7 +429,7 @@ void float_draw(string_data *image, char figure_name[3], uint32_t graph_operate,
 	char float_string[30]; // Buffer to hold the float as a string
 
 	// Convert float to string with specified precision
-	snprintf(float_string, sizeof(float_string), "%.*f", graph_digit, graph_float);
+	snprintf(float_string, sizeof(float_string), "%.*f", (int)graph_digit, graph_float);
 
 	// Copy figure_name to image->graph_control.figure_name
 	for (i = 0; i < 3 && figure_name[i] != '\0'; i++)

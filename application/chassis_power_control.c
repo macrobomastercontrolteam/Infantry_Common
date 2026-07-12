@@ -68,6 +68,7 @@ fp32 chassis_power_limit;
 fp32 chassis_power;
 fp32 chassis_power_buffer;
 
+#if CHASSIS_POWER_CONTROL
 // module-private instances
 static motor_power_t chassis_motor_power[NUM_DRIVE_MOTORS];
 static chassis_power_manager_t chassis_power_manager;
@@ -583,6 +584,7 @@ void chassis_power_control(void)
     }
 
 }
+#endif // CHASSIS_POWER_CONTROL
 
 bool_t chassis_power_control_mode_change(uint8_t fIsKeyPressed)
 {

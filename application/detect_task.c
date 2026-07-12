@@ -128,7 +128,7 @@ void detect_task(void const *pvParameters)
             {
                 error_list[i].is_lost = 0;
                 //judge if exist data error
-                if (error_list[i].data_is_error != NULL)
+                if (error_list[i].data_is_error)
                 {
                     error_list[i].error_exist = 1;
                 }
