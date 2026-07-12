@@ -133,6 +133,7 @@ typedef enum
 } cali_id_e;
 
 
+#pragma pack(push, 1)
 typedef __packed struct
 {
     uint8_t name[3];                                    //device name
@@ -168,6 +169,7 @@ typedef struct
     fp32 offset[3]; //x,y,z
     fp32 scale[3];  //x,y,z
 } imu_cali_t;
+#pragma pack(pop)
 
 
 /**

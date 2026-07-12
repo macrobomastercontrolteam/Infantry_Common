@@ -44,6 +44,8 @@ typedef enum
 	ARMOR_NONE,
 } armor_damage_info_t;
 
+#pragma pack(push, 1)
+
 typedef __packed struct // 0001
 {
 	uint8_t game_type : 4;
@@ -390,6 +392,8 @@ extern uint16_t get_barrel_1_heat(void);
 extern uint16_t get_barrel_2_heat(void);
 extern uint16_t get_chassis_power_buffer(void);
 extern uint16_t get_chassis_power_limit(void);
+extern uint8_t get_launching_frequency(uint8_t shooter_index);
+extern fp32 get_bullet_init_speed(uint8_t shooter_index);
 
 
 uint8_t is_game_started(void);
@@ -399,4 +403,7 @@ armor_damage_info_t get_armor_hurt(void);
 
 extern ext_game_robot_state_t robot_state;
 extern ext_robot_hurt_t robot_hurt_t;
+
+#pragma pack(pop)
+
 #endif

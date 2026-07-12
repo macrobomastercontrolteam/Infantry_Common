@@ -1,13 +1,6 @@
 #ifndef _GLOBAL_INC_H
 #define _GLOBAL_INC_H
 
-#define INFANTRY_2023_MECANUM 0
-#define INFANTRY_2024_MECANUM 1
-#define INFANTRY_2023_SWERVE 2
-#define INFANTRY_2024_BIPED 3
-#define SENTRY_2023_MECANUM 4
-#define HERO_2025_MECANUM 5
-
 #define LAUNCHER_17MM 0
 #define LAUNCHER_42MM 1
 
@@ -26,73 +19,10 @@
 /********************* Only Modify this area (end) *********************/
 
 
+/* Use the toolchain's fixed-width integer types. Defining them by hand here
+   conflicts with <stdint.h> under GCC (arm-none-eabi). */
+#include <stdint.h>
 
-#define ROBOT_TYPE INFANTRY_2024_MECANUM ///do not change for lower board       TODO:
-#define CV_INTERFACE 1
-#define DEBUG_CV_WITH_USB 0
-#define DEBUG_CV 0
-#define ENABLE_LASER 1
-#define USE_SERVO_TO_STIR_AMMO 0
-#define ENABLE_HIGHER_BAUD_RATE_FOR_CV 0
-//***************** */
-
-#if ((ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM))
-#define CAN_PASS_REF_INFO 1
-
-#else
-#define CAN_PASS_REF_INFO 0
-#endif
-
-#if ((ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM))
-// Yaw use DaMiao 4310
-#define ROBOT_YAW_IS_4310 1
-#else
-#define ROBOT_YAW_IS_4310 0
-#endif
-
-#if (ROBOT_TYPE == HERO_2025_MECANUM)
-// Pitch use DaMiao 4310
-#define ROBOT_PITCH_IS_4340 1
-#else
-#define ROBOT_PITCH_IS_4340 0
-#endif
-
-
-
-#if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_BIPED) || (ROBOT_TYPE == HERO_2025_MECANUM))
-#define ROBOT_YAW_HAS_SLIP_RING 1
-#else
-#define ROBOT_YAW_HAS_SLIP_RING 0
-#endif
-
-#if ((ROBOT_TYPE == INFANTRY_2023_MECANUM) || (ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == SENTRY_2023_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM))
-#define ROBOT_CHASSIS_USE_MECANUM 1
-#else
-#define ROBOT_CHASSIS_USE_MECANUM 0
-#endif
-
-#if DEBUG_CV_WITH_USB && !CV_INTERFACE
-#error "DEBUG_CV_WITH_USB is only for CV_INTERFACE"
-#endif
-
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM) && !CV_INTERFACE
-#error "SENTRY_2023_MECANUM should use CV_INTERFACE for competition"
-#endif
-
-#if (ROBOT_TYPE != INFANTRY_2023_SWERVE) && USE_SERVO_TO_STIR_AMMO
-#error "Only INFANTRY_2023_SWERVE supports USE_SERVO_TO_STIR_AMMO"
-#endif
-
-typedef signed char int8_t;
-typedef signed short int int16_t;
-typedef signed int int32_t;
-typedef signed long long int64_t;
-
-/* exact-width unsigned integer types */
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
 typedef unsigned char bool_t;
 typedef float fp32;
 typedef double fp64;

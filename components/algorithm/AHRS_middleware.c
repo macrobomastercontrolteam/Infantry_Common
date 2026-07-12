@@ -5,7 +5,7 @@
   * @note
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. Íê³É
+  *  V1.0.0     Dec-26-2018     RM              1. ï¿½ï¿½ï¿½
   *
   @verbatim
   ==============================================================================
@@ -62,7 +62,7 @@ fp32 AHRS_sinf(fp32 angle)
     }
     else
     {
-        return arm_sin_f32(angle);
+        return sinf(angle);
     }
 }
 
@@ -74,7 +74,7 @@ fp32 AHRS_cosf(fp32 angle)
     }
     else
     {
-        return arm_cos_f32(angle);
+        return cosf(angle);
     }
 }
 

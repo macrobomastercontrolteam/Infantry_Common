@@ -18,16 +18,11 @@
   */
 #include "custom_ui_task.h"
 #include "AHRS_middleware.h"
-#include "chassis_behaviour.h"
-#include "chassis_power_control.h"
-#include "chassis_task.h"
+#include "CAN_receive.h"
 #include "cmsis_os.h"
-#include "gimbal_behaviour.h"
-#include "gimbal_task.h"
 #include "global_inc.h"
 #include "graphic.h"
 #include "referee.h"
-#include "shoot.h"
 #include <stdio.h>
 
 #define CUSTOM_UI_TIME_MS 10.0f
@@ -88,7 +83,9 @@ char number_str[5];
 
 void ui_variale_init(void);
 void static_elements_init(void);
+#if (SUPERCAP_TYPE == SJTU_SUPERCAP)
 void super_cap_status_draw(void);
+#endif
 void chassis_direction_draw(float yaw_relative_angle);
 void gimbal_pitch_direction_draw(float pitch_relative_angle);
 void armor_damage_draw(float yaw_relative_angle);
@@ -285,6 +282,7 @@ void armor_damage_draw(float yaw_relative_angle)
 	}
 }
 
+#if (SUPERCAP_TYPE == SJTU_SUPERCAP)
 void super_cap_status_draw(void)
 {
 	if (cap_message_rx.cap_message.cap_milivoltage >= (SUPCAP_VOLTAGE_LOWER_USE_THRESHOLD * 1000.0f))
@@ -307,6 +305,7 @@ void super_cap_status_draw(void)
 	}
 	update_char(&cap_power_data);
 }
+#endif
 
 void trigger_motor_state_draw(float trigger_rpm)
 {

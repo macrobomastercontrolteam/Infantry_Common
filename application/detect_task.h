@@ -82,6 +82,7 @@ typedef enum
   TOE_STATUS_OFFLINE = 1,
 } toe_status_e;
 
+#pragma pack(push, 1)
 typedef __packed struct
 {
     uint32_t new_time;
@@ -101,6 +102,7 @@ typedef __packed struct
     void (*solve_lost_fun)(void);
     void (*solve_data_error_fun)(void);
 } error_t;
+#pragma pack(pop)
 
 
 /**

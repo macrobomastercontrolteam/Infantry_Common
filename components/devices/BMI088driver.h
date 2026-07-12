@@ -46,6 +46,7 @@
 #define BMI088_GYRO_125_SEN     0.000066579027251980956150958662738366f
 
 
+#pragma pack(push, 1)
 typedef __packed struct BMI088_RAW_DATA
 {
     uint8_t status;
@@ -53,6 +54,7 @@ typedef __packed struct BMI088_RAW_DATA
     int16_t temp;
     int16_t gyro[3];
 } bmi088_raw_data_t;
+#pragma pack(pop)
 
 typedef struct BMI088_REAL_DATA
 {

@@ -2,14 +2,9 @@
 #define _BUZZER_TASK_H
 
 #include "AHRS_middleware.h"
-#include "chassis_behaviour.h"
-#include "chassis_power_control.h"
 #include "cmsis_os.h"
-#include "gimbal_behaviour.h"
-#include "gimbal_task.h"
 #include "global_inc.h"
 #include "referee.h"
-#include "shoot.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>

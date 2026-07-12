@@ -28,7 +28,6 @@
 #include "string.h"
 
 #include "detect_task.h"
-#include "cv_usart_task.h"
 
 //remote control error limit
 #define RC_CHANNAL_ERROR_VALUE 700
@@ -257,10 +256,6 @@ static void sbus_to_rc(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl)
 			bConsecutiveAbnormalityCount[i] = 0;
 		}
 	}
-
-#if CV_INTERFACE
-    CvCmder_DetectAutoAimSwitchEdge((rc_ctrl->key.v & AUTO_AIM_TOGGLE_KEYBOARD) != 0);
-#endif
 }
 
 // // We don't use this feature. USART1 is used to communicate with CV instead.

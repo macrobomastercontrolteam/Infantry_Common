@@ -95,6 +95,8 @@
 #define UI_Color_Black 7        // Black
 #define UI_Color_White 8        // White
 
+#pragma pack(push, 1)
+
 typedef struct
 {
 	uint8_t SOF;          // Start byte, fixed at 0xA5
@@ -181,4 +183,7 @@ void circle_draw(graphic_data_struct_t *image, char figure_name[3], uint32_t gra
 int update_ui(graphic_data_struct_t *image_ptr);
 int update_char(string_data *string_ptr);
 int clear_ui_all(void);
+
+#pragma pack(pop)
+
 #endif

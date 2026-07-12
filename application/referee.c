@@ -7,13 +7,35 @@
 #include "string.h"
 #include "usart.h"
 #include "detect_task.h"
-#include "shoot.h"
-// #include "chassis_task.h"
 
 #define REF_TEST_MODE 1
 
 frame_header_struct_t referee_receive_header;
 frame_header_struct_t referee_send_header;
+
+// Shoot data relocated out of shoot_control (shoot module removed on this bridge build).
+// Referee still captures per-barrel launch frequency / bullet speed so it can be forwarded
+// to the main controller over CAN.
+uint8_t launching_frequency_from_ref[2] = {0};
+fp32 bullet_init_speed_from_ref[2] = {0};
+
+uint8_t get_launching_frequency(uint8_t shooter_index)
+{
+	if (shooter_index >= 2)
+	{
+		return 0;
+	}
+	return launching_frequency_from_ref[shooter_index];
+}
+
+fp32 get_bullet_init_speed(uint8_t shooter_index)
+{
+	if (shooter_index >= 2)
+	{
+		return 0;
+	}
+	return bullet_init_speed_from_ref[shooter_index];
+}
 
 ext_game_state_t game_state;         // 0x0001
 ext_game_result_t game_result;       // 0x0002
@@ -174,8 +196,8 @@ void referee_data_solve(uint8_t *frame)
 				case 1:
 				case 2:
 				{
-					shoot_control.launching_frequency[shoot_data_t.shooter_number - 1] = shoot_data_t.launching_frequency;
-					shoot_control.bullet_init_speed[shoot_data_t.shooter_number - 1] = shoot_data_t.initial_speed;
+					launching_frequency_from_ref[shoot_data_t.shooter_number - 1] = shoot_data_t.launching_frequency;
+					bullet_init_speed_from_ref[shoot_data_t.shooter_number - 1] = shoot_data_t.initial_speed;
 					break;
 				}
 				default:

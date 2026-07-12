@@ -83,6 +83,7 @@
 // toggle auto-aim mode
 #define AUTO_AIM_TOGGLE_KEYBOARD KEY_PRESSED_OFFSET_Z
 /* ----------------------- Data Struct ------------------------------------- */
+#pragma pack(push, 1)
 typedef __packed struct
 {
         __packed struct
@@ -104,6 +105,7 @@ typedef __packed struct
         } key;
 
 } RC_ctrl_t;
+#pragma pack(pop)
 
 /* ----------------------- Internal Data ----------------------------------- */
 

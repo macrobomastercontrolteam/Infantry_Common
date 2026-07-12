@@ -25,7 +25,6 @@
 
 void referee_can_task(void const *pvParameters)
 {
-#if CAN_PASS_REF_INFO
   uint32_t ulSystemTime = osKernelSysTick();
 
   while (1)
@@ -36,6 +35,4 @@ void referee_can_task(void const *pvParameters)
 
     osDelayUntil(&ulSystemTime, UART_TO_CAN_DELAY_TIME_MS);
   }
-
-#endif
 }
