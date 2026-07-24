@@ -1184,7 +1184,7 @@ static void chassis_control_loop(void)
 		{
 			for (i = 0; i < 4; i++)
 			{
-#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
 
 				chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)fp32_constrain(
 					(chassis_move.motor_chassis[i].speed_set + chassis_move.motor_speed_pid[i].out) * MOTOR_ROTOR_TO_OUTPUT_CONSTANT,

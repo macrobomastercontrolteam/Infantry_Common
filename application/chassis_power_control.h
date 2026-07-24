@@ -43,6 +43,15 @@
 #define POWER_BUFF_RESERVE 20.0f
 #define POWER_BUFF_DANGER 10.0f // energy [J] below which output is zeroed
 #define ENERGY_POWER_RATIO 1.5f // slope of energy-to-power ramp [W/J]
+#define POWER_BUFF_SPIKE_FLOOR 30.0f
+#define POWER_BUFF_RECOVER 45.0f
+#define CHASSIS_4010_ACCEL_STEP 0.05f
+
+#define CHASSIS_BUFFER_DROP_TIME_MS 500.0f    // sustained-decrease window that triggers slowdown
+#define CHASSIS_BUFFER_FLAT_TIMEOUT_MS 200.0f // flat-buffer gap tolerated before drain is "over"
+#define CHASSIS_BUFFER_DROP_EPS 0.5f          // min buffer change [J] counted as a real step
+#define CHASSIS_BUFFER_SLOW_MIN 0.3f          // lowest speed scale while slowing (30% of command)
+#define CHASSIS_BUFFER_SLOW_STEP 0.004f       // per-cycle ramp of the slowdown scale (ease in/out)
 
 
 
@@ -79,45 +88,20 @@
 #define TOO_SMALL_ALL_ERRORS 0.04f         // if sum of all motor errors < this, share power equally
 #define MOVING_AVG_FILTER_MAX_SIZE 32       // maximum buffer length for moving-average filter
 
-#if(ROBOT_TYPE == INFANTRY_2024_MECANUM)
-#define M3508_power_param_K0 1.548523f
-#define M3508_power_param_K1 0.008882f
-#define M3508_power_param_K2 0.000040f
-#define M3508_power_param_K3 0.000054f
-#define M3508_power_param_K4 0.000524f
-#define M3508_power_param_K5 0.000001f
-#define M3508_Current_Convertion 1638.4f
-
-#elif(ROBOT_TYPE == HERO_2025_MECANUM)
-#define M3508_power_param_K0 1.7790400f
-#define M3508_power_param_K1 0.0027178f   
-#define M3508_power_param_K2 0.0004475f   // |v| term  [W/(m/s)]
-#define M3508_power_param_K3 0.0000410f   // I*v term  [W/(A*(m/s))]
-#define M3508_power_param_K4 0.0005230f   // I^2 term  [W/A^2]
-#define M3508_power_param_K5 0.0000010f
-#define M3508_Current_Convertion 1638.4f // 16384 CAN = 10 A  =>  1 A / 1638.4 CAN
-
-#elif((ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2026_OMNI))
-#define MG4010_power_param_K0 2.800243f
-#define MG4010_power_param_K1 13.025089f
-#define MG4010_power_param_K2 -1.086247f
-#define MG4010_power_param_K3 -4.242602f
-#define MG4010_power_param_K4 70.976102f
-#define MG4010_power_param_K5 -0.052372f
-#define MG4010_Current_Convertion 1.0f
-
-#elif((ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO))
-#define MG4010_power_param_K0 2.800243f
-#define MG4010_power_param_K1 13.025089f
-#define MG4010_power_param_K2 -1.086247f
-#define MG4010_power_param_K3 -4.242602f
-#define MG4010_power_param_K4 70.976102f
-#define MG4010_power_param_K5 -0.052372f
-#define MG4010_Current_Convertion 1.0f
-
-#endif
+// NOTE: the legacy per-motor polynomial coefficients (M3508_power_param_* /
+// MG4010_power_param_* / *_Current_Convertion) were removed. M3508 now uses the
+// dataset model M3508_POLYMODEL[] in chassis_power_control.c; 4010 uses a 24 V
+// current-feedback governor (see CHASSIS_BUS_VOLTAGE / MG4010_FEEDBACK_CURRENT_TO_A).
 
 #define POWER_LIMIT_HYSTERESIS 0.05f  // 5% 
+#define RPM_TO_RAD_S (2.0f * PI / 60.0f)
+// C620 ESC current-mode command scale: 16384 CAN units == 20 A (rotor current)
+#define M3508_CAN_CMD_TO_CURRENT_A (20.0f / 16384.0f)
+// chassis bus voltage assumption for the 4010 electrical-power estimate (P = V * I)
+#define CHASSIS_BUS_VOLTAGE 24.0f
+// scale from the decoded 4010 feedback_current (raw torque-current count) to Amperes.
+// Datasheet: +/-2048 counts correspond to +/-16.5 A (sampled torque current).
+#define MG4010_FEEDBACK_CURRENT_TO_A (16.5f / 2048.0f)
 
 typedef enum
 {

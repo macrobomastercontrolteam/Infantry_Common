@@ -2,18 +2,14 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       chassis_power_control.c/h
   * @brief      chassis power control
-  * @note       Per-motor polynomial power model (ported from power_manager):
-  *               P_i = K0 + K1*I + K2*|v| + K3*I*v + K4*I^2 + K5*v^2
-  *             with I = raw_cmd / current_conversion [A], v in m/s.
-  *
-  *             Flow:
-  *               1. compute_p_ref()              energy-based total power budget
-  *               2. chassis_pm_allocate_power()  distribute budget by error
-  *               3. motor_power_limiter()         scale each motor's PID output
-  *
-  *             Default K values map to the previous k1/k2/k3 model:
-  *               K0 = p_bias/4, K2 = k3, K3 = k1, K4 = k2, K1 = K5 = 0
-  *             Tune per motor on your robot.
+  * @note       Dual-method chassis power limiter (one global scale k per cycle):
+  *               - M3508 (current-controlled): predict power from the commanded
+  *                 current with the dataset model M3508_POLYMODEL[] and solve one
+  *                 scale k so the summed predicted power stays within budget.
+  *               - 4010  (speed-controlled, has current feedback): estimate the
+  *                 present power as P = 24V * sum|I_feedback| and govern k from it
+  *                 (cut immediately on over-power, recover gradually).
+  *             Budget comes from compute_p_ref() (energy / buffer aware).
   *
   * @history
   *  Version    Date            Author          Modification
@@ -38,30 +34,19 @@
 #include "cmsis_os.h"
 #include <string.h>
 
-// motor model default coefficients
-// P_i = K0 + K1*I + K2*|v| + K3*I*v + K4*I^2 + K5*v^2
-// I [A] = CAN_cmd / current_conversion,  v [m/s]
-#if((ROBOT_TYPE == INFANTRY_2024_MECANUM)||(ROBOT_TYPE == HERO_2025_MECANUM))
-const static motor_power_init_t motor_power_init_data = {
-    .k0 = M3508_power_param_K0,
-    .k1 = M3508_power_param_K1,
-    .k2 = M3508_power_param_K2,
-    .k3 = M3508_power_param_K3,
-    .k4 = M3508_power_param_K4,
-    .k5 = M3508_power_param_K5,
-    .real_current_conversion = M3508_Current_Convertion
+// M3508 electrical power model fitted from the power_estimator dataset:
+//   P[W] = K0 + K1*I + K2*w + K3*I*w + K4*I^2 + K5*w^2
+//   I = rotor current [A] (signed),  w = rotor speed [rad/s] (signed)
+#if CHASSIS_POWER_CONTROL && (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
+static const fp32 M3508_POLYMODEL[6] = {
+    2.1599749f,       // K0
+    0.0015595104f,    // K1
+    -0.00017931848f,  // K2
+    0.016782476f,     // K3
+    0.11301039f,      // K4
+    1.1531789e-05f    // K5
 };
-#elif((ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO) || (ROBOT_TYPE == INFANTRY_2026_OMNI))
-const static motor_power_init_t motor_power_init_data = {
-    .k0 = MG4010_power_param_K0,
-    .k1 = MG4010_power_param_K1,
-    .k2 = MG4010_power_param_K2,
-    .k3 = MG4010_power_param_K3,
-    .k4 = MG4010_power_param_K4,
-    .k5 = MG4010_power_param_K5,
-    .real_current_conversion = MG4010_Current_Convertion
-};
-#endif     
+#endif
 
 // telemetry
 fp32 chassis_power_limit;
@@ -69,9 +54,6 @@ fp32 chassis_power;
 fp32 chassis_power_buffer;
 
 #if CHASSIS_POWER_CONTROL
-// module-private instances
-static motor_power_t chassis_motor_power[NUM_DRIVE_MOTORS];
-static chassis_power_manager_t chassis_power_manager;
 
 /**
   * @brief          compute desired chassis power from remaining buffer energy.
@@ -483,36 +465,85 @@ fp32 maf_update(moving_avg_filter_t *f, fp32 new_value)
     return f->sum / (fp32)f->count;
 }
 
+#if (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
+/**
+  * @brief          M3508 power at a fixed rotor speed is quadratic in current:
+  *                 P = c0 + c1*I + c2*I^2. Fill coefs[] from the dataset model.
+  */
+static void m3508_current_power_coefs(fp32 omega, fp32 coefs[3])
+{
+    coefs[0] = M3508_POLYMODEL[0] + M3508_POLYMODEL[2] * omega + M3508_POLYMODEL[5] * omega * omega;
+    coefs[1] = M3508_POLYMODEL[1] + M3508_POLYMODEL[3] * omega;
+    coefs[2] = M3508_POLYMODEL[4];
+}
+
+/**
+  * @brief          largest scaling factor lambda in [0, 1] such that scaling every
+  *                 wheel current uniformly (I_i -> lambda*I_i) keeps the summed
+  *                 predicted power within target_power. Returns 1.0 when the
+  *                 unscaled demand already fits within budget.
+  * @param[in]      currents: per-wheel commanded current [A]
+  * @param[in]      omegas:   per-wheel rotor speed [rad/s]
+  * @param[in]      target_power: total chassis drive-power budget [W]
+  */
+static fp32 m3508_chassis_power_scaling(const fp32 currents[NUM_DRIVE_MOTORS],
+                                        const fp32 omegas[NUM_DRIVE_MOTORS],
+                                        fp32 target_power)
+{
+    fp32 coefs[3];
+    fp32 a = 0.0f, b = 0.0f, c = 0.0f;
+    fp32 unscaled_power, disc, sqrt_disc, lambda1, lambda2;
+    uint8_t i;
+
+    // total power as a function of lambda: a*lambda^2 + b*lambda + c
+    for (i = 0; i < NUM_DRIVE_MOTORS; i++)
+    {
+        m3508_current_power_coefs(omegas[i], coefs);
+        c += coefs[0];
+        b += coefs[1] * currents[i];
+        a += coefs[2] * currents[i] * currents[i];
+    }
+
+    unscaled_power = a + b + c;
+    if (unscaled_power <= target_power)
+        return 1.0f;
+
+    // solve a*lambda^2 + b*lambda + c = target_power
+    if (a < 1e-6f)
+    {
+        // degenerates to linear b*lambda + c = target_power
+        if (b > 1e-6f || b < -1e-6f)
+            return fp32_constrain((target_power - c) / b, 0.0f, 1.0f);
+        return 0.0f; // power independent of lambda yet already over target
+    }
+
+    disc = b * b - 4.0f * a * (c - target_power);
+    if (disc < 0.0f)
+        return 0.0f; // over target even at lambda = 0
+
+    arm_sqrt_f32(disc, &sqrt_disc);
+    lambda1 = (-b - sqrt_disc) / (2.0f * a);
+    lambda2 = (-b + sqrt_disc) / (2.0f * a);
+
+    // maximise output: prefer the larger valid root within [0, 1]
+    if (lambda2 >= 0.0f && lambda2 <= 1.0f)
+        return lambda2;
+    if (lambda1 >= 0.0f && lambda1 <= 1.0f)
+        return lambda1;
+    return 0.0f;
+}
+#endif // MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR
+
 /**
   * @brief          limit the power, mainly limit driver motor current
   * @retval         none
   */
 void chassis_power_control(void)
 {
-    static uint8_t fInitialized = 0;
     uint8_t i = 0;
     fp32 p_ref;
-    fp32 pid_out;
-    fp32 k;
+    fp32 k = 1.0f;
     fp32 pid_out_raw[NUM_DRIVE_MOTORS];
-    fp32 k_arr[NUM_DRIVE_MOTORS];
-    fp32 feedback_speed[4];
-    fp32 normalized_error;
-
-    // one-time initialisation of motor model instances
-    if (!fInitialized)
-    {
-        for (i = 0; i < NUM_DRIVE_MOTORS; i++)
-        {
-            motor_power_init(&chassis_motor_power[i], &motor_power_init_data);
-        }
-
-        chassis_pm_init(&chassis_power_manager,
-            &chassis_motor_power[0], &chassis_motor_power[1],
-            &chassis_motor_power[2], &chassis_motor_power[3]);
-        fInitialized = 1;
-    }
-
 
 #if CAN_PASS_REF_INFO
     chassis_power_buffer = (fp32)can_ref_info.chassis_power_buffer;
@@ -524,10 +555,11 @@ void chassis_power_control(void)
     chassis_power = 0.0f;
 #endif
 
-    // 1. energy-based desired power planning
+    // Energy-buffer-aware power budget. compute_p_ref() may return more than the
+    // referee limit while buffer energy remains: the 60 J buffer 30 J usable
+    // before the referee cuts chassis power) deliberately tolerates brief overshoot.
     p_ref = compute_p_ref(chassis_power_buffer, chassis_power_limit);
-    
-    
+
     if (p_ref <= 0.0f)
     {
         // critically low energy: cut all output
@@ -538,51 +570,126 @@ void chassis_power_control(void)
         return;
     }
 
-    // 2. distribute budget across motors by PID demand magnitude
+    // Command each wheel would receive with no power limiting (identical to the
+    // unlimited control path); the limiter only scales these uniformly by k.
     for (i = 0; i < NUM_DRIVE_MOTORS; i++)
     {
-#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
-        // feed-forward command (target wheel speed + closed-loop trim), normalized to the wheel speed cap
-        normalized_error = (chassis_move.motor_chassis[i].speed_set + chassis_move.motor_speed_pid[i].out) / MAX_WHEEL_SPEED;
-#else
-        normalized_error =  chassis_move.motor_speed_pid[i].out / chassis_move.motor_speed_pid[i].max_out;
-#endif
-        chassis_pm_update_error(&chassis_power_manager, i, normalized_error);
-    }
-    chassis_pm_allocate_power(&chassis_power_manager, p_ref, 1.0f);
-
-    // 3. per-motor limiting: scale each PID output to stay within allocated budget
-    for (i = 0; i < NUM_DRIVE_MOTORS; i++)
-    {
-#if ((ROBOT_TYPE == INFANTRY_2024_MECANUM) || (ROBOT_TYPE == HERO_2025_MECANUM))
-        feedback_speed[i] = motor_chassis[i].speed_rpm;
-#elif ((ROBOT_TYPE == SENTRY_2026_OMNI) || (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO) || (ROBOT_TYPE == INFANTRY_2026_OMNI))
-        feedback_speed[i] = motor_chassis[i].velocity;
-#else
-#error "undefined feedback speed data"
-#endif
-        pid_out_raw[i] = chassis_move.motor_speed_pid[i].out; // isolate from pid control loop
-#if (ROBOT_TYPE == INFANTRY_2024_MECANUM_NEO)
-
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
         pid_out_raw[i] = chassis_move.motor_chassis[i].speed_set + chassis_move.motor_speed_pid[i].out;
-
         pid_out_raw[i] = fp32_constrain(pid_out_raw[i],
                                         -(fp32)MOTOR_MG4010_MAX_CMD / MOTOR_ROTOR_TO_OUTPUT_CONSTANT,
                                         (fp32)MOTOR_MG4010_MAX_CMD / MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
+#else
+        pid_out_raw[i] = chassis_move.motor_speed_pid[i].out;
 #endif
-        pid_out = pid_out_raw[i]; // throwaway copy, motor_power_limiter scales it in place
+    }
 
-        k = motor_power_limiter(&chassis_motor_power[i], &pid_out,
-                                feedback_speed[i], chassis_motor_power[i].power_limit);
+#if (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
+    // M3508 wheels are current-controlled (MOTOR_ROTOR_TO_OUTPUT_CONSTANT == 1, so
+    // the CAN command equals pid_out_raw). Predict power from the commanded current
+    // with the dataset model and solve one global scaling factor for all four wheels.
+    {
+        fp32 currents_a[NUM_DRIVE_MOTORS];
+        fp32 rotor_omega[NUM_DRIVE_MOTORS];
+        for (i = 0; i < NUM_DRIVE_MOTORS; i++)
+        {
+            currents_a[i] = pid_out_raw[i] * M3508_CAN_CMD_TO_CURRENT_A;
+            rotor_omega[i] = (fp32)motor_chassis[i].speed_rpm * RPM_TO_RAD_S;
+        }
+        k = m3508_chassis_power_scaling(currents_a, rotor_omega,
+                                        p_ref * (1.0f - POWER_COMPENSATION_ALPHA));
+    }
+#else
+    {
+        static fp32 v_cap = 0.0f;   // allowed peak wheel speed [m/s]
+        static uint8_t recovering = 0; // latched low-buffer recovery state (hysteresis)
+        fp32 v_cmd = 0.0f;          // peak commanded wheel speed this cycle [m/s]
+        fp32 v_now = 0.0f;          // peak actual wheel speed [m/s]
+        fp32 p_now = 0.0f;
+        fp32 mag;
 
-        k_arr[i] = k;
+        for (i = 0; i < NUM_DRIVE_MOTORS; i++)
+        {
+            p_now += CHASSIS_BUS_VOLTAGE
+                   * (fp32)fabs((fp32)motor_chassis[i].feedback_current * MG4010_FEEDBACK_CURRENT_TO_A);
+            mag = fabs(pid_out_raw[i]);
+            if (mag > v_cmd) v_cmd = mag;
+            mag = fabs(chassis_move.motor_chassis[i].speed);
+            if (mag > v_now) v_now = mag;
+        }
+
+        if (chassis_power_buffer < POWER_BUFF_SPIKE_FLOOR)
+            recovering = 1;
+        else if (chassis_power_buffer >= POWER_BUFF_RECOVER)
+            recovering = 0;
+
+        if (!recovering || v_cmd <= v_now || v_cmd < 1e-3f)
+        {
+            // healthy buffer, or not accelerating (cruise / decel): pass the command through
+            v_cap = v_cmd;
+            k = 1.0f;
+        }
+        else if (p_now > p_ref)
+        {
+
+            v_cap = v_now;
+            k = v_cap / v_cmd;
+        }
+        else
+        {
+
+            v_cap += CHASSIS_4010_ACCEL_STEP;
+            v_cap = fp32_constrain(v_cap, v_now, v_cmd);
+            k = v_cap / v_cmd;
+        }
+    }
+#endif
+
+    {
+        static fp32 prev_buffer = POWER_BUFF_TOTAL;
+        static fp32 decreasing_ms = 0.0f;
+        static fp32 flat_ms = 0.0f;
+        static fp32 slow_scale = 1.0f;
+
+        if (chassis_power_buffer < prev_buffer - CHASSIS_BUFFER_DROP_EPS)
+        {
+            // buffer dropped: count this step plus any preceding flat gap as drain time
+            decreasing_ms += flat_ms + CHASSIS_CONTROL_TIME_MS;
+            flat_ms = 0.0f;
+        }
+        else if (chassis_power_buffer > prev_buffer + CHASSIS_BUFFER_DROP_EPS)
+        {
+            // buffer rose: the drain ended, reset the trend detector
+            decreasing_ms = 0.0f;
+            flat_ms = 0.0f;
+        }
+        else
+        {
+            // buffer flat (normal between referee updates): tolerate a short gap, but a
+            // long steady stretch means the drain has stopped
+            flat_ms += CHASSIS_CONTROL_TIME_MS;
+            if (flat_ms >= CHASSIS_BUFFER_FLAT_TIMEOUT_MS)
+            {
+                decreasing_ms = 0.0f;
+                flat_ms = 0.0f;
+            }
+        }
+        prev_buffer = chassis_power_buffer;
+
+        if (decreasing_ms >= CHASSIS_BUFFER_DROP_TIME_MS)
+            slow_scale -= CHASSIS_BUFFER_SLOW_STEP; // sustained drain: gradually slow down
+        else
+            slow_scale += CHASSIS_BUFFER_SLOW_STEP; // drain stopped: gradually resume
+        slow_scale = fp32_constrain(slow_scale, CHASSIS_BUFFER_SLOW_MIN, 1.0f);
+
+        k *= slow_scale;
     }
 
     for (i = 0; i < NUM_DRIVE_MOTORS; i++)
     {
-        chassis_move.motor_chassis[i].give_chassis_motor_cmd = (int16_t)(pid_out_raw[i] * k_arr[i] * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);//(int16_t)(pid_out_raw[i] * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);//
+        chassis_move.motor_chassis[i].give_chassis_motor_cmd =
+            (int16_t)(pid_out_raw[i] * k * MOTOR_ROTOR_TO_OUTPUT_CONSTANT);
     }
-
 }
 #endif // CHASSIS_POWER_CONTROL
 

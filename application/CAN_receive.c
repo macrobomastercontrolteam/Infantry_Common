@@ -533,7 +533,7 @@ void decode_rm_motor_feedback(uint8_t *data, uint8_t bMotorId)
 void decode_MG_4010_motor_feedback(uint8_t *data, uint8_t bMotorId)
 {
 
-	int16_t current_int = (data[3]<<8) | data[2]; //Uniy Ampere
+	int16_t current_int = (data[3]<<8) | data[2]; // raw torque-current count: +/-2048 = +/-16.5 A
 	int16_t v_int = (data[5]<<8) | data[4]; //deg/s
 	uint16_t p_int = (data[7]<<8) | data[6]; //encode value
 
