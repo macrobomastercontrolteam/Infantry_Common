@@ -298,6 +298,10 @@ $(BUILD_DIR):
 flash: $(BUILD_DIR)/$(TARGET).bin
 	st-flash write $(BUILD_DIR)/$(TARGET).bin 0x8000000
 
+ARGS ?= all
+summary:
+	pwsh -NoProfile -ExecutionPolicy Bypass -File Scripts/build_summary.ps1 $(ARGS)
+
 #######################################
 # clean up
 #######################################
