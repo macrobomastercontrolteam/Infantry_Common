@@ -313,10 +313,12 @@ static void RC_cmd_to_calibrate(void)
     {
         rc_action_flag = 0;
         rc_cmd_time = 0;
-        //send CAN reset ID cmd to M3508
+#if (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
+        //send CAN reset ID cmd to M3508 (no-op for 4010/special drive trains)
         CAN_cmd_chassis_reset_ID();
         CAN_cmd_chassis_reset_ID();
         CAN_cmd_chassis_reset_ID();
+#endif
         cali_buzzer_off();
     }
 

@@ -328,7 +328,7 @@ void INS_task(void const *pvParameters)
 
 
         //because no use ist8310 and save time, no use
-        if(mag_update_flag &= 1 << IMU_DR_SHFITS) // This line has a potential bug: should be (mag_update_flag & (1 << IMU_DR_SHFITS))
+        if (mag_update_flag & (1 << IMU_DR_SHFITS))
         {
             mag_update_flag &= ~(1<< IMU_DR_SHFITS);
             mag_update_flag |= (1 << IMU_SPI_SHFITS);

@@ -33,39 +33,90 @@
 #include "custom_ui_task.h"
 #include "user_lib.h"
 
-// Warning: for safety, PLEASE ALWAYS keep those default values as 0 when you commit
-// Warning: because #if directive will assume the expression as 0 even if the macro is not defined, positive logic, for example, ENABLE_MOTOR_POWER, is safer that if and only if it's defined and set to 1 that the power is enabled
+// ============================================================================
+// Motor power enable configuration
+// ============================================================================
+// Safety default: ALL subsystems are disabled (0).  Set a subsystem to 1 after
+// bench testing to enable the motors that belong to it.
+//
+//   ENABLE_CHASSIS   -> drive motors
+//   ENABLE_LAUNCHER  -> trigger + friction wheels (+ hero piston)
+//   ENABLE_GIMBAL    -> yaw + pitch (+ extra pitch on INFANTRY_2026_MECANUM)
+//
+// Special motors that only exist on specific robots:
+//   ENABLE_STEER      -> steering motors (INFANTRY_2023_SWERVE only)
+//   ENABLE_HIP        -> hip/platform motors (INFANTRY_2023_SWERVE / INFANTRY_2026_MECANUM)
+//   ENABLE_UPPER_HEAD -> sentry upper head (SENTRY_2023_MECANUM only)
+// ============================================================================
 
-//////////////enable for all robot types//////////////////////
-#define ENABLE_DRIVE_MOTOR_POWER 0
-#define ENABLE_YAW_MOTOR_POWER 0
-#define ENABLE_PITCH_MOTOR_POWER 0
-///////////////enable fo 2026 standard only begin///////////////////
-#define ENABLE_PITCH_BASE_MOTOR_POWER 0
-////////////////enable fo 2026 standard only end////////////////////
-// Remember to enable ENABLE_SHOOT_REDUNDANT_SWITCH as well if you want to shoot
-#define ENABLE_TRIGGER_MOTOR_POWER 0
-#define ENABLE_FRICTION_1_MOTOR_POWER 0
-#define ENABLE_FRICTION_2_MOTOR_POWER 0
-///////////////enable fo 2025 Hero only begin///////////////////
-#define ENABLE_FRICTION_3_MOTOR_POWER 0
-#define ENABLE_FRICTION_4_MOTOR_POWER 0
-#define ENABLE_PISTON_MOTOR_POWER 0
-////////////////enable fo 2025 Hero only end////////////////////
+#define ENABLE_CHASSIS       0
+#define ENABLE_LAUNCHER      0
+#define ENABLE_GIMBAL        0
+#define ENABLE_STEER         0
+#define ENABLE_HIP           0
+#define ENABLE_UPPER_HEAD    0
 
-#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
-#define ENABLE_UPPER_HEAD_POWER 0
-#elif (ROBOT_TYPE == INFANTRY_2023_SWERVE)
-#define ENABLE_STEER_MOTOR_POWER 0
-#define ENABLE_HIP_MOTOR_POWER 0
-#elif (ROBOT_TYPE == INFANTRY_2026_MECANUM)
-#define ENABLE_HIP_MOTOR_POWER 1
+// ============================================================================
+// Internal mapping from subsystems to individual motors.
+// You normally should NOT need to edit below this line.
+// ============================================================================
+
+// Chassis subsystem -> drive motors.
+#define ENABLE_DRIVE_MOTOR_POWER ENABLE_CHASSIS
+
+// Gimbal subsystem -> yaw + pitch (+ extra pitch base on INFANTRY_2026_MECANUM).
+#define ENABLE_YAW_MOTOR_POWER   ENABLE_GIMBAL
+#define ENABLE_PITCH_MOTOR_POWER ENABLE_GIMBAL
+
+#if (ROBOT_TYPE == INFANTRY_2026_MECANUM)
+    #define ENABLE_PITCH_BASE_MOTOR_POWER ENABLE_GIMBAL
+#else
+    #define ENABLE_PITCH_BASE_MOTOR_POWER 0
 #endif
 
-#if (ROBOT_TYPE == INFANTRY_2026_MECANUM) && !ENABLE_PITCH_BASE_MOTOR_POWER && ENABLE_PITCH_MOTOR_POWER
-#error "INFANTRY_2026_MECANUM must has its pitch base motor power enabled for normal operation"
-#elif (ROBOT_TYPE != INFANTRY_2026_MECANUM) && ENABLE_PITCH_BASE_MOTOR_POWER
-#error "This robot type should not enable pitch base motor power"
+// Launcher subsystem -> trigger + friction wheels.
+#define ENABLE_TRIGGER_MOTOR_POWER    ENABLE_LAUNCHER
+#define ENABLE_FRICTION_1_MOTOR_POWER ENABLE_LAUNCHER
+#define ENABLE_FRICTION_2_MOTOR_POWER ENABLE_LAUNCHER
+
+#if (ROBOT_TYPE == HERO_2025_MECANUM)
+    #define ENABLE_FRICTION_3_MOTOR_POWER ENABLE_LAUNCHER
+    #define ENABLE_FRICTION_4_MOTOR_POWER ENABLE_LAUNCHER
+    #define ENABLE_PISTON_MOTOR_POWER     ENABLE_LAUNCHER
+#else
+    #define ENABLE_FRICTION_3_MOTOR_POWER 0
+    #define ENABLE_FRICTION_4_MOTOR_POWER 0
+    #define ENABLE_PISTON_MOTOR_POWER     0
+#endif
+
+// Special motors mapped only on the robot types that have them.
+#if (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+    #define ENABLE_STEER_MOTOR_POWER ENABLE_STEER
+#else
+    #define ENABLE_STEER_MOTOR_POWER 0
+#endif
+
+#if ((ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == INFANTRY_2026_MECANUM))
+    #define ENABLE_HIP_MOTOR_POWER ENABLE_HIP
+#else
+    #define ENABLE_HIP_MOTOR_POWER 0
+#endif
+
+#if (ROBOT_TYPE == SENTRY_2023_MECANUM)
+    #define ENABLE_UPPER_HEAD_POWER ENABLE_UPPER_HEAD
+#else
+    #define ENABLE_UPPER_HEAD_POWER 0
+#endif
+
+// ---------- Validation ----------
+#if ENABLE_STEER && (ROBOT_TYPE != INFANTRY_2023_SWERVE)
+    #error "Steer motor only exists on INFANTRY_2023_SWERVE"
+#endif
+#if ENABLE_HIP && !((ROBOT_TYPE == INFANTRY_2023_SWERVE) || (ROBOT_TYPE == INFANTRY_2026_MECANUM))
+    #error "Hip motor only exists on INFANTRY_2023_SWERVE or INFANTRY_2026_MECANUM"
+#endif
+#if ENABLE_UPPER_HEAD && (ROBOT_TYPE != SENTRY_2023_MECANUM)
+    #error "Upper head only exists on SENTRY_2023_MECANUM"
 #endif
 
 #define REVERSE_M3508_1 0
@@ -1130,7 +1181,7 @@ HAL_StatusTypeDef enable_DaMiao_motor(uint32_t id, uint8_t _enable, CAN_HandleTy
  */
 void CAN_cmd_chassis_reset_ID(void)
 {
-#if (WHEEL_TYPE == ROBOT_CHASSIS_USE_MECANUM) || (ROBOT_TYPE == INFANTRY_2023_SWERVE)
+#if (MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR)
 	uint32_t send_mail_box;
 	chassis_tx_message.StdId = 0x700;
 	chassis_tx_message.IDE = CAN_ID_STD;
@@ -1601,9 +1652,9 @@ void decode_ref_info(uint8_t *rx_data)
 			memcpy(&can_ref_info.chassis_power_limit, rx_data + 3, 2);
 			memcpy(&can_ref_info.encoded_chassis_power, rx_data + 5, 2);
 		
-			robot_state.power_management_chassis_output = 1;//rx_data[7] & POWER_MANAGEMNT_CHASSIS_BIT;
-			robot_state.power_management_shooter_output = 1;//rx_data[7] & POWER_MANAGEMNT_SHOOTER_BIT;
-			robot_state.power_management_gimbal_output = 1; //rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT;
+			robot_state.power_management_chassis_output = (rx_data[7] & POWER_MANAGEMNT_CHASSIS_BIT) ? 1 : 0;
+			robot_state.power_management_shooter_output = (rx_data[7] & POWER_MANAGEMNT_SHOOTER_BIT) ? 1 : 0;
+			robot_state.power_management_gimbal_output  = (rx_data[7] & POWER_MANAGEMNT_GIMBAL_BIT)  ? 1 : 0;
 			break;
 		}
 
@@ -1785,7 +1836,7 @@ uint16_t get_cap_state(void)
 void decode_supercap(uint8_t *data)
 {
 #if (SUPERCAP_TYPE == SJTU_SUPERCAP)
-	memcpy(cap_message_rx.can_buf, rx_data, sizeof(rx_data));
+	memcpy(cap_message_rx.can_buf, data, sizeof(cap_message_rx.can_buf));
 #elif (SUPERCAP_TYPE == MACRM_SUPERCAP)
 	decode_macrm_cap_tx_data(data);
 #elif (SUPERCAP_TYPE == UBC_SUPERCAP)

@@ -463,6 +463,11 @@ void referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t *p_data, uin
 
 	uint16_t frame_length = FRAMEHEADER_LEN + CMD_LEN + len + CRC_LEN; // Data frame length
 
+	if (frame_length > MAX_SIZE)
+	{
+		return; // Payload would overflow the transmit buffer; drop the frame.
+	}
+
 	memset(tx_buff, 0, frame_length); // Clear the array for storing data
 
 	/***** Frame Header Packing *****/

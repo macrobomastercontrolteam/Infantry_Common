@@ -58,7 +58,8 @@ fp32 chassis_power_buffer;
 /**
   * @brief          compute desired chassis power from remaining buffer energy.
   *                 linear in energy, clamped to [P_ref_min, P_ref_max].
-  *                 returns 0 when energy is critically low.
+  *                 returns P_ref_min when energy is critically low (keeps a
+  *                 minimal safe command rather than an abrupt zero).
   * @param[in]      remaining_energy: buffer / supercap remaining energy [J]
   * @param[in]      refree_power_limit: referee power limit [W]
   * @retval         desired chassis power [W]
@@ -73,7 +74,7 @@ static fp32 compute_p_ref(fp32 remaining_energy, fp32 refree_power_limit)
     p_min = refree_power_limit * WARNING_POWER_RATIO;
 
     if (remaining_energy < POWER_BUFF_DANGER)
-        return p_min; //to handle case where buffer energy couldn't be successfy received TODO:validate if would disrupt power control  //0.0f;
+        return p_min;
 
     p_ref = refree_power_limit + ENERGY_POWER_RATIO * (remaining_energy - POWER_BUFF_RESERVE);
     
@@ -89,6 +90,10 @@ void motor_power_init(motor_power_t *mp, const motor_power_init_t *init_data)
     mp->K4 = init_data->k4;
     mp->K5 = init_data->k5;
     mp->current_conversion = init_data->real_current_conversion;
+    if (mp->current_conversion == 0.0f)
+    {
+        mp->current_conversion = 1.0f; // prevent divide-by-zero; config error
+    }
     mp->feedback_power = 0.0f;
     mp->predict_not_limit_power = 0.0f;
     mp->predict_power = 0.0f;
@@ -98,6 +103,10 @@ void motor_power_init(motor_power_t *mp, const motor_power_init_t *init_data)
 
 fp32 motor_power_get_real_current(const motor_power_t *mp, fp32 current)
 {
+    if (mp->current_conversion == 0.0f)
+    {
+        return 0.0f;
+    }
     return current / mp->current_conversion;
 }
 

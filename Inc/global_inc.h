@@ -76,7 +76,7 @@
  *   SENTRY_2023_MECANUM         0   0    0     -       MECANUM  3508
  *   HERO_2025_MECANUM           1   1    1     4340    MECANUM  3508
  *   SENTRY_2026_OMNI            1   1    1     3507    OMNI     4010
- *   INFANTRY_2026_MECANUM       1   0    1     4310    MECANUM  3508
+ *   INFANTRY_2026_MECANUM       0   1    1     4310    MECANUM  3508
  *   INFANTRY_2024_MECANUM_NEO   1   1    1     3507    MECANUM  4010
  *   INFANTRY_2026_OMNI          1   1    1     3507    OMNI     4010
  * ==========================================================================================*/

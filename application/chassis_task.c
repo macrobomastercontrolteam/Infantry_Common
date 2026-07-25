@@ -83,11 +83,10 @@ supcap_t cap_message_rx;
 
 chassis_move_t chassis_move;
 
-#if (ROBOT_TYPE != INFANTRY_2024_BIPED) && (ROBOT_TYPE != INFANTRY_2023_SWERVE)
-// encoder-only, slip-mitigated chassis-frame translational velocity (m/s), updated every chassis cycle
+// encoder-only, slip-mitigated chassis-frame translational velocity (m/s), updated every chassis cycle.
+// Always defined so the helper compiles on every robot type; it is only called for 4-wheel chassis builds.
 static fp32 chassis_vx_slip_robust = 0.0f;
 static fp32 chassis_vy_slip_robust = 0.0f;
-#endif
 
 #if CHASSIS_TEST_MODE
 fp32 rot_radius0;
@@ -322,12 +321,26 @@ static void chassis_feedback_update(void)
 	// Mecanum wheel feedback calculation
 	chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
 	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
-	chassis_move.wz = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
+	if (chassis_move.wheel_rot_radii[0] > 0.001f)
+	{
+		chassis_move.wz = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed - chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
+	}
+	else
+	{
+		chassis_move.wz = 0.0f;
+	}
 #elif (WHEEL_TYPE == ROBOT_CHASSIS_USE_OMNI)
 
 	chassis_move.vx = (-chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed - chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VX;
 	chassis_move.vy = (-chassis_move.motor_chassis[0].speed - chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_VY;
-	chassis_move.wz = (chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
+	if (chassis_move.wheel_rot_radii[0] > 0.001f)
+	{
+		chassis_move.wz = (chassis_move.motor_chassis[0].speed + chassis_move.motor_chassis[1].speed + chassis_move.motor_chassis[2].speed + chassis_move.motor_chassis[3].speed) * MOTOR_SPEED_TO_CHASSIS_SPEED_WZ / chassis_move.wheel_rot_radii[0];
+	}
+	else
+	{
+		chassis_move.wz = 0.0f;
+	}
 #endif
 	// encoder-only slip-robust chassis velocity estimate (consumed by the CV chassis-velocity report)
 	chassis_slip_robust_vel_update();
@@ -1250,6 +1263,7 @@ fp32 chassis_get_ultra_low_wz_limit(void)
  * otherwise steps 3-4 simply de-weight the estimate. Sustained multi-wheel slip is not recoverable
  * without an independent reference (e.g. IMU), which is intentionally not used here.
  */
+#if (ROBOT_TYPE != INFANTRY_2024_BIPED) && (ROBOT_TYPE != INFANTRY_2023_SWERVE)
 static void chassis_slip_robust_vel_update(void)
 {
 	// slip-tuning constants (chassis frame; speeds in m/s, accelerations in m/s^2)
@@ -1328,6 +1342,7 @@ static void chassis_slip_robust_vel_update(void)
 	chassis_vx_slip_robust += alpha * (vx_clamped - chassis_vx_slip_robust);
 	chassis_vy_slip_robust += alpha * (vy_clamped - chassis_vy_slip_robust);
 }
+#endif
 
 /**
  * @brief          chassis translational velocity expressed in the gimbal-yaw frame, derived purely from

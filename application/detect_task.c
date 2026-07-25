@@ -163,6 +163,10 @@ void detect_task(void const *pvParameters)
   */
 bool_t toe_is_error(uint8_t toe)
 {
+    if (toe >= ERROR_LIST_LENGTH)
+    {
+        return 1; // out-of-range is treated as an error (fail-safe)
+    }
     return (error_list[toe].error_exist == 1);
 }
 
@@ -173,6 +177,11 @@ bool_t toe_is_error(uint8_t toe)
   */
 void detect_hook(uint8_t toe)
 {
+    if (toe >= ERROR_LIST_LENGTH)
+    {
+        return;
+    }
+
     error_list[toe].last_time = error_list[toe].new_time;
     error_list[toe].new_time = xTaskGetTickCount();
     

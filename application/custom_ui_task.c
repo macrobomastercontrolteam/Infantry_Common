@@ -85,7 +85,7 @@ void custom_ui_task(void const *argument)
 	// 	armor_damage_draw(gimbal_control.gimbal_yaw_motor.relative_angle);
 	// 	super_cap_status_draw();
 	// 	chassis_mode_draw();
-	// 	osDelayUntil(&ulSystemTime, CUSTOM_UI_TIME_MS);
+		osDelayUntil(&ulSystemTime, CUSTOM_UI_TIME_MS);
 	}
 }
 void ui_variale_init(void)

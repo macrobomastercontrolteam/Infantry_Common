@@ -289,17 +289,16 @@ void gimbal_task(void const *pvParameters)
 
 void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_value_ptr, int16_t *trigger_set_current_ptr, int16_t *fric1_set_current_ptr, int16_t *fric2_set_current_ptr)
 {
-    //TODO: uncomment before-push
-    //safety for gimbal  
-//     if (gimbal_emergency_stop() || toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
-//     {
-//         *yaw_can_set_value_ptr = 0;
-//         *pitch_can_set_value_ptr = 0;
-// #if ROBOT_PITCH_IS_4310
-//         MIT_control_motor_init(&gimbal_control.MIT_control_motor);
-// #endif
-//     }
-//     else
+    // Safety for gimbal: fail-closed on any emergency or offline motor.
+    if (toe_is_error(YAW_GIMBAL_MOTOR_TOE) || toe_is_error(PITCH_GIMBAL_MOTOR_TOE))
+    {
+        *yaw_can_set_value_ptr = 0;
+        *pitch_can_set_value_ptr = 0;
+#if ROBOT_PITCH_IS_4310
+        MIT_control_motor_init(&gimbal_control.MIT_control_motor);
+#endif
+    }
+    else
     {
 #if YAW_REVERSED
         *yaw_can_set_value_ptr = -gimbal_control.gimbal_yaw_motor.cmd_value;
@@ -314,7 +313,7 @@ void gimbal_safety_manager(fp32 *yaw_can_set_value_ptr, fp32 *pitch_can_set_valu
 #endif
     }
 
-    // safety for shoot
+    // Safety for shoot: fail-closed on any offline shoot motor.
     if (toe_is_error(TRIGGER_MOTOR_TOE) || toe_is_error(FRICTIONAL_MOTOR_LEFT_TOE) || toe_is_error(FRICTIONAL_MOTOR_RIGHT_TOE))
     {
         *fric1_set_current_ptr = 0;

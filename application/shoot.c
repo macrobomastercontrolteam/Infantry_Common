@@ -991,7 +991,14 @@ static void shoot_feedback_update(void)
 #if (CAN_PASS_REF_INFO == 1)
 
 	ui_info.Heat_Limit_Ignored = launcher_status.Heat_Limit_Ignored;
-	ui_info.trigger_state = ((shoot_control.speed_set / shoot_control.speed) > 0.5f); // sctual trigger speed larger than 50% of set speed
+	if ((shoot_control.speed > 10.0f) && (shoot_control.speed_set > 10.0f))
+	{
+		ui_info.trigger_state = ((shoot_control.speed_set / shoot_control.speed) > 0.5f); // actual trigger speed larger than 50% of set speed
+	}
+	else
+	{
+		ui_info.trigger_state = 0;
+	}
 
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
 	ui_info.firc_state = friction_wheels_ready();
@@ -1068,14 +1075,30 @@ static void trigger_motor_stall_handler(void)
 
 static bool_t friction_wheels_ready(void)
 {
+    const fp32 rpm_set1 = shoot_control.friction_motor1_rpm_set;
+    const fp32 rpm_set2 = shoot_control.friction_motor2_rpm_set;
+
+    if ((fabs(rpm_set1) < 10.0f) || (fabs(rpm_set2) < 10.0f))
+    {
+        return 0;
+    }
+
 #if (ROBOT_TYPE == HERO_2025_MECANUM)
-	return (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD)
-	    && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD)
-	    && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / shoot_control.friction_motor3_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD)
-	    && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / shoot_control.friction_motor4_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD);
+    const fp32 rpm_set3 = shoot_control.friction_motor3_rpm_set;
+    const fp32 rpm_set4 = shoot_control.friction_motor4_rpm_set;
+
+    if ((fabs(rpm_set3) < 10.0f) || (fabs(rpm_set4) < 10.0f))
+    {
+        return 0;
+    }
+
+	return (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / rpm_set1) > FRICTION_MOTOR_SPEED_THRESHOLD)
+	    && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / rpm_set2) > FRICTION_MOTOR_SPEED_THRESHOLD)
+	    && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_UP].speed_rpm / rpm_set3) > FRICTION_MOTOR_SPEED_THRESHOLD)
+	    && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_DOWN].speed_rpm / rpm_set4) > FRICTION_MOTOR_SPEED_THRESHOLD);
 #else
-	return (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / shoot_control.friction_motor1_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD)
-	    && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / shoot_control.friction_motor2_rpm_set) > FRICTION_MOTOR_SPEED_THRESHOLD);
+	return (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_LEFT].speed_rpm / rpm_set1) > FRICTION_MOTOR_SPEED_THRESHOLD)
+	    && (fabs((float)motor_chassis[MOTOR_INDEX_FRICTION_RIGHT].speed_rpm / rpm_set2) > FRICTION_MOTOR_SPEED_THRESHOLD);
 #endif
 }
 
