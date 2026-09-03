@@ -6,10 +6,12 @@
   *               P_i = K0 + K1*I + K2*|v| + K3*I*v + K4*I^2 + K5*v^2
   *             with I = raw_cmd / current_conversion [A], v in m/s.
   *
-  *             Power is first planned via energy-based compute_p_ref(), then
-  *             distributed across motors by error magnitude via
-  *             power_allocation_by_error(), and finally each motor's PID output
-  *             is independently limited via motor_power_limiter().
+  *             Power is first planned via energy-based compute_p_ref(). For 3508
+  *             trains the budget is distributed across motors by error magnitude
+  *             via power_allocation_by_error() and each motor's PID output is
+  *             limited via motor_power_limiter(). For 4010 trains a receding-horizon
+  *             MPC optimises a single global speed scale k using an affine power
+  *             model and buffer-energy constraints.
   *
   * @history
   *  Version    Date            Author          Modification
@@ -46,6 +48,18 @@
 #define POWER_BUFF_SPIKE_FLOOR 30.0f
 #define POWER_BUFF_RECOVER 45.0f
 #define CHASSIS_4010_ACCEL_STEP 0.05f
+
+// MPC-style 4010 power-governor constants (replaces the fixed accel-step recovery).
+// The controller predicts buffer energy over a receding horizon and chooses a
+// global speed scale k that maximizes speed tracking while respecting power and
+// energy constraints.
+#define CHASSIS_4010_MPC_HORIZON        20      // prediction steps (100 ms at 5 ms/cycle)
+#define CHASSIS_4010_MPC_SAFE_ENERGY    12.0f   // buffer floor used in MPC constraints [J]
+#define CHASSIS_4010_MPC_IDLE_POWER     20.0f   // idle electrical power at k=0 (controllers + friction) [W]
+#define CHASSIS_4010_MPC_MAX_RISE_STEP  0.10f   // max speed-scale increase per cycle
+#define CHASSIS_4010_MPC_MAX_FALL_STEP  0.30f   // max speed-scale decrease per cycle
+#define CHASSIS_4010_MPC_TRACKING_COST  1.0f    // weight on tracking (k close to 1)
+#define CHASSIS_4010_MPC_SMOOTH_COST    0.5f    // weight on control smoothness
 
 #define CHASSIS_BUFFER_DROP_TIME_MS 500.0f    // sustained-decrease window that triggers slowdown
 #define CHASSIS_BUFFER_FLAT_TIMEOUT_MS 200.0f // flat-buffer gap tolerated before drain is "over"

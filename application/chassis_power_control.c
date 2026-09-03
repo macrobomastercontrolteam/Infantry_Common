@@ -7,8 +7,9 @@
   *                 current with the dataset model M3508_POLYMODEL[] and solve one
   *                 scale k so the summed predicted power stays within budget.
   *               - 4010  (speed-controlled, has current feedback): estimate the
-  *                 present power as P = 24V * sum|I_feedback| and govern k from it
-  *                 (cut immediately on over-power, recover gradually).
+  *                 present power as P = 24V * sum|I_feedback| and run a receding-
+  *                 horizon MPC that chooses the speed scale k to maximize tracking
+  *                 while keeping the predicted buffer energy above a safety floor.
   *             Budget comes from compute_p_ref() (energy / buffer aware).
   *
   * @history
@@ -543,6 +544,89 @@ static fp32 m3508_chassis_power_scaling(const fp32 currents[NUM_DRIVE_MOTORS],
 }
 #endif // MOTOR_TYPE == POWER_TRAIN_USE_3508_MOTOR
 
+#if (MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR)
+/**
+  * @brief          MPC-style single-input speed-scale optimizer for 4010 power trains.
+  *                 Models future buffer energy over a receding horizon as a function
+  *                 of the global speed scale k, then chooses k to maximize speed
+  *                 tracking while respecting power and energy constraints.
+  *
+  *                 Power model (affine around the previous operating point):
+  *                   P(k) = P_idle + (P_meas - P_idle) * (k / k_prev)
+  *                 P_idle captures controller + motor idle/friction losses, so the
+  *                 model does not predict zero power at zero command.
+  *
+  *                 Constraints:
+  *                   1) Instantaneous: P(k) <= p_ref
+  *                   2) Predictive: buffer energy stays above E_safe over horizon N
+  *                 Cost:
+  *                   min (1-k)^2 + lambda*(k-k_prev)^2  subject to k <= k_max
+  *                 The result is rate-limited and clamped to [0,1].
+  *
+  * @param[in]      p_ref: power budget from compute_p_ref() [W]
+  * @param[in]      p_meas: present electrical power from current feedback [W]
+  * @param[in/out]  k_prev: previous cycle's applied speed scale (updated in place)
+  * @param[in]      e_now: current buffer energy [J]
+  * @retval         speed scale k in [0, 1]
+  */
+static fp32 mpc_4010_speed_scale(fp32 p_ref, fp32 p_meas, fp32 *k_prev, fp32 e_now)
+{
+    fp32 k_opt, k_pred, k_inst, k_track;
+    fp32 dt = CHASSIS_CONTROL_TIME_S;
+    fp32 horizon_s = (fp32)CHASSIS_4010_MPC_HORIZON * dt;
+    fp32 p_excess = p_meas - CHASSIS_4010_MPC_IDLE_POWER;
+    fp32 p_budget  = p_ref  - CHASSIS_4010_MPC_IDLE_POWER;
+
+    // Default to pass-through when no prior scale exists or no useful dynamics.
+    if (*k_prev < 1e-3f)
+        *k_prev = 1.0f;
+
+    k_opt = 1.0f;
+
+    if (p_excess > 1e-3f && p_budget > 1e-3f)
+    {
+        // Instantaneous power constraint: P(k) <= p_ref.
+        k_inst = *k_prev * p_budget / p_excess;
+
+        // Predictive energy constraint:
+        //   E[j] = e_now + j*dt*(p_ref - P(k))
+        // For a discharging scenario the minimum energy occurs at j=N.
+        // Require e_now + horizon_s*(p_ref - P(k)) >= E_safe.
+        k_pred = *k_prev * (p_budget + (e_now - CHASSIS_4010_MPC_SAFE_ENERGY) / horizon_s) / p_excess;
+
+        k_opt = (k_inst < k_pred) ? k_inst : k_pred;
+    }
+    else if (p_budget <= 1e-3f)
+    {
+        // The power budget is at or below idle; no sustained motion is possible.
+        k_opt = 0.0f;
+    }
+
+    k_opt = fp32_constrain(k_opt, 0.0f, 1.0f);
+
+    // Quadratic tracking + smoothness cost. The unconstrained optimum is:
+    //   k* = (TRACK_WEIGHT*1 + SMOOTH_WEIGHT*k_prev) / (TRACK_WEIGHT + SMOOTH_WEIGHT)
+    // Clamp to the feasible region k <= k_opt.
+    k_track = (CHASSIS_4010_MPC_TRACKING_COST * 1.0f
+             + CHASSIS_4010_MPC_SMOOTH_COST * (*k_prev))
+            / (CHASSIS_4010_MPC_TRACKING_COST + CHASSIS_4010_MPC_SMOOTH_COST);
+
+    if (k_track > k_opt)
+        k_track = k_opt;
+
+    // Rate limiting for smooth actuator commands.
+    if (k_track > *k_prev + CHASSIS_4010_MPC_MAX_RISE_STEP)
+        k_track = *k_prev + CHASSIS_4010_MPC_MAX_RISE_STEP;
+    if (k_track < *k_prev - CHASSIS_4010_MPC_MAX_FALL_STEP)
+        k_track = *k_prev - CHASSIS_4010_MPC_MAX_FALL_STEP;
+
+    k_track = fp32_constrain(k_track, 0.0f, 1.0f);
+
+    *k_prev = k_track;
+    return k_track;
+}
+#endif // MOTOR_TYPE == POWER_TRAIN_USE_4010_MOTOR
+
 /**
   * @brief          limit the power, mainly limit driver motor current
   * @retval         none
@@ -610,10 +694,8 @@ void chassis_power_control(void)
     }
 #else
     {
-        static fp32 v_cap = 0.0f;   // allowed peak wheel speed [m/s]
-        static uint8_t recovering = 0; // latched low-buffer recovery state (hysteresis)
+        static fp32 k_mpc = 1.0f;   // previous cycle's MPC speed scale
         fp32 v_cmd = 0.0f;          // peak commanded wheel speed this cycle [m/s]
-        fp32 v_now = 0.0f;          // peak actual wheel speed [m/s]
         fp32 p_now = 0.0f;
         fp32 mag;
 
@@ -623,33 +705,20 @@ void chassis_power_control(void)
                    * (fp32)fabs((fp32)motor_chassis[i].feedback_current * MG4010_FEEDBACK_CURRENT_TO_A);
             mag = fabs(pid_out_raw[i]);
             if (mag > v_cmd) v_cmd = mag;
-            mag = fabs(chassis_move.motor_chassis[i].speed);
-            if (mag > v_now) v_now = mag;
         }
 
-        if (chassis_power_buffer < POWER_BUFF_SPIKE_FLOOR)
-            recovering = 1;
-        else if (chassis_power_buffer >= POWER_BUFF_RECOVER)
-            recovering = 0;
-
-        if (!recovering || v_cmd <= v_now || v_cmd < 1e-3f)
+        if (v_cmd < 1e-3f)
         {
-            // healthy buffer, or not accelerating (cruise / decel): pass the command through
-            v_cap = v_cmd;
+            // No commanded motion: reset the MPC state and pass the command through.
+            k_mpc = 1.0f;
             k = 1.0f;
-        }
-        else if (p_now > p_ref)
-        {
-
-            v_cap = v_now;
-            k = v_cap / v_cmd;
         }
         else
         {
-
-            v_cap += CHASSIS_4010_ACCEL_STEP;
-            v_cap = fp32_constrain(v_cap, v_now, v_cmd);
-            k = v_cap / v_cmd;
+            // Predictive governor: choose a global speed scale that maximizes tracking
+            // while keeping the predicted buffer energy above the safety floor over the
+            // MPC horizon. The MPC replaces the previous v_cap / accel-step heuristic.
+            k = mpc_4010_speed_scale(p_ref, p_now, &k_mpc, chassis_power_buffer);
         }
     }
 #endif

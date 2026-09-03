@@ -5,7 +5,7 @@
   * @note
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. Íê³É
+  *  V1.0.0     Dec-26-2018     RM              1. ï¿½ï¿½ï¿½
   *
   @verbatim
   ==============================================================================
@@ -15,7 +15,7 @@
   ****************************(C) COPYRIGHT 2019 DJI****************************
   */
 
-#include "AHRS_MiddleWare.h"
+#include "AHRS_middleware.h"
 #include "AHRS.h"
 #include "arm_math.h"
 #include "main.h"
