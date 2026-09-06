@@ -26,10 +26,10 @@
 
 #include "bsp_imu_pwm.h"
 #include "bsp_spi.h"
-#include "bmi088driver.h"
+#include "BMI088driver.h"
 #include "ist8310driver.h"
 #include "pid.h"
-#include "ahrs.h"
+#include "AHRS.h"
 
 #include "calibrate_task.h"
 #include "detect_task.h"

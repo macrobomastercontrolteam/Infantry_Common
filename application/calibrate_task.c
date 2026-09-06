@@ -64,7 +64,7 @@
 #include "bsp_buzzer.h"
 #include "bsp_flash.h"
 
-#include "can_receive.h"
+#include "CAN_receive.h"
 #include "remote_control.h"
 #include "INS_task.h"
 #include "gimbal_task.h"
